@@ -47,7 +47,7 @@ def create_videopc_params():
         param_dict = {
             'DATA_FOLDER_PATH': data_folder_path,
             'BONSAI_PATH': bonsai_path,
-            'BONSAI_WORKFLOWS_PATH' : bonsai_workflows_path
+            'BONSAI_WORKFLOWS_PATH' : bonsai_workflows_path,
             'BODY_CAM_IDX': body_cam_idx,
             'LEFT_CAM_IDX': left_cam_idx,
             'RIGHT_CAM_IDX': right_cam_idx,
