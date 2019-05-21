@@ -4,7 +4,7 @@
 # @Date: Wednesday, January 16th 2019, 2:03:59 pm
 import logging
 import shutil
-import sys
+import argparse
 from pathlib import Path
 from shutil import ignore_patterns as ig
 
@@ -69,10 +69,11 @@ def main(local_folder: str, remote_folder: str, force: bool = True) -> None:
 
 
 if __name__ == "__main__":
-    # main(local_folder, remote_folder)
-    if len(sys.argv) < 3:
-        print("ERROR: Not enough inputs")
-    elif len(sys.argv) == 3:
-        main(sys.argv[1], sys.argv[2])
-    else:
-        print("ERROR: Too many inputs")
+    parser = argparse.ArgumentParser(
+        description='Transfer files to IBL local server')
+    parser.add_argument(
+        'local_folder', help='Local iblrig_data/Subjects folder')
+    parser.add_argument(
+        'remote_folder', help='Remote iblrig_data/Subjects folder')
+    args = parser.parse_args()
+    main(args.local_folder, args.remote_folder)
