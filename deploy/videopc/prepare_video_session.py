@@ -58,7 +58,8 @@ def create_videopc_params():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Prepare videoPC for session')
+    parser = argparse.ArgumentParser(
+        description='Prepare video PC for ephys recording session')
     parser.add_argument('mouse', help='Mouse name')
     args = parser.parse_args()
 
