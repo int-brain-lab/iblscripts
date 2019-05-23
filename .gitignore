@@ -1,0 +1,9 @@
+__pycache__/
+\.vscode/
+\.sonarlint/
+*.pyc
+docs/_build
+scratch/
+src/
+pybpod-api.log
+iblrig.egg-info/
