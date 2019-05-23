@@ -86,8 +86,45 @@ if __name__ == "__main__":
     # get Bonsai install path
     BONSAI = PARAMS.BONSAI_PATH
     # get idxs for cams
-    body_cam_idx = 0
-    left_cam_idx = 1
-    right_cam_idx = 2
+    body_cam_idx = PARAMS.BODY_CAM_IDX
+    left_cam_idx = PARAMS.LEFT_CAM_IDX
+    right_cam_idx = PARAMS.RIGHT_CAM_IDX
     # Open n start Bonsai view
+    here = Path(__file__).parent
+    BONSAI_WORKFLOWS_PATH
+    os.chdir(str(here / 'Bonsai' / 'Workflows'))
+        Path(sph.VISUAL_STIM_FOLDER) / sph.VISUAL_STIMULUS_TYPE))
+    bns = BONSAI
+    wkfl = VISUAL_STIMULUS_FILE
+
+    evt = "-p:FileNameEvents=" + os.path.join(
+        sph.SESSION_RAW_DATA_FOLDER,
+        "_iblrig_encoderEvents.raw.ssv")
+    pos = "-p:FileNamePositions=" + os.path.join(
+        sph.SESSION_RAW_DATA_FOLDER,
+        "_iblrig_encoderPositions.raw.ssv")
+    itr = "-p:FileNameTrialInfo=" + os.path.join(
+        sph.SESSION_RAW_DATA_FOLDER,
+        "_iblrig_encoderTrialInfo.raw.ssv")
+
+    com = "-p:REPortName=" + sph.COM['ROTARY_ENCODER']
+
+    sync_x = "-p:sync_x=" + str(sph.SYNC_SQUARE_X)
+    sync_y = "-p:sync_y=" + str(sph.SYNC_SQUARE_Y)
+    start = '--start'
+    noeditor = '--noeditor'
+
+    if sph.BONSAI_EDITOR:
+        editor = start
+    elif not sph.BONSAI_EDITOR:
+        editor = noeditor
+
+    if 'habituation' in sph.PYBPOD_PROTOCOL:
+        subprocess.Popen(
+            [bns, wkfl, editor, evt, itr, com, sync_x, sync_y])
+    else:
+        subprocess.Popen(
+            [bns, wkfl, editor, pos, evt, itr, com, sync_x, sync_y])
+    time.sleep(3)
+    os.chdir(here)
     # Open don't start Bonsai recording
