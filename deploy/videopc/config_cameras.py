@@ -18,7 +18,10 @@ CAM_LIST = SYSTEM.GetCameras()
 NUM_CAMERAS = CAM_LIST.GetSize()
 
 
-def enable_trigger_mode(cam_list):
+def enable_trigger_mode(cam_list=None):
+    if cam_list is None:
+        cam_list = CAM_LIST
+
     for i, cam in enumerate(cam_list):
         cam.Init()
         nodemap = cam.GetNodeMap()
@@ -29,7 +32,10 @@ def enable_trigger_mode(cam_list):
         print('Trigger mode of camera %d enabled' % i)
 
 
-def disable_trigger_mode(cam_list):
+def disable_trigger_mode(cam_list=None):
+    if cam_list is None:
+        cam_list = CAM_LIST
+
     for i, cam in enumerate(cam_list):
         cam.Init()
         nodemap = cam.GetNodeMap()
@@ -53,8 +59,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
     if args.l:
-        print(CAM_LIST)
+        print(f"Found {CAM_LIST.GetSize()} cameras \n{CAM_LIST}")
     if args.enable_trig:
-        enable_trigger_mode(CAM_LIST)
+        enable_trigger_mode()
     elif args.disable_trig:
-        disable_trigger_mode(CAM_LIST)
+        disable_trigger_mode()

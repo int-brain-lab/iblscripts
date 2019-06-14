@@ -6,6 +6,7 @@ import argparse
 import datetime
 import json
 from pathlib import Path
+import subprocess
 
 import ibllib.io.params as params
 from alf.folders import next_num_folder
@@ -29,14 +30,10 @@ def create_videopc_params():
         data_folder_path = input(
             r"Where's your 'Subjects' data folder?" +
             default.format(r"C:\iblrig_data\Subjects")) or r"C:\iblrig_data\Subjects"
-        bonsai_path = input(
-            r"Where's Bonsai64.exe? " +
-            default.format(r"C:\iblrig\Bonsai2.3\Bonsai64.exe")
-        ) or r"C:\iblrig\Bonsai2.3\Bonsai64.exe"
-        bonsai_workflows_path = input(
-            r"Where's the videopc workflows folder? " +
-            default.format(r"C:\iblrig\Bonsai2.3\Bonsai64.exe")
-        ) or r"C:\iblrig\Bonsai2.3\Bonsai64.exe"
+        iblscripts_folder_path = input(
+            r"Where's the iblscripts folder? " +
+            default.format(r"C:\ibscripts")
+        ) or r"C:\ibscripts"
         body_cam_idx = input(
             "Please select the index of the BODY camera" + default.format(0)) or 0
         left_cam_idx = input(
@@ -46,8 +43,7 @@ def create_videopc_params():
 
         param_dict = {
             'DATA_FOLDER_PATH': data_folder_path,
-            'BONSAI_PATH': bonsai_path,
-            'BONSAI_WORKFLOWS_PATH' : bonsai_workflows_path,
+            'IBLSCRIPTS_FOLDER_PATH': iblscripts_folder_path,
             'BODY_CAM_IDX': body_cam_idx,
             'LEFT_CAM_IDX': left_cam_idx,
             'RIGHT_CAM_IDX': right_cam_idx,
@@ -57,17 +53,15 @@ def create_videopc_params():
         return
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='Prepare video PC for ephys recording session')
-    parser.add_argument('mouse', help='Mouse name')
-    args = parser.parse_args()
-
-    # get from config file?
+def main(mouse):
+    SUBJECT_NAME = mouse
     PARAMS = load_videopc_params()
     DATA_FOLDER = Path(PARAMS.DATA_FOLDER_PATH)
-    # get from user
-    SUBJECT_NAME = args.mouse
+
+    BONSAI = Path(PARAMS.IBLSCRIPTS_FOLDER_PATH) / 'deploy' / 'videopc' / 'bonsai' / 'bin' / 'Bonsai64.exe'
+    BONSAI_WORKFLOWS_PATH = BONSAI.parent.parent / 'workflows'
+    STREAM_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_stream.bonsai'
+    RECORD_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_record.bonsai'
 
     DATE = datetime.datetime.now().date().isoformat()
     NUM = next_num_folder(DATA_FOLDER / SUBJECT_NAME / DATE)
@@ -77,54 +71,33 @@ if __name__ == "__main__":
     print(f"Created {SESSION_FOLDER}")
     # Force trigger mode on all cams
     import ibllib.pipes.videopc.config_cameras as cams
-    cams.enable_trigger_mode(cams.CAM_LIST)
+    cams.enable_trigger_mode()
+    print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - ON")
     # Create filenames to call Bonsai
     filename = '_iblrig_{}Camera.raw.avi'
-    body_fname = SESSION_FOLDER / filename.format('body')
-    left_fname = SESSION_FOLDER / filename.format('left')
-    right_fname = SESSION_FOLDER / filename.format('right')
-    # get Bonsai install path
-    BONSAI = PARAMS.BONSAI_PATH
-    # get idxs for cams
-    body_cam_idx = PARAMS.BODY_CAM_IDX
-    left_cam_idx = PARAMS.LEFT_CAM_IDX
-    right_cam_idx = PARAMS.RIGHT_CAM_IDX
     # Open n start Bonsai view
-    here = Path(__file__).parent
-    BONSAI_WORKFLOWS_PATH
-    os.chdir(str(here / 'Bonsai' / 'Workflows'))
-        Path(sph.VISUAL_STIM_FOLDER) / sph.VISUAL_STIMULUS_TYPE))
-    bns = BONSAI
-    wkfl = VISUAL_STIMULUS_FILE
+    body = "-p:FileNameBody=" + SESSION_FOLDER / filename.format('body')
+    left = "-p:FileNameLeft=" + SESSION_FOLDER / filename.format('left')
+    right = "-p:FileNameRight=" + SESSION_FOLDER / filename.format('right')
 
-    evt = "-p:FileNameEvents=" + os.path.join(
-        sph.SESSION_RAW_DATA_FOLDER,
-        "_iblrig_encoderEvents.raw.ssv")
-    pos = "-p:FileNamePositions=" + os.path.join(
-        sph.SESSION_RAW_DATA_FOLDER,
-        "_iblrig_encoderPositions.raw.ssv")
-    itr = "-p:FileNameTrialInfo=" + os.path.join(
-        sph.SESSION_RAW_DATA_FOLDER,
-        "_iblrig_encoderTrialInfo.raw.ssv")
+    bodyidx = "-p:BodyCameraIndex=" + PARAMS.BODY_CAM_IDX
+    leftidx = "-p:LeftCameraIndex=" + PARAMS.LEFT_CAM_IDX
+    rightidx = "-p:RightCameraIndex=" + PARAMS.RIGHT_CAM_IDX
 
-    com = "-p:REPortName=" + sph.COM['ROTARY_ENCODER']
-
-    sync_x = "-p:sync_x=" + str(sph.SYNC_SQUARE_X)
-    sync_y = "-p:sync_y=" + str(sph.SYNC_SQUARE_Y)
     start = '--start'
-    noeditor = '--noeditor'
+    noboot = '--no-boot'
+    # Open the streaming file and start
+    subprocess.call([str(BONSAI), str(STREAM_FILE), start, noboot,
+                     bodyidx, leftidx, rightidx])
+    # Open the record_file no start
+    subprocess.call([str(BONSAI), str(RECORD_FILE), noboot, body, left, right,
+                     bodyidx, leftidx, rightidx])
 
-    if sph.BONSAI_EDITOR:
-        editor = start
-    elif not sph.BONSAI_EDITOR:
-        editor = noeditor
 
-    if 'habituation' in sph.PYBPOD_PROTOCOL:
-        subprocess.Popen(
-            [bns, wkfl, editor, evt, itr, com, sync_x, sync_y])
-    else:
-        subprocess.Popen(
-            [bns, wkfl, editor, pos, evt, itr, com, sync_x, sync_y])
-    time.sleep(3)
-    os.chdir(here)
-    # Open don't start Bonsai recording
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description='Prepare video PC for ephys recording session')
+    parser.add_argument('mouse', help='Mouse name')
+    args = parser.parse_args()
+
+    main(args.mouse)
