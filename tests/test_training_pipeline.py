@@ -7,8 +7,8 @@ import shutil
 import unittest
 from pathlib import Path
 
-import alf.one_iblrig as iblrig_pipeline
-from alf.transfer_rig_data import main as transfer
+import ibllib.pipes.experimental_data as iblrig_pipeline
+from ibllib.pipes.transfer_rig_data import main as transfer
 from oneibl.one import ONE
 
 
