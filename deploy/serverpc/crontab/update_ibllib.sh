@@ -1,11 +1,11 @@
 #!/bin/bash
 set -e
 # first step is to update iblscripts
-cd ~/Documents/PYTHON/iblscripts/deploy/serverpc/crontab
+cd ~/Documents/PYTHON/iblscripts
 git fetch --all
 git checkout master
-git reset --hard origin/master
+git reset --hard
+git pull
 # second step is to update ibllib
 source ~/Documents/PYTHON/envs/iblenv/bin/activate
 pip install --upgrade ibllib
-# pip install ibllib==1.0.1
