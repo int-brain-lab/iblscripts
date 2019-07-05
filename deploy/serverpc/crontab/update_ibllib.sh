@@ -7,4 +7,5 @@ git checkout master
 git reset --hard origin/master
 # second step is to update ibllib
 source ~/Documents/PYTHON/envs/iblenv/bin/activate
-pip install --upgrade --upgrade-strategy only-if-needed ibllib
+pip install --upgrade ibllib
+# pip install ibllib==1.0.1
