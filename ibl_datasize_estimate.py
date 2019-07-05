@@ -39,6 +39,7 @@ Tb['training_videos'] = n_ses_per_year * SIZE_TRAINING_VIDEO_HOURLY_GB * TRAININ
 Tb['training_alf'] = SIZE_ALF_DATA_PER_TRAINING_SESSION_GB * n_ses_per_year / 1024
 
 # Ephys
+n_mice_per_year = np.round(365 / TRAINING_CYCLE_DURATION_DAYS * N_LABS) * N_MICE_PER_BATCH
 n_mice_rec_per_year = RECORDED_MICE_PER_BATCH * np.round(365 / TRAINING_CYCLE_DURATION_DAYS * N_LABS)  # IBL mice recorded per year
 n_rec_per_year = RECORDINGS_PER_MOUSE * n_mice_rec_per_year
 # raw ephys
@@ -64,9 +65,11 @@ Tb['histology'] = n_mice_rec_per_year * histology_size_per_mouse_Gb / 1024
 
 
 print('\n Throughput')
+print('\t', str(n_mice_per_year), ' mice per year')
 print('\t', str(n_ses_per_year), ' training sessions per year')
 print('\t', n_rec_per_year, ' EPHYS recording sessions in a year')
 print('\t', n_rec_per_year_caim, ' CAIM recording sessions in a year')
+
 
 tot_train = sum([Tb[tb] for tb in Tb if ('training' in tb and Tb[tb] is not None)])
 print('\n Training', np.round(tot_train))
@@ -80,7 +83,7 @@ print('\t', np.round(Tb['ephys_raw']), ' Tb of recording neuropixel data')
 print('\t', np.round(Tb['ephys_alf']), ' Tb of ephys ALF data')
 
 tot_caim = sum([Tb[tb] for tb in Tb if ('caim' in tb and Tb[tb] is not None)])
-print('\n Calcium Imaging:', np.round(tot_rec))
+print('\n Calcium Imaging:', np.round(tot_caim))
 print('\t', np.round(Tb['caim_videos']), ' Tb of caim videos')
 print('\t', np.round(Tb['caim_raw']), ' Tb of caim data')
 print('\t', np.round(Tb['caim_alf']), ' Tb of caim ALF data')
@@ -90,12 +93,3 @@ print('\n Histology:', np.round(Tb['histology']))
 
 tot = sum([Tb[tb] for tb in Tb if Tb[tb] is not None])
 print('\n TOTAL', np.round(tot))
-
-
-# Training
-# [18270 28188]  training sessions per year
-# [35.68359375 55.0546875 ] Tb of training videos
-#  Recording
-# [ 520. 1404.]  IBL recording sessions in a year
-# [ 6.09375 32.90625]  Tb of recording videos
-# [ 83.90285075 226.53769702]  Tb of recording neuropixel data

@@ -1,3 +1,13 @@
+"""
+Entry point to system commands for IBL pipeline.
+
+>>> python experimental_data.py extract /path/to/my/session/ [--dry=True]
+>>> python experimental_data.py register /path/to/my/session/ [--dry=True]
+>>> python experimental_data.py create /path/to/my/session/ [--dry=True]
+>>> python experimental_data.py compress_video /path/to/my/session/ [--dry=True --count=4]
+>>> python experimental_data.py compress_audio /path/to/my/session/ [--dry=True --count=5]
+"""
+
 import argparse
 import logging
 from pathlib import Path
