@@ -2,7 +2,7 @@
 set -e
 # first step is to update iblscripts
 cd ~/Documents/PYTHON/iblscripts/deploy/serverpc/crontab
-git fetch -all
+git fetch --all
 git checkout master
 git reset --hard origin/master
 # second step is to update ibllib
