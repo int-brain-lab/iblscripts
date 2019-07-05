@@ -3,7 +3,7 @@ from pathlib import Path
 import shutil
 
 from ibllib.ephys import ephysqc
-from ibllib.io import alf
+import alf.io as alf
 
 
 class TestFlagOperations(unittest.TestCase):

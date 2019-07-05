@@ -4,11 +4,13 @@
 # @Date: Thursday, May 2nd 2019, 5:41:56 pm
 import argparse
 import datetime
-import json
 from pathlib import Path
+import subprocess
 
 import ibllib.io.params as params
 from alf.folders import next_num_folder
+import config_cameras as cams
+
 
 VIDEOPC_PARAMS_FILE = Path(params.getfile('videopc_params'))
 
@@ -29,14 +31,6 @@ def create_videopc_params():
         data_folder_path = input(
             r"Where's your 'Subjects' data folder?" +
             default.format(r"C:\iblrig_data\Subjects")) or r"C:\iblrig_data\Subjects"
-        bonsai_path = input(
-            r"Where's Bonsai64.exe? " +
-            default.format(r"C:\iblrig\Bonsai2.3\Bonsai64.exe")
-        ) or r"C:\iblrig\Bonsai2.3\Bonsai64.exe"
-        bonsai_workflows_path = input(
-            r"Where's the videopc workflows folder? " +
-            default.format(r"C:\iblrig\Bonsai2.3\Bonsai64.exe")
-        ) or r"C:\iblrig\Bonsai2.3\Bonsai64.exe"
         body_cam_idx = input(
             "Please select the index of the BODY camera" + default.format(0)) or 0
         left_cam_idx = input(
@@ -46,8 +40,6 @@ def create_videopc_params():
 
         param_dict = {
             'DATA_FOLDER_PATH': data_folder_path,
-            'BONSAI_PATH': bonsai_path,
-            'BONSAI_WORKFLOWS_PATH' : bonsai_workflows_path,
             'BODY_CAM_IDX': body_cam_idx,
             'LEFT_CAM_IDX': left_cam_idx,
             'RIGHT_CAM_IDX': right_cam_idx,
@@ -57,17 +49,16 @@ def create_videopc_params():
         return
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='Prepare video PC for ephys recording session')
-    parser.add_argument('mouse', help='Mouse name')
-    args = parser.parse_args()
-
-    # get from config file?
+def main(mouse):
+    SUBJECT_NAME = mouse
     PARAMS = load_videopc_params()
     DATA_FOLDER = Path(PARAMS.DATA_FOLDER_PATH)
-    # get from user
-    SUBJECT_NAME = args.mouse
+    VIDEOPC_FOLDER_PATH = Path(__file__).parent
+
+    BONSAI = VIDEOPC_FOLDER_PATH / 'bonsai' / 'bin' / 'Bonsai64.exe'
+    BONSAI_WORKFLOWS_PATH = BONSAI.parent.parent / 'workflows'
+    STREAM_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_stream.bonsai'
+    RECORD_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_record.bonsai'
 
     DATE = datetime.datetime.now().date().isoformat()
     NUM = next_num_folder(DATA_FOLDER / SUBJECT_NAME / DATE)
@@ -76,18 +67,33 @@ if __name__ == "__main__":
     SESSION_FOLDER.mkdir(parents=True, exist_ok=True)
     print(f"Created {SESSION_FOLDER}")
     # Force trigger mode on all cams
-    import ibllib.pipes.videopc.config_cameras as cams
-    cams.enable_trigger_mode(cams.CAM_LIST)
+    cams.enable_trigger_mode()
+    print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - ON")
     # Create filenames to call Bonsai
     filename = '_iblrig_{}Camera.raw.avi'
-    body_fname = SESSION_FOLDER / filename.format('body')
-    left_fname = SESSION_FOLDER / filename.format('left')
-    right_fname = SESSION_FOLDER / filename.format('right')
-    # get Bonsai install path
-    BONSAI = PARAMS.BONSAI_PATH
-    # get idxs for cams
-    body_cam_idx = 0
-    left_cam_idx = 1
-    right_cam_idx = 2
     # Open n start Bonsai view
-    # Open don't start Bonsai recording
+    body = "-p:FileNameBody=" + SESSION_FOLDER / filename.format('body')
+    left = "-p:FileNameLeft=" + SESSION_FOLDER / filename.format('left')
+    right = "-p:FileNameRight=" + SESSION_FOLDER / filename.format('right')
+
+    bodyidx = "-p:BodyCameraIndex=" + PARAMS.BODY_CAM_IDX
+    leftidx = "-p:LeftCameraIndex=" + PARAMS.LEFT_CAM_IDX
+    rightidx = "-p:RightCameraIndex=" + PARAMS.RIGHT_CAM_IDX
+
+    start = '--start'  # --start-no-debug
+    noboot = '--no-boot'
+    # Open the streaming file and start
+    subprocess.call([str(BONSAI), str(STREAM_FILE), start, noboot,
+                     bodyidx, leftidx, rightidx])
+    # Open the record_file no start
+    subprocess.call([str(BONSAI), str(RECORD_FILE), noboot, body, left, right,
+                     bodyidx, leftidx, rightidx])
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description='Prepare video PC for ephys recording session')
+    parser.add_argument('mouse', help='Mouse name')
+    args = parser.parse_args()
+
+    main(args.mouse)
