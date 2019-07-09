@@ -28,7 +28,7 @@
       </Expression>
       <Expression xsi:type="Combinator">
         <Combinator xsi:type="q2:Flip">
-          <q2:Mode>Vertical</q2:Mode>
+          <q2:Mode>Both</q2:Mode>
         </Combinator>
       </Expression>
       <Expression xsi:type="ExternalizedMapping">
