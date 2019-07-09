@@ -5,6 +5,10 @@ __pycache__/
 docs/_build
 scratch/
 src/
-dlc/
+eye-mic-2019-04-16
+nostril-mic-2019-04-22
+paws-mic-2019-04-26
+tongue-mic-2019-04-26
+trainingRig-mic-2019-02-11
 pybpod-api.log
 iblrig.egg-info/
