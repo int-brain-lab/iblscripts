@@ -2,4 +2,4 @@ __pycache__/
 \.vscode/
 \.sonarlint/
 *.pyc
-deploy/videopc/bonsai/bin/
+deploy/videopc/bonsai/bin/ 
