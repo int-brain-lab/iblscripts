@@ -2,9 +2,4 @@ __pycache__/
 \.vscode/
 \.sonarlint/
 *.pyc
-docs/_build
-scratch/
-src/
-dlc/
-pybpod-api.log
-iblrig.egg-info/
+deploy/videopc/bonsai/bin/
