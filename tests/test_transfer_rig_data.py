@@ -5,6 +5,7 @@ from pathlib import Path
 import ibllib.io.flags as flags
 from ibllib.pipes import transfer_rig_data
 
+
 class TestTransferRigData(unittest.TestCase):
     def setUp(self):
         self.tmp_dir = tempfile.TemporaryDirectory()
