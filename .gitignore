@@ -2,6 +2,7 @@ __pycache__/
 \.vscode/
 \.sonarlint/
 *.pyc
+deploy/videopc/bonsai/bin/ 
 docs/_build
 scratch/
 src/

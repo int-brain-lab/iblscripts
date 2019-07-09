@@ -71,10 +71,14 @@ def main(mouse):
     print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - ON")
     # Create filenames to call Bonsai
     filename = '_iblrig_{}Camera.raw.avi'
+    filenamets = '_iblrig_{}Camera.raw_timestamps.ssv'
     # Open n start Bonsai view
-    body = "-p:FileNameBody=" + SESSION_FOLDER / filename.format('body')
-    left = "-p:FileNameLeft=" + SESSION_FOLDER / filename.format('left')
-    right = "-p:FileNameRight=" + SESSION_FOLDER / filename.format('right')
+    body = "-p:FileNameBody=" + str(SESSION_FOLDER / filename.format('body'))
+    left = "-p:FileNameLeft=" + str(SESSION_FOLDER / filename.format('left'))
+    right = "-p:FileNameRight=" + str(SESSION_FOLDER / filename.format('right'))
+    bodyts = "-p:FileNameBodyTimestamps=" + str(SESSION_FOLDER / filenamets.format('body'))
+    leftts = "-p:FileNameLeftTimestamps=" + str(SESSION_FOLDER / filenamets.format('left'))
+    rightts = "-p:FileNameRightTimestamps=" + str(SESSION_FOLDER / filenamets.format('right'))
 
     bodyidx = "-p:BodyCameraIndex=" + PARAMS.BODY_CAM_IDX
     leftidx = "-p:LeftCameraIndex=" + PARAMS.LEFT_CAM_IDX
@@ -87,7 +91,7 @@ def main(mouse):
                      bodyidx, leftidx, rightidx])
     # Open the record_file no start
     subprocess.call([str(BONSAI), str(RECORD_FILE), noboot, body, left, right,
-                     bodyidx, leftidx, rightidx])
+                     bodyidx, leftidx, rightidx, bodyts, leftts, rightts])
 
 
 if __name__ == "__main__":
