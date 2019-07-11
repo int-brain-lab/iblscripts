@@ -1,4 +1,12 @@
+"""
+Entry point to system commands for IBL Videos pipeline.
+
+>>> python video_pipelines.py create_flags /mnt/s0/Data/Subjects/ --dry=True
+>>> python experimental_data.py dlc_training /mnt/s0/Data/Subjects/ [--dry=True --count=1]
+"""
+
 from pathlib import Path
+import argparse
 import subprocess
 import logging
 import time
@@ -10,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 import deeplabcut
-
+import ibllib.io
 
 logger = logging.getLogger('ibllib')
 ROIs = ('eye', 'nostril', 'tongue', 'paws',)
@@ -84,7 +92,22 @@ def _get_crop_window(df_crop, roi_name):
     return p[roi_name]
 
 
-def main(file_mp4, force=False):
+def create_flags(root_path, dry=False):
+    # look for all mp4 raw video files
+    for file_mp4 in root_path.rglob('_iblrig_*Camera.raw.mp4'):
+        ses_path = file_mp4.parents[1]
+        file_label = file_mp4.stem.split('.')[0].split('_')[-1]
+        # skip flag creation if there is a file named _ibl_*Camera.dlc.npy
+        if (ses_path / 'alf' / f'_ibl_{file_label}.dlc.npy').exists():
+            continue
+        if not dry:
+            ibllib.io.flags.write_flag_file(ses_path / 'dlc_training.flag',
+                                            file_list=[str(file_mp4.relative_to(ses_path))],
+                                            clobber=True)
+        logger.info(str(ses_path / 'dlc_training.flag'))
+
+
+def dlc_training(file_mp4, force=False):
     """
     Run a video through the IBL behaviour video pipeline using DeepLabCut
 
@@ -93,7 +116,7 @@ def main(file_mp4, force=False):
     2- run DLC to detect ROIS: 'eye', 'nostril', 'tongue', 'paws'
     3- crop videos for each ROIs using ffmpeg, subsample paws videos
     4- run DLC specialized networks on each ROIs
-    5- output ALF dataset for the raw DLC output
+    5- output ALF dataset for the raw DLC output in ./session/alf/_ibl_leftCamera.dlc.json
 
     # This is a directory tree of the temporary files created
     # ./raw_video_data/dlc_tmp/  # tpath: temporary path
@@ -114,7 +137,7 @@ def main(file_mp4, force=False):
     file_label = file_mp4.stem.split('.')[0].split('_')[-1]
     file_alf_dlc = file_mp4.parents[1] / 'alf' / f'_ibl_{file_label}.dlc.npy'
 
-    path_dlc = Path('/home/olivier/Documents/PYTHON/iblscripts/deploy/serverpc/dlc')
+    path_dlc = Path.home() / 'Documents/PYTHON/iblscripts/deploy/serverpc/dlc'
     _set_dlc_paths(path_dlc)
     dlc_params = {'roi_detect': path_dlc / 'trainingRig-mic-2019-02-11' / 'config.yaml',
                   'eye': path_dlc / 'eye-mic-2019-04-16' / 'config.yaml',
@@ -167,6 +190,7 @@ def main(file_mp4, force=False):
             pop = _run_command(crop_command.format(file_in=file_mp4,
                                                    file_out=tfile[roi],
                                                    w=whxy[roi]))
+            logger.info('cropping ' + roi + ' video')
             if pop['process'].returncode != 0:
                 logger.error(f'DLC 3/5: Cropping ffmpeg failed for ROI {roi}, file: {file_mp4}')
         # for paws spatial downsampling after cropping in order to speed up processing x4
@@ -214,19 +238,58 @@ def main(file_mp4, force=False):
         np.save(file_alf_dlc, A)
         with open(file_meta_data, 'w+') as fid:
             fid.write(json.dumps({'columns': columns}, indent=1))
+        return file_alf_dlc, file_meta_data
 
     # run steps one by one
     s01_subsample()
     df_crop = s02_detect_rois()
     whxy = s03_crop_videos()
     s04_run_dlc_specialized_neworks()
-    s05_extract_dlc_alf()
+    files_alf = s05_extract_dlc_alf()
     shutil.rmtree(tpath)  # and then clean up
+    return files_alf
 
 
-if __name__ == '__main__':
-    start_time = time.time()
-    file_mp4 = Path('/mnt/s0/Data/Subjects/ZM_1374/2019-03-23/001/raw_video_data/'
-                    '_iblrig_leftCamera.raw.mp4')
-    main(file_mp4)
-    print(time.time() - start_time)
+if __name__ == "__main__":
+    ALLOWED_ACTIONS = ['dlc_training', 'create_flags']
+    parser = argparse.ArgumentParser(description='Description of your program')
+    parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
+    parser.add_argument('folder', help='A Folder containing one or several sessions')
+    parser.add_argument('--dry', help='Dry Run', required=False, default=False, type=str)
+    parser.add_argument('--count', help='Max number of sessions to run this on',
+                        required=False, default=10, type=int)
+    args = parser.parse_args()  # returns data from the options specified (echo)
+    if args.dry and args.dry.lower() == 'false':
+        args.dry = False
+    assert(Path(args.folder).exists())
+    if args.action == 'dlc_training':
+        main_path = Path(args.folder)
+        c = 0
+        # look for dlc training flag files
+        for flag_file in Path(main_path).rglob('dlc_training.flag'):
+            for relative_path in ibllib.io.flags.read_flag_file(flag_file):
+                video_file = flag_file.parent / relative_path
+                t0 = time.time()
+                c += 1
+                # stop the loop if the counter is exhausted
+                if c > args.count:
+                    break
+                logger.info(str(video_file))
+                # dry run only prints and exit
+                if args.dry:
+                    continue
+                # run the main job
+                files_alf = dlc_training(video_file)
+                # remove the dlc_compute flag
+                flag_file.unlink()
+                # create the register_me flag
+                file_list = [str(fil.relative_to(files_alf[0].parents[1])) for fil in files_alf]
+                ibllib.io.flags.write_flag_file(files_alf[0].parents[1] / 'register_me.flag',
+                                                file_list=file_list)
+                t1 = time.time()
+                logger.info(str(video_file) + 'Completed in ' + str(int(t1 - t0)) + ' secs')
+
+    elif args.action == 'create_flags':
+        create_flags(Path(args.folder), dry=args.dry)
+    else:
+        logger.error('Allowed actions are: ' + ', '.join(ALLOWED_ACTIONS))
