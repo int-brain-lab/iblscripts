@@ -26,8 +26,8 @@
           <q2:Suffix>None</q2:Suffix>
           <q2:Buffered>true</q2:Buffered>
           <q2:Overwrite>true</q2:Overwrite>
-          <q2:FourCC>DIB </q2:FourCC>
-          <q2:FrameRate>150</q2:FrameRate>
+          <q2:FourCC>FMP4</q2:FourCC>
+          <q2:FrameRate>60</q2:FrameRate>
           <q2:FrameSize>
             <q2:Width>0</q2:Width>
             <q2:Height>0</q2:Height>
@@ -76,7 +76,7 @@
           <q2:Buffered>true</q2:Buffered>
           <q2:Overwrite>true</q2:Overwrite>
           <q2:FourCC>FMP4</q2:FourCC>
-          <q2:FrameRate>60</q2:FrameRate>
+          <q2:FrameRate>150</q2:FrameRate>
           <q2:FrameSize>
             <q2:Width>0</q2:Width>
             <q2:Height>0</q2:Height>
