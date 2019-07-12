@@ -13,6 +13,8 @@ import time
 import yaml
 import shutil
 import json
+from dateutil.parser import parse
+import re
 
 import numpy as np
 import pandas as pd
@@ -24,9 +26,29 @@ logger = logging.getLogger('ibllib')
 ROIs = ('eye', 'nostril', 'tongue', 'paws',)
 
 
+def _order_glob_by_session_date(flag_files):
+    """
+    Given a list/generator of PurePaths below an ALF session folder, outtput a list of of PurePaths
+    sorted by date in reverse order.
+    :param flag_files: list/generator of PurePaths
+    :return: list of PurePaths
+    """
+    flag_files = list(flag_files)
+
+    def _fdate(fl):
+        dat = [parse(fp) for fp in fl.parts if re.match(r'\d{4}-\d{2}-\d{2}', fp)]
+        if dat:
+            return dat[0]
+        else:
+            return parse('1999-12-12')
+
+    t = [_fdate(fil) for fil in flag_files]
+    return [f for _, f in sorted(zip(t, flag_files), reverse=True)]
+
+
 def _set_dlc_paths(path_dlc):
     """
-    OMG! Hard-coded paths everywhere !
+    OMG! Hard-coded paths everywhere ! Replace hard-coded paths.
     """
     for yaml_file in path_dlc.rglob('config.yaml'):
         # read the yaml config file
@@ -94,7 +116,7 @@ def _get_crop_window(df_crop, roi_name):
 
 def create_flags(root_path, dry=False):
     # look for all mp4 raw video files
-    for file_mp4 in root_path.rglob('_iblrig_*Camera.raw.mp4'):
+    for file_mp4 in root_path.rglob('_iblrig_leftCamera.raw.mp4'):
         ses_path = file_mp4.parents[1]
         file_label = file_mp4.stem.split('.')[0].split('_')[-1]
         # skip flag creation if there is a file named _ibl_*Camera.dlc.npy
@@ -266,7 +288,10 @@ if __name__ == "__main__":
         main_path = Path(args.folder)
         c = 0
         # look for dlc training flag files
-        for flag_file in Path(main_path).rglob('dlc_training.flag'):
+        flag_files = Path(main_path).rglob('dlc_training.flag')
+        # sort them according to the session date, so the more recent gets processed first
+        flag_files = _order_glob_by_session_date(flag_files)
+        for flag_file in flag_files:
             for relative_path in ibllib.io.flags.read_flag_file(flag_file):
                 video_file = flag_file.parent / relative_path
                 t0 = time.time()
