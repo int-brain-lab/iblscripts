@@ -1,7 +1,7 @@
 """
 Entry point to system commands for IBL pipeline.
 
->>> python re_extract.py /mnt/s0/Data/Subjects/ [--dry=True --first=2019-07-10 --last=2019-07-11]
+>>> python re_register.py /mnt/s0/Data/Subjects/ [--dry=True --first=2019-07-10 --last=2019-07-11]
 """
 
 # Per dataset type
@@ -11,7 +11,7 @@ import re
 import argparse
 
 from ibllib.io import flags
-from ibllib.pipes.experimental_data import extract
+from ibllib.pipes.experimental_data import register
 
 dry = True
 
@@ -54,7 +54,8 @@ if __name__ == "__main__":
     ses_path = Path(args.folder)
 
     # compute the date range including both bounds
-    files_error, files_error_date = _order_glob_by_session_date(ses_path.rglob('extract_me.error'))
+    files_error, files_error_date = _order_glob_by_session_date(ses_path.rglob(
+        'register_me.error'))
     drange = [parse(args.first), parse(args.last)]
 
     for file_error, date in zip(files_error, files_error_date):
@@ -64,5 +65,5 @@ if __name__ == "__main__":
         if args.dry:
             continue
         file_error.unlink()
-        flags.create_extract_flags(file_error.parent, force=True)
-        extract(file_error.parent)
+        flags.create_register_flags(file_error.parent, force=True)
+        register(file_error.parent)
