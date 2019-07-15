@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 
 import deeplabcut
-import ibllib.io
+import ibllib.io.flags
 
 logger = logging.getLogger('ibllib')
 ROIs = ('eye', 'nostril', 'tongue', 'paws',)
