@@ -61,7 +61,8 @@ def rerun_compress_video(ses_path, drange, dry=True):
             continue
         file_error.unlink()
         flags.create_compress_flags(file_error.parents[1])
-    logger.warning("Flags created, to compress videos, launch the compress script from deploy")
+    if not dry:
+        logger.warning("Flags created, to compress videos, launch the compress script from deploy")
 
 
 def _order_glob_by_session_date(flag_files):
@@ -87,6 +88,7 @@ def _order_glob_by_session_date(flag_files):
 if __name__ == "__main__":
     ALLOWED_ACTIONS = ['extract', 'register', 'compress_video']
     parser = argparse.ArgumentParser(description='Description of your program')
+    parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
     parser.add_argument('folder', help='A Folder containing a session')
     parser.add_argument('--dry', help='Dry Run', required=False, default=False, type=str)
     parser.add_argument('--first', help='yyyy-mm-dd date', required=False,
@@ -100,12 +102,12 @@ if __name__ == "__main__":
     assert(Path(args.folder).exists())
 
     date_range = [parse(args.first), parse(args.last)]
-
+    ses_path = Path(args.folder)
     if args.action == 'extract':
-        rerun_extract(args.folder, date_range, dry=args.dry)
+        rerun_extract(ses_path, date_range, dry=args.dry)
     elif args.action == 'register':
-        rerun_register(args.folder, date_range, dry=args.dry)
+        rerun_register(ses_path, date_range, dry=args.dry)
     elif args.action == 'compress_video':
-        rerun_compress_video(args.folder, date_range, dry=args.dry)
+        rerun_compress_video(ses_path, date_range, dry=args.dry)
     else:
         logger.error('Allowed actions are: ' + ', '.join(ALLOWED_ACTIONS))
