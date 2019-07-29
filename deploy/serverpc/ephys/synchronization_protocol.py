@@ -1,18 +1,31 @@
-import ibllib.dsp as dsp
-import ibllib.io.spikeglx
-import ibllib.io.extractors.ephys_fpga
-import cv2  # pip install opencv-python
-import csv
-import numpy as np
+from pathlib import Path
 from datetime import datetime
-import ibllib.plots
-import ibllib.io.extractors.ephys_fpga as ephys_fpga
+import csv
+import logging
+import argparse
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.cbook import flatten
-from pathlib import Path
-plt.ion()
 
-'''
+import cv2  # pip install opencv-python
+
+import alf.io
+import ibllib.dsp as dsp
+import ibllib.io.spikeglx
+import ibllib.plots
+import ibllib.io.extractors.ephys_fpga as ephys_fpga
+
+_logger = logging.getLogger('ibllib')
+
+"""
+Entry point to system commands for IBL pipeline.
+Select your environment and run the
+>>> cd ~/Documents/PYTHON/iblscripts/deploy/serverpc/ephys/
+>>> source ~/Documents/PYTHON/envs/iblenv/bin/activate
+>>> python synchronization_protocol.py /datadisk/Local/20190710_sync_test
+
+pip install opencv-python to install cv2 dependency on top of ibl environment
+
 This script test temporal synchronisation of
 the bpod, cameras and neuropixels probes in saline.
 There are 500 square pulses coming from the fpga,
@@ -29,11 +42,33 @@ The script assumes Guido's folder structure.
 Include '_iblrig_leftCamera.raw.avi' in vids;
 (I took it out as this video was faulty in
 Guido's data).
-'''
 
-show_plots = True  # of histograms and wavefronts
-sync_test_folder = \
-    '/home/mic/Downloads/FlatIron/20190710_sync_test_CCU/20190710_sync_test'
+This is the expected input tree for the sync check to run properly:
+Pay particular attention to the naming of ephys files.
+/datadisk/Local/20190710_sync_test
+├── bpod
+│   ├── _iblrig_taskCodeFiles.raw.zip
+│   ├── _iblrig_taskData.raw.jsonable
+│   └── _iblrig_taskSettings.raw.json
+├── ephys
+│   ├── 20190709_sync_left_g0_t0.imec.ap.bin
+│   ├── 20190709_sync_left_g0_t0.imec.ap.meta
+│   ├── 20190709_sync_left_g0_t0.imec.lf.bin
+│   ├── 20190709_sync_left_g0_t0.imec.lf.meta
+│   ├── 20190709_sync_right_g0_t0.imec.ap.bin
+│   ├── 20190709_sync_right_g0_t0.imec.ap.meta
+│   ├── 20190709_sync_right_g0_t0.imec.lf.bin
+│   ├── 20190709_sync_right_g0_t0.imec.lf.meta
+└── video
+    ├── _iblrig_bodyCamera.raw.avi
+    ├── _iblrig_bodyCamera.raw_timestamps.ssv
+    ├── _iblrig_leftCamera.raw.avi
+    ├── _iblrig_leftCamera.raw_timestamps.ssv
+    ├── _iblrig_rightCamera.raw.avi
+    └── _iblrig_rightCamera.raw_timestamps.ssv
+"""
+
+SHOW_PLOTS = True  # of histograms and wavefronts
 
 ###########
 '''
@@ -42,30 +77,29 @@ ephys - for both probes
 ###########
 
 
-def get_ephys_data(raw_ephys_apfile):
-    '''
+def get_ephys_data(raw_ephys_apfile, label=''):
+    """
     E.g.
     raw_ephys_apfile =
     sync_test_folder + '/ephys/20190709_sync_right_g0_t0.imec.ap.bin'
-    '''
+    """
 
-    output_path = sync_test_folder
-
+    if alf.io.exists(raw_ephys_apfile.parent, '_spikeglx_sync', glob=[label]):
+        sync = alf.io.load_object(raw_ephys_apfile.parent, '_spikeglx_sync',
+                                  glob=[label], short_keys=True)
+    else:
+        sync = ephys_fpga._sync_to_alf(raw_ephys_apfile, parts=label, save=True)
     # load reader object, and extract sync traces
     sr = ibllib.io.spikeglx.Reader(raw_ephys_apfile)
-    sync = ibllib.io.extractors.ephys_fpga._sync_to_alf(
-        sr, output_path, save=False)
-
     assert sr.fs == 30000, 'sampling rate is not 30 kHz, adjust script!'
-
-    print('extracted %s' % raw_ephys_apfile)
+    _logger.info('extracted %s' % raw_ephys_apfile)
     return sr, sync
 
 
-def compare_camera_timestamps_between_two_probes(sync, sync_left):
-    '''
+def compare_camera_timestamps_between_two_probes(sync_right, sync_left):
+    """
     sync_left has no square signal
-    '''
+    """
     # using the probe 3a channel map:
     '''
     0: Arduino synchronization signal
@@ -80,9 +114,8 @@ def compare_camera_timestamps_between_two_probes(sync, sync_left):
 
     for cam_code in [2, 3, 4]:
 
-        cam_times_left = ephys_fpga._get_sync_fronts(
-            sync_left, cam_code)['times']
-        cam_times_right = ephys_fpga._get_sync_fronts(sync, cam_code)['times']
+        cam_times_left = ephys_fpga._get_sync_fronts(sync_left, cam_code)['times']
+        cam_times_right = ephys_fpga._get_sync_fronts(sync_right, cam_code)['times']
 
         assert len(cam_times_left) == len(
             cam_times_right), "# time stamps don't match between probes"
@@ -101,10 +134,10 @@ def compare_camera_timestamps_between_two_probes(sync, sync_left):
 
 
 def first_occ_index(array, n_at_least):
-    '''
+    """
     Getting index of first occurence in boolean array
     with at least n consecutive False entries
-    '''
+    """
     curr_found_false = 0
     curr_index = 0
     for index, elem in enumerate(array):
@@ -125,11 +158,11 @@ def event_extraction_and_comparison(sr):
     # [36,75,112,151,188,227,264,303,317,340,379,384]
 
     # sr,sync=get_ephys_data(sync_test_folder)
-    '''
+    """
     this function first finds the times of square signal fronts in ephys and
     compares them to corresponding ones in the sync signal.
     Iteratively for small data chunks
-    '''
+    """
 
     print('starting event_extraction_and_comparison')
     period_duration = 30000  # in observations, 30 kHz
@@ -233,9 +266,9 @@ def event_extraction_and_comparison(sr):
 
 
 def evaluate_ephys(chan_fronts, sync_fronts):
-    '''
+    """
     check number of detected square pulses and temporal jitter
-    '''
+    """
 
     # check if all signals have been detected
     L_sync_up = list(flatten(sync_fronts['fpga up fronts']))
@@ -273,7 +306,7 @@ def evaluate_ephys(chan_fronts, sync_fronts):
 
     print('ephys test passed')
 
-    if show_plots:
+    if SHOW_PLOTS:
         plt.figure('histogram')
 
         #  pool up front and down front temporal errors
@@ -308,7 +341,7 @@ def uncycle_pgts(time):
     return time + cycleindex * 128
 
 
-def get_video_stamps_and_brightness():
+def get_video_stamps_and_brightness(sync_test_folder):
 
     # for each frame in the video, set 1 or zero corresponding to LED status
     startTime = datetime.now()
@@ -418,7 +451,7 @@ def evaluate_camera_sync(d, sync):
             abs(D)) < 0.200, \
             'Jitter between fpga and brightness fronts is large!!'
 
-        if show_plots:
+        if SHOW_PLOTS:
 
             plt.figure('wavefronts, ' + vid)
             ibllib.plots.squares(
@@ -451,7 +484,7 @@ BPod
 ##########
 
 
-def compare_bpod_jason_with_fpga(sync):
+def compare_bpod_json_with_fpga(sync_test_folder, sync):
     '''
     sr, sync=get_ephys_data(sync_test_folder)
     '''
@@ -506,7 +539,7 @@ def compare_bpod_jason_with_fpga(sync):
           % (np.round(np.mean([offset_on, offset_off]), 6),
              np.round(np.mean([jitter_on, jitter_off]), 6)))
 
-    if show_plots:
+    if SHOW_PLOTS:
 
         plt.figure('wavefronts')
         plt.plot(s3['times'], s3['polarities'], label='fpga')
@@ -534,30 +567,43 @@ def compare_bpod_jason_with_fpga(sync):
         plt.show()
 
 
-if __name__ == '__main__':
-
+def run_synchronization_protocol(sync_test_folder):
     # running all tests took 12 min for Guido's example data
-
     startTime = datetime.now()
 
+    ap_file_left = list(Path(sync_test_folder).rglob('*left*.imec.ap.bin'))[0]
+    ap_file_right = list(Path(sync_test_folder).rglob('*right*.imec.ap.bin'))[0]
+
     # load and compare sync signals between the two ephys probes
-    _, sync_left = get_ephys_data(
-        list(Path(sync_test_folder).glob(
-            '**/*sync_left_g0_t0.imec.ap.bin'))[0])
-    sr, sync = get_ephys_data(
-        list(Path(sync_test_folder).glob(
-            '**/*sync_right_g0_t0.imec.ap.bin'))[0])
-    compare_camera_timestamps_between_two_probes(sync, sync_left)
+    sr_left, sync_left = get_ephys_data(ap_file_left, 'left')
+    sr_right, sync_right = get_ephys_data(ap_file_right, 'right')
+    _logger.info('Compare the camera timestamps between the two probes')
+    compare_camera_timestamps_between_two_probes(sync_right, sync_left)
 
     # compare ephys fronts with fpga pulse signal for right probe
-    chan_fronts, sync_fronts = event_extraction_and_comparison(sr)
+    _logger.info('compare ephys fronts with fpga pulse signal for right probe')
+    chan_fronts, sync_fronts = event_extraction_and_comparison(sr_right)
     evaluate_ephys(chan_fronts, sync_fronts)
 
     # do camera check
-    d = get_video_stamps_and_brightness()
-    evaluate_camera_sync(d, sync)
+    _logger.info('Evaluate Camera sync')
+    d = get_video_stamps_and_brightness(sync_test_folder)
+    evaluate_camera_sync(d, sync_right)
 
     # do bpod check
-    compare_bpod_jason_with_fpga(sync)
+    _logger.info('Evaluate Bpod sync')
+    compare_bpod_json_with_fpga(sync_test_folder, sync_right)
 
-    print('All tests passed.', datetime.now() - startTime)
+    _logger.warning('All tests passed !!', datetime.now() - startTime)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Description of your program')
+    parser.add_argument('folder', help='A Folder containing a session')
+    parser.add_argument('--dry', help='Dry Run', required=False, default=False, type=str)
+    parser.add_argument('--count', help='Max number of sessions to run this on',
+                        required=False, default=False, type=int)
+    args = parser.parse_args()  # returns data from the options specified (echo)
+    if args.dry and args.dry.lower() == 'false':
+        args.dry = False
+    assert(Path(args.folder).exists())
