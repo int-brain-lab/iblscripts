@@ -26,7 +26,6 @@ class TestFlagOperations(unittest.TestCase):
             'create_me.flag')]
         self.rig_folder = self.init_folder.parent / 'RigSubjects'
         self.server_folder = self.init_folder.parent / 'ServerSubjects'
-        self.vidfiles = list(self.init_folder.rglob('*.avi'))
         # Init rig_folder
         if self.rig_folder.exists():
             shutil.rmtree(self.rig_folder)
