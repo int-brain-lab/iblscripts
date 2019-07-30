@@ -7,6 +7,7 @@ import shutil
 import unittest
 from pathlib import Path
 
+import ibllib.io.flags
 import ibllib.pipes.experimental_data as iblrig_pipeline
 from oneibl.one import ONE
 
@@ -20,16 +21,14 @@ class TestVideo(unittest.TestCase):
         # Set ONE to use the test database
         self.one = ONE(base_url='https://testdev.alyx.internationalbrainlab.org',  # testdev
                        username='test_user', password='TapetesBloc18')
-
-        self.sessions = [x.parent for x in self.init_folder.rglob(
-            'create_me.flag')]
-        self.rig_folder = self.init_folder.parent / 'RigSubjects'
-        self.server_folder = self.init_folder.parent / 'ServerSubjects'
         self.vidfiles = list(self.init_folder.rglob('*.avi'))
         # Init rig_folder
-        if self.rig_folder.exists():
-            shutil.rmtree(self.rig_folder)
-        shutil.copytree(self.init_folder, self.rig_folder)
+        self.server_folder = self.init_folder.parent / 'ServerSubjects'
+        if self.server_folder.exists():
+            shutil.rmtree(self.server_folder)
+        shutil.copytree(self.init_folder, self.server_folder)
+        for vidfile in self.server_folder.rglob('*.avi'):
+            ibllib.io.flags.create_compress_flags(vidfile.parents[1])
 
     def _registration(self):
         iblrig_pipeline.register(self.server_folder, one=self.one)
@@ -57,9 +56,7 @@ class TestVideo(unittest.TestCase):
     def tearDown(self):
         if not self.init_folder.exists():
             return
-        shutil.rmtree(self.rig_folder, ignore_errors=True)
         shutil.rmtree(self.server_folder, ignore_errors=True)
-        # os.system("ssh -i ~/.ssh/alyx.internationalbrainlab.org.pem ubuntu@test.alyx.internationalbrainlab.org './02_rebuild_from_cache.sh'")  # noqa
 
 
 if __name__ == "__main__":
