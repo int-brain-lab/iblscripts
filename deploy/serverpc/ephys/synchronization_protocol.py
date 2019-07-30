@@ -15,6 +15,7 @@ import ibllib.io.spikeglx
 import ibllib.plots
 import ibllib.io.extractors.ephys_fpga as ephys_fpga
 
+SHOW_PLOTS = False
 _logger = logging.getLogger('ibllib')
 
 """
@@ -67,8 +68,6 @@ Pay particular attention to the naming of ephys files.
     ├── _iblrig_rightCamera.raw.avi
     └── _iblrig_rightCamera.raw_timestamps.ssv
 """
-
-SHOW_PLOTS = True  # of histograms and wavefronts
 
 ###########
 '''
@@ -164,7 +163,7 @@ def event_extraction_and_comparison(sr):
     Iteratively for small data chunks
     """
 
-    print('starting event_extraction_and_comparison')
+    _logger.info('starting event_extraction_and_comparison')
     period_duration = 30000  # in observations, 30 kHz
     BATCH_SIZE_SAMPLES = period_duration  # in observations, 30 kHz
 
@@ -265,7 +264,7 @@ def event_extraction_and_comparison(sr):
     return chan_fronts, sync_fronts  # all differences
 
 
-def evaluate_ephys(chan_fronts, sync_fronts):
+def evaluate_ephys(chan_fronts, sync_fronts, show_plots=SHOW_PLOTS):
     """
     check number of detected square pulses and temporal jitter
     """
@@ -306,7 +305,7 @@ def evaluate_ephys(chan_fronts, sync_fronts):
 
     print('ephys test passed')
 
-    if SHOW_PLOTS:
+    if show_plots:
         plt.figure('histogram')
 
         #  pool up front and down front temporal errors
@@ -384,7 +383,7 @@ def get_video_stamps_and_brightness(sync_test_folder):
     return d
 
 
-def evaluate_camera_sync(d, sync):
+def evaluate_camera_sync(d, sync, show_plots=SHOW_PLOTS):
 
     # d=get_video_stamps_and_brightness(sync_test_folder)
     # sr, sync, rawdata, rawsync=get_ephys_data(sync_test_folder)
@@ -451,7 +450,7 @@ def evaluate_camera_sync(d, sync):
             abs(D)) < 0.200, \
             'Jitter between fpga and brightness fronts is large!!'
 
-        if SHOW_PLOTS:
+        if show_plots:
 
             plt.figure('wavefronts, ' + vid)
             ibllib.plots.squares(
@@ -484,7 +483,7 @@ BPod
 ##########
 
 
-def compare_bpod_json_with_fpga(sync_test_folder, sync):
+def compare_bpod_json_with_fpga(sync_test_folder, sync, show_plots=SHOW_PLOTS):
     '''
     sr, sync=get_ephys_data(sync_test_folder)
     '''
@@ -513,25 +512,25 @@ def compare_bpod_json_with_fpga(sync_test_folder, sync):
         np.array(s3['times'][1::2]) - np.array(outs))  # get jitter
     jitter_off = np.std(np.array(s3['times'][0::2]) - np.array(ins))
 
-    inter_pulse_interval_bpod = abs(np.array(ins) - np.array(outs))
-    inter_pulse_interval_fpga = abs(
+    inter_pulse_interval_bpod = np.abs(np.array(ins) - np.array(outs))
+    inter_pulse_interval_fpga = np.abs(
         np.array(s3['times'][1::2]) - np.array(s3['times'][0::2]))
 
     print(
         'maximal bpod jitter in sec: ',
         np.round(
-            max(inter_pulse_interval_bpod) -
-            min(inter_pulse_interval_bpod),
+            np.max(inter_pulse_interval_bpod) -
+            np.min(inter_pulse_interval_bpod),
             6))
     print(
         'maximal fpga jitter in sec: ',
         np.round(
-            max(inter_pulse_interval_fpga) -
-            min(inter_pulse_interval_fpga),
+            np.max(inter_pulse_interval_fpga) -
+            np.min(inter_pulse_interval_fpga),
             6))
     print('maximal bpod-fpga in sec: ',
-          np.round(max(abs(np.array(s3['times'][1::2]) - np.array(outs))) -
-                   min(abs(np.array(s3['times'][1::2]) - np.array(outs)), 6)))
+          np.round(np.max(np.abs(np.array(s3['times'][1::2]) - np.array(outs))) -
+                   np.min(np.abs(np.array(s3['times'][1::2]) - np.array(outs))), 6))
 
     print('The fpga 500 ms square signal and \
           the bpod 500 ms square signal are offset',
@@ -539,7 +538,7 @@ def compare_bpod_json_with_fpga(sync_test_folder, sync):
           % (np.round(np.mean([offset_on, offset_off]), 6),
              np.round(np.mean([jitter_on, jitter_off]), 6)))
 
-    if SHOW_PLOTS:
+    if show_plots:
 
         plt.figure('wavefronts')
         plt.plot(s3['times'], s3['polarities'], label='fpga')
@@ -567,7 +566,7 @@ def compare_bpod_json_with_fpga(sync_test_folder, sync):
         plt.show()
 
 
-def run_synchronization_protocol(sync_test_folder):
+def run_synchronization_protocol(sync_test_folder, display=SHOW_PLOTS):
     # running all tests took 12 min for Guido's example data
     startTime = datetime.now()
 
@@ -583,27 +582,26 @@ def run_synchronization_protocol(sync_test_folder):
     # compare ephys fronts with fpga pulse signal for right probe
     _logger.info('compare ephys fronts with fpga pulse signal for right probe')
     chan_fronts, sync_fronts = event_extraction_and_comparison(sr_right)
-    evaluate_ephys(chan_fronts, sync_fronts)
+    evaluate_ephys(chan_fronts, sync_fronts, show_plots=display)
 
     # do camera check
     _logger.info('Evaluate Camera sync')
     d = get_video_stamps_and_brightness(sync_test_folder)
-    evaluate_camera_sync(d, sync_right)
+    evaluate_camera_sync(d, sync_right, show_plots=display)
 
     # do bpod check
     _logger.info('Evaluate Bpod sync')
-    compare_bpod_json_with_fpga(sync_test_folder, sync_right)
+    compare_bpod_json_with_fpga(sync_test_folder, sync_right, show_plots=display)
 
-    _logger.warning('All tests passed !!', datetime.now() - startTime)
+    _logger.info(f'All tests passed !!, took: {datetime.now() - startTime} seconds')
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Description of your program')
+    parser = argparse.ArgumentParser(description='Synchronization protocol analysis')
     parser.add_argument('folder', help='A Folder containing a session')
-    parser.add_argument('--dry', help='Dry Run', required=False, default=False, type=str)
-    parser.add_argument('--count', help='Max number of sessions to run this on',
-                        required=False, default=False, type=int)
+    parser.add_argument('--display', help='Show Plots', required=False, default=False, type=str)
     args = parser.parse_args()  # returns data from the options specified (echo)
-    if args.dry and args.dry.lower() == 'false':
-        args.dry = False
+    if args.display and args.display.lower() == 'false':
+        args.display = False
     assert(Path(args.folder).exists())
+    run_synchronization_protocol(args.folder, display=args.display)
