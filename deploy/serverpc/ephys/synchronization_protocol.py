@@ -195,7 +195,7 @@ def event_extraction_and_comparison(sr):
 
             # assuming a signal in the first minute
             for first, last in list(
-                    wg.firstlast)[:60]:
+                    wg.firstlast)[:120]:
 
                 rawdata, rawsync = sr.read_samples(first, last)
 
