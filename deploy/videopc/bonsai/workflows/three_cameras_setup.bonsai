@@ -8,7 +8,7 @@
       <Expression xsi:type="Combinator">
         <Combinator xsi:type="q1:FlyCapture">
           <q1:Index>0</q1:Index>
-          <q1:ToggleTrigger>false</q1:ToggleTrigger>
+          <q1:ToggleTrigger>true</q1:ToggleTrigger>
         </Combinator>
       </Expression>
       <Expression xsi:type="MemberSelector">
@@ -118,7 +118,7 @@
       <Expression xsi:type="Combinator">
         <Combinator xsi:type="q1:FlyCapture">
           <q1:Index>1</q1:Index>
-          <q1:ToggleTrigger>false</q1:ToggleTrigger>
+          <q1:ToggleTrigger>true</q1:ToggleTrigger>
         </Combinator>
       </Expression>
       <Expression xsi:type="MemberSelector">
@@ -243,7 +243,7 @@
       <Expression xsi:type="Combinator">
         <Combinator xsi:type="q1:FlyCapture">
           <q1:Index>2</q1:Index>
-          <q1:ToggleTrigger>false</q1:ToggleTrigger>
+          <q1:ToggleTrigger>true</q1:ToggleTrigger>
         </Combinator>
       </Expression>
       <Expression xsi:type="MemberSelector">
