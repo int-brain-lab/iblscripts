@@ -24,16 +24,24 @@ import ibllib.pipes.experimental_data as pipes
 logger = logging.getLogger('ibllib')
 
 
+def rerun_qc_ephys(ses_path, drange, dry=True):
+    _rerun_ephys(ses_path, drange, dry=dry, pipefunc=pipes.qc_ephys,
+                 flagstr='qc_ephys.flag')
+
+
 def rerun_extract_ephys(ses_path, drange, dry=True):
+    _rerun_ephys(ses_path, drange, dry=dry, pipefunc=pipes.extract_ephys,
+                 flagstr='extract_ephys.flag')
+
+
+def _rerun_ephys(ses_path, drange, dry=True, pipefunc=None, flagstr=None):
     files_ephys, files_ephys_date = _order_glob_by_session_date(ses_path.rglob('*.ap.bin'))
     for file_ephys, date in zip(files_ephys, files_ephys_date):
         if not(date >= drange[0] and (date <= drange[1])):
             continue
         print(file_ephys)
-        if dry:
-            continue
-        flags.create_other_flags(file_ephys.parent, 'extract_ephys.flag', force=True)
-        pipes.extract_ephys(file_ephys.parent)
+        flags.create_other_flags(file_ephys.parents[2], flagstr, force=True)
+        pipefunc(file_ephys.parents[2])
 
 
 def rerun_extract(ses_path, drange, dry=True):
