@@ -1,12 +1,14 @@
 """
 Entry point to system commands for IBL pipeline.
 
->>> python rerun.py extract /mnt/s0/Data/Subjects/
-    [--dry=True --first=2019-07-10 --last=2019-07-11]
->>> python rerun.py register /mnt/s0/Data/Subjects/
-    [--dry=True --first=2019-07-10 --last=2019-07-11]
->>> python rerun.py compress_video /mnt/s0/Data/Subjects/
-    [--dry=True --first=2019-07-10 --last=2019-07-11]
+>>> python rerun.py extract /mnt/s0/Data/Subjects/ --first=2019-07-10 --last=2019-07-11
+    [--dry=True]
+>>> python rerun.py register /mnt/s0/Data/Subjects/ --first=2019-07-10 --last=2019-07-11
+    [--dry=True]
+>>> python rerun.py compress_video /mnt/s0/Data/Subjects/ --first=2019-07-10 --last=2019-07-11
+    [--dry=True]
+>>> python rerun.py extract_ephys /mnt/s0/Data/Subjects/ --first=2019-07-10 --last=2019-07-11
+    [--dry=True]
 """
 
 # Per dataset type
@@ -17,9 +19,21 @@ import re
 import argparse
 
 from ibllib.io import flags
-from ibllib.pipes.experimental_data import extract, register
+import ibllib.pipes.experimental_data as pipes
 
 logger = logging.getLogger('ibllib')
+
+
+def rerun_extract_ephys(ses_path, drange, dry=True):
+    files_ephys, files_ephys_date = _order_glob_by_session_date(ses_path.rglob('*.ap.bin'))
+    for file_ephys, date in zip(files_ephys, files_ephys_date):
+        if not(date >= drange[0] and (date <= drange[1])):
+            continue
+        print(file_ephys)
+        if dry:
+            continue
+        flags.create_other_flags(file_ephys.parent, 'extract_ephys.flag', force=True)
+        pipes.extract_ephys(file_ephys.parent)
 
 
 def rerun_extract(ses_path, drange, dry=True):
@@ -32,7 +46,7 @@ def rerun_extract(ses_path, drange, dry=True):
             continue
         file_error.unlink()
         flags.create_extract_flags(file_error.parent, force=True)
-        extract(file_error.parent)
+        pipes.extract(file_error.parent)
 
 
 def rerun_register(ses_path, drange, dry=True):
@@ -47,7 +61,7 @@ def rerun_register(ses_path, drange, dry=True):
             continue
         file_error.unlink()
         flags.create_register_flags(file_error.parent, force=True)
-        register(file_error.parent)
+        pipes.register(file_error.parent)
 
 
 def rerun_compress_video(ses_path, drange, dry=True):
@@ -86,7 +100,7 @@ def _order_glob_by_session_date(flag_files):
 
 
 if __name__ == "__main__":
-    ALLOWED_ACTIONS = ['extract', 'register', 'compress_video']
+    ALLOWED_ACTIONS = ['extract', 'register', 'compress_video', 'extract_ephys']
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
     parser.add_argument('folder', help='A Folder containing a session')
@@ -109,5 +123,7 @@ if __name__ == "__main__":
         rerun_register(ses_path, date_range, dry=args.dry)
     elif args.action == 'compress_video':
         rerun_compress_video(ses_path, date_range, dry=args.dry)
+    elif args.action == 'extract_ephys':
+        rerun_extract_ephys(ses_path, date_range, dry=args.dry)
     else:
         logger.error('Allowed actions are: ' + ', '.join(ALLOWED_ACTIONS))
