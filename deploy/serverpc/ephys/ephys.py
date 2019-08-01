@@ -15,7 +15,7 @@ logger = logging.getLogger('ibllib')
 
 
 def extract(ses_path, dry=True, max_sessions=10):
-    pipes.extract_ephys(ses_path, max_sessions=max_sessions)
+    pipes.extract_ephys(ses_path, dry=dry, max_sessions=max_sessions)
 
 
 def qc(ses_path, dry=True, max_sessions=5):
