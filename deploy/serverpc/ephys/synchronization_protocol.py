@@ -17,6 +17,7 @@ import ibllib.io.extractors.ephys_fpga as ephys_fpga
 
 SHOW_PLOTS = False
 _logger = logging.getLogger('ibllib')
+PROBE_TYPE = '3a'
 
 """
 Entry point to system commands for IBL pipeline.
@@ -24,9 +25,7 @@ Select your environment and run the
 >>> cd ~/Documents/PYTHON/iblscripts/deploy/serverpc/ephys/
 >>> source ~/Documents/PYTHON/envs/iblenv/bin/activate
 >>> python synchronization_protocol.py /datadisk/Local/20190710_sync_test
-
 pip install opencv-python to install cv2 dependency on top of ibl environment
-
 This script test temporal synchronisation of
 the bpod, cameras and neuropixels probes in saline.
 There are 500 square pulses coming from the fpga,
@@ -39,27 +38,25 @@ and asserts that the temporal jitter is below a threshold.
 It is further tested if the camera time stamps between
 the two probes equal in number and have a small temporal jitter.
 The script assumes Guido's folder structure.
-
 Include '_iblrig_leftCamera.raw.avi' in vids;
 (I took it out as this video was faulty in
 Guido's data).
-
 This is the expected input tree for the sync check to run properly:
 Pay particular attention to the naming of ephys files.
 /datadisk/Local/20190710_sync_test
 ├── bpod
-│   ├── _iblrig_taskCodeFiles.raw.zip
-│   ├── _iblrig_taskData.raw.jsonable
-│   └── _iblrig_taskSettings.raw.json
+│   ├── _iblrig_taskCodeFiles.raw.zip
+│   ├── _iblrig_taskData.raw.jsonable
+│   └── _iblrig_taskSettings.raw.json
 ├── ephys
-│   ├── 20190709_sync_left_g0_t0.imec.ap.bin
-│   ├── 20190709_sync_left_g0_t0.imec.ap.meta
-│   ├── 20190709_sync_left_g0_t0.imec.lf.bin
-│   ├── 20190709_sync_left_g0_t0.imec.lf.meta
-│   ├── 20190709_sync_right_g0_t0.imec.ap.bin
-│   ├── 20190709_sync_right_g0_t0.imec.ap.meta
-│   ├── 20190709_sync_right_g0_t0.imec.lf.bin
-│   ├── 20190709_sync_right_g0_t0.imec.lf.meta
+│   ├── 20190709_sync_left_g0_t0.imec.ap.bin
+│   ├── 20190709_sync_left_g0_t0.imec.ap.meta
+│   ├── 20190709_sync_left_g0_t0.imec.lf.bin
+│   ├── 20190709_sync_left_g0_t0.imec.lf.meta
+│   ├── 20190709_sync_right_g0_t0.imec.ap.bin
+│   ├── 20190709_sync_right_g0_t0.imec.ap.meta
+│   ├── 20190709_sync_right_g0_t0.imec.lf.bin
+│   ├── 20190709_sync_right_g0_t0.imec.lf.meta
 └── video
     ├── _iblrig_bodyCamera.raw.avi
     ├── _iblrig_bodyCamera.raw_timestamps.ssv
@@ -216,15 +213,21 @@ def event_extraction_and_comparison(sr):
                 the first 10 channels don't show a square signal"
             continue
 
-    start_of_chopping = sync_up_fronts[0] - period_duration / 4
-
     k = 0
 
     # assure there is exactly one pulse per cut segment
 
     for pulse in range(500):  # there are 500 square pulses
-        first = int(start_of_chopping + period_duration * pulse)
-        last = int(first + period_duration)
+
+        if pulse == 0:
+
+            first = int(sync_up_fronts[0] - period_duration / 4)
+            last = int(first + period_duration)
+
+        else:
+
+            first = int(sync_up_fronts[0] - period_duration / 4 + period_duration)
+            last = int(first + period_duration)
 
         if k % 100 == 0:
             print('segment %s of %s' % (k, 500))
@@ -234,7 +237,7 @@ def event_extraction_and_comparison(sr):
         rawdata, rawsync = sr.read_samples(first, last)
 
         # get fronts for sync signal
-        diffs = np.diff(rawsync.T[0])  # can that thing be a global variable?
+        diffs = np.diff(rawsync.T[0])
         sync_up_fronts = np.where(diffs == 1)[0] + first
         sync_down_fronts = np.where(diffs == -1)[0] + first
         sync_fronts['fpga up fronts'].append(sync_up_fronts)
@@ -255,8 +258,8 @@ def event_extraction_and_comparison(sr):
         down_fronts = []
         # Activity front at least 10 samples long (empirical)
 
-        up_fronts.append(first_occ_index(ups, 20) + first)
-        down_fronts.append(first_occ_index(downs, 20) + first)
+        up_fronts.append(first_occ_index(ups, 3) + first)
+        down_fronts.append(first_occ_index(downs, 3) + first)
 
         chan_fronts[i]['ephys up fronts'].append(up_fronts)
         chan_fronts[i]['ephys down fronts'].append(down_fronts)
@@ -355,7 +358,7 @@ def get_video_stamps_and_brightness(sync_test_folder):
     for vid in vids:
         video_path = sync_test_folder + '/video/' + vid
 
-        print('Loading video, this takes some minuts:', video_path)
+        print('Loading video, this takes some minutes:', video_path)
         cap = cv2.VideoCapture(video_path)
         # fps = cap.get(cv2.CAP_PROP_FPS)
         frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
