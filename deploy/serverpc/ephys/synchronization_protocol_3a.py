@@ -521,10 +521,10 @@ def run_synchronization_protocol(sync_test_folder, display=SHOW_PLOTS):
     _logger.info('Compare the camera timestamps between the two probes')
     compare_camera_timestamps_between_two_probes(sync_right, sync_left)
 
-#    # compare ephys fronts with fpga pulse signal for right probe
-#    _logger.info('compare ephys fronts with fpga pulse signal for right probe')
-#    chan_fronts, sync_fronts = event_extraction_and_comparison(sr_right)
-#    evaluate_ephys(chan_fronts, sync_fronts, show_plots=display)
+    # compare ephys fronts with fpga pulse signal for right probe
+    _logger.info('compare ephys fronts with fpga pulse signal for right probe')
+    chan_fronts, sync_fronts = event_extraction_and_comparison(sr_right)
+    evaluate_ephys(chan_fronts, sync_fronts, show_plots=display)
 
     # do camera check
     _logger.info('Evaluate Camera sync')
