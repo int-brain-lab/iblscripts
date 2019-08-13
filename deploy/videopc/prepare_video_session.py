@@ -71,7 +71,7 @@ def main(mouse):
     print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - ON")
     # Create filenames to call Bonsai
     filename = '_iblrig_{}Camera.raw.avi'
-    filenamets = '_iblrig_{}Camera.raw_timestamps.ssv'
+    filenamets = '_iblrig_{}Camera.timestamps.ssv'
     # Open n start Bonsai view
     body = "-p:FileNameBody=" + str(SESSION_FOLDER / filename.format('body'))
     left = "-p:FileNameLeft=" + str(SESSION_FOLDER / filename.format('left'))
