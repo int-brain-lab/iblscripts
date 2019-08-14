@@ -11,7 +11,7 @@ log = logging.getLogger('iblrig')
 log.setLevel(logging.INFO)
 
 
-def confirm_remote_folder(local_folder, remote_folder):
+def confirm_remote_folder(local_folder, remote_folder):  # XXX: TEST THIS!
     local_folder = Path(local_folder)
     remote_folder = Path(remote_folder)
 
@@ -22,25 +22,27 @@ def confirm_remote_folder(local_folder, remote_folder):
         log.info("Nothing to transfer, exiting...")
         return
     for s in src_session_paths:
-        mouse = s.parts[-3]
-        date = s.parts[-2]
-        sess = s.parts[-1]
-        d = remote_folder / mouse / date / sess
+        local_session_name = s.parts[-3:]
+        local_mouse = s.parts[-3]
+        local_date = s.parts[-2]
+        local_sess = s.parts[-1]
+        d = remote_folder / local_mouse / local_date / local_sess
 
-        print(f"Found session: {s}")
-        resp = (f"Transfer to {d} ([y]/n)? ") or 'y'
+        print(f"Found session: {local_session_name}")
+        resp = input(f"Transfer to {remote_folder} with the same name ([y]/n)? ") or 'y'
         if resp not in ['y', 'n']:
             return confirm_remote_folder(local_folder, remote_folder)
         elif resp == 'y':
-            main(s, d)
+            main(local_folder, remote_folder)
         elif resp == 'n':
-            print("Please insert a different session name e.g. [mouse_name/1990-01-31/001]:")
-            new_name = Path(input("> "))
-            mouse = new_name.parts[-3]
-            date = new_name.parts[-2]
-            sess = new_name.parts[-1]
-            d = remote_folder / mouse / date / sess
-            main(s, d)
+            new_mouse = input(
+                f"Please insert mouse NAME [current value: {local_mouse}]> ") or local_mouse
+            new_date = input(
+                f"Please insert new session DATE [current value: {local_date}]> ") or local_date
+            new_sess = input(
+                f"Please insert new session NUMBER [current value: {local_sess}]> ") or local_sess
+            s.rename(s.parts[:-3] / new_mouse / new_date / new_sess)
+            return confirm_remote_folder(local_folder, remote_folder)
 
 
 if __name__ == "__main__":
