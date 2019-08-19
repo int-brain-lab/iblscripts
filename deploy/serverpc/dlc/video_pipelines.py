@@ -247,7 +247,7 @@ def dlc_training(file_mp4, force=False):
                 if ind[-1] == 'x':
                     df[ind] = df[ind].apply(lambda x: x * scale + whxy[roi][2])
                 elif ind[-1] == 'y':
-                    df[ind] = df[ind].apply(lambda x: x * scale + whxy[roi][2])
+                    df[ind] = df[ind].apply(lambda x: x * scale + whxy[roi][3])
             # concatenate this in a flat matrix
             columns.extend([f'{c[1]}_{c[2]}' for c in df.columns.to_flat_index()])
             if 'A' not in locals():
