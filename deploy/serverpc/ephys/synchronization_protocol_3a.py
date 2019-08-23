@@ -381,7 +381,7 @@ def evaluate_camera_sync(d, sync, show_plots=SHOW_PLOTS):
         drops = len(cam_times) - len(r3) * 2
 
         # check if an extremely high number of frames is dropped at the end
-        assert drops < 500, '%s frames dropped for %s!!!' % (drops, vid)
+        assert drops < 500, '%s frames dropped for %s' % (drops, vid)
 
         # get fronts of video brightness square signal
         diffr3 = np.diff(r3)  # get signal jumps via differentiation
