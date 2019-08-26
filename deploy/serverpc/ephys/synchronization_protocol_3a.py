@@ -366,8 +366,8 @@ def evaluate_camera_sync(d, sync, show_plots=SHOW_PLOTS):
     '''
     y = {
         '_iblrig_bodyCamera.raw.avi': 3,
-        '_iblrig_rightCamera.raw.avi': 4,
-        '_iblrig_leftCamera.raw.avi': 2}
+        '_iblrig_rightCamera.raw.avi': 2,
+        '_iblrig_leftCamera.raw.avi': 4}
 
     s3 = ephys_fpga._get_sync_fronts(sync, 0)  # get arduino sync signal
 
