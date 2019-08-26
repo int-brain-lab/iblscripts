@@ -1,3 +1,7 @@
+"""
+The validate_mock_recording pipeline is to validate a setup before doing recordings,
+on the ephysChoiceWorld task, doing a dummy without animal and check that all syncs are there
+"""
 import unittest
 from pathlib import Path
 
