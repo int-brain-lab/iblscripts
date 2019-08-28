@@ -14,10 +14,10 @@ class TestEphysCheckList(unittest.TestCase):
         if not self.init_folder.exists():
             return
 
-    def test_checklist_mock_3B(self):
-        ses_path = self.init_folder / 'ttl_3B'
+    def test_checklist_mock_3B_single(self):
+        ses_path = self.init_folder / 'ttl_3B_single'
         self.assertTrue(ephys_fpga.validate_ttl_test(ses_path))
 
-    def test_checklist_mock_3A(self):
-        ses_path = self.init_folder / 'ttl_3A'
+    def test_checklist_mock_3A_single(self):
+        ses_path = self.init_folder / 'ttl_3A_single'
         self.assertTrue(ephys_fpga.validate_ttl_test(ses_path))
