@@ -12,7 +12,7 @@ from oneibl.one import ONE
 class TestEphysQC(unittest.TestCase):
 
     def setUp(self):
-        self.init_folder = Path('/mnt/s0/Data/IntegrationTests/ephys')
+        self.init_folder = Path('/mnt/s0/Data/IntegrationTests/ephys/choice_world')
         if not self.init_folder.exists():
             return
         self.alf_folder = self.init_folder / 'alf'

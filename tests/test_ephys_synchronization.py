@@ -1,16 +1,27 @@
 import unittest
 from pathlib import Path
 
-from ibllib.ephys.sync3A import sync_probe_folders_3A
+import ibllib.ephys.sync_probes as sync_probes
 
 
 class TestEphysCheckList(unittest.TestCase):
     def setUp(self):
-        self.folder3a = Path('/mnt/s0/Data/IntegrationTests/ephys/sync3a')
-        if not self.init_folder.exists():
-            return
+        self.folder3a = Path('/mnt/s0/Data/IntegrationTests/ephys/sync/sync_3A')
+        self.folder3b = Path('/mnt/s0/Data/IntegrationTests/ephys/sync/sync_3B')
 
     def test_sync_3A(self):
-        # the assertion is already in the files in this case
-        for ses_path in (self.folder3a('raw_ephys_data')):
-            sync_probe_folders_3A(ses_path)
+        if not self.folder3a.exists():
+            return
+        # the assertion is already in the files
+        # test both residual smoothed and linear
+        for ses_path in self.folder3a.rglob('raw_ephys_data'):
+            sync_probes.version3A(ses_path.parent)
+            sync_probes.version3A(ses_path.parent, linear=True, tol=2)
+
+    def test_sync_3B(self):
+        # the assertion is already in the files
+        if not self.folder3b.exists():
+            return
+        for ses_path in self.folder3b.rglob('raw_ephys_data'):
+            sync_probes.version3B(ses_path.parent)
+            sync_probes.version3B(ses_path.parent, linear=True, tol=10)
