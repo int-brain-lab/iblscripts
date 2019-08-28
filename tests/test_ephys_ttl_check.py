@@ -1,7 +1,11 @@
 """
 The ttl_check pipeline is to validate a setup before doing recordings,
 on the ephysChoiceWorld task, doing a dummy without animal and check that all syncs are there
+
+This test is also a synchronization extraction test, as it checks the ouput. The tear down function
+removes all _spikeglx_ files so they are regenerated from the small files accessible
 """
+
 import unittest
 from pathlib import Path
 
@@ -21,3 +25,7 @@ class TestEphysCheckList(unittest.TestCase):
     def test_checklist_mock_3A_single(self):
         ses_path = self.init_folder / 'ttl_3A_single'
         self.assertTrue(ephys_fpga.validate_ttl_test(ses_path))
+
+    def tearDown(self) -> None:
+        for sf in self.init_folder.rglob('_spikeglx_sync.*.npy'):
+            sf.unlink()
