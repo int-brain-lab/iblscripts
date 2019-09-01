@@ -15,13 +15,13 @@ class TestEphysCheckList(unittest.TestCase):
         # the assertion is already in the files
         # test both residual smoothed and linear
         for ses_path in self.folder3a.rglob('raw_ephys_data'):
-            sync_probes.version3A(ses_path.parent)
-            sync_probes.version3A(ses_path.parent, linear=True, tol=2)
+            self.assertTrue(sync_probes.version3A(ses_path.parent))
+            self.assertTrue(sync_probes.version3A(ses_path.parent, linear=True, tol=2))
 
     def test_sync_3B(self):
         # the assertion is already in the files
         if not self.folder3b.exists():
             return
         for ses_path in self.folder3b.rglob('raw_ephys_data'):
-            sync_probes.version3B(ses_path.parent)
-            sync_probes.version3B(ses_path.parent, linear=True, tol=10)
+            self.assertTrue(sync_probes.version3B(ses_path.parent))
+            self.assertTrue(sync_probes.version3B(ses_path.parent, linear=True, tol=10))
