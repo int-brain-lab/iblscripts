@@ -284,7 +284,12 @@ if __name__ == "__main__":
         # sort them according to the session date, so the more recent gets processed first
         flag_files = _order_glob_by_session_date(flag_files)
         for flag_file in flag_files:
-            for relative_path in ibllib.io.flags.read_flag_file(flag_file):
+            # flag files should contain file names. If not delete them
+            rel_path = ibllib.io.flags.read_flag_file(flag_file)
+            if isinstance(rel_path, bool):
+                flag_file.unlink()
+                continue
+            for relative_path in rel_path:
                 video_file = flag_file.parent / relative_path
                 t0 = time.time()
                 c += 1
