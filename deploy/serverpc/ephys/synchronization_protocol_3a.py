@@ -24,9 +24,7 @@ Select your environment and run the
 >>> cd ~/Documents/PYTHON/iblscripts/deploy/serverpc/ephys/
 >>> source ~/Documents/PYTHON/envs/iblenv/bin/activate
 >>> python synchronization_protocol.py /datadisk/Local/20190710_sync_test
-
 pip install opencv-python to install cv2 dependency on top of ibl environment
-
 This script test temporal synchronisation of
 the bpod, cameras and neuropixels probes in saline.
 There are 500 square pulses coming from the fpga,
@@ -39,27 +37,21 @@ and asserts that the temporal jitter is below a threshold.
 It is further tested if the camera time stamps between
 the two probes equal in number and have a small temporal jitter.
 The script assumes Guido's folder structure.
-
 Include '_iblrig_leftCamera.raw.avi' in vids;
 (I took it out as this video was faulty in
 Guido's data).
-
 This is the expected input tree for the sync check to run properly:
 Pay particular attention to the naming of ephys files.
 /datadisk/Local/20190710_sync_test
 ├── bpod
-│   ├── _iblrig_taskCodeFiles.raw.zip
-│   ├── _iblrig_taskData.raw.jsonable
-│   └── _iblrig_taskSettings.raw.json
+│   ├── _iblrig_taskCodeFiles.raw.zip
+│   ├── _iblrig_taskData.raw.jsonable
+│   └── _iblrig_taskSettings.raw.json
 ├── ephys
-│   ├── 20190709_sync_left_g0_t0.imec.ap.bin
-│   ├── 20190709_sync_left_g0_t0.imec.ap.meta
-│   ├── 20190709_sync_left_g0_t0.imec.lf.bin
-│   ├── 20190709_sync_left_g0_t0.imec.lf.meta
-│   ├── 20190709_sync_right_g0_t0.imec.ap.bin
-│   ├── 20190709_sync_right_g0_t0.imec.ap.meta
-│   ├── 20190709_sync_right_g0_t0.imec.lf.bin
-│   ├── 20190709_sync_right_g0_t0.imec.lf.meta
+│   ├── 20190709_sync_left_g0_t0.imec.ap.bin
+│   ├── 20190709_sync_left_g0_t0.imec.ap.meta
+│   ├── 20190709_sync_right_g0_t0.imec.ap.bin
+│   ├── 20190709_sync_right_g0_t0.imec.ap.meta
 └── video
     ├── _iblrig_bodyCamera.raw.avi
     ├── _iblrig_bodyCamera.raw_timestamps.ssv
@@ -90,7 +82,7 @@ def get_ephys_data(raw_ephys_apfile, label=''):
         sync = ephys_fpga._sync_to_alf(raw_ephys_apfile, parts=label, save=True)
     # load reader object, and extract sync traces
     sr = ibllib.io.spikeglx.Reader(raw_ephys_apfile)
-    assert sr.fs == 30000, 'sampling rate is not 30 kHz, adjust script!'
+    assert int(sr.fs) == 30000, 'sampling rate is not 30 kHz, adjust script!'
     _logger.info('extracted %s' % raw_ephys_apfile)
     return sr, sync
 
@@ -181,50 +173,36 @@ def event_extraction_and_comparison(sr):
     sync_fronts = {}
 
     sync_fronts['fpga up fronts'] = []
-    sync_fronts['fpga down fronts'] = []
 
     for j in range(chans):
         chan_fronts[j] = {}
         chan_fronts[j]['ephys up fronts'] = []
-        chan_fronts[j]['ephys down fronts'] = []
 
-    # find time of first pulse (take first channel with square signal)
-    for i in range(chans):
+    for first, last in list(wg.firstlast):
 
-        try:
+        _, rawsync = sr.read_samples(first, last)
 
-            # assuming a signal in the first minute
-            for first, last in list(
-                    wg.firstlast)[:120]:
+        diffs = np.diff(rawsync.T[0])
+        sync_up_fronts = np.where(diffs == 1)[0] + first
 
-                rawdata, rawsync = sr.read_samples(first, last)
-
-                diffs = np.diff(rawsync.T[0])
-                sync_up_fronts = np.where(diffs == 1)[0] + first
-
-                if len(sync_up_fronts) != 0:
-                    break
-
-            assert len(sync_up_fronts) != 0
-            Channel = i
+        if len(sync_up_fronts) != 0:
             break
-
-        except BaseException:
-            print('channel %s shows no pulse signal, checking next' % i)
-            assert i < 10, \
-                "something wrong, \
-                the first 10 channels don't show a square signal"
-            continue
-
-    start_of_chopping = sync_up_fronts[0] - period_duration / 4
 
     k = 0
 
     # assure there is exactly one pulse per cut segment
 
     for pulse in range(500):  # there are 500 square pulses
-        first = int(start_of_chopping + period_duration * pulse)
-        last = int(first + period_duration)
+
+        if pulse == 0:
+
+            first = int(sync_up_fronts[0] - period_duration / 4)
+            last = int(first + period_duration)
+
+        else:
+
+            first = int(sync_up_fronts[0] - period_duration / 4 + period_duration)
+            last = int(first + period_duration)
 
         if k % 100 == 0:
             print('segment %s of %s' % (k, 500))
@@ -234,34 +212,28 @@ def event_extraction_and_comparison(sr):
         rawdata, rawsync = sr.read_samples(first, last)
 
         # get fronts for sync signal
-        diffs = np.diff(rawsync.T[0])  # can that thing be a global variable?
+        diffs = np.diff(rawsync.T[0])
         sync_up_fronts = np.where(diffs == 1)[0] + first
-        sync_down_fronts = np.where(diffs == -1)[0] + first
         sync_fronts['fpga up fronts'].append(sync_up_fronts)
-        sync_fronts['fpga down fronts'].append(sync_down_fronts)
 
         # get fronts for only one valid ephys channel
         obs, chans = rawdata.shape
 
-        i = Channel
+        i = 0  # assume channel 0 is valid (to be generalized maybe)
 
         Mean = np.median(rawdata.T[i])
         Std = np.std(rawdata.T[i])
 
         ups = np.invert(rawdata.T[i] > Mean + 6 * Std)
-        downs = np.invert(rawdata.T[i] < Mean - 6 * Std)
-
         up_fronts = []
-        down_fronts = []
+
         # Activity front at least 10 samples long (empirical)
 
-        up_fronts.append(first_occ_index(ups, 20) + first)
-        down_fronts.append(first_occ_index(downs, 20) + first)
+        up_fronts.append(first_occ_index(ups, 3) + first)
 
         chan_fronts[i]['ephys up fronts'].append(up_fronts)
-        chan_fronts[i]['ephys down fronts'].append(down_fronts)
 
-    return chan_fronts, sync_fronts  # all differences
+    return chan_fronts, sync_fronts
 
 
 def evaluate_ephys(chan_fronts, sync_fronts, show_plots=SHOW_PLOTS):
@@ -271,22 +243,16 @@ def evaluate_ephys(chan_fronts, sync_fronts, show_plots=SHOW_PLOTS):
 
     # check if all signals have been detected
     L_sync_up = list(flatten(sync_fronts['fpga up fronts']))
-    L_sync_down = list(flatten(sync_fronts['fpga down fronts']))
-
     assert len(L_sync_up) == 500, 'not all fpga up fronts detected'
-    assert len(L_sync_down) == 500, 'not all fpga down fronts detected'
 
     for i in range(len(chan_fronts)):
 
         try:
 
             L_chan_up = list(flatten(chan_fronts[i]['ephys up fronts']))
-            L_chan_down = list(flatten(chan_fronts[i]['ephys down fronts']))
 
             assert len(L_chan_up) == 500, \
                 'not all ephys up fronts detected'
-            assert len(L_chan_down) == 500, \
-                'not all ephys down fronts detected'
 
             break
 
@@ -295,9 +261,8 @@ def evaluate_ephys(chan_fronts, sync_fronts, show_plots=SHOW_PLOTS):
             continue
 
     ups_errors = np.array(L_chan_up) - np.array(L_sync_up)
-    downs_errors = np.array(L_chan_down) - np.array(L_sync_down)
 
-    MAX = max([max(ups_errors), max(downs_errors)])
+    MAX = max(ups_errors)
 
     if MAX > 20:
         print('ATTENTION, the maximal error is unusually high, %s sec' %
@@ -307,13 +272,9 @@ def evaluate_ephys(chan_fronts, sync_fronts, show_plots=SHOW_PLOTS):
 
     if show_plots:
         plt.figure('histogram')
-
-        #  pool up front and down front temporal errors
-        Er = [np.array(ups_errors), np.array(downs_errors)]
-        f = np.reshape(Er, 1000) / 30000.
-
+        f = np.array(ups_errors) / 30000.
         plt.hist(f)
-        plt.xlabel('error between fpga fronts and ephys fronts in sec')
+        plt.xlabel('error between fpga and ephys up fronts in sec')
 
 
 ###########
@@ -342,45 +303,49 @@ def uncycle_pgts(time):
 
 def get_video_stamps_and_brightness(sync_test_folder):
 
-    # for each frame in the video, set 1 or zero corresponding to LED status
-    startTime = datetime.now()
+    try:
+        d = np.load(sync_test_folder + '/video/brightness.npy', allow_pickle=True).flat[0]
+        return d
 
-    d = {}
-    # No '_iblrig_leftCamera.raw.avi',
-    # took it out, as it was faulty in Guido's data
-    vids = ['_iblrig_bodyCamera.raw.avi', '_iblrig_rightCamera.raw.avi']
+    except BaseException:
 
-    # maybe 12 min in total for the 30 Hz and 60 Hz videos
+        # for each frame in the video, set 1 or zero corresponding to LED status
+        startTime = datetime.now()
 
-    for vid in vids:
-        video_path = sync_test_folder + '/video/' + vid
+        d = {}
 
-        print('Loading video, this takes some minuts:', video_path)
-        cap = cv2.VideoCapture(video_path)
-        # fps = cap.get(cv2.CAP_PROP_FPS)
-        frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        vids = ['_iblrig_bodyCamera.raw.avi',
+                '_iblrig_rightCamera.raw.avi',
+                '_iblrig_leftCamera.raw.avi']
 
-        brightness = np.zeros(frameCount)
+        for vid in vids:
+            video_path = sync_test_folder + '/video/' + vid
 
-        # for each frame, save brightness in array
-        for i in range(frameCount):
-            cap.set(1, i)
-            _, frame = cap.read()
-            brightness[i] = np.sum(frame)
+            print('Loading video, this takes some minutes:', video_path)
+            cap = cv2.VideoCapture(video_path)
+            frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-        with open(video_path[:-4] + '_timestamps.ssv', 'r') as csv_file:
-            csv_reader = csv.reader(csv_file, delimiter=' ')
-            ssv_times = np.array([line for line in csv_reader])
+            brightness = np.zeros(frameCount)
 
-        ssv_times_sec = [convert_pgts(int(time)) for time in ssv_times[:, 0]]
-        uncycle_pgts(ssv_times_sec)
+            # for each frame, save brightness in array
+            for i in range(frameCount):
+                cap.set(1, i)
+                _, frame = cap.read()
+                brightness[i] = np.sum(frame)
 
-        d[vid] = [brightness, uncycle_pgts(ssv_times_sec)]
+            with open(video_path[:-4] + '_timestamps.ssv', 'r') as csv_file:
+                csv_reader = csv.reader(csv_file, delimiter=' ')
+                ssv_times = np.array([line for line in csv_reader])
 
-    cap.release()
-    print(datetime.now() - startTime)
-    np.save(sync_test_folder + '/video/brightness.npy', d)
-    return d
+            ssv_times_sec = [convert_pgts(int(time)) for time in ssv_times[:, 0]]
+            uncycle_pgts(ssv_times_sec)
+
+            d[vid] = [brightness, uncycle_pgts(ssv_times_sec)]
+
+        cap.release()
+        print(datetime.now() - startTime)
+        np.save(sync_test_folder + '/video/brightness.npy', d)
+        return d
 
 
 def evaluate_camera_sync(d, sync, show_plots=SHOW_PLOTS):
@@ -401,8 +366,8 @@ def evaluate_camera_sync(d, sync, show_plots=SHOW_PLOTS):
     '''
     y = {
         '_iblrig_bodyCamera.raw.avi': 3,
-        '_iblrig_rightCamera.raw.avi': 4,
-        '_iblrig_leftCamera.raw.avi': 2}
+        '_iblrig_rightCamera.raw.avi': 2,
+        '_iblrig_leftCamera.raw.avi': 4}
 
     s3 = ephys_fpga._get_sync_fronts(sync, 0)  # get arduino sync signal
 
@@ -429,12 +394,11 @@ def evaluate_camera_sync(d, sync, show_plots=SHOW_PLOTS):
         assert len(fronts_brightness) == len(
             s3['times']), 'Not all square signals detected in %s!' % vid
 
-        # get temporal difference between fpga wave fronts and brightness wave
-        # fronts
-        D = fronts_brightness - s3['times']
+        # temporal difference between fpga and brightness ups
+        D = [fronts_brightness - s3['times']][0][::2]  # only get up fronts
 
         assert len(
-            D) == 1000, \
+            D) == 500, \
             'not all 500 pulses were detected \
             by fpga and brightness in %s!' % vid
 
@@ -493,75 +457,53 @@ def compare_bpod_json_with_fpga(sync_test_folder, sync, show_plots=SHOW_PLOTS):
     with open(sync_test_folder + '/bpod/_iblrig_taskData.raw.jsonable') as fid:
         out = json.load(fid)
 
-    ins = out['Events timestamps']['BNC1High']
-    outs = out['Events timestamps']['BNC1Low']
+    ups = out['Events timestamps']['BNC1High']
 
-    assert len(ins) == 500, 'not all pulses detected in bpod!'
-    assert len(ins) == len(outs), 'not all fronts detected in bpod signal!'
+    assert len(ups) == 500, 'not all pulses detected in bpod!'
 
     # get the fpga signal from the sync object
-    s3 = ephys_fpga._get_sync_fronts(sync, 0)  # 3b channel map
+    s3 = ephys_fpga._get_sync_fronts(sync, 0)['times'][::2]
 
-    assert len(s3['times']) == 1000, 'not all fronts detected in fpga signal!'
+    assert len(s3) == 500, 'not all fronts detected in fpga signal!'
 
-    offset_on = np.mean(
-        np.array(s3['times'][1::2]) - np.array(outs))  # get delay
-    offset_off = np.mean(np.array(s3['times'][0::2]) - np.array(ins))
+    D = np.array(s3) - np.array(ups)
 
-    jitter_on = np.std(
-        np.array(s3['times'][1::2]) - np.array(outs))  # get jitter
-    jitter_off = np.std(np.array(s3['times'][0::2]) - np.array(ins))
+    offset_on = np.mean(D)
+    jitter_on = np.std(D)
+    ipi_bpod = np.abs(np.diff(ups))  # inter pulse interval = ipi
+    ipi_fpga = np.abs(np.diff(s3))
 
-    inter_pulse_interval_bpod = np.abs(np.array(ins) - np.array(outs))
-    inter_pulse_interval_fpga = np.abs(
-        np.array(s3['times'][1::2]) - np.array(s3['times'][0::2]))
+    print('maximal bpod jitter in sec: ',
+          np.round(np.max(ipi_bpod) - np.min(ipi_bpod), 6))
 
-    print(
-        'maximal bpod jitter in sec: ',
-        np.round(
-            np.max(inter_pulse_interval_bpod) -
-            np.min(inter_pulse_interval_bpod),
-            6))
-    print(
-        'maximal fpga jitter in sec: ',
-        np.round(
-            np.max(inter_pulse_interval_fpga) -
-            np.min(inter_pulse_interval_fpga),
-            6))
+    print('maximal fpga jitter in sec: ',
+          np.round(np.max(ipi_fpga) - np.min(ipi_fpga), 6))
+
     print('maximal bpod-fpga in sec: ',
-          np.round(np.max(np.abs(np.array(s3['times'][1::2]) - np.array(outs))) -
-                   np.min(np.abs(np.array(s3['times'][1::2]) - np.array(outs))), 6))
+          np.round(np.max(np.abs(D)) - np.min(np.abs(D)), 6))
 
-    print('The fpga 500 ms square signal and \
-          the bpod 500 ms square signal are offset',
-          'by %s sec and the difference between them has std %s sec'
-          % (np.round(np.mean([offset_on, offset_off]), 6),
-             np.round(np.mean([jitter_on, jitter_off]), 6)))
+    print('fpga and bpod signal offset in sec: ', np.round(offset_on, 6))
+
+    print('std of fpga and bpod difference in sec: ', np.round(jitter_on, 6))
 
     if show_plots:
 
         plt.figure('wavefronts')
         plt.plot(s3['times'], s3['polarities'], label='fpga')
         plt.plot(
-            ins,
+            ups,
             np.ones(
-                len(ins)),
+                len(ups)),
             linestyle='',
             marker='o',
             label='pbod on')
-        plt.plot(
-            outs,
-            np.ones(
-                len(outs)),
-            linestyle='',
-            marker='x',
-            label='bpod off')
+
         plt.legend()
         plt.show()
 
         plt.figure('histogram of wavefront differences, bpod and fpga')
 
-        plt.hist(np.array(s3['times'][1::2]) - np.array(outs))
+        plt.hist(np.array(s3) - np.array(ups))
         plt.xlabel('error between fpga fronts and ephys fronts in sec')
         plt.show()
 

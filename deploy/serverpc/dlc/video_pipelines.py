@@ -115,18 +115,10 @@ def _get_crop_window(df_crop, roi_name):
 
 
 def create_flags(root_path, dry=False):
-    # look for all mp4 raw video files
-    for file_mp4 in root_path.rglob('_iblrig_leftCamera.raw.mp4'):
-        ses_path = file_mp4.parents[1]
-        file_label = file_mp4.stem.split('.')[0].split('_')[-1]
-        # skip flag creation if there is a file named _ibl_*Camera.dlc.npy
-        if (ses_path / 'alf' / f'_ibl_{file_label}.dlc.npy').exists():
-            continue
-        if not dry:
-            ibllib.io.flags.write_flag_file(ses_path / 'dlc_training.flag',
-                                            file_list=[str(file_mp4.relative_to(ses_path))],
-                                            clobber=True)
-        logger.info(str(ses_path / 'dlc_training.flag'))
+    """
+    Create flag files for the training DLC process
+    """
+    ibllib.io.flags.create_dlc_flags(root_path / 'dlc_training.flag', clobber=True, dry=dry)
 
 
 def dlc_training(file_mp4, force=False):
@@ -292,7 +284,12 @@ if __name__ == "__main__":
         # sort them according to the session date, so the more recent gets processed first
         flag_files = _order_glob_by_session_date(flag_files)
         for flag_file in flag_files:
-            for relative_path in ibllib.io.flags.read_flag_file(flag_file):
+            # flag files should contain file names. If not delete them
+            rel_path = ibllib.io.flags.read_flag_file(flag_file)
+            if isinstance(rel_path, bool):
+                flag_file.unlink()
+                continue
+            for relative_path in rel_path:
                 video_file = flag_file.parent / relative_path
                 t0 = time.time()
                 c += 1

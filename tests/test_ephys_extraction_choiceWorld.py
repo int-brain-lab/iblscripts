@@ -12,7 +12,7 @@ from oneibl.one import ONE
 class TestEphysQC(unittest.TestCase):
 
     def setUp(self):
-        self.init_folder = Path('/mnt/s0/Data/IntegrationTests/ephys')
+        self.init_folder = Path('/mnt/s0/Data/IntegrationTests/ephys/choice_world')
         if not self.init_folder.exists():
             return
         self.alf_folder = self.init_folder / 'alf'
@@ -44,17 +44,15 @@ class TestEphysExtraction(unittest.TestCase):
             return
 
     def test_sync_extract(self):
-        session_path = self.session_path
-        dry = False
-        ibllib.io.flags.create_other_flags(session_path, 'extract_ephys.flag', force=True)
-        iblrig_pipeline.extract_ephys(session_path, dry=dry)
-
-        one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
-                  username='test_user', password='TapetesBloc18')
-        iblrig_pipeline.register(session_path, one=one)
-
-    def tearDown(self):
         pass
+        # session_path = self.session_path
+        # dry = False
+        # ibllib.io.flags.create_other_flags(session_path, 'extract_ephys.flag', force=True)
+        # iblrig_pipeline.extract_ephys(session_path, dry=dry)
+        #
+        # one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
+        #           username='test_user', password='TapetesBloc18')
+        # iblrig_pipeline.register(session_path, one=one)
 
 
 if __name__ == "__main__":

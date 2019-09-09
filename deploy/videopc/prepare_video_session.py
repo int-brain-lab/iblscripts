@@ -4,13 +4,14 @@
 # @Date: Thursday, May 2nd 2019, 5:41:56 pm
 import argparse
 import datetime
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
+import ibllib.io.flags as flags
 import ibllib.io.params as params
 from alf.folders import next_num_folder
-import config_cameras as cams
 
+import config_cameras as cams
 
 VIDEOPC_PARAMS_FILE = Path(params.getfile('videopc_params'))
 
@@ -71,7 +72,7 @@ def main(mouse):
     print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - ON")
     # Create filenames to call Bonsai
     filename = '_iblrig_{}Camera.raw.avi'
-    filenamets = '_iblrig_{}Camera.raw_timestamps.ssv'
+    filenamets = '_iblrig_{}Camera.timestamps.ssv'
     # Open n start Bonsai view
     body = "-p:FileNameBody=" + str(SESSION_FOLDER / filename.format('body'))
     left = "-p:FileNameLeft=" + str(SESSION_FOLDER / filename.format('left'))
@@ -92,6 +93,8 @@ def main(mouse):
     # Open the record_file no start
     subprocess.call([str(BONSAI), str(RECORD_FILE), noboot, body, left, right,
                      bodyidx, leftidx, rightidx, bodyts, leftts, rightts])
+    # Create a transfer_me.flag file
+    flags.create_transfer_flags(SESSION_FOLDER.parent)
 
 
 if __name__ == "__main__":

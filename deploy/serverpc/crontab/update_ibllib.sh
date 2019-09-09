@@ -3,7 +3,7 @@ set -e
 # first step is to update iblscripts
 cd ~/Documents/PYTHON/iblscripts
 git fetch --all
-git checkout master
+git checkout -f master
 git reset --hard
 git pull
 # second step is to update ibllib
