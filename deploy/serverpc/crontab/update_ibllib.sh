@@ -9,3 +9,4 @@ git pull
 # second step is to update ibllib
 source ~/Documents/PYTHON/envs/iblenv/bin/activate
 pip install --upgrade ibllib
+pip install git+https://github.com/cortex-lab/phylib.git
