@@ -12,8 +12,10 @@ function run_ks2_ibl(rootZ, rootH)
 %% SET PATHS
 addpath(genpath('~/Documents/MATLAB/Kilosort2')) % path to kilosort folder
 addpath('~/Documents/MATLAB/npy-matlab/npy-matlab')
+[~, hash] = unix('git --git-dir ~/Documents/MATLAB/Kilosort2/.git rev-parse --verify HEAD');
 
 %% PARAMS
+ops.commitHash = strip(hash);
 ops.chanMap = '~/Documents/MATLAB/Kilosort2/configFiles/neuropixPhase3A_kilosortChanMap.mat';
 ops.fs = 30000;   % sample rate
 ops.fshigh = 150;    % frequency for high pass filtering (150)
@@ -88,17 +90,15 @@ fprintf('found %d good units \n', sum(rez.good>0))
 fprintf('Saving results to Phy  \n')
 rezToPhy(rez, rootZ);
 
-%% if you want to save the results to a Matlab file... 
-% discard features in final rez file (too slow to save)
-rez.cProj = [];
-rez.cProjPC = [];
-
-% save final results as rez2
-fprintf('Saving final results in rez2  \n')
-fname = fullfile(rootZ, 'rez2.mat');
-save(fname, 'rez', '-v7.3');
-
-
-
-
-
+% get the commit hash on which this was run
+fid = fopen([rootZ filesep 'spike_sorting_ks2.log'], 'w+');
+for ff = fieldnames(ops)'
+    val = ops.(ff{1});
+    if isnumeric(val) | islogical(val)
+        str = mat2str(val);
+    else
+        str = val;
+    end
+    fwrite(fid,['ops.' ff{1} ' = ' str ';' newline]);
+end
+fclose(fid);
