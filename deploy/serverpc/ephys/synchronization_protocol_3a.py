@@ -486,6 +486,13 @@ def compare_bpod_json_with_fpga(sync_test_folder, sync, show_plots=SHOW_PLOTS):
 
     print('std of fpga and bpod difference in sec: ', np.round(jitter_on, 6))
 
+    IntervalDurationDifferences = np.diff(np.array(s3)) - np.diff(np.array(ups))
+    R = max(abs(IntervalDurationDifferences))
+    
+    print('maximal interval duration difference, fpga - bpod, [sec]:', R)
+    
+    assert R < 0.0002, 'Too high temporal jitter bpod - fpga!'
+    
     if show_plots:
 
         plt.figure('wavefronts')
