@@ -15,6 +15,17 @@ log = logging.getLogger('iblrig')
 log.setLevel(logging.INFO)
 
 
+# TODO: Move all the code into ibllib and make unittests, import from ibllib and use!
+def check_transfer(src_session_path: str or Path, dst_session_path: str or Path):
+    src_files = sorted([x for x in Path(src_session_path).rglob('*') if x.is_file()])
+    dst_files = sorted([x for x in Path(dst_session_path).rglob('*') if x.is_file()])
+    for s, d in zip(src_files, dst_files):
+        assert(s.name == d.name)
+        assert(s.stat().st_size == d.stat().st_size)
+
+    return
+
+
 def rename_session(session_path: str) -> Path:
     session_path = Path(folders.session_path(session_path))
     if session_path is None:
@@ -31,7 +42,7 @@ def rename_session(session_path: str) -> Path:
     new_session_path = Path(*session_path.parts[:-3]) / new_mouse / new_date / new_sess
 
     shutil.move(str(session_path), str(new_session_path))
-    print('\n', session_path, '--> renamed to:')
+    log.info(session_path, '--> renamed to:')
     print(new_session_path)
 
     return new_session_path
@@ -41,7 +52,7 @@ def transfer_session(src: Path, dst: Path, force: bool = False):
     print(src, dst)
     # log.info(f"Attempting to copy from {src} to {dst}...")
     src = Path(folders.session_path(src))
-    dst_sess = Path(folders.session_path(dst))
+    dst_sess = folders.session_path(dst)
     if src is None:
         return
     if dst_sess is None:
@@ -60,7 +71,7 @@ def transfer_session(src: Path, dst: Path, force: bool = False):
         log.info(f"Copying all files from {src} to {dst} ...")
         shutil.copytree(src, dst, ignore=ig(str(src_flag_file.name)))
     # If folder was created delete the src_flag_file
-    if (dst / 'raw_video_data').exists():
+    if check_transfer(src / 'raw_video_data', dst / 'raw_video_data') is None:
         log.info(
             f"{Path(*src.parts[-3:]) / 'raw_video_data'} copied to {dst.parent.parent.parent}")
         src_flag_file.unlink()
@@ -105,3 +116,8 @@ if __name__ == "__main__":
         'remote_folder', help='Remote iblrig_data/Subjects folder')
     args = parser.parse_args()
     confirm_remote_folder(args.local_folder, args.remote_folder)
+    # local_folder = '/home/nico/Projects/IBL/github/iblrig_data/Subjects'
+    # remote_folder = '/home/nico/Projects/IBL/github/iblrig_data_transfer_test/Subjects'
+    # confirm_remote_folder(local_folder, remote_folder)
+    # src_session_path = '/home/nico/Projects/IBL/github/iblrig_data/Subjects/ZM_335/2018-12-13/001'
+    # dst_session_path = '/home/nico/Projects/IBL/github/iblrig_data_transfer_test/Subjects/ZM_335/2018-12-13/001'
