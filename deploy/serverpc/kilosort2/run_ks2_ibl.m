@@ -102,3 +102,8 @@ for ff = fieldnames(ops)'
     fwrite(fid,['ops.' ff{1} ' = ' str ';' newline]);
 end
 fclose(fid);
+
+% create the sync_merge flag
+fclose(fopen([rootZ filesep 'sync_merge_ephys.fl'], 'w+'));
+
+% TODO: run the QC on KS2 output
