@@ -94,7 +94,8 @@ def main(mouse):
     subprocess.call([str(BONSAI), str(RECORD_FILE), noboot, body, left, right,
                      bodyidx, leftidx, rightidx, bodyts, leftts, rightts])
     # Create a transfer_me.flag file
-    flags.create_transfer_flags(SESSION_FOLDER.parent)
+    open(SESSION_FOLDER.parent / 'transfer_me.flag', 'w')
+    return
 
 
 if __name__ == "__main__":
