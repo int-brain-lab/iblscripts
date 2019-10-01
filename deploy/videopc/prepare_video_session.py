@@ -7,7 +7,6 @@ import datetime
 import subprocess
 from pathlib import Path
 
-import ibllib.io.flags as flags
 import ibllib.io.params as params
 from alf.folders import next_num_folder
 

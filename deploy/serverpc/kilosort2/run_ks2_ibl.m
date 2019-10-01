@@ -18,8 +18,8 @@ addpath('~/Documents/MATLAB/npy-matlab/npy-matlab')
 ops.commitHash = strip(hash);
 ops.chanMap = '~/Documents/MATLAB/Kilosort2/configFiles/neuropixPhase3A_kilosortChanMap.mat';
 ops.fs = 30000;   % sample rate
-ops.fshigh = 150;    % frequency for high pass filtering (150)
-ops.minfr_goodchannels = 0.1;  % minimum firing rate on a "good" channel (0 to skip)
+ops.fshigh = 300;    % frequency for high pass filtering (150)
+ops.minfr_goodchannels = 0;  % minimum firing rate on a "good" channel (0 to skip)
 ops.Th = [10 4];   % threshold on projections (like in Kilosort1, can be different for last pass like [10 4])
 ops.lam = 10;  % how important is the amplitude penalty (like in Kilosort1, 0 means not used, 10 is average, 50 is a lot)
 ops.AUCsplit = 0.9; % splitting a cluster at the end requires at least this much isolation for each sub-cluster (max = 1)
@@ -102,3 +102,8 @@ for ff = fieldnames(ops)'
     fwrite(fid,['ops.' ff{1} ' = ' str ';' newline]);
 end
 fclose(fid);
+
+% create the sync_merge flag
+fclose(fopen([rootZ filesep 'sync_merge_ephys.fl'], 'w+'));
+
+% TODO: run the QC on KS2 output
