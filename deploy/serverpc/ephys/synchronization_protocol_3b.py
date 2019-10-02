@@ -179,8 +179,8 @@ def front_extraction_from_arduino_and_ephys(sr, sync):
 
     for pulse in range(500):  # there are 500 square pulses
 
-        first = int(sync_up_fronts[pulse] - period_duration / 4)
-        last = int(first + period_duration)
+        first = int(sync_up_fronts[pulse] - period_duration / 2)
+        last = int(first + period_duration / 2)
 
         if k % 100 == 0:
             print('segment %s of %s' % (k, 500))
