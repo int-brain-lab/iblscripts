@@ -114,6 +114,7 @@ def get_ephys_data(raw_ephys_apfile):
 
     # load reader object, and extract sync traces
     sr = ibllib.io.spikeglx.Reader(raw_ephys_apfile)
+    print('Sampling rate:', int(sr.fs))
     assert int(sr.fs) == 30000, 'sampling rate is not 30 kHz, adjust script!'
     _logger.info('extracted %s' % raw_ephys_apfile)
     return sr
@@ -174,23 +175,15 @@ def front_extraction_from_arduino_and_ephys(sr, sync):
 
     sync_up_fronts = sync_fronts['fpga up fronts']
 
-    assert len(sync_up_fronts) != 0, 'No starting pulse found'
+    assert len(sync_up_fronts) == 500, 'No 500 pulses found'
 
     k = 0
 
     # assure there is exactly one pulse per cut segment
-
     for pulse in range(500):  # there are 500 square pulses
 
-        if pulse == 0:
-
-            first = int(sync_up_fronts[0] - period_duration / 4)
-            last = int(first + period_duration)
-
-        else:
-
-            first = int(sync_up_fronts[0] - period_duration / 4 + period_duration)
-            last = int(first + period_duration)
+        first = int(sync_up_fronts[pulse] - period_duration / 4)
+        last = int(first + period_duration)
 
         if k % 100 == 0:
             print('segment %s of %s' % (k, 500))
@@ -208,10 +201,14 @@ def front_extraction_from_arduino_and_ephys(sr, sync):
         Mean = np.median(rawdata.T[i])
         Std = np.std(rawdata.T[i])
 
-        ups = np.invert(rawdata.T[i] > Mean + 6 * Std)
+        ups = np.invert(rawdata.T[i] > Mean + 2 * Std)
 
         up_fronts = []
-        up_fronts.append(first_occ_index(ups, 3) + first)
+        try:
+            up_fronts.append(first_occ_index(ups, 1) + first)
+        except TypeError:
+            print('pulse %s not detected' % pulse)
+            return
         chan_fronts[i]['ephys up fronts'].append(up_fronts)
 
     return chan_fronts, sync_fronts
@@ -243,14 +240,22 @@ def evaluate_ephys(chan_fronts, sync_fronts, show_plots=SHOW_PLOTS):
             continue
 
     ups_errors = np.array(L_chan_up) - np.array(L_sync_up)
+    durationdiff = np.diff(np.array(L_chan_up)) - np.diff(np.array(L_sync_up))
 
-    MAX = max(ups_errors)
+    MAX = max(abs(ups_errors))
+    MAX_int = max(abs(durationdiff))
+    STD = np.std(abs(ups_errors))
+    STD_int = np.std(abs(durationdiff))
+    print('max time diff up-fronts [sec]', str(MAX / 30000.))
+    print('max interval duration diff [sec]', str(MAX_int / 30000.))
+    print('std time diff up-fronts [sec]', str(STD / 30000.))
+    print('std interval duration diff [sec]', str(STD_int / 30000.))
 
     if MAX > 20:
         print('ATTENTION, the maximal error is unusually high, %s sec' %
               str(MAX / 30000.))
 
-    print('ephys test passed')
+    print('All fronts detected')
 
     if show_plots:
         plt.figure('histogram')
@@ -342,6 +347,8 @@ def evaluate_camera_sync(d, sync, show_plots=SHOW_PLOTS):
     s3 = sync['Arduino']['timeStampsSec'][np.where(diffs == 1)[0]]
 
     for vid in d:
+        print(vid)
+
         # threshold brightness time-series of the camera to have it in {-1,1}
         r3 = [1 if x > np.mean(d[vid][0]) else -1 for x in d[vid][0]]
 
@@ -353,6 +360,7 @@ def evaluate_camera_sync(d, sync, show_plots=SHOW_PLOTS):
         drops = len(cam_times) - len(r3)
 
         # check if an extremely high number of frames is dropped at the end
+        assert len(cam_times) >= len(r3), 'FPGA should be on before camera!'
         assert drops < 500, '%s frames dropped for %s!!!' % (drops, vid)
 
         # get fronts of video brightness square signal
@@ -436,32 +444,10 @@ def compare_bpod_json_with_fpga(sync_test_folder, sync, show_plots=SHOW_PLOTS):
 
     assert len(s3) == 500, 'not all fronts detected in fpga signal!'
 
-    D = np.array(s3) - np.array(ups)
-
-    offset_on = np.mean(D)
-    jitter_on = np.std(D)
-    ipi_bpod = np.abs(np.diff(ups))  # inter pulse interval = ipi
-    ipi_fpga = np.abs(np.diff(s3))
-
-    print('maximal bpod jitter in sec: ',
-          np.round(np.max(ipi_bpod) - np.min(ipi_bpod), 6))
-
-    print('maximal fpga jitter in sec: ',
-          np.round(np.max(ipi_fpga) - np.min(ipi_fpga), 6))
-
-    print('maximal bpod-fpga in sec: ',
-          np.round(np.max(np.abs(D)) - np.min(np.abs(D)), 6))
-
-    print('fpga and bpod signal offset in sec: ', np.round(offset_on, 6))
-
-    print('std of fpga and bpod difference in sec: ', np.round(jitter_on, 6))
-
     IntervalDurationDifferences = np.diff(np.array(s3)) - np.diff(np.array(ups))
     R = max(abs(IntervalDurationDifferences))
-    
+
     print('maximal interval duration difference, fpga - bpod, [sec]:', R)
-    
-    assert R < 0.0002, 'Too high temporal jitter bpod - fpga!'
 
     if show_plots:
 
