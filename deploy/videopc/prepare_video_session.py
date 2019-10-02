@@ -44,9 +44,9 @@ def main(mouse):
     leftts = "-p:FileNameLeftTimestamps=" + str(SESSION_FOLDER / filenamets.format('left'))
     rightts = "-p:FileNameRightTimestamps=" + str(SESSION_FOLDER / filenamets.format('right'))
 
-    bodyidx = "-p:BodyCameraIndex=" + PARAMS.BODY_CAM_IDX
-    leftidx = "-p:LeftCameraIndex=" + PARAMS.LEFT_CAM_IDX
-    rightidx = "-p:RightCameraIndex=" + PARAMS.RIGHT_CAM_IDX
+    bodyidx = "-p:BodyCameraIndex=" + PARAMS['BODY_CAM_IDX']
+    leftidx = "-p:LeftCameraIndex=" + PARAMS['LEFT_CAM_IDX']
+    rightidx = "-p:RightCameraIndex=" + PARAMS['RIGHT_CAM_IDX']
 
     start = '--start'  # --start-no-debug
     noboot = '--no-boot'
