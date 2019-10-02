@@ -180,8 +180,8 @@ def event_extraction_and_comparison(sr, sync):
 
     for pulse in range(500):  # there are 500 square pulses
 
-        first = int(sync_up_fronts[pulse] - period_duration / 4)
-        last = int(first + period_duration)
+        first = int(sync_up_fronts[pulse] - period_duration / 2)
+        last = int(first + period_duration / 2)
 
         if k % 100 == 0:
             print('segment %s of %s' % (k, 500))
@@ -347,8 +347,8 @@ def evaluate_camera_sync(d, sync, show_plots=SHOW_PLOTS):
     '''
     y = {
         '_iblrig_bodyCamera.raw.avi': 3,
-        '_iblrig_rightCamera.raw.avi': 2,
-        '_iblrig_leftCamera.raw.avi': 4}
+        '_iblrig_rightCamera.raw.avi': 4,
+        '_iblrig_leftCamera.raw.avi': 2}
 
     s3 = ephys_fpga._get_sync_fronts(sync, 0)  # get arduino sync signal
 
@@ -362,6 +362,7 @@ def evaluate_camera_sync(d, sync, show_plots=SHOW_PLOTS):
         drops = len(cam_times) - len(r3) * 2
 
         # check if an extremely high number of frames is dropped at the end
+        assert len(cam_times) >= len(r3), 'FPGA should be on before camera!'
         assert drops < 500, '%s frames dropped for %s!!!' % (drops, vid)
 
         # get fronts of video brightness square signal
@@ -447,33 +448,11 @@ def compare_bpod_json_with_fpga(sync_test_folder, sync, show_plots=SHOW_PLOTS):
 
     assert len(s3) == 500, 'not all fronts detected in fpga signal!'
 
-    D = np.array(s3) - np.array(ups)
-
-    offset_on = np.mean(D)
-    jitter_on = np.std(D)
-    ipi_bpod = np.abs(np.diff(ups))  # inter pulse interval = ipi
-    ipi_fpga = np.abs(np.diff(s3))
-
-    print('maximal bpod jitter in sec: ',
-          np.round(np.max(ipi_bpod) - np.min(ipi_bpod), 6))
-
-    print('maximal fpga jitter in sec: ',
-          np.round(np.max(ipi_fpga) - np.min(ipi_fpga), 6))
-
-    print('maximal bpod-fpga in sec: ',
-          np.round(np.max(np.abs(D)) - np.min(np.abs(D)), 6))
-
-    print('fpga and bpod signal offset in sec: ', np.round(offset_on, 6))
-
-    print('std of fpga and bpod difference in sec: ', np.round(jitter_on, 6))
-
     IntervalDurationDifferences = np.diff(np.array(s3)) - np.diff(np.array(ups))
     R = max(abs(IntervalDurationDifferences))
-    
+
     print('maximal interval duration difference, fpga - bpod, [sec]:', R)
-    
-    assert R < 0.0002, 'Too high temporal jitter bpod - fpga!'
-    
+
     if show_plots:
 
         plt.figure('wavefronts')
