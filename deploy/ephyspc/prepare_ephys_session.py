@@ -6,42 +6,14 @@ import argparse
 import datetime
 from pathlib import Path
 
-import ibllib.io.params as params
 from alf.folders import next_num_folder
-
-
-EPHYSPC_PARAMS_FILE = Path(params.getfile('ephyspc_params'))
-
-
-def load_ephyspc_params():
-    if not EPHYSPC_PARAMS_FILE.exists():
-        create_ephyspc_params()
-
-    return params.read('ephyspc_params')
-
-
-def create_ephyspc_params():
-    if EPHYSPC_PARAMS_FILE.exists():
-        print(f"{EPHYSPC_PARAMS_FILE} exists already, exiting...")
-        return
-    else:
-        default = " [default: {}]: "
-        data_folder_path = input(
-            r"Where's your 'Subjects' data folder?" +
-            default.format(r"C:\iblrig_data\Subjects")) or r"C:\iblrig_data\Subjects"
-
-        param_dict = {
-            'DATA_FOLDER_PATH': data_folder_path,
-        }
-        params.write('ephyspc_params', param_dict)
-        print(f"Created {EPHYSPC_PARAMS_FILE}")
-        return
+from ephyspc_params_file import load_ephyspc_params
 
 
 def main(mouse):
     SUBJECT_NAME = mouse
     PARAMS = load_ephyspc_params()
-    DATA_FOLDER = Path(PARAMS.DATA_FOLDER_PATH)
+    DATA_FOLDER = Path(PARAMS['DATA_FOLDER_PATH'])
 
     DATE = datetime.datetime.now().date().isoformat()
     NUM = next_num_folder(DATA_FOLDER / SUBJECT_NAME / DATE)

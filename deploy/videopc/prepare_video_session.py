@@ -7,52 +7,16 @@ import datetime
 import subprocess
 from pathlib import Path
 
-import ibllib.io.params as params
 from alf.folders import next_num_folder
 
 import config_cameras as cams
-
-VIDEOPC_PARAMS_FILE = Path(params.getfile('videopc_params'))
-
-
-def load_videopc_params():
-    if not VIDEOPC_PARAMS_FILE.exists():
-        create_videopc_params()
-
-    return params.read('videopc_params')
-
-
-def create_videopc_params():
-    if VIDEOPC_PARAMS_FILE.exists():
-        print(f"{VIDEOPC_PARAMS_FILE} exists already, exiting...")
-        return
-    else:
-        default = " [default: {}]: "
-        data_folder_path = input(
-            r"Where's your 'Subjects' data folder?" +
-            default.format(r"C:\iblrig_data\Subjects")) or r"C:\iblrig_data\Subjects"
-        body_cam_idx = input(
-            "Please select the index of the BODY camera" + default.format(0)) or 0
-        left_cam_idx = input(
-            "Please select the index of the LEFT camera" + default.format(1)) or 1
-        right_cam_idx = input(
-            "Please select the index of the RIGHT camera" + default.format(2)) or 2
-
-        param_dict = {
-            'DATA_FOLDER_PATH': data_folder_path,
-            'BODY_CAM_IDX': body_cam_idx,
-            'LEFT_CAM_IDX': left_cam_idx,
-            'RIGHT_CAM_IDX': right_cam_idx,
-        }
-        params.write('videopc_params', param_dict)
-        print(f"Created {VIDEOPC_PARAMS_FILE}")
-        return
+from videopc_params_file import load_videopc_params
 
 
 def main(mouse):
     SUBJECT_NAME = mouse
     PARAMS = load_videopc_params()
-    DATA_FOLDER = Path(PARAMS.DATA_FOLDER_PATH)
+    DATA_FOLDER = Path(PARAMS['DATA_FOLDER_PATH'])
     VIDEOPC_FOLDER_PATH = Path(__file__).parent
 
     BONSAI = VIDEOPC_FOLDER_PATH / 'bonsai' / 'bin' / 'Bonsai64.exe'
@@ -99,7 +63,7 @@ def main(mouse):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description='Prepare video PC for ephys recording session')
+        description='Prepare video PC for video recording session')
     parser.add_argument('mouse', help='Mouse name')
     args = parser.parse_args()
 
