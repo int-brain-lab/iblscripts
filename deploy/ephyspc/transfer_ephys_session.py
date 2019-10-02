@@ -9,6 +9,9 @@ from shutil import ignore_patterns as ig
 
 import alf.folders as folders
 import ibllib.io.flags as flags
+import ibllib.io.params as params
+
+from ephyspc_params_file import load_ephyspc_params
 
 
 # TODO: Move all the code into ibllib and make unittests, import from ibllib and use!
@@ -72,14 +75,22 @@ def transfer_session(src: Path, dst: Path, force: bool = False):
         src_flag_file.unlink()
 
 
-def confirm_remote_folder(local_folder, remote_folder):
+def confirm_remote_folder(local_folder=False, remote_folder=False):
+    pars = load_ephyspc_params()
+
+    if not local_folder:
+        local_folder = pars['DATA_FOLDER_PATH']
+    if not remote_folder:
+        remote_folder = pars['REMOTE_DATA_FOLDER_PATH']
     local_folder = Path(local_folder)
     remote_folder = Path(remote_folder)
+    # Check for Subjects folder
     local_folder = folders.subjects_data_folder(local_folder)
     remote_folder = folders.subjects_data_folder(remote_folder)
 
-    src_session_paths = [x.parent for x in local_folder.rglob(
-        "transfer_me.flag")]
+    print('LOCAL:', local_folder)
+    print('REMOTE:', remote_folder)
+    src_session_paths = [x.parent for x in local_folder.rglob("transfer_me.flag")]
 
     if not src_session_paths:
         print("Nothing to transfer, exiting...")
@@ -90,7 +101,7 @@ def confirm_remote_folder(local_folder, remote_folder):
         resp = input(f"Transfer to {remote_folder} with the same name ([y]/n/skip/exit)? ") or 'y'
         print(resp)
         if resp not in ['y', 'n', 'skip', 'exit']:
-            return confirm_remote_folder(local_folder, remote_folder)
+            return confirm_remote_folder(local_folder=local_folder, remote_folder=remote_folder)
         elif resp == 'y':
             transfer_session(session_path, remote_folder, force=False)
         elif resp == 'n':
@@ -106,11 +117,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Transfer files to IBL local server')
     parser.add_argument(
-        'local_folder', help='Local iblrig_data/Subjects folder')
+        '-l', '--local', default=False, required=False, 
+        help='Local iblrig_data/Subjects folder')
     parser.add_argument(
-        'remote_folder', help='Remote iblrig_data/Subjects folder')
+        '-r', '--remote', default=False, required=False,
+        help='Remote iblrig_data/Subjects folder')
     args = parser.parse_args()
-    confirm_remote_folder(args.local_folder, args.remote_folder)
+    confirm_remote_folder(local_folder=args.local, remote_folder=args.remote)
     # local_folder = '/home/nico/Projects/IBL/github/iblrig_data/Subjects'
     # remote_folder = '/home/nico/Projects/IBL/github/iblrig_data_transfer_test/Subjects'
     # confirm_remote_folder(local_folder, remote_folder)  # noqa
