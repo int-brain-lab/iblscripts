@@ -81,6 +81,7 @@ def confirm_remote_folder(local_folder=False, remote_folder=False):
         flag_file = session_path / 'transfer_me.flag'
         msg = f"Transfer to {remote_folder} with the same name?"
         resp = input(msg + "\n[y]es/[r]ename/[s]kip/[e]xit\n ^\n> ") or 'y'
+        resp = resp.lower()
         print(resp)
         if resp not in ['y', 'r', 's', 'e', 'yes', 'rename', 'skip', 'exit']:
             return confirm_remote_folder(local_folder=local_folder, remote_folder=remote_folder)
