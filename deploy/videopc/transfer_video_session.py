@@ -5,10 +5,8 @@
 import argparse
 import shutil
 from pathlib import Path
-from shutil import ignore_patterns as ig
 
 import alf.folders as folders
-import ibllib.io.flags as flags
 
 from videopc_params_file import load_videopc_params
 
@@ -20,7 +18,6 @@ def check_transfer(src_session_path: str or Path, dst_session_path: str or Path)
     for s, d in zip(src_files, dst_files):
         assert(s.name == d.name)
         assert(s.stat().st_size == d.stat().st_size)
-
     return
 
 
@@ -46,37 +43,21 @@ def rename_session(session_path: str) -> Path:
     return new_session_path
 
 
-def transfer_session(src: Path, dst: Path, force: bool = False):
+def transfer_folder(src: Path, dst: Path, force: bool = False):
     print(f"Attempting to copy:\n{src}\n--> {dst}")
-    src = Path(folders.session_path(src))
-    dst_sess = folders.session_path(dst)
-    if src is None:
-        return
-    if dst_sess is None:
-        dst = dst / Path(*src.parts[-3:])
-
-    src_flag_file = src / "transfer_me.flag"
-    if not src_flag_file.exists():
-        return
-
-    flag = flags.read_flag_file(src_flag_file)
-    if isinstance(flag, list):
-        raise(NotImplementedError)
-    else:
-        if force:
-            shutil.rmtree(dst, ignore_errors=True)
-        print(f"Copying all files:\n{src}\n--> {dst}")
-        shutil.copytree(src, dst, ignore=ig(str(src_flag_file.name)))
+    if force:
+        print(f"Removing {dst}")
+        shutil.rmtree(dst, ignore_errors=True)
+    print(f"Copying all files:\n{src}\n--> {dst}")
+    shutil.copytree(src, dst)
     # If folder was created delete the src_flag_file
-    if check_transfer(src / 'raw_video_data', dst / 'raw_video_data') is None:
-        print(
-            f"{Path(*src.parts[-3:]) / 'raw_video_data'} copied to {dst.parent.parent.parent}")
-        src_flag_file.unlink()
+    if check_transfer(src, dst) is None:
+        print("All files copied")
 
 
 def confirm_remote_folder(local_folder=False, remote_folder=False):
     pars = load_videopc_params()
-    
+
     if not local_folder:
         local_folder = pars['DATA_FOLDER_PATH']
     if not remote_folder:
@@ -97,15 +78,26 @@ def confirm_remote_folder(local_folder=False, remote_folder=False):
 
     for session_path in src_session_paths:
         print(f"\nFound session: {session_path}")
-        resp = input(f"Transfer to {remote_folder} with the same name ([y]/n/skip/exit)? ") or 'y'
+        flag_file = session_path / 'transfer_me.flag'
+        msg = f"Transfer to {remote_folder} with the same name?"
+        resp = input(msg + "\n[y]es/[r]ename/[s]kip/[e]xit\n ^\n> ") or 'y'
         print(resp)
         if resp not in ['y', 'n', 'skip', 'exit']:
             return confirm_remote_folder(local_folder=local_folder, remote_folder=remote_folder)
         elif resp == 'y':
-            transfer_session(session_path, remote_folder, force=False)
+            remote_session_path = remote_folder / Path(*session_path.parts[-3:])
+            transfer_folder(
+                session_path / 'raw_video_data',
+                remote_session_path / 'raw_video_data',
+                force=False)
+            flag_file.unlink()
         elif resp == 'n':
             new_session_path = rename_session(session_path)
-            transfer_session(new_session_path, remote_folder)
+            remote_session_path = remote_folder / Path(*new_session_path.parts[-3:])
+            transfer_folder(
+                new_session_path / 'raw_video_data',
+                remote_session_path / 'raw_video_data')
+            flag_file.unlink()
         elif resp == 'skip':
             continue
         elif resp == 'exit':
@@ -123,8 +115,3 @@ if __name__ == "__main__":
         help='Remote iblrig_data/Subjects folder')
     args = parser.parse_args()
     confirm_remote_folder(local_folder=args.local, remote_folder=args.remote)
-    # local_folder = '/home/nico/Projects/IBL/github/iblrig_data/Subjects'
-    # remote_folder = '/home/nico/Projects/IBL/github/iblrig_data_transfer_test/Subjects'
-    # confirm_remote_folder(local_folder, remote_folder)  # noqa
-    # src_session_path = '/home/nico/Projects/IBL/github/iblrig_data/Subjects/ZM_335/2018-12-13/001'  # noqa
-    # dst_session_path = '/home/nico/Projects/IBL/github/iblrig_data_transfer_test/Subjects/ZM_335/2018-12-13/001'  # noqa
