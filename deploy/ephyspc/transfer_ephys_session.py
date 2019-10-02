@@ -85,8 +85,8 @@ def confirm_remote_folder(local_folder=False, remote_folder=False):
     local_folder = Path(local_folder)
     remote_folder = Path(remote_folder)
     # Check for Subjects folder
-    local_folder = folders.subjects_data_folder(local_folder)
-    remote_folder = folders.subjects_data_folder(remote_folder)
+    local_folder = folders.subjects_data_folder(local_folder, rglob=True)
+    remote_folder = folders.subjects_data_folder(remote_folder, rglob=True)
 
     print('LOCAL:', local_folder)
     print('REMOTE:', remote_folder)
