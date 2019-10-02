@@ -1,5 +1,4 @@
 import argparse
-import datetime
 import json
 from pathlib import Path
 
@@ -11,6 +10,7 @@ VIDEOPC_PARAMS_FILE = Path(params.getfile('videopc_params'))
 def create_videopc_params(force=False):
     if VIDEOPC_PARAMS_FILE.exists() and not force:
         print(f"{VIDEOPC_PARAMS_FILE} exists already, exiting...")
+        print(load_videopc_params())
         return
     else:
         default = " [default: {}]: "
@@ -19,7 +19,9 @@ def create_videopc_params(force=False):
             default.format(r"D:\iblrig_data\Subjects")) or r"D:\iblrig_data\Subjects"
         remote_data_folder_path = input(
             r"Where's your REMOTE 'Subjects' data folder?" +
-            default.format(r"\\iblserver.champalimaud.pt\ibldata\Subjects")) or r"\\iblserver.champalimaud.pt\ibldata\Subjects"
+            default.format(
+                r"\\iblserver.champalimaud.pt\ibldata\Subjects")
+        ) or r"\\iblserver.champalimaud.pt\ibldata\Subjects"
         body_cam_idx = input(
             "Please select the index of the BODY camera" + default.format(0)) or 0
         left_cam_idx = input(
@@ -36,6 +38,7 @@ def create_videopc_params(force=False):
         }
         params.write('videopc_params', param_dict)
         print(f"Created {VIDEOPC_PARAMS_FILE}")
+        print(param_dict)
         return
 
 
@@ -51,6 +54,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Setup video parmas file')
     parser.add_argument('-f', '--force', default=False, required=False, action='store_true',
-        help='Update parameters')
+                        help='Update parameters')
     args = parser.parse_args()
     create_videopc_params(force=args.force)
