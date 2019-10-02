@@ -6,11 +6,8 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.cbook import flatten
-
 import cv2  # pip install opencv-python
-
 import alf.io
-import ibllib.dsp as dsp
 import ibllib.io.spikeglx
 import ibllib.plots
 import ibllib.io.extractors.ephys_fpga as ephys_fpga
@@ -142,7 +139,7 @@ def first_occ_index(array, n_at_least):
             curr_found_false = 0
 
 
-def event_extraction_and_comparison(sr):
+def event_extraction_and_comparison(sr, sync):
 
     # it took 8 min to run that for 6 min of data, all 300 ish channels
     # silent channels for Guido's set:
@@ -159,9 +156,6 @@ def event_extraction_and_comparison(sr):
     period_duration = 30000  # in observations, 30 kHz
     BATCH_SIZE_SAMPLES = period_duration  # in observations, 30 kHz
 
-    # only used to find first pulse
-    wg = dsp.WindowGenerator(sr.ns, BATCH_SIZE_SAMPLES, overlap=1)
-
     # if the data is needed as well, loop over the file
     # raw data contains raw ephys traces, while raw_sync contains the 16 sync
     # traces
@@ -170,23 +164,15 @@ def event_extraction_and_comparison(sr):
     _, chans = rawdata.shape
 
     chan_fronts = {}
-    sync_fronts = {}
 
-    sync_fronts['fpga up fronts'] = []
+    sync_up_fronts = ephys_fpga._get_sync_fronts(sync, 0)['times'][0::2]
+    sync_up_fronts = np.array(sync_up_fronts) * sr.fs
+
+    assert len(sync_up_fronts) == 500, 'There are not all sync pulses'
 
     for j in range(chans):
         chan_fronts[j] = {}
         chan_fronts[j]['ephys up fronts'] = []
-
-    for first, last in list(wg.firstlast):
-
-        _, rawsync = sr.read_samples(first, last)
-
-        diffs = np.diff(rawsync.T[0])
-        sync_up_fronts = np.where(diffs == 1)[0] + first
-
-        if len(sync_up_fronts) != 0:
-            break
 
     k = 0
 
@@ -194,15 +180,8 @@ def event_extraction_and_comparison(sr):
 
     for pulse in range(500):  # there are 500 square pulses
 
-        if pulse == 0:
-
-            first = int(sync_up_fronts[0] - period_duration / 4)
-            last = int(first + period_duration)
-
-        else:
-
-            first = int(sync_up_fronts[0] - period_duration / 4 + period_duration)
-            last = int(first + period_duration)
+        first = int(sync_up_fronts[pulse] - period_duration / 4)
+        last = int(first + period_duration)
 
         if k % 100 == 0:
             print('segment %s of %s' % (k, 500))
@@ -210,11 +189,6 @@ def event_extraction_and_comparison(sr):
         k += 1
 
         rawdata, rawsync = sr.read_samples(first, last)
-
-        # get fronts for sync signal
-        diffs = np.diff(rawsync.T[0])
-        sync_up_fronts = np.where(diffs == 1)[0] + first
-        sync_fronts['fpga up fronts'].append(sync_up_fronts)
 
         # get fronts for only one valid ephys channel
         obs, chans = rawdata.shape
@@ -224,25 +198,24 @@ def event_extraction_and_comparison(sr):
         Mean = np.median(rawdata.T[i])
         Std = np.std(rawdata.T[i])
 
-        ups = np.invert(rawdata.T[i] > Mean + 6 * Std)
+        ups = np.invert(rawdata.T[i] > Mean + 2 * Std)
         up_fronts = []
 
         # Activity front at least 10 samples long (empirical)
 
-        up_fronts.append(first_occ_index(ups, 3) + first)
+        up_fronts.append(first_occ_index(ups, 1) + first)
 
         chan_fronts[i]['ephys up fronts'].append(up_fronts)
 
-    return chan_fronts, sync_fronts
+    return chan_fronts, sync_up_fronts
 
 
-def evaluate_ephys(chan_fronts, sync_fronts, show_plots=SHOW_PLOTS):
+def evaluate_ephys(chan_fronts, L_sync_up, show_plots=SHOW_PLOTS):
     """
     check number of detected square pulses and temporal jitter
     """
 
     # check if all signals have been detected
-    L_sync_up = list(flatten(sync_fronts['fpga up fronts']))
     assert len(L_sync_up) == 500, 'not all fpga up fronts detected'
 
     for i in range(len(chan_fronts)):
@@ -261,10 +234,18 @@ def evaluate_ephys(chan_fronts, sync_fronts, show_plots=SHOW_PLOTS):
             continue
 
     ups_errors = np.array(L_chan_up) - np.array(L_sync_up)
+    durationdiff = np.diff(np.array(L_chan_up)) - np.diff(np.array(L_sync_up))
 
-    MAX = max(ups_errors)
+    MAX = max(abs(ups_errors))
+    MAX_int = max(abs(durationdiff))
+    STD = np.std(abs(ups_errors))
+    STD_int = np.std(abs(durationdiff))
+    print('max time diff up-fronts [sec]', str(MAX / 30000.))
+    print('max interval duration diff [sec]', str(MAX_int / 30000.))
+    print('std time diff up-fronts [sec]', str(STD / 30000.))
+    print('std interval duration diff [sec]', str(STD_int / 30000.))
 
-    if MAX > 20:
+    if MAX > 6:
         print('ATTENTION, the maximal error is unusually high, %s sec' %
               str(MAX / 30000.))
 
@@ -530,7 +511,7 @@ def run_synchronization_protocol(sync_test_folder, display=SHOW_PLOTS):
 
     # compare ephys fronts with fpga pulse signal for right probe
     _logger.info('compare ephys fronts with fpga pulse signal for right probe')
-    chan_fronts, sync_fronts = event_extraction_and_comparison(sr_right)
+    chan_fronts, sync_fronts = event_extraction_and_comparison(sr_right, sync_right)
     evaluate_ephys(chan_fronts, sync_fronts, show_plots=display)
 
     # do camera check
