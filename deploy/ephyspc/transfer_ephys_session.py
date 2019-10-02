@@ -81,26 +81,27 @@ def confirm_remote_folder(local_folder=False, remote_folder=False):
         flag_file = session_path / 'transfer_me.flag'
         msg = f"Transfer to {remote_folder} with the same name?"
         resp = input(msg + "\n[y]es/[r]ename/[s]kip/[e]xit\n ^\n> ") or 'y'
+        resp = resp.lower()
         print(resp)
-        if resp not in ['y', 'n', 'skip', 'exit']:
+        if resp not in ['y', 'r', 's', 'e', 'yes', 'rename', 'skip', 'exit']:
             return confirm_remote_folder(local_folder=local_folder, remote_folder=remote_folder)
-        elif resp == 'y':
+        elif resp == 'y' or resp == 'yes':
             remote_session_path = remote_folder / Path(*session_path.parts[-3:])
             transfer_folder(
                 session_path / 'raw_ephys_data',
                 remote_session_path / 'raw_ephys_data',
                 force=False)
             flag_file.unlink()
-        elif resp == 'n':
+        elif resp == 'r' or resp == 'rename':
             new_session_path = rename_session(session_path)
             remote_session_path = remote_folder / Path(*new_session_path.parts[-3:])
             transfer_folder(
                 new_session_path / 'raw_ephys_data',
                 remote_session_path / 'raw_ephys_data')
             flag_file.unlink()
-        elif resp == 'skip':
+        elif resp == 's' or resp == 'skip':
             continue
-        elif resp == 'exit':
+        elif resp == 'e' or resp == 'exit':
             return
 
 
