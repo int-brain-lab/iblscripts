@@ -76,7 +76,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('clusters.channels', 3, 3),
                              ('clusters.depths', 3, 3),
                              ('clusters.probes', 1, 1),
-                             ('clusters.waveformsDuration', 3, 3),
+                             ('clusters.peakToThrough', 3, 3),
                              ('ephysData.raw.ap', 2, 2),
                              ('ephysData.raw.lf', 2, 2),
                              ('ephysData.raw.meta', 4, 5),
@@ -101,7 +101,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('trials.rewardVolume', 1, 1),
                              ('trials.stimOn_times', 1, 1),
                              ('wheel.position', 1, 1),
-                             ('wheel.times', 1, 1),
+                             ('wheel.timestamps', 1, 1),
                              ('wheel.velocity', 1, 1),
                              ]
         # check that we indeed find expected number of datasets after registration
@@ -136,7 +136,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
 
         """Check the clusters object"""
         clusters = alf.io.load_object(session_path.joinpath('alf'), 'clusters')
-        clusters_attributes = ['depths', 'probes', 'channels', 'waveformsDuration', 'amps']
+        clusters_attributes = ['depths', 'probes', 'channels', 'peakToThrough', 'amps']
         self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters]).size == 1)
         self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
         self.assertTrue(10 < np.nanmedian(clusters.amps) < 80)  # we expect microvolts
