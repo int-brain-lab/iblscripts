@@ -7,7 +7,7 @@ import datetime
 from pathlib import Path
 
 from alf.folders import next_num_folder
-from ephyspc_params_file import load_ephyspc_params
+from misc import load_ephyspc_params
 
 
 def main(mouse):
