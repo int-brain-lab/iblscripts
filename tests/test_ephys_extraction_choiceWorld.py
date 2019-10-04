@@ -140,7 +140,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
         self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters]).size == 1)
         self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
         self.assertTrue(10 < np.nanmedian(clusters.amps) < 80)  # we expect microvolts
-        self.assertTrue(0 < np.median(np.abs(clusters.waveformsDuration)) < 5)  # we expect ms
+        self.assertTrue(0 < np.median(np.abs(clusters.peakToThrough)) < 5)  # we expect ms
 
         """Check the channels object"""
         channels = alf.io.load_object(session_path.joinpath('alf'), 'channels')
@@ -178,7 +178,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
 class TestEphysQC(unittest.TestCase):
 
     def setUp(self):
-        self.init_folder = Path('/mnt/s0/Data/IntegrationTests/ephys/choice_world')
+        self.init_folder = Path('/mnt/s0/Data/IntegrationTests/ephys/ephys_qc')
         if not self.init_folder.exists():
             return
         self.alf_folder = self.init_folder / 'alf'
@@ -200,25 +200,6 @@ class TestEphysQC(unittest.TestCase):
         if not self.init_folder.exists():
             return
         shutil.rmtree(self.alf_folder, ignore_errors=True)
-
-
-class TestEphysExtraction(unittest.TestCase):
-
-    def setUp(self):
-        self.session_path = Path('/mnt/s0/Data/IntegrationTests/ephys/ZM_1150/2019-05-07/001')
-        if not self.session_path.exists():
-            return
-
-    def test_sync_extract(self):
-        pass
-        # session_path = self.session_path
-        # dry = False
-        # ibllib.io.flags.create_other_flags(session_path, 'extract_ephys.flag', force=True)
-        # iblrig_pipeline.extract_ephys(session_path, dry=dry)
-        #
-        # one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
-        #           username='test_user', password='TapetesBloc18')
-        # iblrig_pipeline.register(session_path, one=one)
 
 
 if __name__ == "__main__":
