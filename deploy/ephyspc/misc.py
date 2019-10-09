@@ -25,6 +25,14 @@ def cli_ask_options(prompt: str, options: list, default_idx: int = 0) -> str:
     return ans
 
 
+def behavior_exists(session_path: str) -> bool:
+    session_path = Path(session_path)
+    behavior_path = session_path / 'raw_behavior_data'
+    if behavior_path.exists():
+        return True
+    return False
+
+
 def check_transfer(src_session_path: str or Path, dst_session_path: str or Path):
     src_files = sorted([x for x in Path(src_session_path).rglob('*') if x.is_file()])
     dst_files = sorted([x for x in Path(dst_session_path).rglob('*') if x.is_file()])
@@ -56,7 +64,7 @@ def rename_session(session_path: str) -> Path:
     return new_session_path
 
 
-def transfer_folder(src: Path, dst: Path, force: bool = False):
+def transfer_folder(src: Path, dst: Path, force: bool = False) -> None:
     print(f"Attempting to copy:\n{src}\n--> {dst}")
     if force:
         print(f"Removing {dst}")
@@ -224,6 +232,9 @@ def confirm_ephys_remote_folder(local_folder=False, remote_folder=False):
                 local_folder=local_folder, remote_folder=remote_folder)
         elif resp == 'y' or resp == 'yes':
             remote_session_path = remote_folder / Path(*session_path.parts[-3:])
+            if not behavior_exists(remote_session_path):
+                print(f"No behavior folder found in {remote_session_path}: skipping session...")
+                continue
             transfer_folder(
                 session_path / 'raw_ephys_data',
                 remote_session_path / 'raw_ephys_data',
@@ -236,6 +247,9 @@ def confirm_ephys_remote_folder(local_folder=False, remote_folder=False):
         elif resp == 'r' or resp == 'rename':
             new_session_path = rename_session(session_path)
             remote_session_path = remote_folder / Path(*new_session_path.parts[-3:])
+            if not behavior_exists(remote_session_path):
+                print(f"No behavior folder found in {remote_session_path}: skipping session...")
+                continue
             transfer_folder(
                 new_session_path / 'raw_ephys_data',
                 remote_session_path / 'raw_ephys_data')
