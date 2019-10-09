@@ -140,8 +140,8 @@ def create_ephyspc_params(force=False):
     return param_dict
 
 
-def confirm_remote_folder(local_folder=False, remote_folder=False):
-    pars = load_ephyspc_params()
+def confirm_video_remote_folder(local_folder=False, remote_folder=False):
+    pars = load_videopc_params()
 
     if not local_folder:
         local_folder = pars['DATA_FOLDER_PATH']
@@ -169,20 +169,21 @@ def confirm_remote_folder(local_folder=False, remote_folder=False):
         resp = resp.lower()
         print(resp)
         if resp not in ['y', 'r', 's', 'e', 'yes', 'rename', 'skip', 'exit']:
-            return confirm_remote_folder(local_folder=local_folder, remote_folder=remote_folder)
+            return confirm_video_remote_folder(
+                local_folder=local_folder, remote_folder=remote_folder)
         elif resp == 'y' or resp == 'yes':
             remote_session_path = remote_folder / Path(*session_path.parts[-3:])
             transfer_folder(
-                session_path / 'raw_ephys_data',
-                remote_session_path / 'raw_ephys_data',
+                session_path / 'raw_video_data',
+                remote_session_path / 'raw_video_data',
                 force=False)
             flag_file.unlink()
         elif resp == 'r' or resp == 'rename':
             new_session_path = rename_session(session_path)
             remote_session_path = remote_folder / Path(*new_session_path.parts[-3:])
             transfer_folder(
-                new_session_path / 'raw_ephys_data',
-                remote_session_path / 'raw_ephys_data')
+                new_session_path / 'raw_video_data',
+                remote_session_path / 'raw_video_data')
             flag_file.unlink()
         elif resp == 's' or resp == 'skip':
             continue
@@ -228,6 +229,10 @@ def confirm_ephys_remote_folder(local_folder=False, remote_folder=False):
                 remote_session_path / 'raw_ephys_data',
                 force=False)
             flag_file.unlink()
+            if (remote_session_path / 'extract_me.flag').exists():
+                (remote_session_path / 'extract_me.flag').unlink()
+            (remote_session_path / 'extract_ephys.flag').touch()
+            (remote_session_path / 'ephys_qc.flag').touch()
         elif resp == 'r' or resp == 'rename':
             new_session_path = rename_session(session_path)
             remote_session_path = remote_folder / Path(*new_session_path.parts[-3:])
@@ -235,6 +240,10 @@ def confirm_ephys_remote_folder(local_folder=False, remote_folder=False):
                 new_session_path / 'raw_ephys_data',
                 remote_session_path / 'raw_ephys_data')
             flag_file.unlink()
+            (remote_session_path / 'extract_ephys.flag').touch()
+            (remote_session_path / 'ephys_qc.flag').touch()
+            if (remote_session_path / 'extract_me.flag').exists():
+                (remote_session_path / 'extract_me.flag').unlink()
         elif resp == 's' or resp == 'skip':
             continue
         elif resp == 'e' or resp == 'exit':
