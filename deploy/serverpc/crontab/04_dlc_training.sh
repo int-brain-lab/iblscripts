@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e
+cd ~/Documents/PYTHON/iblscripts/deploy/serverpc/dlc
 
 # first check that we have the weights in handy. If not, get them.
 if [ ! -d "trainingRig-mic-2019-02-11" ]; then
