@@ -25,8 +25,8 @@ logger = logging.getLogger('ibllib')
 
 
 def rerun_qc_ephys(ses_path, drange, dry=True):
-    _rerun_ephys(ses_path, drange, dry=dry, pipefunc=pipes.qc_ephys,
-                 flagstr='qc_ephys.flag')
+    _rerun_ephys(ses_path, drange, dry=dry, pipefunc=pipes.raw_ephys_qc,
+                 flagstr='raw_ephys_qc.flag')
 
 
 def rerun_extract_ephys(ses_path, drange, dry=True):

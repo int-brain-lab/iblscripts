@@ -2,8 +2,9 @@
 Entry point to system commands for IBL pipeline.
 
 >>> python ephys.py extract /mnt/s0/Data/Subjects --dry=True --count=10
+>>> python ephys.py compress_audio /mnt/s0/Data/Subjects --dry=True --count=5
 >>> python ephys.py qc /mnt/s0/Data/Subjects --dry=True --count=10
->>> python ephys.py ks2ibl /mnt/s0/Data/Subjects/ZM_1887/2019-07-19/001/raw_ephys_data/probe_left/_iblrig_ephysData.raw_g0_t0.imec.ap.bin  # NOQA
+>>> python ephys.py sync_merge /mnt/s0/Data/Subjects --dry=True
 """
 
 import argparse
@@ -20,7 +21,7 @@ def extract(ses_path, dry=True, max_sessions=10):
 
 
 def qc(ses_path, dry=True, max_sessions=5):
-    pipes.qc_ephys(ses_path, dry=dry, max_sessions=max_sessions)
+    pipes.raw_ephys_qc(ses_path, dry=dry, max_sessions=max_sessions)
 
 
 def sync_merge(ses_path, dry=True):
@@ -45,6 +46,7 @@ if __name__ == "__main__":
         qc(ses_path=args.folder, dry=args.dry, max_sessions=args.count)
     elif args.action == 'sync_merge':
         sync_merge(ses_path=args.folder)
+
     else:
         logger.error(f'Action "{args.action}" not valid. Allowed actions are: ' +
                      ', '.join(ALLOWED_ACTIONS))
