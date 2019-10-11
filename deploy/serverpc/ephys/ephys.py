@@ -45,7 +45,7 @@ if __name__ == "__main__":
     elif args.action == 'qc':
         qc(ses_path=args.folder, dry=args.dry, max_sessions=args.count)
     elif args.action == 'sync_merge':
-        sync_merge(ses_path=args.folder)
+        sync_merge(ses_path=args.folder, dry=args.dry)
 
     else:
         logger.error(f'Action "{args.action}" not valid. Allowed actions are: ' +
