@@ -23,6 +23,7 @@ class TestAudioExtraction(unittest.TestCase):
         self.assertEqual(cues['times_microphone'].size, 5)
         self.assertEqual(D['power'].shape[0], D['times_microphone'].shape[0])
         self.assertEqual(D['frequencies'].shape[1], D['power'].shape[1])
+        # now test the registration of the data
 
     def tearDown(self):
         path_alf = self.ses_path / 'alf'

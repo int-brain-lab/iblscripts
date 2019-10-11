@@ -104,6 +104,6 @@ end
 fclose(fid);
 
 % create the sync_merge flag
-fclose(fopen([rootZ filesep 'sync_merge_ephys.fl'], 'w+'));
+fclose(fopen([rootZ filesep 'sync_merge_ephys.flag'], 'w+'));
 
 % TODO: run the QC on KS2 output
