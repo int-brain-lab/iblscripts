@@ -3,7 +3,7 @@ Entry point to system commands for IBL pipeline.
 
 >>> python ephys.py extract /mnt/s0/Data/Subjects --dry=True --count=10
 >>> python ephys.py compress_audio /mnt/s0/Data/Subjects --dry=True --count=5
->>> python ephys.py qc /mnt/s0/Data/Subjects --dry=True --count=10
+>>> python ephys.py raw_qc /mnt/s0/Data/Subjects --dry=True --count=10
 >>> python ephys.py sync_merge /mnt/s0/Data/Subjects --dry=True
 """
 
@@ -20,7 +20,7 @@ def extract(ses_path, dry=True, max_sessions=10):
     pipes.extract_ephys(ses_path, dry=dry, max_sessions=max_sessions)
 
 
-def qc(ses_path, dry=True, max_sessions=5):
+def raw_qc(ses_path, dry=True, max_sessions=5):
     pipes.raw_ephys_qc(ses_path, dry=dry, max_sessions=max_sessions)
 
 
@@ -42,8 +42,8 @@ if __name__ == "__main__":
     assert(Path(args.folder).exists())
     if args.action == 'extract':
         extract(ses_path=args.folder, dry=args.dry, max_sessions=args.count)
-    elif args.action == 'qc':
-        qc(ses_path=args.folder, dry=args.dry, max_sessions=args.count)
+    elif args.action == 'raw_qc':
+        raw_qc(ses_path=args.folder, dry=args.dry, max_sessions=args.count)
     elif args.action == 'sync_merge':
         sync_merge(ses_path=args.folder, dry=args.dry)
 
