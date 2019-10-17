@@ -127,6 +127,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
         """ Check the spikes object """
         spikes_attributes = ['depths', 'amps', 'clusters', 'times', 'templates', 'samples']
         spikes = alf.io.load_object(session_path.joinpath('alf'), 'spikes')
+        self.assertTrue(np.max(spikes.times) > 1000)
         self.assertTrue(alf.io.check_dimensions(spikes) == 0)
         # check that it contains the proper keys
         self.assertTrue(set(spikes.keys()).issubset(set(spikes_attributes)))
