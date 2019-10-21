@@ -67,9 +67,10 @@ def rerun_04_audio_training(root_path, drange=DRANGE, dry=True):
     """
     audio_files = _glob_date_range(ses_path, glob_pattern='_iblrig_micData.raw.wav', drange=drange)
     for af in audio_files:
-        print(af)
         if dry:
+            print(af)
             continue
+        flags.create_other_flags(af.parents[1], 'audio_training.flag')
 
 
 def rerun_05_dlc_training(root_path, drange, dry=True):
