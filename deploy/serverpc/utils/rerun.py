@@ -1,6 +1,6 @@
 """
 Entry point to system commands for IBL pipeline.
-
+python rerun.py 04_audio_training /mnt/s0/Data/Subjects --dry=True
 """
 
 # Per dataset type
@@ -123,7 +123,7 @@ def _order_glob_by_session_date(flag_files):
 
 
 if __name__ == "__main__":
-    ALLOWED_ACTIONS = ['extract', 'register', 'compress_video', 'extract_ephys']
+    ALLOWED_ACTIONS = ['04_audio_training']
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
     parser.add_argument('folder', help='A Folder containing a session')
@@ -140,13 +140,7 @@ if __name__ == "__main__":
 
     date_range = [parse(args.first), parse(args.last)]
     ses_path = Path(args.folder)
-    if args.action == 'extract':
-        rerun_extract_training(ses_path, date_range, dry=args.dry)
-    elif args.action == 'register':
-        rerun_register(ses_path, date_range, dry=args.dry)
-    elif args.action == 'compress_video':
-        rerun_compress_video(ses_path, date_range, dry=args.dry)
-    elif args.action == 'extract_ephys':
-        rerun_extract_ephys(ses_path, date_range, dry=args.dry)
+    if args.action == '04_audio_training':
+        rerun_04_audio_training(ses_path, date_range, dry=args.dry)
     else:
         logger.error('Allowed actions are: ' + ', '.join(ALLOWED_ACTIONS))
