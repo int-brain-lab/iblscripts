@@ -105,6 +105,9 @@ fclose(fid);
 
 % create the sync_merge flag
 fclose(fopen([rootZ filesep 'sync_merge_ephys.flag'], 'w+'));
+% create the compress ephys flag
+fclose(fopen([rootZ filesep 'compress_ephys.flag'], 'w+'));
+
 
 %% Run the QC on KS2 output
 [~, mess] = unix(['/home/olivier/Documents/PYTHON/iblscripts/deploy/serverpc/crontab/25_qc_spike_sorting.sh ' rootZ]);
