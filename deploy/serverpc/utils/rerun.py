@@ -1,14 +1,6 @@
 """
 Entry point to system commands for IBL pipeline.
-
->>> python rerun.py extract /mnt/s0/Data/Subjects/ --first=2019-07-10 --last=2019-07-11
-    [--dry=True]
->>> python rerun.py register /mnt/s0/Data/Subjects/ --first=2019-07-10 --last=2019-07-11
-    [--dry=True]
->>> python rerun.py compress_video /mnt/s0/Data/Subjects/ --first=2019-07-10 --last=2019-07-11
-    [--dry=True]
->>> python rerun.py extract_ephys /mnt/s0/Data/Subjects/ --first=2019-07-10 --last=2019-07-11
-    [--dry=True]
+python rerun.py 04_audio_training /mnt/s0/Data/Subjects --dry=True
 """
 
 # Per dataset type
@@ -22,29 +14,10 @@ from ibllib.io import flags
 import ibllib.pipes.experimental_data as pipes
 
 logger = logging.getLogger('ibllib')
+DRANGE = ('2000-01-01', '2100-01-01')  # default date range
 
 
-def rerun_qc_ephys(ses_path, drange, dry=True):
-    _rerun_ephys(ses_path, drange, dry=dry, pipefunc=pipes.raw_ephys_qc,
-                 flagstr='raw_ephys_qc.flag')
-
-
-def rerun_extract_ephys(ses_path, drange, dry=True):
-    _rerun_ephys(ses_path, drange, dry=dry, pipefunc=pipes.extract_ephys,
-                 flagstr='extract_ephys.flag')
-
-
-def _rerun_ephys(ses_path, drange, dry=True, pipefunc=None, flagstr=None):
-    files_ephys, files_ephys_date = _order_glob_by_session_date(ses_path.rglob('*.ap.bin'))
-    for file_ephys, date in zip(files_ephys, files_ephys_date):
-        if not(date >= drange[0] and (date <= drange[1])):
-            continue
-        print(file_ephys)
-        flags.create_other_flags(file_ephys.parents[2], flagstr, force=True)
-        pipefunc(file_ephys.parents[2])
-
-
-def rerun_extract(ses_path, drange, dry=True):
+def rerun_01_extract_training(ses_path, drange, dry=True):
     files_error, files_error_date = _order_glob_by_session_date(ses_path.rglob('extract_me.error'))
     for file_error, date in zip(files_error, files_error_date):
         if not(date >= drange[0] and (date <= drange[1])):
@@ -57,7 +30,7 @@ def rerun_extract(ses_path, drange, dry=True):
         pipes.extract(file_error.parent)
 
 
-def rerun_register(ses_path, drange, dry=True):
+def rerun_02_register(ses_path, drange, dry=True):
     # compute the date range including both bounds
     files_error, files_error_date = _order_glob_by_session_date(ses_path.rglob(
         'register_me.error'))
@@ -72,7 +45,7 @@ def rerun_register(ses_path, drange, dry=True):
         pipes.register(file_error.parent)
 
 
-def rerun_compress_video(ses_path, drange, dry=True):
+def rerun_03_compress_video(ses_path, drange, dry=True):
     # for a failed compression there is an `extract.error` file in the raw_video folder
     files_error, files_error_date = _order_glob_by_session_date(ses_path.rglob('extract.error'))
     for file_error, date in zip(files_error, files_error_date):
@@ -85,6 +58,49 @@ def rerun_compress_video(ses_path, drange, dry=True):
         flags.create_compress_flags(file_error.parents[1])
     if not dry:
         logger.warning("Flags created, to compress videos, launch the compress script from deploy")
+
+
+def rerun_04_audio_training(root_path, drange=DRANGE, dry=True):
+    """
+    This job removes the audio files so the re-run is only about the remaining wav files in
+    training sessions
+    """
+    audio_files = _glob_date_range(ses_path, glob_pattern='_iblrig_micData.raw.wav', drange=drange)
+    for af in audio_files:
+        if dry:
+            print(af)
+            continue
+        flags.create_other_flags(af.parents[1], 'audio_training.flag')
+
+
+def rerun_05_dlc_training(root_path, drange, dry=True):
+    pass
+
+
+def rerun_20_extract_ephys(ses_path, drange, dry=True):
+    _rerun_ephys(ses_path, drange, dry=dry, pipefunc=pipes.extract_ephys,
+                 flagstr='extract_ephys.flag')
+
+
+def rerun_21_qc_ephys(ses_path, drange, dry=True):
+    _rerun_ephys(ses_path, drange, dry=dry, pipefunc=pipes.raw_ephys_qc,
+                 flagstr='raw_ephys_qc.flag')
+
+
+def _rerun_ephys(ses_path, drange=DRANGE, dry=True, pipefunc=None, flagstr=None):
+    ephys_files = _glob_date_range(ses_path, glob_pattern='*.ap.bin', drange=drange)
+    for ef in ephys_files:
+        if dry:
+            print(ef)
+            continue
+        flags.create_other_flags(ef.parents[2], flagstr, force=True)
+    if not dry:
+        pipefunc(ef.parents[2])
+
+
+def _glob_date_range(ses_path, glob_pattern, drange=DRANGE):
+    files, files_date = _order_glob_by_session_date(ses_path.rglob(glob_pattern))
+    return [f for f, d in zip(files, files_date) if drange[0] <= d <= drange[1]]
 
 
 def _order_glob_by_session_date(flag_files):
@@ -108,7 +124,7 @@ def _order_glob_by_session_date(flag_files):
 
 
 if __name__ == "__main__":
-    ALLOWED_ACTIONS = ['extract', 'register', 'compress_video', 'extract_ephys']
+    ALLOWED_ACTIONS = ['04_audio_training']
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
     parser.add_argument('folder', help='A Folder containing a session')
@@ -125,13 +141,7 @@ if __name__ == "__main__":
 
     date_range = [parse(args.first), parse(args.last)]
     ses_path = Path(args.folder)
-    if args.action == 'extract':
-        rerun_extract(ses_path, date_range, dry=args.dry)
-    elif args.action == 'register':
-        rerun_register(ses_path, date_range, dry=args.dry)
-    elif args.action == 'compress_video':
-        rerun_compress_video(ses_path, date_range, dry=args.dry)
-    elif args.action == 'extract_ephys':
-        rerun_extract_ephys(ses_path, date_range, dry=args.dry)
+    if args.action == '04_audio_training':
+        rerun_04_audio_training(ses_path, date_range, dry=args.dry)
     else:
         logger.error('Allowed actions are: ' + ', '.join(ALLOWED_ACTIONS))
