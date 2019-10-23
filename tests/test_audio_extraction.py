@@ -1,6 +1,5 @@
 import unittest
 from pathlib import Path
-import shutil
 
 import alf.io
 from ibllib.io.extractors import training_audio as audio

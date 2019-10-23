@@ -3,11 +3,8 @@ from pathlib import Path
 import shutil
 import logging
 
-import numpy as np
-
 from ibllib.io import spikeglx
 import ibllib.pipes.experimental_data as iblrig_pipeline
-from oneibl.one import ONE
 
 _logger = logging.getLogger('ibllib')
 
