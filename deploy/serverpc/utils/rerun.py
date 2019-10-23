@@ -1,6 +1,7 @@
 """
 Entry point to system commands for IBL pipeline.
 python rerun.py 04_audio_training /mnt/s0/Data/Subjects --dry=True
+python rerun.py rerun_23_compress_ephys /mnt/s0/Data/Subjects --dry=True
 """
 
 # Per dataset type
@@ -10,7 +11,7 @@ from dateutil.parser import parse
 import re
 import argparse
 
-from ibllib.io import flags
+from ibllib.io import flags, spikeglx
 import ibllib.pipes.experimental_data as pipes
 
 logger = logging.getLogger('ibllib')
@@ -62,10 +63,9 @@ def rerun_03_compress_video(ses_path, drange, dry=True):
 
 def rerun_04_audio_training(root_path, drange=DRANGE, dry=True):
     """
-    This job removes the audio files so the re-run is only about the remaining wav files in
-    training sessions
+    This job looks for wav files and create `audio_training.flag` for each wav file found
     """
-    audio_files = _glob_date_range(ses_path, glob_pattern='_iblrig_micData.raw.wav', drange=drange)
+    audio_files = _glob_date_range(root_path, glob_pattern='_iblrig_micData.raw.wav', drange=drange)
     for af in audio_files:
         if dry:
             print(af)
@@ -87,8 +87,33 @@ def rerun_21_qc_ephys(ses_path, drange, dry=True):
                  flagstr='raw_ephys_qc.flag')
 
 
+def rerun_23_compress_ephys(root_path, dry=True):
+    """
+    Looks for uncompressed 'ap.bin', 'lf.bin' and 'nidq.bin' files and creates 'compress_me.flags`
+    For ap and lf, creates flags only7 if the ks2_alf folder exists at the same level.
+    For nidq files, creates the flag regardless.
+    """
+
+    def _create_compress_flag(bin_file):
+        print(bin_file)
+        flag_file = bin_file.parent.joinpath('compress_ephys.flag')
+        if not dry:
+            flag_file.touch()
+
+    ephys_files = spikeglx.glob_ephys_files(root_path)
+    for ef in ephys_files:
+        if ef.get('ap'):
+            if ef.ap.parent.joinpath('ks2_alf').exists():
+                _create_compress_flag(ef.ap)
+        if ef.get('lf'):
+            if ef.ap.parent.joinpath('ks2_alf').exists():
+                _create_compress_flag(ef.lf)
+        if ef.get('nidq'):
+            _create_compress_flag(ef.nidq)
+
+
 def _rerun_ephys(ses_path, drange=DRANGE, dry=True, pipefunc=None, flagstr=None):
-    ephys_files = _glob_date_range(ses_path, glob_pattern='*.ap.bin', drange=drange)
+    ephys_files = _glob_date_range(ses_path, glob_pattern='*.ap.*bin', drange=drange)
     for ef in ephys_files:
         if dry:
             print(ef)
@@ -124,7 +149,7 @@ def _order_glob_by_session_date(flag_files):
 
 
 if __name__ == "__main__":
-    ALLOWED_ACTIONS = ['04_audio_training']
+    ALLOWED_ACTIONS = ['04_audio_training', 'rerun_23_compress_ephys']
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
     parser.add_argument('folder', help='A Folder containing a session')
@@ -143,5 +168,7 @@ if __name__ == "__main__":
     ses_path = Path(args.folder)
     if args.action == '04_audio_training':
         rerun_04_audio_training(ses_path, date_range, dry=args.dry)
+    if args.action == 'rerun_23_compress_ephys':
+        rerun_23_compress_ephys(ses_path, dry=args.dry)
     else:
         logger.error('Allowed actions are: ' + ', '.join(ALLOWED_ACTIONS))
