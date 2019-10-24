@@ -28,7 +28,7 @@ def _21_raw_ephys_qc(ses_path, dry=True, max_sessions=5):
 
 
 def _23_compress_ephys(ses_path, dry=True, max_sessions=5):
-    pass
+    pipes.compress_ephys(ses_path, dry=dry, max_sessions=max_sessions)
 
 
 def _25_spike_sorting_qc(ks2_path):
