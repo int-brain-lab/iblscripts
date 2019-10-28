@@ -9,8 +9,8 @@ from pathlib import Path
 
 from alf.folders import next_num_folder
 
+from misc import load_videopc_params
 import config_cameras as cams
-from videopc_params_file import load_videopc_params
 
 
 def main(mouse):
