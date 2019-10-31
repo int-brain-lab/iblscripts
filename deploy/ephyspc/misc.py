@@ -98,9 +98,9 @@ def load_ephyspc_params():
 
 
 def create_videopc_params(force=False):
-    if load_videopc_params() and not force:
+    if Path(params.getfile('videopc_params')).exists() and not force:
         print(f"{params.getfile('videopc_params')} exists already, exiting...")
-        print(load_videopc_params())
+        print(Path(params.getfile('videopc_params')).exists())
         return
     data_folder_path = cli_ask_default(
         r"Where's your LOCAL 'Subjects' data folder?", r"D:\iblrig_data\Subjects")
@@ -125,9 +125,9 @@ def create_videopc_params(force=False):
 
 
 def create_ephyspc_params(force=False):
-    if load_ephyspc_params() and not force:
+    if Path(params.getfile('ephyspc_params')).exists() and not force:
         print(f"{params.getfile('ephyspc_params')} exists already, exiting...")
-        print(load_ephyspc_params())
+        print(Path(params.getfile('ephyspc_params')).exists())
         return
     data_folder_path = cli_ask_default(
         r"Where's your LOCAL 'Subjects' data folder?", r"D:\iblrig_data\Subjects")
