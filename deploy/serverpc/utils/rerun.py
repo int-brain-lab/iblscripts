@@ -149,7 +149,7 @@ def _order_glob_by_session_date(flag_files):
 
 
 if __name__ == "__main__":
-    ALLOWED_ACTIONS = ['04_audio_training', 'rerun_23_compress_ephys']
+    ALLOWED_ACTIONS = ['rerun_04_audio_training', 'rerun_23_compress_ephys']
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
     parser.add_argument('folder', help='A Folder containing a session')
