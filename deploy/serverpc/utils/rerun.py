@@ -2,6 +2,7 @@
 Entry point to system commands for IBL pipeline.
 python rerun.py 04_audio_training /mnt/s0/Data/Subjects --dry=True
 python rerun.py rerun_23_compress_ephys /mnt/s0/Data/Subjects --dry=True
+python rerun.py rerun_26_compress_ephys /mnt/s0/Data/Subjects --dry=True
 """
 
 # Per dataset type
@@ -90,7 +91,7 @@ def rerun_21_qc_ephys(ses_path, drange, dry=True):
 def rerun_23_compress_ephys(root_path, dry=True):
     """
     Looks for uncompressed 'ap.bin', 'lf.bin' and 'nidq.bin' files and creates 'compress_me.flags`
-    For ap and lf, creates flags only7 if the ks2_alf folder exists at the same level.
+    For ap and lf, creates flags only if the ks2_alf folder exists at the same level.
     For nidq files, creates the flag regardless.
     """
 
@@ -110,6 +111,23 @@ def rerun_23_compress_ephys(root_path, dry=True):
                 _create_compress_flag(ef.lf)
         if ef.get('nidq'):
             _create_compress_flag(ef.nidq)
+
+
+def rerun_26_sync_merge_ephys(root_path, dry=True):
+    """
+    Looks for 'ap.bin', 'lf.bin' and files and creates '26_sync_merge_ephys.flags`
+    only if the spike sorting is done: ie. `spike_sorting_*.log` exists
+    """
+    ephys_files = spikeglx.glob_ephys_files(root_path)
+    for ef in ephys_files:
+        if ef.get('ap'):
+            bin_file = ef.get('ap')
+            if not next(bin_file.parent.glob('spike_sorting_*.log'), None):
+                return
+            print(bin_file)
+            flag_file = bin_file.parent.joinpath('sync_merge_ephys.flag')
+            if not dry:
+                flag_file.touch()
 
 
 def _rerun_ephys(ses_path, drange=DRANGE, dry=True, pipefunc=None, flagstr=None):
@@ -149,7 +167,8 @@ def _order_glob_by_session_date(flag_files):
 
 
 if __name__ == "__main__":
-    ALLOWED_ACTIONS = ['04_audio_training', 'rerun_23_compress_ephys']
+    ALLOWED_ACTIONS = ['rerun_04_audio_training', 'rerun_23_compress_ephys',
+                       'rerun_26_sync_merge_ephys']
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
     parser.add_argument('folder', help='A Folder containing a session')
@@ -170,5 +189,7 @@ if __name__ == "__main__":
         rerun_04_audio_training(ses_path, date_range, dry=args.dry)
     if args.action == 'rerun_23_compress_ephys':
         rerun_23_compress_ephys(ses_path, dry=args.dry)
+    if args.action == 'rerun_26_sync_merge_ephys':
+        rerun_26_sync_merge_ephys(ses_path, dry=args.dry)
     else:
         logger.error('Allowed actions are: ' + ', '.join(ALLOWED_ACTIONS))
