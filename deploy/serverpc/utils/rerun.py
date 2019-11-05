@@ -2,6 +2,7 @@
 Entry point to system commands for IBL pipeline.
 python rerun.py 04_audio_training /mnt/s0/Data/Subjects --dry=True
 python rerun.py rerun_23_compress_ephys /mnt/s0/Data/Subjects --dry=True
+python rerun.py rerun_26_compress_ephys /mnt/s0/Data/Subjects --dry=True
 """
 
 # Per dataset type
