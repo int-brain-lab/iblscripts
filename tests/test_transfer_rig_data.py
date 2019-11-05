@@ -44,11 +44,11 @@ class TestTransferRigData(unittest.TestCase):
         (self.session_path / "raw_behavior_data" / '_iblrig_micData.raw.wav').touch()
         (self.session_path / "raw_video_data" /
          '_iblrig_leftCamera.raw.avi').touch()
-        transfer_rig_data.main(src_subjects_path, dst_subjects_path)
-        # Test transfer w/o video and audio
+        transfer_rig_data.main(src_subjects_path, dst_subjects_path, force=True)
+        # Test transfer w/o video and audios
         flags.write_flag_file(self.session_path.joinpath("transfer_me.flag"))
         (self.session_path / "raw_behavior_data" / "random.data1.ext").touch()
-        transfer_rig_data.main(src_subjects_path, dst_subjects_path)
+        transfer_rig_data.main(src_subjects_path, dst_subjects_path, force=True)
 
     def tearDown(self):
         self.tmp_dir.cleanup()

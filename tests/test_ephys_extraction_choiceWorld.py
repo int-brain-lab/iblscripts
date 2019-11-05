@@ -76,7 +76,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('clusters.channels', 3, 3),
                              ('clusters.depths', 3, 3),
                              ('clusters.probes', 1, 1),
-                             ('clusters.peakToThrough', 3, 3),
+                             ('clusters.peakToTrough', 3, 3),
                              ('ephysData.raw.ap', 2, 2),
                              ('ephysData.raw.lf', 2, 2),
                              ('ephysData.raw.meta', 4, 5),
@@ -137,11 +137,11 @@ class TestSpikeSortingOutput(unittest.TestCase):
 
         """Check the clusters object"""
         clusters = alf.io.load_object(session_path.joinpath('alf'), 'clusters')
-        clusters_attributes = ['depths', 'probes', 'channels', 'peakToThrough', 'amps']
+        clusters_attributes = ['depths', 'probes', 'channels', 'peakToTrough', 'amps']
         self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters]).size == 1)
         self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
         self.assertTrue(10 < np.nanmedian(clusters.amps) < 80)  # we expect microvolts
-        self.assertTrue(0 < np.median(np.abs(clusters.peakToThrough)) < 5)  # we expect ms
+        self.assertTrue(0 < np.median(np.abs(clusters.peakToTrough)) < 5)  # we expect ms
 
         """Check the channels object"""
         channels = alf.io.load_object(session_path.joinpath('alf'), 'channels')
