@@ -28,7 +28,7 @@ class TestVideo(unittest.TestCase):
             shutil.rmtree(self.server_folder)
         shutil.copytree(self.init_folder, self.server_folder)
         for vidfile in self.server_folder.rglob('*.avi'):
-            ibllib.io.flags.create_compress_flags(vidfile.parents[1])
+            ibllib.io.flags.create_compress_video_flags(vidfile.parents[1])
 
     def _registration(self):
         iblrig_pipeline.register(self.server_folder, one=self.one)
