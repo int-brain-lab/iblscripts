@@ -34,6 +34,6 @@ for ses_path in ses_paths:
             fil = ef.get('nidq')
             src = wnidq
             dst = fil.name.replace('nidq.bin', 'wiring.json')
-        print(src,  fil.parent.joinpath(dst))
+        print(src, fil.parent.joinpath(dst))
         if not DRY:
-            shutil.copy(src,  fil.parent.joinpath(dst))
+            shutil.copy(src, fil.parent.joinpath(dst))

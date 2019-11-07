@@ -20,4 +20,5 @@ if __name__ == "__main__":
         '-f', '--force', default=False, required=False,
         help='Overwrite existing video files in dst/remote folder')
     args = parser.parse_args()
-    confirm_video_remote_folder(local_folder=args.local, remote_folder=args.remote, force=args.force)
+    confirm_video_remote_folder(local_folder=args.local, remote_folder=args.remote,
+                                force=args.force)

@@ -39,6 +39,10 @@ def _26_sync_merge_ephys(ses_path, dry=True):
     pipes.sync_merge_ephys(ses_path, dry=dry)
 
 
+def _27_compress_ephys_videos(root_path, dry=True):
+    pipes.compress_video(root_path, dry=dry, max_sessions=10)
+
+
 if __name__ == "__main__":
     ALLOWED_ACTIONS = ['extract_ephys', 'raw_ephys_qc', 'audio_ephys', 'compress_ephys',
                        'spike_sorting_qc', 'sync_merge_ephys']
