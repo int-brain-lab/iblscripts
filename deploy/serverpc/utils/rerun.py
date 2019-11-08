@@ -1,6 +1,7 @@
 """
 Entry point to system commands for IBL pipeline.
 python rerun.py 04_audio_training /mnt/s0/Data/Subjects --dry=True
+python rerun.py 21_qc_ephys /mnt/s0/Data/Subjects --dry=True
 python rerun.py 22_audio_ephys /mnt/s0/Data/Subjects --dry=True
 python rerun.py 23_compress_ephys /mnt/s0/Data/Subjects --dry=True
 python rerun.py 26_merge_sync_ephys /mnt/s0/Data/Subjects --dry=True
@@ -140,7 +141,7 @@ def rerun_26_sync_merge_ephys(root_path, dry=True):
 
 def rerun_27_compress_ephys_video(root_path, drange=DRANGE, dry=True):
     _rerun_avi_files(root_path, flag_name='compress_video_ephys.flag',
-                     task_includes=['ephys', 'ephys_sync'], dry=dry, drange=DRANGE)
+                     task_includes=['ephys', 'ephys_sync'], dry=dry, drange=drange)
 
 
 def _rerun_avi_files(root_path, flag_name, task_excludes=None, task_includes=None,
@@ -168,14 +169,18 @@ def _rerun_wav_files(root_path, flag_name, task_excludes=None, task_includes=Non
 
 
 def _rerun_ephys(ses_path, drange=DRANGE, dry=True, pipefunc=None, flagstr=None):
+    """
+    Creates a flag at the session root and run the associated job
+    """
     ephys_files = _glob_date_range(ses_path, glob_pattern='*.ap.*bin', drange=drange)
     for ef in ephys_files:
         if dry:
             print(ef)
             continue
-        flags.create_other_flags(ef.parents[2], flagstr, force=True)
+        session_path = extract_session.get_session_path(ef)
+        flags.create_other_flags(session_path, flagstr, force=True)
     if not dry:
-        pipefunc(ef.parents[2])
+        pipefunc(session_path)
 
 
 def _glob_date_range(root_path, glob_pattern, task_excludes=None, task_includes=None,
@@ -185,13 +190,14 @@ def _glob_date_range(root_path, glob_pattern, task_excludes=None, task_includes=
 
     def _test_task(f):
         # check if task is included or excluded
-        print(f)
         task = extract_session.get_task_extractor_type(f)
         if not task:
             return False
-        select = not task_includes or task in task_includes
-        select &= task not in task_excludes
-        return select
+        if task_includes and task not in task_includes:
+            return False
+        if task_excludes and task in task_excludes:
+            return False
+        return True
 
     return [f for f in sessions if _test_task(f)]
 
@@ -217,7 +223,7 @@ def _order_glob_by_session_date(flag_files):
 
 
 if __name__ == "__main__":
-    ALLOWED_ACTIONS = ['04_audio_training', '22_audio_ephys', '23_compress_ephys',
+    ALLOWED_ACTIONS = ['04_audio_training', '21_qc_ephys', '22_audio_ephys', '23_compress_ephys',
                        '26_sync_merge_ephys', '27_compress_ephys_video']
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
@@ -237,13 +243,15 @@ if __name__ == "__main__":
     ses_path = Path(args.folder)
     if args.action == '04_audio_training':
         rerun_04_audio_training(ses_path, date_range, dry=args.dry)
-    if args.action == '22_audio_ephys':
+    elif args.action == '21_qc_ephys':
+        rerun_21_qc_ephys(ses_path, date_range, dry=args.dry)
+    elif args.action == '22_audio_ephys':
         rerun_22_audio_ephys(ses_path, date_range, dry=args.dry)
-    if args.action == '23_compress_ephys':
+    elif args.action == '23_compress_ephys':
         rerun_23_compress_ephys(ses_path, dry=args.dry)
-    if args.action == '26_sync_merge_ephys':
+    elif args.action == '26_sync_merge_ephys':
         rerun_26_sync_merge_ephys(ses_path, dry=args.dry)
-    if args.action == '27_compress_ephys_video':
+    elif args.action == '27_compress_ephys_video':
         rerun_27_compress_ephys_video(ses_path, date_range, args.dry)
     else:
         logger.error('Allowed actions are: ' + ', '.join(ALLOWED_ACTIONS))
