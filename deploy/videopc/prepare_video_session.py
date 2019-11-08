@@ -9,7 +9,7 @@ from pathlib import Path
 
 from alf.folders import next_num_folder
 
-from misc import load_videopc_params
+from ibllib.pipes.misc import load_videopc_params
 import config_cameras as cams
 
 
