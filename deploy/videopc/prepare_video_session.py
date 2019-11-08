@@ -13,7 +13,7 @@ from misc import load_videopc_params
 import config_cameras as cams
 
 
-def main(mouse):
+def main(mouse: str, training_session: bool = False) -> None:
     SUBJECT_NAME = mouse
     PARAMS = load_videopc_params()
     DATA_FOLDER = Path(PARAMS['DATA_FOLDER_PATH'])
@@ -23,6 +23,9 @@ def main(mouse):
     BONSAI_WORKFLOWS_PATH = BONSAI.parent.parent / 'workflows'
     STREAM_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_stream.bonsai'
     RECORD_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_record.bonsai'
+    if training_session:
+        RECORD_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_record_biasedCW.bonsai'
+
 
     DATE = datetime.datetime.now().date().isoformat()
     NUM = next_num_folder(DATA_FOLDER / SUBJECT_NAME / DATE)
@@ -65,6 +68,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Prepare video PC for video recording session')
     parser.add_argument('mouse', help='Mouse name')
+    parser.add_argument(
+        '-t', '--training', default=False, required=False, action='store_true',
+        help='Launch video workflow for biasedCW sessionon ephys rig.')
     args = parser.parse_args()
-
-    main(args.mouse)
+    # print(args)
+    # print(type(args.mouse), type(args.training))
+    main(args.mouse, training_session=args.training)
