@@ -66,11 +66,11 @@ def rerun_03_compress_video(ses_path, drange, dry=True):
         logger.warning("Flags created, to compress videos, launch the compress script from deploy")
 
 
-def rerun_04_audio_training(root_path, **kwargs):
+def rerun_04_audio_training(root_path, drange, **kwargs):
     """
     This job looks for wav files and create `audio_training.flag` for each wav file found
     """
-    _rerun_wav_files(root_path, flag_name='audio_training.flag',
+    _rerun_wav_files(root_path, drange=drange, flag_name='audio_training.flag',
                      task_excludes=['ephys', 'ephys_sync'], **kwargs)
 
 
@@ -88,11 +88,11 @@ def rerun_21_qc_ephys(ses_path, drange, dry=True):
                  flagstr='raw_ephys_qc.flag')
 
 
-def rerun_22_audio_ephys(root_path, **kwargs):
+def rerun_22_audio_ephys(root_path, drange, **kwargs):
     """
     This job looks for wav files and create `audio_ephys.flag` for each wav file found
     """
-    _rerun_wav_files(root_path, flag_name='audio_ephys.flag',
+    _rerun_wav_files(root_path, drange=drange, flag_name='audio_ephys.flag',
                      task_includes=['ephys', 'ephys_sync'], **kwargs)
 
 
@@ -178,13 +178,22 @@ def _rerun_ephys(ses_path, drange=DRANGE, dry=True, pipefunc=None, flagstr=None)
         pipefunc(ef.parents[2])
 
 
-def _glob_date_range(root_path, glob_pattern, task=None, drange=DRANGE):
+def _glob_date_range(root_path, glob_pattern, task_excludes=None, task_includes=None,
+                     drange=DRANGE):
     files, files_date = _order_glob_by_session_date(root_path.rglob(glob_pattern))
     sessions = [f for f, d in zip(files, files_date) if drange[0] <= d <= drange[1]]
-    if not task:
-        return sessions
-    else:
-        return [f for f in sessions if extract_session.get_task_extractor_type(f) == task]
+
+    def _test_task(f):
+        # check if task is included or excluded
+        print(f)
+        task = extract_session.get_task_extractor_type(f)
+        if not task:
+            return False
+        select = not task_includes or task in task_includes
+        select &= task not in task_excludes
+        return select
+
+    return [f for f in sessions if _test_task(f)]
 
 
 def _order_glob_by_session_date(flag_files):
