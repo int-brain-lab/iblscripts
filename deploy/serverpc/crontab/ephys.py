@@ -40,7 +40,7 @@ def _26_sync_merge_ephys(ses_path, dry=True):
 
 
 def _27_compress_ephys_videos(root_path, dry=True, max_sessions=20):
-    pipes.compress_video(root_path, dry=dry, max_sessions=max_sessions)
+    pipes.compress_ephys_video(root_path, dry=dry, max_sessions=max_sessions)
 
 
 if __name__ == "__main__":
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     elif args.action == 'sync_merge_ephys':
         _26_sync_merge_ephys(ses_path=args.folder, dry=args.dry)
     elif args.action == 'compress_ephys_videos':
-        _27_compress_ephys_videos(ses_path=args.folder, dry=args.dry, max_sessions=args.count)
+        _27_compress_ephys_videos(root_path=args.folder, dry=args.dry, max_sessions=args.count)
     else:
         logger.error(f'Action "{args.action}" not valid. Allowed actions are: ' +
                      ', '.join(ALLOWED_ACTIONS))
