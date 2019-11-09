@@ -5,6 +5,7 @@
 # @Last Modified time: 19-02-2019 11:46:07.077
 import shutil
 import unittest
+import tempfile
 from pathlib import Path
 
 import ibllib.io.flags
@@ -12,7 +13,25 @@ import ibllib.pipes.experimental_data as iblrig_pipeline
 from oneibl.one import ONE
 
 
-class TestVideo(unittest.TestCase):
+class TestVideoEphys(unittest.TestCase):
+
+    def test_compress_all_vids(self):
+        self.init_folder = Path('/mnt/s0/Data/IntegrationTests/ephys/ephys_video_init')
+        with tempfile.TemporaryDirectory() as tdir:
+            root_path = Path(tdir).joinpath('Subjects')
+            shutil.copytree(self.init_folder, root_path)
+            # creates the flags
+            ibllib.io.flags.create_compress_video_flags(root_path,
+                                                        flag_name='compress_video_ephys.flag')
+            iblrig_pipeline.compress_ephys_video(root_path, dry=False)
+            # compress video flags is replaced by register me flag, and 3 mp4 files appeared
+            self.assertIsNone(next(root_path.rglob('compress_video_ephys.flag'), None))
+            self.assertIsNone(next(root_path.rglob('*.avi'), None))
+            self.assertTrue(len(list(root_path.rglob('register_me.flag'))) == 1)
+            self.assertTrue(len(list(root_path.rglob('*.mp4'))) == 3)
+
+
+class TestVideoTraining(unittest.TestCase):
 
     def setUp(self):
         self.init_folder = Path('/mnt/s0/Data/IntegrationTests/Subjects_init')
