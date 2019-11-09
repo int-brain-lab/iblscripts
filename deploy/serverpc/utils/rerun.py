@@ -165,7 +165,7 @@ def _rerun_wav_files(root_path, flag_name, task_excludes=None, task_includes=Non
         print(af)
         if dry:
             continue
-        flags.create_compress_audio_flags(af.parents[1], flag_name)
+        flags.create_audio_flags(af.parents[1], flag_name)
 
 
 def _rerun_ephys(ses_path, drange=DRANGE, dry=True, pipefunc=None, flagstr=None):

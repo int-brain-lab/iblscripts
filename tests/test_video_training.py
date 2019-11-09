@@ -29,6 +29,14 @@ class TestVideoEphys(unittest.TestCase):
             self.assertIsNone(next(root_path.rglob('*.avi'), None))
             self.assertTrue(len(list(root_path.rglob('register_me.flag'))) == 1)
             self.assertTrue(len(list(root_path.rglob('*.mp4'))) == 3)
+            """
+            Do the audio compression test as well
+            """
+            ibllib.io.flags.create_audio_flags(root_path, flag_name='audio_ephys.flag')
+            iblrig_pipeline.compress_audio(root_path, dry=False)
+            self.assertIsNone(next(root_path.rglob('audio_ephys.flag'), None))
+            self.assertIsNone(next(root_path.rglob('*.wav'), None))
+            self.assertTrue(len(list(root_path.rglob('*.flac'))) == 1)
 
 
 class TestVideoTraining(unittest.TestCase):
