@@ -113,10 +113,10 @@ def rerun_23_compress_ephys(root_path, dry=True):
     ephys_files = spikeglx.glob_ephys_files(root_path)
     for ef in ephys_files:
         if ef.get('ap'):
-            if ef.ap.parent.joinpath('ks2_alf').exists():
+            if ef.ap.parent.joinpath('spike_sorting_ks2.log').exists():
                 _create_compress_flag(ef.ap)
         if ef.get('lf'):
-            if ef.ap.parent.joinpath('ks2_alf').exists():
+            if ef.ap.parent.joinpath('spike_sorting_ks2.log').exists():
                 _create_compress_flag(ef.lf)
         if ef.get('nidq'):
             _create_compress_flag(ef.nidq)
