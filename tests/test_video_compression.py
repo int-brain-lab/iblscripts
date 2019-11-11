@@ -5,6 +5,7 @@
 # @Last Modified time: 19-02-2019 11:46:07.077
 import shutil
 import unittest
+import tempfile
 from pathlib import Path
 
 import ibllib.io.flags
@@ -12,7 +13,33 @@ import ibllib.pipes.experimental_data as iblrig_pipeline
 from oneibl.one import ONE
 
 
-class TestVideo(unittest.TestCase):
+class TestVideoEphys(unittest.TestCase):
+
+    def test_compress_all_vids(self):
+        self.init_folder = Path('/mnt/s0/Data/IntegrationTests/ephys/ephys_video_init')
+        with tempfile.TemporaryDirectory() as tdir:
+            root_path = Path(tdir).joinpath('Subjects')
+            shutil.copytree(self.init_folder, root_path)
+            # creates the flags
+            ibllib.io.flags.create_compress_video_flags(root_path,
+                                                        flag_name='compress_video_ephys.flag')
+            iblrig_pipeline.compress_ephys_video(root_path, dry=False)
+            # compress video flags is replaced by register me flag, and 3 mp4 files appeared
+            self.assertIsNone(next(root_path.rglob('compress_video_ephys.flag'), None))
+            self.assertIsNone(next(root_path.rglob('*.avi'), None))
+            self.assertTrue(len(list(root_path.rglob('register_me.flag'))) == 1)
+            self.assertTrue(len(list(root_path.rglob('*.mp4'))) == 3)
+            """
+            Do the audio compression test as well
+            """
+            ibllib.io.flags.create_audio_flags(root_path, flag_name='audio_ephys.flag')
+            iblrig_pipeline.compress_audio(root_path, dry=False)
+            self.assertIsNone(next(root_path.rglob('audio_ephys.flag'), None))
+            self.assertIsNone(next(root_path.rglob('*.wav'), None))
+            self.assertTrue(len(list(root_path.rglob('*.flac'))) == 1)
+
+
+class TestVideoTraining(unittest.TestCase):
 
     def setUp(self):
         self.init_folder = Path('/mnt/s0/Data/IntegrationTests/Subjects_init')
@@ -28,7 +55,7 @@ class TestVideo(unittest.TestCase):
             shutil.rmtree(self.server_folder)
         shutil.copytree(self.init_folder, self.server_folder)
         for vidfile in self.server_folder.rglob('*.avi'):
-            ibllib.io.flags.create_compress_flags(vidfile.parents[1])
+            ibllib.io.flags.create_compress_video_flags(vidfile.parents[1])
 
     def _registration(self):
         iblrig_pipeline.register(self.server_folder, one=self.one)

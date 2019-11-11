@@ -39,9 +39,13 @@ def _26_sync_merge_ephys(ses_path, dry=True):
     pipes.sync_merge_ephys(ses_path, dry=dry)
 
 
+def _27_compress_ephys_videos(root_path, dry=True, max_sessions=20):
+    pipes.compress_ephys_video(root_path, dry=dry, max_sessions=max_sessions)
+
+
 if __name__ == "__main__":
     ALLOWED_ACTIONS = ['extract_ephys', 'raw_ephys_qc', 'audio_ephys', 'compress_ephys',
-                       'spike_sorting_qc', 'sync_merge_ephys']
+                       'spike_sorting_qc', 'sync_merge_ephys', 'compress_ephys_videos']
     parser = argparse.ArgumentParser(description='Ephys Pipeline')
     parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
     parser.add_argument('folder', help='A Folder containing a session')
@@ -64,6 +68,8 @@ if __name__ == "__main__":
         _25_spike_sorting_qc(ks2_path=args.folder)
     elif args.action == 'sync_merge_ephys':
         _26_sync_merge_ephys(ses_path=args.folder, dry=args.dry)
+    elif args.action == 'compress_ephys_videos':
+        _27_compress_ephys_videos(root_path=args.folder, dry=args.dry, max_sessions=args.count)
     else:
         logger.error(f'Action "{args.action}" not valid. Allowed actions are: ' +
                      ', '.join(ALLOWED_ACTIONS))

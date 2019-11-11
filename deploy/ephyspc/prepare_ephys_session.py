@@ -21,10 +21,10 @@ def main(mouse):
     SESSION_FOLDER = DATA_FOLDER / SUBJECT_NAME / DATE / NUM / 'raw_ephys_data'
     SESSION_FOLDER.mkdir(parents=True, exist_ok=True)
     print(f"Created {SESSION_FOLDER}")
-    PROBE_00_FOLDER = SESSION_FOLDER / 'probe_00'
+    PROBE_00_FOLDER = SESSION_FOLDER / 'probe00'
     PROBE_00_FOLDER.mkdir(parents=True, exist_ok=True)
     print(f"Created {PROBE_00_FOLDER}")
-    PROBE_01_FOLDER = SESSION_FOLDER / 'probe_01'
+    PROBE_01_FOLDER = SESSION_FOLDER / 'probe01'
     PROBE_01_FOLDER.mkdir(parents=True, exist_ok=True)
     print(f"Created {PROBE_01_FOLDER}")
 

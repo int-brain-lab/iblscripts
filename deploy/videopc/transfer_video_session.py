@@ -16,5 +16,9 @@ if __name__ == "__main__":
     parser.add_argument(
         '-r', '--remote', default=False, required=False,
         help='Remote iblrig_data/Subjects folder')
+    parser.add_argument(
+        '-f', '--force', default=False, required=False, action='store_true',
+        help='Overwrite existing video files in dst/remote folder')
     args = parser.parse_args()
-    confirm_video_remote_folder(local_folder=args.local, remote_folder=args.remote)
+    # print(args)
+    confirm_video_remote_folder(local_folder=args.local, remote_folder=args.remote, force=args.force)

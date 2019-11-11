@@ -79,6 +79,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('clusters.peakToTrough', 3, 3),
                              ('ephysData.raw.ap', 2, 2),
                              ('ephysData.raw.lf', 2, 2),
+                             ('ephysData.raw.ch', 4, 5),
                              ('ephysData.raw.meta', 4, 5),
                              ('ephysData.raw.sync', 2, 2),
                              ('ephysData.raw.wiring', 2, 3),

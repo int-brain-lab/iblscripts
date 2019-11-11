@@ -1,8 +1,11 @@
 """
 Entry point to system commands for IBL pipeline.
 python rerun.py 04_audio_training /mnt/s0/Data/Subjects --dry=True
-python rerun.py rerun_23_compress_ephys /mnt/s0/Data/Subjects --dry=True
-python rerun.py rerun_26_compress_ephys /mnt/s0/Data/Subjects --dry=True
+python rerun.py 21_qc_ephys /mnt/s0/Data/Subjects --dry=True
+python rerun.py 22_audio_ephys /mnt/s0/Data/Subjects --dry=True
+python rerun.py 23_compress_ephys /mnt/s0/Data/Subjects --dry=True
+python rerun.py 26_merge_sync_ephys /mnt/s0/Data/Subjects --dry=True
+python rerun.py 27_compress_ephys_video /mnt/s0/Data/Subjects --dry=True
 """
 
 # Per dataset type
@@ -14,6 +17,8 @@ import argparse
 
 from ibllib.io import flags, spikeglx
 import ibllib.pipes.experimental_data as pipes
+import ibllib.pipes.extract_session as extract_session
+
 
 logger = logging.getLogger('ibllib')
 DRANGE = ('2000-01-01', '2100-01-01')  # default date range
@@ -57,21 +62,17 @@ def rerun_03_compress_video(ses_path, drange, dry=True):
         if dry:
             continue
         file_error.unlink()
-        flags.create_compress_flags(file_error.parents[1])
+        flags.create_compress_video_flags(file_error.parents[1])
     if not dry:
         logger.warning("Flags created, to compress videos, launch the compress script from deploy")
 
 
-def rerun_04_audio_training(root_path, drange=DRANGE, dry=True):
+def rerun_04_audio_training(root_path, drange, **kwargs):
     """
     This job looks for wav files and create `audio_training.flag` for each wav file found
     """
-    audio_files = _glob_date_range(root_path, glob_pattern='_iblrig_micData.raw.wav', drange=drange)
-    for af in audio_files:
-        if dry:
-            print(af)
-            continue
-        flags.create_other_flags(af.parents[1], 'audio_training.flag')
+    _rerun_wav_files(root_path, drange=drange, flag_name='audio_training.flag',
+                     task_excludes=['ephys', 'ephys_sync'], **kwargs)
 
 
 def rerun_05_dlc_training(root_path, drange, dry=True):
@@ -86,6 +87,14 @@ def rerun_20_extract_ephys(ses_path, drange, dry=True):
 def rerun_21_qc_ephys(ses_path, drange, dry=True):
     _rerun_ephys(ses_path, drange, dry=dry, pipefunc=pipes.raw_ephys_qc,
                  flagstr='raw_ephys_qc.flag')
+
+
+def rerun_22_audio_ephys(root_path, drange, **kwargs):
+    """
+    This job looks for wav files and create `audio_ephys.flag` for each wav file found
+    """
+    _rerun_wav_files(root_path, drange=drange, flag_name='audio_ephys.flag',
+                     task_includes=['ephys', 'ephys_sync'], **kwargs)
 
 
 def rerun_23_compress_ephys(root_path, dry=True):
@@ -130,20 +139,67 @@ def rerun_26_sync_merge_ephys(root_path, dry=True):
                 flag_file.touch()
 
 
+def rerun_27_compress_ephys_video(root_path, drange=DRANGE, dry=True):
+    _rerun_avi_files(root_path, flag_name='compress_video_ephys.flag',
+                     task_includes=['ephys', 'ephys_sync'], dry=dry, drange=drange)
+
+
+def _rerun_avi_files(root_path, flag_name, task_excludes=None, task_includes=None,
+                     drange=DRANGE, dry=True):
+    avi_files = _glob_date_range(root_path, task_excludes=task_excludes,
+                                 task_includes=task_includes,
+                                 glob_pattern='_iblrig_*Camera.raw.avi', drange=drange)
+    for af in avi_files:
+        print(af)
+        if dry:
+            continue
+        flags.create_compress_video_flags(af.parents[1], flag_name)
+
+
+def _rerun_wav_files(root_path, flag_name, task_excludes=None, task_includes=None,
+                     drange=DRANGE, dry=True):
+    audio_files = _glob_date_range(root_path, task_excludes=task_excludes,
+                                   task_includes=task_includes,
+                                   glob_pattern='_iblrig_micData.raw.wav', drange=drange)
+    for af in audio_files:
+        print(af)
+        if dry:
+            continue
+        flags.create_audio_flags(af.parents[1], flag_name)
+
+
 def _rerun_ephys(ses_path, drange=DRANGE, dry=True, pipefunc=None, flagstr=None):
+    """
+    Creates a flag at the session root and run the associated job
+    """
     ephys_files = _glob_date_range(ses_path, glob_pattern='*.ap.*bin', drange=drange)
     for ef in ephys_files:
         if dry:
             print(ef)
             continue
-        flags.create_other_flags(ef.parents[2], flagstr, force=True)
+        session_path = extract_session.get_session_path(ef)
+        flags.create_other_flags(session_path, flagstr, force=True)
     if not dry:
-        pipefunc(ef.parents[2])
+        pipefunc(session_path)
 
 
-def _glob_date_range(ses_path, glob_pattern, drange=DRANGE):
-    files, files_date = _order_glob_by_session_date(ses_path.rglob(glob_pattern))
-    return [f for f, d in zip(files, files_date) if drange[0] <= d <= drange[1]]
+def _glob_date_range(root_path, glob_pattern, task_excludes=None, task_includes=None,
+                     drange=DRANGE):
+    files, files_date = _order_glob_by_session_date(root_path.rglob(glob_pattern))
+    sessions = [f for f, d in zip(files, files_date) if drange[0] <= d <= drange[1]]
+
+    def _test_task(f):
+        # check if task is included or excluded
+        task = extract_session.get_task_extractor_type(f)
+        if not task:
+            return False
+        if task_includes and task not in task_includes:
+            return False
+        if task_excludes and task in task_excludes:
+            return False
+        return True
+
+    return [f for f in sessions if _test_task(f)]
 
 
 def _order_glob_by_session_date(flag_files):
@@ -167,8 +223,8 @@ def _order_glob_by_session_date(flag_files):
 
 
 if __name__ == "__main__":
-    ALLOWED_ACTIONS = ['rerun_04_audio_training', 'rerun_23_compress_ephys',
-                       'rerun_26_sync_merge_ephys']
+    ALLOWED_ACTIONS = ['04_audio_training', '21_qc_ephys', '22_audio_ephys', '23_compress_ephys',
+                       '26_sync_merge_ephys', '27_compress_ephys_video']
     parser = argparse.ArgumentParser(description='Description of your program')
     parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
     parser.add_argument('folder', help='A Folder containing a session')
@@ -187,9 +243,15 @@ if __name__ == "__main__":
     ses_path = Path(args.folder)
     if args.action == '04_audio_training':
         rerun_04_audio_training(ses_path, date_range, dry=args.dry)
-    if args.action == 'rerun_23_compress_ephys':
+    elif args.action == '21_qc_ephys':
+        rerun_21_qc_ephys(ses_path, date_range, dry=args.dry)
+    elif args.action == '22_audio_ephys':
+        rerun_22_audio_ephys(ses_path, date_range, dry=args.dry)
+    elif args.action == '23_compress_ephys':
         rerun_23_compress_ephys(ses_path, dry=args.dry)
-    if args.action == 'rerun_26_sync_merge_ephys':
+    elif args.action == '26_sync_merge_ephys':
         rerun_26_sync_merge_ephys(ses_path, dry=args.dry)
+    elif args.action == '27_compress_ephys_video':
+        rerun_27_compress_ephys_video(ses_path, date_range, args.dry)
     else:
         logger.error('Allowed actions are: ' + ', '.join(ALLOWED_ACTIONS))

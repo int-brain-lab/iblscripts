@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+# @Author: Niccolò Bonacchi
+# @Date: Friday, November 8th 2019, 6:16:13 pm
 import argparse
 
 from misc import create_ephyspc_params

@@ -10,7 +10,7 @@ import ibllib.io.params as params
 def cli_ask_default(prompt: str, default: str):
     dflt = " [default: {}]: "
     dflt.format(default)
-    ans = input(prompt + default) or default
+    ans = input(prompt + dflt) or default
     return ans
 
 
@@ -148,7 +148,7 @@ def create_ephyspc_params(force=False):
     return param_dict
 
 
-def confirm_video_remote_folder(local_folder=False, remote_folder=False):
+def confirm_video_remote_folder(local_folder=False, remote_folder=False, force=False):
     pars = load_videopc_params()
 
     if not local_folder:
@@ -184,7 +184,7 @@ def confirm_video_remote_folder(local_folder=False, remote_folder=False):
             transfer_folder(
                 session_path / 'raw_video_data',
                 remote_session_path / 'raw_video_data',
-                force=False)
+                force=force)
             flag_file.unlink()
         elif resp == 'r' or resp == 'rename':
             new_session_path = rename_session(session_path)
