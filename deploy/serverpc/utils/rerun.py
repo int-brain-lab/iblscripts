@@ -149,11 +149,12 @@ def _rerun_avi_files(root_path, flag_name, task_excludes=None, task_includes=Non
     avi_files = _glob_date_range(root_path, task_excludes=task_excludes,
                                  task_includes=task_includes,
                                  glob_pattern='_iblrig_*Camera.raw.avi', drange=drange)
-    for af in avi_files:
+    avi_folders = list(set([str(af.parent) for af in avi_files]))
+    for af in avi_folders:
         print(af)
         if dry:
             continue
-        flags.create_compress_video_flags(af.parents[1], flag_name)
+        flags.create_compress_video_flags(af.parent, flag_name)
 
 
 def _rerun_wav_files(root_path, flag_name, task_excludes=None, task_includes=None,
