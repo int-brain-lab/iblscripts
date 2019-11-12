@@ -4,7 +4,7 @@
 # @Date: Tuesday, August 13th 2019, 12:10:34 pm
 import argparse
 
-from misc import confirm_ephys_remote_folder
+from ibllib.pipes.misc import confirm_ephys_remote_folder, get_iblscripts_folder
 
 
 if __name__ == "__main__":
