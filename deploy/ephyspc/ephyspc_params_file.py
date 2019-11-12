@@ -4,7 +4,7 @@
 # @Date: Friday, November 8th 2019, 6:16:13 pm
 import argparse
 
-from misc import create_ephyspc_params
+from ibllib.pipes.misc import create_ephyspc_params
 
 
 if __name__ == "__main__":
