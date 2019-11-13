@@ -35,7 +35,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
         self.one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
                        username='test_user', password='TapetesBloc18')
 
-    def testMergeSpikes(self):
+    def test_spike_sorting_to_alf_registration(self):
         sessions_paths = [f.parent for f in self.main_folder.rglob('extract_ephys.flag')]
 
         """test extraction of behaviour first"""
@@ -48,9 +48,6 @@ class TestSpikeSortingOutput(unittest.TestCase):
 
         for session_path in sessions_paths:
             self.check_session_output(session_path)
-
-        # for session_path in sessions_paths:
-        #     session_path.joinpath('register_me.flag').touch()
 
         """ at last make sure we get all expected datasets after registration on the test db"""
         iblrig_pipeline.register(self.main_folder, one=self.one)
@@ -128,51 +125,56 @@ class TestSpikeSortingOutput(unittest.TestCase):
     def check_session_output(self, session_path):
         """ Check the spikes object """
         spikes_attributes = ['depths', 'amps', 'clusters', 'times', 'templates', 'samples']
-        spikes = alf.io.load_object(session_path.joinpath('alf'), 'spikes')
-        self.assertTrue(np.max(spikes.times) > 1000)
-        self.assertTrue(alf.io.check_dimensions(spikes) == 0)
-        # check that it contains the proper keys
-        self.assertTrue(set(spikes.keys()).issubset(set(spikes_attributes)))
-        self.assertTrue(np.min(spikes.depths) >= 0)
-        self.assertTrue(np.max(spikes.depths) <= 3840)
-        self.assertTrue(10 < np.median(spikes.amps) < 80)  # we expect microvolts
+        probe_folders = list(set([p.parent for p in session_path.joinpath(
+            'alf').rglob('spikes.times.npy')]))
+        for probe_folder in probe_folders:
+            spikes = alf.io.load_object(probe_folder, 'spikes')
+            self.assertTrue(np.max(spikes.times) > 1000)
+            self.assertTrue(alf.io.check_dimensions(spikes) == 0)
+            # check that it contains the proper keys
+            self.assertTrue(set(spikes.keys()).issubset(set(spikes_attributes)))
+            self.assertTrue(np.min(spikes.depths) >= 0)
+            self.assertTrue(np.max(spikes.depths) <= 3840)
+            self.assertTrue(10 < np.median(spikes.amps) < 80)  # we expect microvolts
 
-        """Check the clusters object"""
-        clusters = alf.io.load_object(session_path.joinpath('alf'), 'clusters')
-        clusters_attributes = ['depths', 'probes', 'channels', 'peakToTrough', 'amps']
-        self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters]).size == 1)
-        self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
-        self.assertTrue(10 < np.nanmedian(clusters.amps) < 80)  # we expect microvolts
-        self.assertTrue(0 < np.median(np.abs(clusters.peakToTrough)) < 5)  # we expect ms
+            """Check the clusters object"""
+            clusters = alf.io.load_object(probe_folder, 'clusters')
+            clusters_attributes = ['depths', 'channels', 'peakToTrough', 'amps']
+            self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters]).size == 1)
+            self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
+            self.assertTrue(10 < np.nanmedian(clusters.amps) < 80)  # we expect microvolts
+            self.assertTrue(0 < np.median(np.abs(clusters.peakToTrough)) < 5)  # we expect ms
 
-        """Check the channels object"""
-        channels = alf.io.load_object(session_path.joinpath('alf'), 'channels')
-        channels_attributes = ['probes', 'rawInd', 'localCoordinates', '_phy_ids']
-        np.diff(channels.rawInd[channels.probes == 0])
-        self.assertTrue(set(channels.keys()) == set(channels_attributes))
+            """Check the channels object"""
+            channels = alf.io.load_object(probe_folder, 'channels')
+            channels_attributes = ['rawInd', 'localCoordinates', '_phy_ids']
+            self.assertTrue(set(channels.keys()) == set(channels_attributes))
 
-        """Check the template object"""
-        templates = alf.io.load_object(session_path.joinpath('alf'), 'templates')
-        templates_attributes = ['waveforms']
-        self.assertTrue(set(templates.keys()) == set(templates_attributes))
+            """Check the template object"""
+            templates = alf.io.load_object(probe_folder, 'templates')
+            templates_attributes = ['waveforms']
+            self.assertTrue(set(templates.keys()) == set(templates_attributes))
 
-        # """Check the probes object"""
-        # probes = alf.io.load_object(session_path.joinpath('alf'), 'probes')
+            # """Check the probes object"""
+            # probes = alf.io.load_object(session_path.joinpath('alf'), 'probes')
 
-        """(basic) check cross-references"""
-        nclusters = clusters.depths.size
-        nchannels = channels.probes.size
-        ntemplates = templates.waveforms.shape[0]
-        self.assertTrue(np.all(0 <= spikes.clusters) and
-                        np.all(spikes.clusters <= (nclusters - 1)))
-        self.assertTrue(np.all(0 <= spikes.templates) and
-                        np.all(spikes.templates <= (ntemplates - 1)))
-        self.assertTrue(np.all(0 <= clusters.channels) and
-                        np.all(clusters.channels <= (nchannels - 1)))
-        # check that the site positions channels match the depth with indexing
-        self.assertTrue(np.all(clusters.depths == channels.localCoordinates[clusters.channels, 1]))
-        # check that the probe index from clusters and channels check out
-        self.assertTrue(np.all(clusters.probes == channels.probes[clusters.channels]))
+            """(basic) check cross-references"""
+            nclusters = clusters.depths.size
+            nchannels = channels.rawInd.size
+            ntemplates = templates.waveforms.shape[0]
+            self.assertTrue(np.all(0 <= spikes.clusters) and
+                            np.all(spikes.clusters <= (nclusters - 1)))
+            self.assertTrue(np.all(0 <= spikes.templates) and
+                            np.all(spikes.templates <= (ntemplates - 1)))
+            self.assertTrue(np.all(0 <= clusters.channels) and
+                            np.all(clusters.channels <= (nchannels - 1)))
+            # check that the site positions channels match the depth with indexing
+            self.assertTrue(np.all(clusters.depths == channels.localCoordinates[clusters.channels, 1]))
+            # check that the probe index from clusters and channels check out
+            # self.assertTrue(np.all(clusters.probes == channels.probes[clusters.channels]))
+
+    def check_synchronization_results(self):
+        pass
 
     def tearDown(self):
         shutil.rmtree(self.main_folder)
