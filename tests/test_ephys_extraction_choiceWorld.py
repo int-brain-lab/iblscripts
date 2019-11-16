@@ -32,7 +32,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
             link.parent.mkdir(exist_ok=True, parents=True)
             link.symlink_to(ff)
         # instantiate the one object for registration
-        self.one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
+        self.one = ONE(base_url='https://testdev.alyx.internationalbrainlab.org',
                        username='test_user', password='TapetesBloc18')
 
     def test_spike_sorting_to_alf_registration(self):
@@ -81,6 +81,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('ephysData.raw.meta', 4, 5),
                              ('ephysData.raw.sync', 2, 2),
                              ('ephysData.raw.wiring', 2, 3),
+                             ('probes.description', 1, 1),
                              ('spikes.amps', nss, nss),
                              ('spikes.clusters', nss, nss),
                              ('spikes.depths', nss, nss),
@@ -156,7 +157,9 @@ class TestSpikeSortingOutput(unittest.TestCase):
             self.assertTrue(set(templates.keys()) == set(templates_attributes))
 
             # """Check the probes object"""
-            # probes = alf.io.load_object(session_path.joinpath('alf'), 'probes')
+            probes_attributes = ['description']
+            probes = alf.io.load_object(session_path.joinpath('alf'), 'probes')
+            self.assertTrue(set(probes.keys()) == set(probes_attributes))
 
             """(basic) check cross-references"""
             nclusters = clusters.depths.size
