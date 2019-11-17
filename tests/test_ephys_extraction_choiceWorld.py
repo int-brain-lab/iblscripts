@@ -66,7 +66,6 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('_spikeglx_sync.polarities', 2, 3),
                              ('_spikeglx_sync.times', 2, 3),
                              ('camera.times', 3, 3),
-                             ('channels._phy_ids', nss, nss),
                              ('channels.localCoordinates', nss, nss),
                              ('channels.probes', 0, 0),
                              ('channels.rawInd', nss, nss),
@@ -74,6 +73,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('clusters.channels', nss, nss),
                              ('clusters.depths', nss, nss),
                              ('clusters.probes', 0, 0),
+                             ('clusters.metrics', nss, nss),
                              ('clusters.peakToTrough', nss, nss),
                              ('ephysData.raw.ap', 2, 2),
                              ('ephysData.raw.lf', 2, 2),
@@ -141,15 +141,16 @@ class TestSpikeSortingOutput(unittest.TestCase):
 
             """Check the clusters object"""
             clusters = alf.io.load_object(probe_folder, 'clusters')
-            clusters_attributes = ['depths', 'channels', 'peakToTrough', 'amps']
-            self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters]).size == 1)
+            clusters_attributes = ['depths', 'channels', 'peakToTrough', 'amps', 'metrics']
+            self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters
+                                       if k != 'metrics']).size == 1)
             self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
             self.assertTrue(10 < np.nanmedian(clusters.amps) < 80)  # we expect microvolts
             self.assertTrue(0 < np.median(np.abs(clusters.peakToTrough)) < 5)  # we expect ms
 
             """Check the channels object"""
             channels = alf.io.load_object(probe_folder, 'channels')
-            channels_attributes = ['rawInd', 'localCoordinates', '_phy_ids']
+            channels_attributes = ['rawInd', 'localCoordinates']
             self.assertTrue(set(channels.keys()) == set(channels_attributes))
 
             """Check the template object"""
