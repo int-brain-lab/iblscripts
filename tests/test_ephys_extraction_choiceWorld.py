@@ -75,6 +75,8 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('clusters.probes', 0, 0),
                              ('clusters.metrics', nss, nss),
                              ('clusters.peakToTrough', nss, nss),
+                             ('clusters.waveforms', nss, nss),
+                             ('clusters.waveformsChannels', nss, nss),
                              ('ephysData.raw.ap', 2, 2),
                              ('ephysData.raw.lf', 2, 2),
                              ('ephysData.raw.ch', 4, 5),
@@ -101,6 +103,8 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('trials.response_times', 1, 1),
                              ('trials.rewardVolume', 1, 1),
                              ('trials.stimOn_times', 1, 1),
+                             ('templates.waveforms', nss, nss),
+                             ('templates.waveformsChannels', nss, nss),
                              ('wheel.position', 1, 1),
                              ('wheel.timestamps', 1, 1),
                              ('wheel.velocity', 1, 1),
@@ -141,7 +145,8 @@ class TestSpikeSortingOutput(unittest.TestCase):
 
             """Check the clusters object"""
             clusters = alf.io.load_object(probe_folder, 'clusters')
-            clusters_attributes = ['depths', 'channels', 'peakToTrough', 'amps', 'metrics']
+            clusters_attributes = ['depths', 'channels', 'peakToTrough', 'amps', 'metrics',
+                                   'waveforms', 'waveformsChannels']
             self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters
                                        if k != 'metrics']).size == 1)
             self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
@@ -155,9 +160,9 @@ class TestSpikeSortingOutput(unittest.TestCase):
 
             """Check the template object"""
             templates = alf.io.load_object(probe_folder, 'templates')
-            templates_attributes = ['waveforms']
+            templates_attributes = ['waveforms', 'waveformsChannels']
             self.assertTrue(set(templates.keys()) == set(templates_attributes))
-
+            self.assertTrue(np.unique([templates[k].shape[0] for k in templates]).size == 1)
             # """Check the probes object"""
             probes_attributes = ['description', 'trajectory']
             probes = alf.io.load_object(session_path.joinpath('alf'), 'probes')
