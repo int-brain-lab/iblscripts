@@ -32,7 +32,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
             link.parent.mkdir(exist_ok=True, parents=True)
             link.symlink_to(ff)
         # instantiate the one object for registration
-        self.one = ONE(base_url='https://testdev.alyx.internationalbrainlab.org',
+        self.one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
                        username='test_user', password='TapetesBloc18')
 
     def test_spike_sorting_to_alf_registration(self):
@@ -202,9 +202,9 @@ class TestEphysQC(unittest.TestCase):
         # extract a short lf signal RMS
         for fbin in Path(self.init_folder).rglob('*.lf.bin'):
             ephysqc.extract_rmsmap(fbin, out_folder=self.alf_folder)
-            rmsmap_lf = alf.io.load_object(self.alf_folder, '_spikeglx_ephysQcTimeLF')
-            spec_lf = alf.io.load_object(self.alf_folder, '_spikeglx_ephysQcFreqLF')
-            ntimes = rmsmap_lf['times'].shape[0]
+            rmsmap_lf = alf.io.load_object(self.alf_folder, '_iblqc_ephysTimeRmsLF')
+            spec_lf = alf.io.load_object(self.alf_folder, '_iblqc_ephysSpectralDensityLF')
+            ntimes = rmsmap_lf['timestamps'].shape[0]
             nchannels = rmsmap_lf['rms'].shape[1]
             nfreqs = spec_lf['freq'].shape[0]
             # makes sure the dimensions are consistend
