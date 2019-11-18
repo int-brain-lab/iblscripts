@@ -154,7 +154,7 @@ def _rerun_avi_files(root_path, flag_name, task_excludes=None, task_includes=Non
         print(af)
         if dry:
             continue
-        flags.create_compress_video_flags(af.parent, flag_name)
+        flags.create_compress_video_flags(Path(af).parent, flag_name)
 
 
 def _rerun_wav_files(root_path, flag_name, task_excludes=None, task_includes=None,
