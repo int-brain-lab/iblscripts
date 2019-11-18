@@ -62,6 +62,10 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('_iblrig_encoderTrialInfo.raw', 1, 1),
                              ('_iblrig_taskData.raw', 1, 1),
                              ('_iblrig_taskSettings.raw', 1, 1),
+                             ('_iblqc_ephysTimeRms.timestamps', 4, 4),
+                             ('_iblqc_ephysTimeRms.amps', 4, 4),
+                             ('_iblqc_ephysSpectralDensity.freqs', 4, 4),
+                             ('_iblqc_ephysSpectralDensity.amps', 4, 4),
                              ('_spikeglx_sync.channels', 2, 3),
                              ('_spikeglx_sync.polarities', 2, 3),
                              ('_spikeglx_sync.times', 2, 3),
@@ -206,7 +210,7 @@ class TestEphysQC(unittest.TestCase):
             spec_lf = alf.io.load_object(self.alf_folder, '_iblqc_ephysSpectralDensityLF')
             ntimes = rmsmap_lf['timestamps'].shape[0]
             nchannels = rmsmap_lf['rms'].shape[1]
-            nfreqs = spec_lf['freq'].shape[0]
+            nfreqs = spec_lf['freqs'].shape[0]
             # makes sure the dimensions are consistend
             self.assertTrue(rmsmap_lf['rms'].shape == (ntimes, nchannels))
             self.assertTrue(spec_lf['power'].shape == (nfreqs, nchannels))
