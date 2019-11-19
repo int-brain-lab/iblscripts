@@ -79,6 +79,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('clusters.probes', 0, 0),
                              ('clusters.metrics', nss, nss),
                              ('clusters.peakToTrough', nss, nss),
+                             ('clusters.uuids', nss, nss),
                              ('clusters.waveforms', nss, nss),
                              ('clusters.waveformsChannels', nss, nss),
                              ('ephysData.raw.ap', 2, 2),
@@ -150,7 +151,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
             """Check the clusters object"""
             clusters = alf.io.load_object(probe_folder, 'clusters')
             clusters_attributes = ['depths', 'channels', 'peakToTrough', 'amps', 'metrics',
-                                   'waveforms', 'waveformsChannels']
+                                   'uuids', 'waveforms', 'waveformsChannels']
             self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters
                                        if k != 'metrics']).size == 1)
             self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
