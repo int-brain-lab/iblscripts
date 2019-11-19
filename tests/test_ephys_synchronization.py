@@ -55,8 +55,16 @@ def _check_session_sync(ses_path, channel):
         if not ef.get('ap'):
             continue
         sync_events = alf.io.load_object(ef.ap.parent, '_spikeglx_sync', short_keys=True)
+        # the first step is to construct list arrays with probe sync
         sync_file = ef.ap.parent.joinpath(ef.ap.name.replace('.ap.', '.sync.')).with_suffix('.npy')
         t = sync_events.times[sync_events.channels == channel]
+        tsync = sync_probes.apply_sync(sync_file, t, forward=True)
         tprobe.append(t)
-        tinterp.append(sync_probes.apply_sync(sync_file, t, forward=True))
+        tinterp.append(tsync)
+        # the second step is to make sure sample / time_ref files match time / time_ref files
+        ts_file = ef.ap.parent.joinpath(ef.ap.name.replace('.ap.', '.timestamps.')
+                                        ).with_suffix('.npy')
+        fs = spikeglx._get_fs_from_meta(spikeglx.read_meta_data(ef.ap.with_suffix('.meta')))
+        tstamp = sync_probes.apply_sync(ts_file, t * fs, forward=True)
+        assert(np.all(tstamp - tsync < 1e-12))
     return tinterp[0] - tinterp[1]

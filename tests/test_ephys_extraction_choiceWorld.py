@@ -87,6 +87,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('ephysData.raw.ch', 4, 5),
                              ('ephysData.raw.meta', 4, 5),
                              ('ephysData.raw.sync', 2, 2),
+                             ('ephysData.raw.timestamps', 2, 2),
                              ('ephysData.raw.wiring', 2, 3),
                              ('probes.description', 1, 1),
                              ('probes.trajectory', 1, 1),
