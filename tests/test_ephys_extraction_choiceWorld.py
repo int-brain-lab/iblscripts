@@ -147,7 +147,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
             self.assertTrue(set(spikes.keys()).issubset(set(spikes_attributes)))
             self.assertTrue(np.min(spikes.depths) >= 0)
             self.assertTrue(np.max(spikes.depths) <= 3840)
-            self.assertTrue(10 < np.median(spikes.amps) < 80)  # we expect microvolts
+            self.assertTrue(10 < np.median(spikes.amps) * 1e6 < 80)  # we expect Volts
 
             """Check the clusters object"""
             clusters = alf.io.load_object(probe_folder, 'clusters')
@@ -156,7 +156,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
             self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters
                                        if k != 'metrics']).size == 1)
             self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
-            self.assertTrue(10 < np.nanmedian(clusters.amps) < 80)  # we expect microvolts
+            self.assertTrue(10 < np.nanmedian(clusters.amps) * 1e6  < 80)  # we expect Volts
             self.assertTrue(0 < np.median(np.abs(clusters.peakToTrough)) < 5)  # we expect ms
 
             """Check the channels object"""
@@ -188,9 +188,6 @@ class TestSpikeSortingOutput(unittest.TestCase):
             self.assertTrue(np.all(clusters.depths == channels.localCoordinates[clusters.channels, 1]))
             # check that the probe index from clusters and channels check out
             # self.assertTrue(np.all(clusters.probes == channels.probes[clusters.channels]))
-
-    def check_synchronization_results(self):
-        pass
 
     def tearDown(self):
         shutil.rmtree(self.main_folder)
