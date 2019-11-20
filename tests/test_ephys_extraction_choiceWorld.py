@@ -35,7 +35,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
         self.one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
                        username='test_user', password='TapetesBloc18')
 
-    def testMergeSpikes(self):
+    def test_spike_sorting_to_alf_registration(self):
         sessions_paths = [f.parent for f in self.main_folder.rglob('extract_ephys.flag')]
 
         """test extraction of behaviour first"""
@@ -49,11 +49,9 @@ class TestSpikeSortingOutput(unittest.TestCase):
         for session_path in sessions_paths:
             self.check_session_output(session_path)
 
-        # for session_path in sessions_paths:
-        #     session_path.joinpath('register_me.flag').touch()
-
         """ at last make sure we get all expected datasets after registration on the test db"""
         iblrig_pipeline.register(self.main_folder, one=self.one)
+        nss = 2  # number of spike sorted datasets
         # expected dataset types and min expected, max expected
         EXPECTED_DATASETS = [('_iblrig_Camera.raw', 3, 3),
                              ('_iblrig_Camera.timestamps', 3, 3),
@@ -64,30 +62,40 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('_iblrig_encoderTrialInfo.raw', 1, 1),
                              ('_iblrig_taskData.raw', 1, 1),
                              ('_iblrig_taskSettings.raw', 1, 1),
+                             ('_iblqc_ephysTimeRms.timestamps', 4, 4),
+                             ('_iblqc_ephysTimeRms.amps', 4, 4),
+                             ('_iblqc_ephysSpectralDensity.freqs', 4, 4),
+                             ('_iblqc_ephysSpectralDensity.amps', 4, 4),
                              ('_spikeglx_sync.channels', 2, 3),
                              ('_spikeglx_sync.polarities', 2, 3),
                              ('_spikeglx_sync.times', 2, 3),
                              ('camera.times', 3, 3),
-                             ('channels._phy_ids', 3, 3),
-                             ('channels.localCoordinates', 3, 3),
-                             ('channels.probes', 1, 1),
-                             ('channels.rawInd', 3, 3),
-                             ('clusters.amps', 3, 3),
-                             ('clusters.channels', 3, 3),
-                             ('clusters.depths', 3, 3),
-                             ('clusters.probes', 1, 1),
-                             ('clusters.peakToTrough', 3, 3),
+                             ('channels.localCoordinates', nss, nss),
+                             ('channels.probes', 0, 0),
+                             ('channels.rawInd', nss, nss),
+                             ('clusters.amps', nss, nss),
+                             ('clusters.channels', nss, nss),
+                             ('clusters.depths', nss, nss),
+                             ('clusters.probes', 0, 0),
+                             ('clusters.metrics', nss, nss),
+                             ('clusters.peakToTrough', nss, nss),
+                             ('clusters.uuids', nss, nss),
+                             ('clusters.waveforms', nss, nss),
+                             ('clusters.waveformsChannels', nss, nss),
                              ('ephysData.raw.ap', 2, 2),
                              ('ephysData.raw.lf', 2, 2),
                              ('ephysData.raw.ch', 4, 5),
                              ('ephysData.raw.meta', 4, 5),
                              ('ephysData.raw.sync', 2, 2),
+                             ('ephysData.raw.timestamps', 2, 2),
                              ('ephysData.raw.wiring', 2, 3),
-                             ('spikes.amps', 3, 3),
-                             ('spikes.clusters', 3, 3),
-                             ('spikes.depths', 3, 3),
-                             ('spikes.templates', 3, 3),
-                             ('spikes.times', 3, 3),
+                             ('probes.description', 1, 1),
+                             ('probes.trajectory', 1, 1),
+                             ('spikes.amps', nss, nss),
+                             ('spikes.clusters', nss, nss),
+                             ('spikes.depths', nss, nss),
+                             ('spikes.templates', nss, nss),
+                             ('spikes.times', nss, nss),
                              ('trials.choice', 1, 1),
                              ('trials.contrastLeft', 1, 1),
                              ('trials.contrastRight', 1, 1),
@@ -101,6 +109,8 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('trials.response_times', 1, 1),
                              ('trials.rewardVolume', 1, 1),
                              ('trials.stimOn_times', 1, 1),
+                             ('templates.waveforms', nss, nss),
+                             ('templates.waveformsChannels', nss, nss),
                              ('wheel.position', 1, 1),
                              ('wheel.timestamps', 1, 1),
                              ('wheel.velocity', 1, 1),
@@ -127,51 +137,57 @@ class TestSpikeSortingOutput(unittest.TestCase):
     def check_session_output(self, session_path):
         """ Check the spikes object """
         spikes_attributes = ['depths', 'amps', 'clusters', 'times', 'templates', 'samples']
-        spikes = alf.io.load_object(session_path.joinpath('alf'), 'spikes')
-        self.assertTrue(np.max(spikes.times) > 1000)
-        self.assertTrue(alf.io.check_dimensions(spikes) == 0)
-        # check that it contains the proper keys
-        self.assertTrue(set(spikes.keys()).issubset(set(spikes_attributes)))
-        self.assertTrue(np.min(spikes.depths) >= 0)
-        self.assertTrue(np.max(spikes.depths) <= 3840)
-        self.assertTrue(10 < np.median(spikes.amps) < 80)  # we expect microvolts
+        probe_folders = list(set([p.parent for p in session_path.joinpath(
+            'alf').rglob('spikes.times.npy')]))
+        for probe_folder in probe_folders:
+            spikes = alf.io.load_object(probe_folder, 'spikes')
+            self.assertTrue(np.max(spikes.times) > 1000)
+            self.assertTrue(alf.io.check_dimensions(spikes) == 0)
+            # check that it contains the proper keys
+            self.assertTrue(set(spikes.keys()).issubset(set(spikes_attributes)))
+            self.assertTrue(np.min(spikes.depths) >= 0)
+            self.assertTrue(np.max(spikes.depths) <= 3840)
+            self.assertTrue(10 < np.median(spikes.amps) * 1e6 < 80)  # we expect Volts
 
-        """Check the clusters object"""
-        clusters = alf.io.load_object(session_path.joinpath('alf'), 'clusters')
-        clusters_attributes = ['depths', 'probes', 'channels', 'peakToTrough', 'amps']
-        self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters]).size == 1)
-        self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
-        self.assertTrue(10 < np.nanmedian(clusters.amps) < 80)  # we expect microvolts
-        self.assertTrue(0 < np.median(np.abs(clusters.peakToTrough)) < 5)  # we expect ms
+            """Check the clusters object"""
+            clusters = alf.io.load_object(probe_folder, 'clusters')
+            clusters_attributes = ['depths', 'channels', 'peakToTrough', 'amps', 'metrics',
+                                   'uuids', 'waveforms', 'waveformsChannels']
+            self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters
+                                       if k != 'metrics']).size == 1)
+            self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
+            self.assertTrue(10 < np.nanmedian(clusters.amps) * 1e6  < 80)  # we expect Volts
+            self.assertTrue(0 < np.median(np.abs(clusters.peakToTrough)) < 5)  # we expect ms
 
-        """Check the channels object"""
-        channels = alf.io.load_object(session_path.joinpath('alf'), 'channels')
-        channels_attributes = ['probes', 'rawInd', 'localCoordinates', '_phy_ids']
-        np.diff(channels.rawInd[channels.probes == 0])
-        self.assertTrue(set(channels.keys()) == set(channels_attributes))
+            """Check the channels object"""
+            channels = alf.io.load_object(probe_folder, 'channels')
+            channels_attributes = ['rawInd', 'localCoordinates']
+            self.assertTrue(set(channels.keys()) == set(channels_attributes))
 
-        """Check the template object"""
-        templates = alf.io.load_object(session_path.joinpath('alf'), 'templates')
-        templates_attributes = ['waveforms']
-        self.assertTrue(set(templates.keys()) == set(templates_attributes))
+            """Check the template object"""
+            templates = alf.io.load_object(probe_folder, 'templates')
+            templates_attributes = ['waveforms', 'waveformsChannels']
+            self.assertTrue(set(templates.keys()) == set(templates_attributes))
+            self.assertTrue(np.unique([templates[k].shape[0] for k in templates]).size == 1)
+            # """Check the probes object"""
+            probes_attributes = ['description', 'trajectory']
+            probes = alf.io.load_object(session_path.joinpath('alf'), 'probes')
+            self.assertTrue(set(probes.keys()) == set(probes_attributes))
 
-        # """Check the probes object"""
-        # probes = alf.io.load_object(session_path.joinpath('alf'), 'probes')
-
-        """(basic) check cross-references"""
-        nclusters = clusters.depths.size
-        nchannels = channels.probes.size
-        ntemplates = templates.waveforms.shape[0]
-        self.assertTrue(np.all(0 <= spikes.clusters) and
-                        np.all(spikes.clusters <= (nclusters - 1)))
-        self.assertTrue(np.all(0 <= spikes.templates) and
-                        np.all(spikes.templates <= (ntemplates - 1)))
-        self.assertTrue(np.all(0 <= clusters.channels) and
-                        np.all(clusters.channels <= (nchannels - 1)))
-        # check that the site positions channels match the depth with indexing
-        self.assertTrue(np.all(clusters.depths == channels.localCoordinates[clusters.channels, 1]))
-        # check that the probe index from clusters and channels check out
-        self.assertTrue(np.all(clusters.probes == channels.probes[clusters.channels]))
+            """(basic) check cross-references"""
+            nclusters = clusters.depths.size
+            nchannels = channels.rawInd.size
+            ntemplates = templates.waveforms.shape[0]
+            self.assertTrue(np.all(0 <= spikes.clusters) and
+                            np.all(spikes.clusters <= (nclusters - 1)))
+            self.assertTrue(np.all(0 <= spikes.templates) and
+                            np.all(spikes.templates <= (ntemplates - 1)))
+            self.assertTrue(np.all(0 <= clusters.channels) and
+                            np.all(clusters.channels <= (nchannels - 1)))
+            # check that the site positions channels match the depth with indexing
+            self.assertTrue(np.all(clusters.depths == channels.localCoordinates[clusters.channels, 1]))
+            # check that the probe index from clusters and channels check out
+            # self.assertTrue(np.all(clusters.probes == channels.probes[clusters.channels]))
 
     def tearDown(self):
         shutil.rmtree(self.main_folder)
@@ -189,11 +205,11 @@ class TestEphysQC(unittest.TestCase):
         # extract a short lf signal RMS
         for fbin in Path(self.init_folder).rglob('*.lf.bin'):
             ephysqc.extract_rmsmap(fbin, out_folder=self.alf_folder)
-            rmsmap_lf = alf.io.load_object(self.alf_folder, '_spikeglx_ephysQcTimeLF')
-            spec_lf = alf.io.load_object(self.alf_folder, '_spikeglx_ephysQcFreqLF')
-            ntimes = rmsmap_lf['times'].shape[0]
+            rmsmap_lf = alf.io.load_object(self.alf_folder, '_iblqc_ephysTimeRmsLF')
+            spec_lf = alf.io.load_object(self.alf_folder, '_iblqc_ephysSpectralDensityLF')
+            ntimes = rmsmap_lf['timestamps'].shape[0]
             nchannels = rmsmap_lf['rms'].shape[1]
-            nfreqs = spec_lf['freq'].shape[0]
+            nfreqs = spec_lf['freqs'].shape[0]
             # makes sure the dimensions are consistend
             self.assertTrue(rmsmap_lf['rms'].shape == (ntimes, nchannels))
             self.assertTrue(spec_lf['power'].shape == (nfreqs, nchannels))

@@ -26,7 +26,6 @@ def main(mouse: str, training_session: bool = False) -> None:
     if training_session:
         RECORD_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_record_biasedCW.bonsai'
 
-
     DATE = datetime.datetime.now().date().isoformat()
     NUM = next_num_folder(DATA_FOLDER / SUBJECT_NAME / DATE)
 
