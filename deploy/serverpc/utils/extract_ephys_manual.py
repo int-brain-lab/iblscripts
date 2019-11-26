@@ -67,6 +67,8 @@ def re_extract_session(session_path):
     ## 26_sync_merge_ephys.sh
     for ef in ephys_files:
         if ef.get('ap'):
+            if not ef.parent.joinpath('spike_templates.npy').exists():
+                continue
             print(ef.ap)
             ef.ap.parent.joinpath('sync_merge_ephys.flag').touch()
     jobs.sync_merge_ephys(session_path)
