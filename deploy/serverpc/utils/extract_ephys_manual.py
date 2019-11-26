@@ -1,5 +1,7 @@
 from pathlib import Path
 import shutil
+import argparse
+
 from ibllib.io import spikeglx
 from ibllib.pipes import experimental_data as jobs
 
@@ -78,14 +80,16 @@ def re_extract_session(session_path):
     for ef in ephys_files:
         if ef.get('ap'):
             print(ef.ap)
+            if not ef.parent.joinpath('spike_templates.npy').exists():
+                continue
             ef.ap.parent.joinpath('compress_ephys.flag').touch()
     # jobs.compress_ephys(session_path, dry=True)
     # 22_audio_ephys.sh
     # 27_compress_ephys_videos.sh
     # 28_dlc_ephys.sh
 
+
 if __name__ == "__main__":
-    import argparse
     parser = argparse.ArgumentParser(description='Re-extraction of ephys sessions')
     parser.add_argument('folder', help='Session folder: /path/to/subject/yyyy-mm-dd/XXX')
     args = parser.parse_args()  # returns data from the options specified (echo)
