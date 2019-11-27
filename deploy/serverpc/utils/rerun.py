@@ -15,6 +15,7 @@ from dateutil.parser import parse
 import re
 import argparse
 
+import alf.io
 from ibllib.io import flags, spikeglx
 import ibllib.pipes.experimental_data as pipes
 import ibllib.pipes.extract_session as extract_session
@@ -178,7 +179,7 @@ def _rerun_ephys(ses_path, drange=DRANGE, dry=True, pipefunc=None, flagstr=None)
         if dry:
             print(ef)
             continue
-        session_path = extract_session.get_session_path(ef)
+        session_path = alf.io.get_session_path(ef)
         flags.create_other_flags(session_path, flagstr, force=True)
     if not dry:
         pipefunc(session_path)
