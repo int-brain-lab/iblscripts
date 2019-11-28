@@ -63,9 +63,9 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('_iblrig_taskData.raw', 1, 1),
                              ('_iblrig_taskSettings.raw', 1, 1),
                              ('_iblqc_ephysTimeRms.timestamps', 4, 4),
-                             ('_iblqc_ephysTimeRms.amps', 4, 4),
+                             ('_iblqc_ephysTimeRms.rms', 4, 4),
                              ('_iblqc_ephysSpectralDensity.freqs', 4, 4),
-                             ('_iblqc_ephysSpectralDensity.amps', 4, 4),
+                             ('_iblqc_ephysSpectralDensity.power', 4, 4),
                              ('_spikeglx_sync.channels', 2, 3),
                              ('_spikeglx_sync.polarities', 2, 3),
                              ('_spikeglx_sync.times', 2, 3),
@@ -153,10 +153,9 @@ class TestSpikeSortingOutput(unittest.TestCase):
             clusters = alf.io.load_object(probe_folder, 'clusters')
             clusters_attributes = ['depths', 'channels', 'peakToTrough', 'amps', 'metrics',
                                    'uuids', 'waveforms', 'waveformsChannels']
-            self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters
-                                       if k != 'metrics']).size == 1)
+            self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters]).size == 1)
             self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
-            self.assertTrue(10 < np.nanmedian(clusters.amps) * 1e6  < 80)  # we expect Volts
+            self.assertTrue(10 < np.nanmedian(clusters.amps) * 1e6 < 80)  # we expect Volts
             self.assertTrue(0 < np.median(np.abs(clusters.peakToTrough)) < 5)  # we expect ms
 
             """Check the channels object"""
