@@ -32,6 +32,7 @@ sess_path = alf.io.get_session_path(files[0])
 
 chmap = ibllib.io.extractors.ephys_fpga.CHMAPS['3B']['nidq']
 # chmap = ibllib.io.extractors.ephys_fpga.CHMAPS['3A']['ap']
+
 """get the sync pulses dealing with 3A and 3B revisions"""
 if next(sess_path.joinpath('raw_ephys_data').glob('_spikeglx_sync.*'), None):
     # if there is nidq sync it's a 3B session
@@ -41,23 +42,31 @@ else:  # otherwise it's a 3A
     # sync_path = sess_path.joinpath(r'raw_ephys_data', 'probe00')
     pass
 sync = alf.io.load_object(sync_path, '_spikeglx_sync', short_keys=True)
+
 """get the wheel data for both fpga and bpod"""
 fpga_wheel = ibllib.io.extractors.ephys_fpga.extract_wheel_sync(sync, chmap=chmap, save=False)
 bpod_wheel = ibllib.io.extractors.training_wheel.get_wheel_data(sess_path, save=False)
+
 """get the behaviour data for both fpga and bpod"""
-# Out[5]: dict_keys(['ready_tone_in', 'error_tone_in', 'valve_open', 'stim_freeze', 'stimOn_times',
+# -- Out FPGA : 
+# dict_keys(['ready_tone_in', 'error_tone_in', 'valve_open', 'stim_freeze', 'stimOn_times',
 # 'iti_in', 'goCue_times', 'feedback_times', 'intervals', 'response_times'])
 ibllib.io.extractors.ephys_trials.extract_all(sess_path, save=True)
 fpga_behaviour = ibllib.io.extractors.ephys_fpga.extract_behaviour_sync(
     sync, output_path=sess_path.joinpath('alf'), chmap=chmap, save=True, display=True)
-# Out[8]: dict_keys(['feedbackType', 'contrastLeft', 'contrastRight', 'probabilityLeft',
+
+# -- Out BPOD :
+# dict_keys(['feedbackType', 'contrastLeft', 'contrastRight', 'probabilityLeft',
 # 'session_path', 'choice', 'rewardVolume', 'feedback_times', 'stimOn_times', 'intervals',
 # 'response_times', 'camera_timestamps', 'goCue_times', 'goCueTrigger_times',
 # 'stimOnTrigger_times', 'included'])
 bpod_behaviour = ibllib.io.extractors.biased_trials.extract_all(sess_path, save=False)
+
 """get the sync between behaviour and bpod"""
 bpod_offset = ibllib.io.extractors.ephys_fpga.align_with_bpod(sess_path)
 
+
+## -----   PLOTS    -----
 fix, axes = plt.subplots(nrows=2, sharex='all', sharey='all')
 # axes[0].plot(t, pos), axes[0].title.set_text('Extracted')
 axes[0].plot(fpga_wheel['re_ts'], fpga_wheel['re_pos']), axes[0].title.set_text('FPGA')
@@ -65,28 +74,45 @@ axes[0].plot(bpod_wheel['re_ts'] + bpod_offset, bpod_wheel['re_pos'])
 axes[1].plot(bpod_wheel['re_ts'] + bpod_offset, bpod_wheel['re_pos'])
 axes[1].title.set_text('Bpod')
 
-plt.figure(4)
-plt.plot(fpga_behaviour['intervals'][:, 0], bpod_behaviour['stimOn_times'] -
-         fpga_behaviour['stimOn_times'] + bpod_offset)
+# plt.figure(4)
+# plt.plot(fpga_behaviour['intervals'][:, 0], bpod_behaviour['stimOn_times'] -
+#         fpga_behaviour['stimOn_times'] + bpod_offset)
 
-plt.figure(5)
-plt.plot(fpga_behaviour['stimOn_times'] - fpga_behaviour['intervals'][:, 0] )
+# plt.figure(5)
+# plt.plot(fpga_behaviour['stimOn_times'] - fpga_behaviour['intervals'][:, 0] )
 
 
-# response times should be increasing continuously and non negative - they are not durations but
+## -----   Start the QC part    -----
+# -- TEST  Response times should be increasing continuously and non negative - they are not durations but
 # time stamps
 assert np.all(np.diff(fpga_behaviour['response_times']) > 0)
 assert np.all(fpga_behaviour['response_times'] > 0)
 
+# -- TEST  StimOn, StimOnTrigger, GoCue and GoCueTrigger should all be within a very small tolerance of each other
+# 1. check for non-Nans
+assert not np.any(np.isnan(fpga_behaviour['stimOn_times']))
+assert not np.any(np.isnan(fpga_behaviour['goCue_times']))
+assert not np.any(np.isnan(bpod_behaviour['stimOn_times']))
+assert not np.any(np.isnan(bpod_behaviour['goCue_times']))
+assert not np.any(np.isnan(bpod_behaviour['stimOnTrigger_times']))
+assert not np.any(np.isnan(bpod_behaviour['goCueTrigger_times']))
 
-plt.figure(10), plt.plot(fpga_behaviour['goCue_times'] - fpga_behaviour['stimOn_times'])
+# 2. check for similar size
+array_size = np.zeros((6, 1))
+array_size[0] = np.size(fpga_behaviour['stimOn_times'])
+array_size[1] = np.size(fpga_behaviour['goCue_times'])
+array_size[2] = np.size(bpod_behaviour['stimOn_times'])
+array_size[3] = np.size(bpod_behaviour['goCue_times'])
+array_size[4] = np.size(bpod_behaviour['stimOnTrigger_times'])
+array_size[5] = np.size(bpod_behaviour['goCueTrigger_times'])
+
+assert np.size(np.unique(array_size)) == 1
 
 
+
+# -- TEST compare times from the bpod behaviour extraction to the FPGA extraction
 dbpod_fpga = {}
-for k in ['goCue_times']:
+for k in ['goCue_times', 'stimOn_times']:
     dbpod_fpga[k] = bpod_behaviour[k] - fpga_behaviour[k] + bpod_offset
     # we should use the diff from trial start for a more accurate test but this is good enough for now
     assert np.all(dbpod_fpga[k] < 0.05)
-
-plt.figure(10), plt.plot(dbpod_fpga['goCue_times'])
-plt.figure(10), plt.plot(bpod_behaviour['goCue_times'] - fpga_behaviour['goCue_times'])
