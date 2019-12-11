@@ -55,7 +55,7 @@ bpod_wheel = ibllib.io.extractors.training_wheel.get_wheel_data(sess_path, save=
 # 'iti_in', 'goCue_times', 'feedback_times', 'intervals', 'response_times'])
 ibllib.io.extractors.ephys_trials.extract_all(sess_path, save=True)
 fpga_behaviour = ibllib.io.extractors.ephys_fpga.extract_behaviour_sync(
-    sync, output_path=sess_path.joinpath('alf'), chmap=chmap, save=True, display=True)
+    sync, output_path=sess_path.joinpath('alf'), chmap=chmap, save=True)
 
 # -- Out BPOD :
 # dict_keys(['feedbackType', 'contrastLeft', 'contrastRight', 'probabilityLeft',
@@ -83,38 +83,57 @@ axes[1].title.set_text('Bpod')
 # plt.figure(5)
 # plt.plot(fpga_behaviour['stimOn_times'] - fpga_behaviour['intervals'][:, 0] )
 
+# ------------------------------------------------------
+#          Start the QC part (Ephys only)
+# ------------------------------------------------------
 
-## -----   Start the QC part    -----
-# -- TEST  Response times should be increasing continuously and non negative - they are not durations but
-# time stamps
+# TEST  Response times should be increasing continuously and non negative
+#       Note: RT are not durations but time stamps
 assert np.all(np.diff(fpga_behaviour['response_times']) > 0)
 assert np.all(fpga_behaviour['response_times'] > 0)
 
-# -- TEST  StimOn, StimOnTrigger, GoCue and GoCueTrigger should all be within a very small tolerance of each other
-# 1. check for non-Nans
+# TEST  StimOn and GoCue should all be within a very small tolerance of each other
+#       1. check for non-Nans
 assert not np.any(np.isnan(fpga_behaviour['stimOn_times']))
 assert not np.any(np.isnan(fpga_behaviour['goCue_times']))
-assert not np.any(np.isnan(bpod_behaviour['stimOn_times']))
-assert not np.any(np.isnan(bpod_behaviour['goCue_times']))
-assert not np.any(np.isnan(bpod_behaviour['stimOnTrigger_times']))
-assert not np.any(np.isnan(bpod_behaviour['goCueTrigger_times']))
 
-# 2. check for similar size
-array_size = np.zeros((6, 1))
+#       2. check for similar size
+array_size = np.zeros((2, 1))
 array_size[0] = np.size(fpga_behaviour['stimOn_times'])
 array_size[1] = np.size(fpga_behaviour['goCue_times'])
-array_size[2] = np.size(bpod_behaviour['stimOn_times'])
-array_size[3] = np.size(bpod_behaviour['goCue_times'])
-array_size[4] = np.size(bpod_behaviour['stimOnTrigger_times'])
-array_size[5] = np.size(bpod_behaviour['goCueTrigger_times'])
-
 assert np.size(np.unique(array_size)) == 1
 
+#       3. test if closeby value
+dtimes_stimOn_goCue = {}
+dtimes_stimOn_goCue = fpga_behaviour['goCue_times'] - fpga_behaviour['stimOn_times']
+assert np.all(dtimes_stimOn_goCue < 0.05)
 
+# ------------------------------------------------------
+#          Start the QC part (Bpod+Ephys)
+# ------------------------------------------------------
 
-# -- TEST compare times from the bpod behaviour extraction to the FPGA extraction
+# TEST  Compare times from the bpod behaviour extraction to the Ephys extraction
 dbpod_fpga = {}
 for k in ['goCue_times', 'stimOn_times']:
     dbpod_fpga[k] = bpod_behaviour[k] - fpga_behaviour[k] + bpod_offset
     # we should use the diff from trial start for a more accurate test but this is good enough for now
     assert np.all(dbpod_fpga[k] < 0.05)
+
+# ------------------------------------------------------
+#          Start the QC PART (Bpod only)
+# ------------------------------------------------------
+
+# TEST  StimOn, StimOnTrigger, GoCue and GoCueTrigger should all be within a very small tolerance of each other
+#       1. check for non-Nans
+assert not np.any(np.isnan(bpod_behaviour['stimOn_times']))
+assert not np.any(np.isnan(bpod_behaviour['goCue_times']))
+assert not np.any(np.isnan(bpod_behaviour['stimOnTrigger_times']))
+assert not np.any(np.isnan(bpod_behaviour['goCueTrigger_times']))
+
+#       2. check for similar size
+array_size = np.zeros((4, 1))
+array_size[0] = np.size(bpod_behaviour['stimOn_times'])
+array_size[1] = np.size(bpod_behaviour['goCue_times'])
+array_size[2] = np.size(bpod_behaviour['stimOnTrigger_times'])
+array_size[3] = np.size(bpod_behaviour['goCueTrigger_times'])
+assert np.size(np.unique(array_size)) == 1
