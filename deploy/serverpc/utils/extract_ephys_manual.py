@@ -2,7 +2,7 @@ from pathlib import Path
 import shutil
 import argparse
 
-from ibllib.io import spikeglx
+from ibllib.io import spikeglx, flags
 from ibllib.pipes import experimental_data as jobs
 
 
@@ -84,8 +84,13 @@ def re_extract_session(session_path):
                 continue
             ef.ap.parent.joinpath('compress_ephys.flag').touch()
     # jobs.compress_ephys(session_path, dry=True)
+
     # 22_audio_ephys.sh
+    flags.create_audio_flags(session_path, flag_name='audio_ephys.flag')
+
     # 27_compress_ephys_videos.sh
+    flags.create_compress_video_flags(session_path, flag_name='compress_video_ephys.flag')
+
     # 28_dlc_ephys.sh
 
 

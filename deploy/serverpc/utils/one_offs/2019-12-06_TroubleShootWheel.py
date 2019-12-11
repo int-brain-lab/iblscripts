@@ -3,9 +3,13 @@ import ibllib.io.extractors
 
 from oneibl.one import ONE
 import alf.io
+import ibllib.plots as iblplots
 
 one = ONE()
 eid = one.search(subject='KS005', date_range='2019-08-30', number=1)[0]
+# eid = one.search(subject='CSHL_020', date_range='2019-12-04', number=5)[0]
+
+one.alyx.rest('sessions', 'read', id=eid)['task_protocol']
 
 one.list(eid)
 dtypes = [
@@ -21,11 +25,13 @@ dtypes = [
 
 files = one.load(eid, dataset_types=dtypes, download_only=True)
 sess_path = alf.io.get_session_path(files[0])
-
+# TODO here we will have to deal with 3A versions by looking up the master probe
 chmap = ibllib.io.extractors.ephys_fpga.CHMAPS['3B']['nidq']
+# chmap = ibllib.io.extractors.ephys_fpga.CHMAPS['3A']['ap']
 """get the sync pulses"""
+# sync_path = sess_path.joinpath(r'raw_ephys_data', 'probe00')
 sync_path = sess_path.joinpath(r'raw_ephys_data')
-sync = alf.io.load_object(sync_path, '_spikeglx_sync')
+sync = alf.io.load_object(sync_path, '_spikeglx_sync', short_keys=True)
 """get the wheel data for both fpga and bpod"""
 fpga_wheel = ibllib.io.extractors.ephys_fpga.extract_wheel_sync(sync, chmap=chmap, save=False)
 bpod_wheel = ibllib.io.extractors.training_wheel.get_wheel_data(sess_path, save=False)
@@ -34,7 +40,7 @@ bpod_wheel = ibllib.io.extractors.training_wheel.get_wheel_data(sess_path, save=
 # 'iti_in', 'goCue_times', 'feedback_times', 'intervals', 'response_times'])
 ibllib.io.extractors.ephys_trials.extract_all(sess_path, save=True)
 fpga_behaviour = ibllib.io.extractors.ephys_fpga.extract_behaviour_sync(
-    sync, output_path=sess_path.joinpath('alf'), chmap=chmap, save=True)
+    sync, output_path=sess_path.joinpath('alf'), chmap=chmap, save=True, display=True)
 # Out[8]: dict_keys(['feedbackType', 'contrastLeft', 'contrastRight', 'probabilityLeft',
 # 'session_path', 'choice', 'rewardVolume', 'feedback_times', 'stimOn_times', 'intervals',
 # 'response_times', 'camera_timestamps', 'goCue_times', 'goCueTrigger_times',
@@ -51,5 +57,9 @@ axes[0].plot(bpod_wheel['re_ts'] + bpod_offset, bpod_wheel['re_pos'])
 axes[1].plot(bpod_wheel['re_ts'] + bpod_offset, bpod_wheel['re_pos'])
 axes[1].title.set_text('Bpod')
 
-plt.figure(2)
-plt.plot(bpod_behaviour['stimOn_times'] - fpga_behaviour['stimOn_times'] + bpod_offset)
+plt.figure(4)
+plt.plot(fpga_behaviour['intervals'][:, 0], bpod_behaviour['stimOn_times'] -
+         fpga_behaviour['stimOn_times'] + bpod_offset)
+
+plt.figure(5)
+plt.plot(fpga_behaviour['stimOn_times'] - fpga_behaviour['intervals'][:, 0] )
