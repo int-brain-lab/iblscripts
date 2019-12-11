@@ -66,7 +66,7 @@ bpod_wheel = ibllib.io.extractors.training_wheel.get_wheel_data(sess_path, save=
 # 'iti_in', 'goCue_times', 'feedback_times', 'intervals', 'response_times'])
 ibllib.io.extractors.ephys_trials.extract_all(sess_path, save=True)
 fpga_behaviour = ibllib.io.extractors.ephys_fpga.extract_behaviour_sync(
-    sync, output_path=sess_path.joinpath('alf'), chmap=chmap, save=True)
+    sync, output_path=sess_path.joinpath('alf'), chmap=chmap, save=True, display=True)
 
 # -- Out BPOD :
 # dict_keys(['feedbackType', 'contrastLeft', 'contrastRight', 'probabilityLeft',
@@ -80,19 +80,21 @@ bpod_offset = ibllib.io.extractors.ephys_fpga.align_with_bpod(sess_path)
 
 
 ## -----   PLOTS    -----
-fix, axes = plt.subplots(nrows=2, sharex='all', sharey='all')
+# plt.figure(1)
+# fix, axes = plt.subplots(nrows=2, sharex='all', sharey='all')
 # axes[0].plot(t, pos), axes[0].title.set_text('Extracted')
-axes[0].plot(fpga_wheel['re_ts'], fpga_wheel['re_pos']), axes[0].title.set_text('FPGA')
-axes[0].plot(bpod_wheel['re_ts'] + bpod_offset, bpod_wheel['re_pos'])
-axes[1].plot(bpod_wheel['re_ts'] + bpod_offset, bpod_wheel['re_pos'])
-axes[1].title.set_text('Bpod')
+# axes[0].plot(fpga_wheel['re_ts'], fpga_wheel['re_pos']), axes[0].title.set_text('FPGA')
+# axes[0].plot(bpod_wheel['re_ts'] + bpod_offset, bpod_wheel['re_pos'])
+# axes[1].plot(bpod_wheel['re_ts'] + bpod_offset, bpod_wheel['re_pos'])
+# axes[1].title.set_text('Bpod')
 
-# plt.figure(4)
+# plt.figure(2)
 # plt.plot(fpga_behaviour['intervals'][:, 0], bpod_behaviour['stimOn_times'] -
 #         fpga_behaviour['stimOn_times'] + bpod_offset)
 
-# plt.figure(5)
+# plt.figure(3)
 # plt.plot(fpga_behaviour['stimOn_times'] - fpga_behaviour['intervals'][:, 0] )
+
 
 # ------------------------------------------------------
 #          Start the QC part (Ephys only)
@@ -154,6 +156,17 @@ _single_test(np.all(fpga_behaviour['response_times'] - fpga_behaviour['goCue_tim
 
 # TEST  Start of iti_in should be within a very small tolerance of the stim off
 # TODO QUESTION OLIVIER: How do I get stim off times ?
+
+# TEST  Wheel should not move xx amount of time (quiescent period) before go cue
+#       Wheel should move before feedback
+# TODO ingest code from Michael S : https://github.com/int-brain-lab/ibllib/blob/brainbox/brainbox/examples/count_wheel_time_impossibilities.py 
+
+# TEST  No frame2ttl change between stim off and go cue
+# TODO QUESTION OLIVIER: How do I get stim off times ?
+
+# TEST  Delay between valve and stim off should be 1s
+# TODO QUESTION OLIVIER: How do I get stim off times ?
+fpga_behaviour['valve_open']
 
 # ------------------------------------------------------
 #          Start the QC part (Bpod+Ephys)
