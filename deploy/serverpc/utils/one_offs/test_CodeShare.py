@@ -10,6 +10,17 @@ import ibllib.io.extractors
 from ibllib.io import spikeglx
 import ibllib.plots as iblplots
 
+# To log errors : 
+import logging
+_logger = logging.getLogger('ibllib')
+def _single_test(assertion, str_ok, str_ko):
+    if assertion:
+        _logger.info(str_ok)
+        return True
+    else:
+        _logger.error(str_ko)
+        return False
+
 one = ONE()
 eid = one.search(subject='KS005', date_range='2019-08-30', number=1)[0]
 eid = one.search(subject='KS016', date_range='2019-12-05', number=1)[0]
@@ -89,24 +100,41 @@ axes[1].title.set_text('Bpod')
 
 # TEST  Response times should be increasing continuously and non negative
 #       Note: RT are not durations but time stamps
-assert np.all(np.diff(fpga_behaviour['response_times']) > 0)
-assert np.all(fpga_behaviour['response_times'] > 0)
+_single_test(np.all(fpga_behaviour['response_times'] > 0),
+             '(Ephys) Test Pass   : RT positive',
+             '(Ephys) !! ERROR !! : RT negative')
+
+_single_test(np.all(np.diff(fpga_behaviour['response_times']) > 0),
+             '(Ephys) Test Pass   : RT diff positive',
+             '(Ephys) !! ERROR !! : RT diff negative')
 
 # TEST  StimOn and GoCue should all be within a very small tolerance of each other
 #       1. check for non-Nans
-assert not np.any(np.isnan(fpga_behaviour['stimOn_times']))
-assert not np.any(np.isnan(fpga_behaviour['goCue_times']))
+
+_single_test(not np.any(np.isnan(fpga_behaviour['stimOn_times'])),
+             '(Ephys) Test Pass   : stimOn_times without Nans',
+             '(Ephys) !! ERROR !! : stimOn_times contains Nans')
+
+_single_test(not np.any(np.isnan(fpga_behaviour['goCue_times'])),
+             '(Ephys) Test Pass   : goCue_times without Nans',
+             '(Ephys) !! ERROR !! : goCue_times contains Nans')
 
 #       2. check for similar size
 array_size = np.zeros((2, 1))
 array_size[0] = np.size(fpga_behaviour['stimOn_times'])
 array_size[1] = np.size(fpga_behaviour['goCue_times'])
-assert np.size(np.unique(array_size)) == 1
+
+_single_test(np.size(np.unique(array_size)) == 1,
+             '(Ephys) Test Pass   : size stimOn_times == goCue_times',
+             '(Ephys) !! ERROR !! : size stimOn_times != goCue_times')
 
 #       3. test if closeby value
 dtimes_stimOn_goCue = {}
-dtimes_stimOn_goCue = fpga_behaviour['goCue_times'] - fpga_behaviour['stimOn_times']
-assert np.all(dtimes_stimOn_goCue < 0.05)
+dtimes_stimOn_goCue = np.abs(fpga_behaviour['goCue_times'] - fpga_behaviour['stimOn_times'])
+
+_single_test(np.all(dtimes_stimOn_goCue < 0.05),
+             '(Ephys) Test Pass   : stimOn_times & goCue_times closeby',
+             '(Ephys) !! ERROR !! : stimOn_times & goCue_times too far')
 
 # ------------------------------------------------------
 #          Start the QC part (Bpod+Ephys)
