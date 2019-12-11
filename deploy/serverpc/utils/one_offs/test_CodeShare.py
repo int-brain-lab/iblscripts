@@ -98,19 +98,9 @@ axes[1].title.set_text('Bpod')
 #          Start the QC part (Ephys only)
 # ------------------------------------------------------
 
-# TEST  Response times should be increasing continuously and non negative
-#       Note: RT are not durations but time stamps
-_single_test(np.all(fpga_behaviour['response_times'] > 0),
-             '(Ephys) Test Pass   : RT positive',
-             '(Ephys) !! ERROR !! : RT negative')
-
-_single_test(np.all(np.diff(fpga_behaviour['response_times']) > 0),
-             '(Ephys) Test Pass   : RT diff positive',
-             '(Ephys) !! ERROR !! : RT diff negative')
 
 # TEST  StimOn and GoCue should all be within a very small tolerance of each other
 #       1. check for non-Nans
-
 _single_test(not np.any(np.isnan(fpga_behaviour['stimOn_times'])),
              '(Ephys) Test Pass   : stimOn_times without Nans',
              '(Ephys) !! ERROR !! : stimOn_times contains Nans')
@@ -128,13 +118,40 @@ _single_test(np.size(np.unique(array_size)) == 1,
              '(Ephys) Test Pass   : size stimOn_times == goCue_times',
              '(Ephys) !! ERROR !! : size stimOn_times != goCue_times')
 
-#       3. test if closeby value
+#       3. check if closeby value
 dtimes_stimOn_goCue = {}
 dtimes_stimOn_goCue = np.abs(fpga_behaviour['goCue_times'] - fpga_behaviour['stimOn_times'])
 
 _single_test(np.all(dtimes_stimOn_goCue < 0.05),
              '(Ephys) Test Pass   : stimOn_times & goCue_times closeby',
              '(Ephys) !! ERROR !! : stimOn_times & goCue_times too far')
+
+# TEST  Response times (from session start) should be increasing continuously
+#       Note: RT are not durations but time stamps from session start
+#       1. check for non-Nans
+_single_test(not np.any(np.isnan(fpga_behaviour['response_times'])),
+             '(Ephys) Test Pass   : response_times without Nans',
+             '(Ephys) !! ERROR !! : response_times contains Nans')
+
+#       2. check for positive increase
+_single_test(np.all(np.diff(fpga_behaviour['response_times']) > 0),
+             '(Ephys) Test Pass   : RT diff positive',
+             '(Ephys) !! ERROR !! : RT diff negative')
+
+# TEST  Response times (from goCue) should be non negative
+#       1. check for similar size
+array_size = np.zeros((2, 1))
+array_size[0] = np.size(fpga_behaviour['response_times'])
+array_size[1] = np.size(fpga_behaviour['goCue_times'])
+
+_single_test(np.size(np.unique(array_size)) == 1,
+             '(Ephys) Test Pass   : size response_times == goCue_times',
+             '(Ephys) !! ERROR !! : size response_times != goCue_times')
+
+#       2. check if positive
+_single_test(np.all(fpga_behaviour['response_times'] - fpga_behaviour['goCue_times'] > 0),
+             '(Ephys) Test Pass   : RT from goCue positive',
+             '(Ephys) !! ERROR !! : RT from goCue negative')
 
 # ------------------------------------------------------
 #          Start the QC part (Bpod+Ephys)
