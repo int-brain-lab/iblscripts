@@ -61,6 +61,8 @@ fpga_wheel = ibllib.io.extractors.ephys_fpga.extract_wheel_sync(sync, chmap=chma
 bpod_wheel = ibllib.io.extractors.training_wheel.get_wheel_data(sess_path, save=False)
 
 """get the behaviour data for both fpga and bpod"""
+
+
 # -- Out FPGA : 
 # dict_keys(['ready_tone_in', 'error_tone_in', 'valve_open', 'stim_freeze', 'stimOn_times',
 # 'iti_in', 'goCue_times', 'feedback_times', 'intervals', 'response_times'])
@@ -68,6 +70,7 @@ ibllib.io.extractors.ephys_trials.extract_all(sess_path, save=True)
 fpga_behaviour = ibllib.io.extractors.ephys_fpga.extract_behaviour_sync(
     sync, output_path=sess_path.joinpath('alf'), chmap=chmap, save=True, display=True)
 
+# TODO valve open partout
 # -- Out BPOD :
 # dict_keys(['feedbackType', 'contrastLeft', 'contrastRight', 'probabilityLeft',
 # 'session_path', 'choice', 'rewardVolume', 'feedback_times', 'stimOn_times', 'intervals',
@@ -102,6 +105,25 @@ bpod_offset = ibllib.io.extractors.ephys_fpga.align_with_bpod(sess_path)
 
 # TEST  StimOn and GoCue should all be within a very small tolerance of each other
 #       1. check for non-Nans
+from brainbox.core import Bunch
+trials_qc = Bunch({
+    'stimOn_times_nan': ~np.isnan(fpga_behaviour['stimOn_times']),
+    'goCue_times_nan': ~np.isnan(fpga_behaviour['goCue_times']),
+})
+
+import pandas as pd
+
+pd_trials_qc = pd.DataFrame.from_dict(trials_qc)
+
+session_qc = {k:np.all(trials_qc[k]) for k in trials_qc}
+
+
+fpga_behaviour['valve_open'].size
+fpga_behaviour['ready_tone_in'].size
+
+
+session_qc['stimOn_times_nan']
+
 _single_test(not np.any(np.isnan(fpga_behaviour['stimOn_times'])),
              '(Ephys) Test Pass   : stimOn_times without Nans',
              '(Ephys) !! ERROR !! : stimOn_times contains Nans')
