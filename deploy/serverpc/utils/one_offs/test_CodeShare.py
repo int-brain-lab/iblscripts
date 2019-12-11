@@ -98,7 +98,6 @@ axes[1].title.set_text('Bpod')
 #          Start the QC part (Ephys only)
 # ------------------------------------------------------
 
-
 # TEST  StimOn and GoCue should all be within a very small tolerance of each other
 #       1. check for non-Nans
 _single_test(not np.any(np.isnan(fpga_behaviour['stimOn_times'])),
@@ -138,7 +137,7 @@ _single_test(np.all(np.diff(fpga_behaviour['response_times']) > 0),
              '(Ephys) Test Pass   : RT diff positive',
              '(Ephys) !! ERROR !! : RT diff negative')
 
-# TEST  Response times (from goCue) should be non negative
+# TEST  Response times (from goCue) should be positive
 #       1. check for similar size
 array_size = np.zeros((2, 1))
 array_size[0] = np.size(fpga_behaviour['response_times'])
@@ -152,6 +151,9 @@ _single_test(np.size(np.unique(array_size)) == 1,
 _single_test(np.all(fpga_behaviour['response_times'] - fpga_behaviour['goCue_times'] > 0),
              '(Ephys) Test Pass   : RT from goCue positive',
              '(Ephys) !! ERROR !! : RT from goCue negative')
+
+# TEST  Start of iti_in should be within a very small tolerance of the stim off
+# TODO QUESTION OLIVIER: How do I get stim off times ?
 
 # ------------------------------------------------------
 #          Start the QC part (Bpod+Ephys)
