@@ -100,6 +100,43 @@ bpod_offset = ibllib.io.extractors.ephys_fpga.align_with_bpod(sess_path)
 #          Start the QC part (Ephys only)
 # ------------------------------------------------------
 
+# Make a bunch gathering all trial QC
+from brainbox.core import Bunch
+
+size_stimOn_goCue = [np.size(fpga_behaviour['stimOn_times']), np.size(fpga_behaviour['goCue_times'])]
+size_response_goCue = [np.size(fpga_behaviour['response_times']), np.size(fpga_behaviour['goCue_times'])]
+
+
+trials_qc = Bunch({
+    # TEST  StimOn and GoCue should all be within a very small tolerance of each other
+    #       1. check for non-Nans
+    'stimOn_times_nan': ~np.isnan(fpga_behaviour['stimOn_times']),  
+    'goCue_times_nan': ~np.isnan(fpga_behaviour['goCue_times']),
+    #       2. check for similar size
+    'stimOn_times_goCue_times_size': np.size(np.unique(size_stimOn_goCue)) == 1,
+    #       3. check if closeby value
+    'stimOn_times_goCue_times_diff': np.all(fpga_behaviour['goCue_times'] - fpga_behaviour['stimOn_times']) < 0.010,
+    # TEST  Response times (from session start) should be increasing continuously
+    #       Note: RT are not durations but time stamps from session start
+    #       1. check for non-Nans
+    'response_times_nan': ~np.isnan(fpga_behaviour['response_times']),
+    #       2. check for positive increase
+    'response_times_increase': np.diff(fpga_behaviour['response_times']) > 0,
+    # TEST  Response times (from goCue) should be positive
+    #       1. check for similar size
+    'response_times_goCue_times_size': np.size(np.unique(size_response_goCue)) == 1,
+    #       2. check if positive
+    'response_times_goCue_times_diff': fpga_behaviour['response_times'] - fpga_behaviour['goCue_times'] > 0,
+
+})
+
+# Test output at session level ## OLIVIER TODO THIS BUGS
+import pandas as pd
+pd_trials_qc = pd.DataFrame.from_dict(trials_qc)
+session_qc = {k:np.all(trials_qc[k]) for k in trials_qc}
+
+
+## ========================TODO DELETE BELOW =================================
 # TEST  StimOn and GoCue should all be within a very small tolerance of each other
 #       1. check for non-Nans
 _single_test(not np.any(np.isnan(fpga_behaviour['stimOn_times'])),
@@ -121,9 +158,9 @@ _single_test(np.size(np.unique(array_size)) == 1,
 
 #       3. check if closeby value
 dtimes_stimOn_goCue = {}
-dtimes_stimOn_goCue = np.abs(fpga_behaviour['goCue_times'] - fpga_behaviour['stimOn_times'])
+dtimes_stimOn_goCue = fpga_behaviour['goCue_times'] - fpga_behaviour['stimOn_times'] # the goCue tone should be after the stim on
 
-_single_test(np.all(dtimes_stimOn_goCue < 0.05),
+_single_test(np.all(dtimes_stimOn_goCue < 0.010), # min value should be ~600us, could be replaced by 0.001
              '(Ephys) Test Pass   : stimOn_times & goCue_times closeby',
              '(Ephys) !! ERROR !! : stimOn_times & goCue_times too far')
 
@@ -152,10 +189,12 @@ _single_test(np.size(np.unique(array_size)) == 1,
 #       2. check if positive
 _single_test(np.all(fpga_behaviour['response_times'] - fpga_behaviour['goCue_times'] > 0),
              '(Ephys) Test Pass   : RT from goCue positive',
-             '(Ephys) !! ERROR !! : RT from goCue negative')
+             '(Ephys) !! ERROR !! : RT from goCue negative')             
+## ========================TODO DELETE ABOVE =================================
 
 # TEST  Start of iti_in should be within a very small tolerance of the stim off
 # TODO QUESTION OLIVIER: How do I get stim off times ?
+# fpga_behaviour['stim_freeze']
 
 # TEST  Wheel should not move xx amount of time (quiescent period) before go cue
 #       Wheel should move before feedback
@@ -166,7 +205,7 @@ _single_test(np.all(fpga_behaviour['response_times'] - fpga_behaviour['goCue_tim
 
 # TEST  Delay between valve and stim off should be 1s
 # TODO QUESTION OLIVIER: How do I get stim off times ?
-fpga_behaviour['valve_open']
+# fpga_behaviour['valve_open']
 
 # ------------------------------------------------------
 #          Start the QC part (Bpod+Ephys)
