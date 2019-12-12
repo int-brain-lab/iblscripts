@@ -81,6 +81,13 @@ bpod_behaviour = ibllib.io.extractors.biased_trials.extract_all(sess_path, save=
 """get the sync between behaviour and bpod"""
 bpod_offset = ibllib.io.extractors.ephys_fpga.align_with_bpod(sess_path)
 
+
+# ________________________________ FCT
+def  session_test_on_trial(trials_qc):
+    session_qc = {k:np.all(trials_qc[k]) for k in trials_qc}
+    return session_qc
+ 
+
 # ------------------------------------------------------
 #          Start the QC part (Ephys only)
 # ------------------------------------------------------
@@ -118,25 +125,15 @@ trials_ephys_qc = Bunch({
     })
 
 
-# Test output at session level -- TODO Make function
-trials_qc = trials_ephys_qc
+# Test output at session level
+session_ephys_qc = {k:np.all(trials_ephys_qc[k]) for k in trials_ephys_qc}
 
-pd_trials_qc = pd.DataFrame.from_dict(trials_qc)
-session_qc = {k:np.all(trials_qc[k]) for k in trials_qc}
-
-session_ephys_qc = session_qc
-
-#  Data size test
+#  Data size test  -- COULD REMOVE TODO
 size_stimOn_goCue = [np.size(fpga_behaviour['stimOn_times']), np.size(fpga_behaviour['goCue_times'])]
 size_response_goCue = [np.size(fpga_behaviour['response_times']), np.size(fpga_behaviour['goCue_times'])]
 
-
-session_qc_addition = Bunch({  # TODO OLIVIER - I do not know how to append to a Bunch
-    # TEST  StimOn and GoCue should be of similar size
-    'stimOn_times_goCue_times_size': np.size(np.unique(size_stimOn_goCue)) == 1,
-    # TEST  Response times and goCue  should be of similar size
-    'response_times_goCue_times_size': np.size(np.unique(size_response_goCue)) == 1,
-})
+session_ephys_qc['stimOn_times_goCue_times_size'] = np.size(np.unique(size_stimOn_goCue)) == 1
+session_ephys_qc['response_times_goCue_times_size'] = np.size(np.unique(size_response_goCue)) == 1
 
 
 # TEST  Wheel should not move xx amount of time (quiescent period) before go cue
@@ -161,7 +158,7 @@ array_size[1] = np.size(bpod_behaviour['goCue_times'])
 array_size[2] = np.size(bpod_behaviour['stimOnTrigger_times'])
 array_size[3] = np.size(bpod_behaviour['goCueTrigger_times'])
 
-trials_Bpod_qc = Bunch({
+trials_bpod_qc = Bunch({
     # TEST  StimOn, StimOnTrigger, GoCue and GoCueTrigger should all be within a very small tolerance of each other
     'stimOn_times_nan': ~np.any(np.isnan(bpod_behaviour['stimOn_times'])),
     'goCue_times_nan': ~np.any(np.isnan(bpod_behaviour['goCue_times'])),
@@ -170,19 +167,17 @@ trials_Bpod_qc = Bunch({
 
 })
 
+# Test output at session level
+session_bpod_qc = {k:np.all(trials_bpod_qc[k]) for k in trials_bpod_qc}
 
-
-#  Data size test
+#  Data size test -- COULD REMOVE TODO
 size_stimOn_goCue = [np.size(bpod_behaviour['stimOn_times']),
                      np.size(bpod_behaviour['goCue_times']),
                      np.size(bpod_behaviour['stimOnTrigger_times']),
                      np.size(bpod_behaviour['goCueTrigger_times'])]
 
+session_bpod_qc['stimOn_times_goCue_times_size']= np.size(np.unique(size_stimOn_goCue)) == 1
 
-session_Bpod_qc_addition = Bunch({  # TODO OLIVIER - I do not know how to append to a Bunch
-    # TEST  StimOn, StimOnTrigger, GoCue and GoCueTrigger should be of similar size
-    'stimOn_times_goCue_times_size': np.size(np.unique(size_stimOn_goCue)) == 1,
-})
 
 
 # ------------------------------------------------------
@@ -190,8 +185,8 @@ session_Bpod_qc_addition = Bunch({  # TODO OLIVIER - I do not know how to append
 # ------------------------------------------------------
 
 # TEST  Compare times from the bpod behaviour extraction to the Ephys extraction
-dbpod_fpga = {}
-for k in ['goCue_times', 'stimOn_times']:
-    dbpod_fpga[k] = bpod_behaviour[k] - fpga_behaviour[k] + bpod_offset
-    # we should use the diff from trial start for a more accurate test but this is good enough for now
-    assert np.all(dbpod_fpga[k] < 0.05)
+#dbpod_fpga = {}
+#for k in ['goCue_times', 'stimOn_times']:
+#    dbpod_fpga[k] = bpod_behaviour[k] - fpga_behaviour[k] + bpod_offset
+#    # we should use the diff from trial start for a more accurate test but this is good enough for now
+#    assert np.all(dbpod_fpga[k] < 0.05)
