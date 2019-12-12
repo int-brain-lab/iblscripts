@@ -115,22 +115,24 @@ trials_qc = Bunch({
     #       1. check for non-Nans
     'stimOn_times_nan': ~np.isnan(fpga_behaviour['stimOn_times']),  
     'goCue_times_nan': ~np.isnan(fpga_behaviour['goCue_times']),
-    #       2. check for similar size
-    'stimOn_times_goCue_times_size': np.size(np.unique(size_stimOn_goCue)) == 1,
-    #       3. check if closeby value
+    #       2. check if closeby value
     'stimOn_times_goCue_times_diff': np.all(fpga_behaviour['goCue_times'] - fpga_behaviour['stimOn_times']) < 0.010,
     # TEST  Response times (from session start) should be increasing continuously
     #       Note: RT are not durations but time stamps from session start
     #       1. check for non-Nans
     'response_times_nan': ~np.isnan(fpga_behaviour['response_times']),
     #       2. check for positive increase
-    'response_times_increase': np.diff(fpga_behaviour['response_times']) > 0,
+    'response_times_increase': np.diff(np.append([0], fpga_behaviour['response_times'])) > 0,
     # TEST  Response times (from goCue) should be positive
-    #       1. check for similar size
-    'response_times_goCue_times_size': np.size(np.unique(size_response_goCue)) == 1,
-    #       2. check if positive
     'response_times_goCue_times_diff': fpga_behaviour['response_times'] - fpga_behaviour['goCue_times'] > 0,
 
+})
+
+session_qc_test = Bunch({
+    # TEST  StimOn and GoCue should be of similar size
+    'stimOn_times_goCue_times_size': np.size(np.unique(size_stimOn_goCue)) == 1,
+    # TEST  Response times and goCue  should be of similar size
+    'response_times_goCue_times_size': np.size(np.unique(size_response_goCue)) == 1,
 })
 
 # Test output at session level ## OLIVIER TODO THIS BUGS
