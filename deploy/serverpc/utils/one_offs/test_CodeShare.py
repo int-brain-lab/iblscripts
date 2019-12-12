@@ -102,8 +102,10 @@ trials_ephys_qc = Bunch({
     #       1. check for non-Nans
     'stimOn_times_nan': ~np.isnan(fpga_behaviour['stimOn_times']),  
     'goCue_times_nan': ~np.isnan(fpga_behaviour['goCue_times']),
-    #       2. check if closeby value
-    'stimOn_times_goCue_times_diff': np.all(fpga_behaviour['goCue_times'] - fpga_behaviour['stimOn_times']) < 0.010,
+    #       2. check goCue is after stimOn 
+    'stimOn_times_before_goCue_times': fpga_behaviour['stimOn_times'] - fpga_behaviour['goCue_times'] > 0,
+    #       3. check if closeby value
+    'stimOn_times_goCue_times_diff': fpga_behaviour['stimOn_times'] - fpga_behaviour['goCue_times'] < 0.010,
     # TEST  Response times (from session start) should be increasing continuously
     #       Note: RT are not durations but time stamps from session start
     #       1. check for non-Nans
@@ -126,6 +128,10 @@ trials_ephys_qc = Bunch({
     'stimOff_after_noise': fpga_behaviour['stimOff_times'] - fpga_behaviour['error_tone_in'] > 0,
     #       2. Delay between noise and stim off should be 2s, added 0.1 as acceptable jitter
     'stimOff_delay_noise': fpga_behaviour['stimOff_times'] - fpga_behaviour['error_tone_in'] < 2.1,
+    # TEST  1. Response_times should be before feedback
+    'response_before_feedback': fpga_behaviour['feedback_times'] - fpga_behaviour['response_times'] > 0,
+    #       2. Delay between wheel reaches threshold (response time) and feedback is 100us, acceptable jitter 500 us
+    'response_feedback_delay': fpga_behaviour['feedback_times'] - fpga_behaviour['response_times'] < 0.0005,
     })
 
 
@@ -144,13 +150,19 @@ session_ephys_qc['response_times_goCue_times_size'] = np.size(np.unique(size_res
 #       Wheel should move before feedback
 # TODO ingest code from Michael S : https://github.com/int-brain-lab/ibllib/blob/brainbox/brainbox/examples/count_wheel_time_impossibilities.py 
 
+# TEST  stim freeze,response_time,feedback_time should be very close in time
+# TODO awaiting values from Nicco
+
 # TEST  No frame2ttl change between stim off and go cue
 # fpga_behavior['stimOff_times']
 
-# TEST  Delay between noise and stim off should be 2s
-# TODO QUESTION : How do I get noise time ?
-# fpga_behaviour['valve_open']
+# TEST  No frame2ttl signal between stim freeze and stim off
 
+# TEST  Number of Bonsai command to change screen should match Number of state change of frame2ttl (do test per trial)
+
+# TEST  Between go tone and feedback (noise or reward, not no-go), frame2ttl should be changing at ~60Hz if wheel moves
+
+# TEST  Order of events -- TODO Olivier you may have something ?
 
 # ------------------------------------------------------
 #          Start the QC PART (Bpod only)
@@ -164,10 +176,13 @@ array_size[3] = np.size(bpod_behaviour['goCueTrigger_times'])
 
 trials_bpod_qc = Bunch({
     # TEST  StimOn, StimOnTrigger, GoCue and GoCueTrigger should all be within a very small tolerance of each other
+    #       1. Check for Nans
     'stimOn_times_nan': ~np.any(np.isnan(bpod_behaviour['stimOn_times'])),
     'goCue_times_nan': ~np.any(np.isnan(bpod_behaviour['goCue_times'])),
     'stimOnTrigger_times_nan': ~np.any(np.isnan(bpod_behaviour['stimOnTrigger_times'])),
     'goCueTrigger_times_nan':~np.any(np.isnan(bpod_behaviour['goCueTrigger_times'])),
+    #       2. Delay
+    # TODO
 
 })
 
