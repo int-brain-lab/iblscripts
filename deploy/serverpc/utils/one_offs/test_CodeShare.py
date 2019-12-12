@@ -92,7 +92,7 @@ size_stimOn_goCue = [np.size(fpga_behaviour['stimOn_times']), np.size(fpga_behav
 size_response_goCue = [np.size(fpga_behaviour['response_times']), np.size(fpga_behaviour['goCue_times'])]
 
 
-trials_qc = Bunch({
+trials_ephys_qc = Bunch({
     # TEST  StimOn and GoCue should all be within a very small tolerance of each other
     #       1. check for non-Nans
     'stimOn_times_nan': ~np.isnan(fpga_behaviour['stimOn_times']),  
@@ -107,19 +107,26 @@ trials_qc = Bunch({
     'response_times_increase': np.diff(np.append([0], fpga_behaviour['response_times'])) > 0,
     # TEST  Response times (from goCue) should be positive
     'response_times_goCue_times_diff': fpga_behaviour['response_times'] - fpga_behaviour['goCue_times'] > 0,
-    # TEST  1. Stim freeze should happen before feedback, delay <10ms
+    # TEST  1. Stim freeze should happen before feedback
     'stim_freeze_before_feedback': fpga_behaviour['stim_freeze'] - fpga_behaviour['feedback_times'] > 0,
     #       2. Delay between stim freeze and feedback <10ms
     'stim_freeze_delay_feedback': np.abs(fpga_behaviour['stim_freeze'] - fpga_behaviour['feedback_times']) < 0.010,
-
+    # TEST  1. StimOff open should happen after valve
+    'stimOff_after_valve': fpga_behaviour['stimOff_times'] - fpga_behaviour['valve_open'] > 0,
+    #       2. Delay between valve and stim off should be 1s, added 0.1 as acceptable jitter
+    'stimOff_delay_valve': fpga_behaviour['stimOff_times'] - fpga_behaviour['valve_open'] < 1.1,
+    # TEST  Start of iti_in should be within a very small tolerance of the stim off
+    'iti_in_delay_stim_off': np.abs(fpga_behaviour['stimOff_times'] - fpga_behaviour['iti_in']) < 0.01
     })
 
-# Test output at session level
+
+# Test output at session level -- TODO Make function
+trials_qc = trials_ephys_qc
 
 pd_trials_qc = pd.DataFrame.from_dict(trials_qc)
 session_qc = {k:np.all(trials_qc[k]) for k in trials_qc}
 
-session_qc_addition = Bunch({
+session_qc_addition = Bunch({  # TODO OLIVIER - I do not know how to append to a Bunch
     # TEST  StimOn and GoCue should be of similar size
     'stimOn_times_goCue_times_size': np.size(np.unique(size_stimOn_goCue)) == 1,
     # TEST  Response times and goCue  should be of similar size
@@ -132,15 +139,12 @@ session_qc_addition = Bunch({
 # TODO ingest code from Michael S : https://github.com/int-brain-lab/ibllib/blob/brainbox/brainbox/examples/count_wheel_time_impossibilities.py 
 
 # TEST  No frame2ttl change between stim off and go cue
-# TODO QUESTION OLIVIER: How do I get stim off times ?
+# fpga_behavior['stimOff_times']
 
-# TEST  Delay between valve and stim off should be 1s
-# TODO QUESTION OLIVIER: How do I get stim off times ?
+# TEST  Delay between noise and stim off should be 2s
+# TODO QUESTION OLIVIER: How do I get noise time ?
 # fpga_behaviour['valve_open']
 
-# TEST  Start of iti_in should be within a very small tolerance of the stim off
-# TODO QUESTION OLIVIER: How do I get stim off times ?
-# # 'iti_in_delay_stim_off': fpga_behaviour['iti_in']
 
 # ------------------------------------------------------
 #          Start the QC part (Bpod+Ephys)
