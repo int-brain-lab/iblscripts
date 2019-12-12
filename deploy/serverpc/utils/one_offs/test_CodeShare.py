@@ -121,7 +121,11 @@ trials_ephys_qc = Bunch({
     #       2. Delay between valve and stim off should be 1s, added 0.1 as acceptable jitter
     'stimOff_delay_valve': fpga_behaviour['stimOff_times'] - fpga_behaviour['valve_open'] < 1.1,
     # TEST  Start of iti_in should be within a very small tolerance of the stim off
-    'iti_in_delay_stim_off': np.abs(fpga_behaviour['stimOff_times'] - fpga_behaviour['iti_in']) < 0.01
+    'iti_in_delay_stim_off': np.abs(fpga_behaviour['stimOff_times'] - fpga_behaviour['iti_in']) < 0.01,
+    # TEST  1. StimOff open should happen after noise
+    'stimOff_after_noise': fpga_behaviour['stimOff_times'] - fpga_behaviour['error_tone_in'] > 0,
+    #       2. Delay between noise and stim off should be 2s, added 0.1 as acceptable jitter
+    'stimOff_delay_noise': fpga_behaviour['stimOff_times'] - fpga_behaviour['error_tone_in'] < 2.1,
     })
 
 
