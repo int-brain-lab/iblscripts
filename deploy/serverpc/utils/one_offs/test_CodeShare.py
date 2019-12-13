@@ -1,12 +1,12 @@
-import warnings # to debug
-
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
 from oneibl.one import ONE
 import alf.io
+from brainbox.core import Bunch
 
+from ibllib.ephys import ephysqc
 from ibllib.io.extractors import ephys_fpga, training_wheel, ephys_trials, biased_trials
 from ibllib.io import spikeglx
 import ibllib.plots as iblplots
@@ -80,71 +80,14 @@ bpod_behaviour = biased_trials.extract_all(sess_path, save=False)
 bpod_offset = ephys_fpga.align_with_bpod(sess_path)
 
 """get the camera pulses from FPGA"""
-fpga_cam = ephys_fpga.extract_camera_sync(sync, output_path=sess_path.joinpath('alf'), chmap=chmap, save=False)
-
-
-# ________________________________ FCT
-def  session_test_on_trial(trials_qc):
-    session_qc = {k:np.all(trials_qc[k]) for k in trials_qc}
-    return session_qc
- 
+fpga_cam = ephys_fpga.extract_camera_sync(sync, output_path=sess_path.joinpath('alf'),
+                                          chmap=chmap, save=False)
 
 # ------------------------------------------------------
 #          Start the QC part (Ephys only)
 # ------------------------------------------------------
+session_ephys_qc, trials_ephys_qc = ephysqc.fpga_behaviour(fpga_behaviour)
 
-# Make a bunch gathering all trial QC
-from brainbox.core import Bunch
-
-
-
-trials_ephys_qc = Bunch({
-    # TEST  StimOn and GoCue should all be within a very small tolerance of each other
-    #       1. check for non-Nans
-    'stimOn_times_nan': ~np.isnan(fpga_behaviour['stimOn_times']),  
-    'goCue_times_nan': ~np.isnan(fpga_behaviour['goCue_times']),
-    #       2. check goCue is after stimOn 
-    'stimOn_times_before_goCue_times': fpga_behaviour['stimOn_times'] - fpga_behaviour['goCue_times'] > 0,
-    #       3. check if closeby value
-    'stimOn_times_goCue_times_diff': fpga_behaviour['stimOn_times'] - fpga_behaviour['goCue_times'] < 0.010,
-    # TEST  Response times (from session start) should be increasing continuously
-    #       Note: RT are not durations but time stamps from session start
-    #       1. check for non-Nans
-    'response_times_nan': ~np.isnan(fpga_behaviour['response_times']),
-    #       2. check for positive increase
-    'response_times_increase': np.diff(np.append([0], fpga_behaviour['response_times'])) > 0,
-    # TEST  Response times (from goCue) should be positive
-    'response_times_goCue_times_diff': fpga_behaviour['response_times'] - fpga_behaviour['goCue_times'] > 0,
-    # TEST  1. Stim freeze should happen before feedback
-    'stim_freeze_before_feedback': fpga_behaviour['stim_freeze'] - fpga_behaviour['feedback_times'] > 0,
-    #       2. Delay between stim freeze and feedback <10ms
-    'stim_freeze_delay_feedback': np.abs(fpga_behaviour['stim_freeze'] - fpga_behaviour['feedback_times']) < 0.010,
-    # TEST  1. StimOff open should happen after valve
-    'stimOff_after_valve': fpga_behaviour['stimOff_times'] - fpga_behaviour['valve_open'] > 0,
-    #       2. Delay between valve and stim off should be 1s, added 0.1 as acceptable jitter
-    'stimOff_delay_valve': fpga_behaviour['stimOff_times'] - fpga_behaviour['valve_open'] < 1.1,
-    # TEST  Start of iti_in should be within a very small tolerance of the stim off
-    'iti_in_delay_stim_off': np.abs(fpga_behaviour['stimOff_times'] - fpga_behaviour['iti_in']) < 0.01,
-    # TEST  1. StimOff open should happen after noise
-    'stimOff_after_noise': fpga_behaviour['stimOff_times'] - fpga_behaviour['error_tone_in'] > 0,
-    #       2. Delay between noise and stim off should be 2s, added 0.1 as acceptable jitter
-    'stimOff_delay_noise': fpga_behaviour['stimOff_times'] - fpga_behaviour['error_tone_in'] < 2.1,
-    # TEST  1. Response_times should be before feedback
-    'response_before_feedback': fpga_behaviour['feedback_times'] - fpga_behaviour['response_times'] > 0,
-    #       2. Delay between wheel reaches threshold (response time) and feedback is 100us, acceptable jitter 500 us
-    'response_feedback_delay': fpga_behaviour['feedback_times'] - fpga_behaviour['response_times'] < 0.0005,
-    })
-
-
-# Test output at session level
-session_ephys_qc = {k:np.all(trials_ephys_qc[k]) for k in trials_ephys_qc}
-
-#  Data size test  -- COULD REMOVE TODO
-size_stimOn_goCue = [np.size(fpga_behaviour['stimOn_times']), np.size(fpga_behaviour['goCue_times'])]
-size_response_goCue = [np.size(fpga_behaviour['response_times']), np.size(fpga_behaviour['goCue_times'])]
-
-session_ephys_qc['stimOn_times_goCue_times_size'] = np.size(np.unique(size_stimOn_goCue)) == 1
-session_ephys_qc['response_times_goCue_times_size'] = np.size(np.unique(size_response_goCue)) == 1
 
 
 # TEST  Wheel should not move xx amount of time (quiescent period) before go cue
@@ -199,7 +142,6 @@ size_stimOn_goCue = [np.size(bpod_behaviour['stimOn_times']),
 session_bpod_qc['stimOn_times_goCue_times_size']= np.size(np.unique(size_stimOn_goCue)) == 1
 
 
-
 # ------------------------------------------------------
 #          Start the QC part (Bpod+Ephys)
 # ------------------------------------------------------
@@ -215,4 +157,3 @@ session_bpod_qc['stimOn_times_goCue_times_size']= np.size(np.unique(size_stimOn_
 #       TTL for camera received by Bpod / FPGA
 #       saved camera timestamps
 #       saved camera frames
-ephys_fpga.extract_camera_sync(sync, alf_path, save=save, chmap=sync_chmap)
