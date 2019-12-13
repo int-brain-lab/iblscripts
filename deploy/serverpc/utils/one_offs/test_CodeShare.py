@@ -209,3 +209,9 @@ session_bpod_qc['stimOn_times_goCue_times_size']= np.size(np.unique(size_stimOn_
 #    dbpod_fpga[k] = bpod_behaviour[k] - fpga_behaviour[k] + bpod_offset
 #    # we should use the diff from trial start for a more accurate test but this is good enough for now
 #    assert np.all(dbpod_fpga[k] < 0.05)
+
+# TEST  if those numbers are equal: 
+#       TTL for camera received by Bpod / FPGA
+#       saved camera timestamps
+#       saved camera frames
+ephys_fpga.extract_camera_sync(sync, alf_path, save=save, chmap=sync_chmap)
