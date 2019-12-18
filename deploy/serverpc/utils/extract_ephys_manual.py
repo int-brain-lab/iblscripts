@@ -34,7 +34,9 @@ def re_extract_session(session_path):
                        ]
 
     RMTREE_PATTERNS = ['raw_ephys_data/**/ks2_alf',
-                       'alf/tmp_merge']
+                       'alf/tmp_merge',
+                       'alf/probe*',
+                       ]
 
     RENAMES = []
 
@@ -48,6 +50,8 @@ def re_extract_session(session_path):
 
     for rmt in RMTREE_PATTERNS:
         for match in session_path.glob(rmt):
+            if not match.is_dir():
+                continue
             print(match)
             if not DRY:
                 shutil.rmtree(match)
