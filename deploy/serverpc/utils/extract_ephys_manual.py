@@ -50,6 +50,8 @@ def re_extract_session(session_path):
 
     for rmt in RMTREE_PATTERNS:
         for match in session_path.glob(rmt):
+            if not match.is_dir():
+                continue
             print(match)
             if not DRY:
                 shutil.rmtree(match)
