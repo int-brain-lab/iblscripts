@@ -34,7 +34,9 @@ def re_extract_session(session_path):
                        ]
 
     RMTREE_PATTERNS = ['raw_ephys_data/**/ks2_alf',
-                       'alf/tmp_merge']
+                       'alf/tmp_merge',
+                       'alf/probe*',
+                       ]
 
     RENAMES = []
 
