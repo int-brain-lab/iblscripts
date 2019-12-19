@@ -17,7 +17,7 @@ one = ONE()
 eid = one.search(subject='KS005', date_range='2019-08-30', number=1)[0]
 eid = one.search(subject='KS016', date_range='2019-12-05', number=1)[0]
 eid = one.search(subject='CSP004', date_range='2019-11-27', number=1)[0]
-# eid = one.search(subject='CSHL_020', date_range='2019-12-04', number=5)[0]
+# eid = one.search(subject='CSHL028', date_range='2019-12-17', number=3)[0]
 
 one.alyx.rest('sessions', 'read', id=eid)['task_protocol']
 

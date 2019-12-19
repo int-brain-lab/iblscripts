@@ -85,4 +85,4 @@ class TestEphysTaskExtraction(unittest.TestCase):
         self.assertEqual(alf.io.check_dimensions(alf_trials), 0)
         shutil.rmtree(alf_path, ignore_errors=True)
         # do the
-        ephysqc.qc_fpga_task(fpga_trials, bpod_trials, alf_trials)
+        ephysqc.qc_fpga_task(fpga_trials, alf_trials)
