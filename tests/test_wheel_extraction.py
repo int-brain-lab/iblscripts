@@ -6,15 +6,14 @@ import scipy.interpolate
 
 import alf.io
 from ibllib.io.extractors import ephys_fpga, training_wheel, ephys_trials
+from ibllib.io.raw_data_loaders import load_settings
 
 
 def compare_wheel_fpga_behaviour(session_path):
     alf_path = session_path.joinpath('alf')
     shutil.rmtree(alf_path, ignore_errors=True)
-
     sync_path = session_path.joinpath(r'raw_ephys_data')
     sync = alf.io.load_object(sync_path, '_spikeglx_sync', short_keys=True)
-
     chmap = ephys_fpga.CHMAPS['3B']['nidq']
     fpga_wheel = ephys_fpga.extract_wheel_sync(sync, chmap=chmap, save=False)
     bpod_wheel = training_wheel.get_wheel_data(session_path, save=False)
@@ -37,29 +36,45 @@ def compare_wheel_fpga_behaviour(session_path):
     return fpga_wheel, bpod_wheel, fw, bw
 
 
-# class TestWheelExtractionSimple(unittest.TestCase):
-#
-#     def setUp(self) -> None:
-#         self.session_path = Path('/mnt/s0/Data/IntegrationTests/wheel/three_clockwise_revolutions')
-#         if not self.session_path.exists():
-#             return
-#
-#     def test_three_clockwise_revolutions_fpga(self):
-#         fpga_wheel, bpod_wheel, fw, bw = compare_wheel_fpga_behaviour(self.session_path)
-#         self.assertTrue(np.all(np.abs(fw - bw) < 0.1))
-#         # test that the units are in radians: we expect around 9 revolutions clockwise
-#         self.assertTrue(0.95 < fpga_wheel['re_pos'][-1] / -(2 * 3.14 * 9) < 1.05)
-
-
-class TestWheelExtractionSession(unittest.TestCase):
+class TestWheelExtractionSimpleEphys(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.session_path = Path('/datadisk/Data/IntegrationTests/wheel/KS016_2019_12_05')
+        self.session_path = Path(
+            '/mnt/s0/Data/IntegrationTests/wheel/ephys/three_clockwise_revolutions')
+        if not self.session_path.exists():
+            return
+
+    def test_three_clockwise_revolutions_fpga(self):
+        fpga_wheel, bpod_wheel, fw, bw = compare_wheel_fpga_behaviour(self.session_path)
+        self.assertTrue(np.all(np.abs(fw - bw) < 0.1))
+        # test that the units are in radians: we expect around 9 revolutions clockwise
+        self.assertTrue(0.95 < fpga_wheel['re_pos'][-1] / -(2 * 3.14 * 9) < 1.05)
+
+
+class TestWheelExtractionSessionEphys(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.session_path = Path('/datadisk/Data/IntegrationTests/wheel/ephys/KS016_2019_12_05')
         if not self.session_path.exists():
             return
 
     def test_wheel_extraction_session(self):
         fpga_wheel, bpod_wheel, fw, bw = compare_wheel_fpga_behaviour(self.session_path)
+        return
         self.assertTrue(np.all(np.abs(fw - bw) < 0.1))
         # test that the units are in radians: we expect around 9 revolutions clockwise
         self.assertTrue(0.95 < fpga_wheel['re_pos'][-1] / -(2 * 3.14 * 9) < 1.05)
+
+
+class TestWheelExtractionTraining(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.root_path = Path('/datadisk/Data/IntegrationTests/wheel/training')
+        if not self.root_path.exists():
+            return
+
+    def test_wheel_extraction_training(self):
+        for rbf in self.root_path.rglob('raw_behavior_data'):
+            session_path = alf.io.get_session_path(rbf)
+            bpod_wheel = training_wheel.get_wheel_data(session_path, save=False)
+            self.assertTrue(bpod_wheel['re_ts'].size)
