@@ -27,7 +27,7 @@ import deeplabcut
 import ibllib.io.flags
 
 logger = logging.getLogger('ibllib')
-ROIs = ('eye', 'nostril', 'tongue', 'paws',)
+
 
 # Cuda paths may need to be set
 # In [11]: !export PATH="$PATH:/usr/local/cuda/bin"
@@ -101,18 +101,19 @@ def _get_crop_window(df_crop, roi_name):
     h5 is local file name only; get average position of a pivot point for autocropping
 
     :param df_crop: data frame from hdf5 file from video data
-    :param roi_name: string among those: ('eye', 'nostril', 'tongue', 'paws',)
+    :param roi_name: string among those: ('eye', 'nose_tip', 'tongue', 'paws',)
     :return: list of floats [width, height, x, y] defining window used for ffmpeg crop command
     """
     # choose parts to find pivot point which is used to crop around a ROI
     Q = {
         'eye': [
             'pupil_top_r'],
-        'nostril': ['nose_tip'],
+        'nose_tip': ['nose_tip'],
         'tongue': [
             'tube_top',
             'tube_bottom'],
-        'paws': ['nose_tip']}
+        'paws': ['nose_tip'],
+        'tail_start': ['tail_start']}
     parts = Q[roi_name]
     XYs = []
     for part in parts:
@@ -130,10 +131,10 @@ def _get_crop_window(df_crop, roi_name):
 
     xy = np.mean(XYs, axis=0)
     p = {'eye': [100, 100, xy[0] - 50, xy[1] - 50],
-         'nostril': [100, 100, xy[0] - 10, xy[1] - 40],
+         'nose_tip': [100, 100, xy[0] - 50, xy[1] - 50],
          'tongue': [160, 160, xy[0] - 60, xy[1] - 100],
          'paws': [900, 800, xy[0], xy[1] - 100],
-         }
+         'tail_start': [220, 220, xy[0] - 110, xy[1] - 110]}
 
     return p[roi_name]
 
@@ -149,13 +150,14 @@ def create_flags(root_path, dry=False):
         dry=dry)
 
 
-def dlc_training(file_mp4, force=False):
+def dlc_ephys(file_mp4, force=False):
     """
-    Run a video through the IBL behaviour video pipeline using DeepLabCut
+    Analyse a leftCamera, rightCamera or bodyCamera video with DeepLabCut
 
-    The process consists in 6 steps:
+    The process consists in 7 steps:
+    0- Check if rightCamera video, then make it look like leftCamera video
     1- subsample video frames using ffmpeg
-    2- run DLC to detect ROIS: 'eye', 'nostril', 'tongue', 'paws'
+    2- run DLC to detect ROIS: 'eye', 'nose_tip', 'tongue', 'paws'
     3- crop videos for each ROIs using ffmpeg, subsample paws videos
     4- run DLC specialized networks on each ROIs
     5- output ALF dataset for the raw DLC output in ./session/alf/_ibl_leftCamera.dlc.json
@@ -167,13 +169,18 @@ def dlc_training(file_mp4, force=False):
     #   _iblrig_leftCamera.subsampledDeepCut_resnet50_trainingRigFeb11shuffle1_550000.h5
     # tfile['h5_sub']
     #   _iblrig_leftCamera.eye.mp4 # tfile['eye']
-    #   _iblrig_leftCamera.nostril.mp4 # tfile['nostril']
+    #   _iblrig_leftCamera.nose_tip.mp4 # tfile['nose_tip']
     #   _iblrig_leftCamera.tongue.mp4 # tfile['tongue']
     #   _iblrig_leftCamera.pose.mp4 # tfile['pose']
 
     :param file_mp4: file to run
     :return: None
     """
+  
+    if 'bodyCamera' in str(file_mp4):
+        ROIs = ('tail_start',)
+    else:
+        ROIs = ('eye',  'tongue', 'paws', 'nose_tip',)
 
     file_mp4 = Path(file_mp4)
 
@@ -213,7 +220,7 @@ def dlc_training(file_mp4, force=False):
 
     # If the video is rightCamera, it is flipped and upsampled in resolution
     # first
-    if 'rightCamera.raw.mp4' in str(file_mp4):
+    if 'rightCamera' in str(file_mp4):
         transformed_video = s00_transform_rightCam()
         file_mp4 = Path(transformed_video)
 
@@ -222,12 +229,20 @@ def dlc_training(file_mp4, force=False):
 
     path_dlc = Path('/home/mic/DLC_weights')
     _set_dlc_paths(path_dlc)
-    dlc_params = {
-        'roi_detect': path_dlc / 'roi_detect' / 'config.yaml',
-        'eye': path_dlc / 'eye-mic-2019-04-16' / 'config.yaml',
-        'nostril': path_dlc / 'nostril-mic-2019-04-22' / 'config.yaml',
-        'paws': path_dlc / 'paws-mic-2019-04-26' / 'config.yaml',
-        'tongue': path_dlc / 'tongue-mic-2019-04-26' / 'config.yaml'}
+
+
+    if 'bodyCamera' in str(file_mp4):
+        dlc_params = {
+            'roi_detect': path_dlc / 'tail-mic-2019-12-16' / 'config.yaml',            
+            'tail_start': path_dlc / 'tail-mic-2019-12-16' / 'config.yaml'}        
+    else:
+        dlc_params = {
+            'roi_detect': path_dlc / 'roi_detect' / 'config.yaml',
+            'eye': path_dlc / 'eye-mic-2019-04-16' / 'config.yaml',
+            'nose_tip': path_dlc / 'nose_tip' / 'config.yaml',
+            'paws': path_dlc / 'paws-mic-2019-04-26' / 'config.yaml',
+            'tongue': path_dlc / 'tongue-mic-2019-04-26' / 'config.yaml'}
+
 
     # create the paths of temporary files, see above for an example
     ps = 'dlc_tmp_%s' %str(file_mp4.name)[:-4]
@@ -238,25 +253,10 @@ def dlc_training(file_mp4, force=False):
     for roi in ROIs:
         tfile[roi] = tpath / str(file_mp4.name).replace('.raw.', f'.{roi}.')
 
-
-#    def s01_subsample():
-#        """
-#        step 1 subsample video for detection
-#        """
-#        if tfile['mp4_sub'].exists() and not force:
-#            return
-
-#        command = ('ffmpeg -nostats -y -loglevel 0 -i {file_mp4} -c:v copy -ss 00:00:00 '
-#                   '-t 00:00:15 -c:a copy {file_out}')
-#        pop = _run_command(command.format(file_mp4=file_mp4, file_out=tfile['mp4_sub']))
-#        if pop['process'].returncode != 0:
-# logger.error(f' DLC 1/5: Subsampling ffmpeg failed: {file_mp4}' +
-# pop['stderr'])
-
     def s01_subsample():
         '''
         step 1 subsample video for detection
-        put 300 uniformly sampled frames into new video
+        put 500 uniformly sampled frames into new video
         '''
 
         if tfile['mp4_sub'].exists() and not force:
@@ -266,7 +266,7 @@ def dlc_training(file_mp4, force=False):
 
         cap = cv2.VideoCapture(str(file_mp4))
         frameCount = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        samples = random.sample(range(1, frameCount - 1), 300)
+        samples = random.sample(range(1, frameCount - 1), 500)
         size = (int(cap.get(3)), int(cap.get(4)))
         out = cv2.VideoWriter(
             str(file_out), cv2.VideoWriter_fourcc(
@@ -310,21 +310,25 @@ def dlc_training(file_mp4, force=False):
             logger.info('cropping ' + roi + ' video')
             if pop['process'].returncode != 0:
                 logger.error(f'DLC 3/5: Cropping ffmpeg failed for ROI {roi}, file: {file_mp4}')
-        # for paws spatial downsampling after cropping in order to speed up
-        # processing x4
-        tfile['paws_big'] = tfile['paws']
-        tfile['paws'] = tfile['paws'].parent / \
-            tfile['paws_big'].name.replace('paws', 'paws.small')
-        if tfile['paws'].exists() and not force:
-            return whxy
-        cmd = (
-            'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf scale=450:374 -c:v libx264 -crf 17'
-            ' -c:a copy {file_out}').format(
-            file_in=tfile['paws_big'],
-            file_out=tfile['paws'])
-        pop = _run_command(cmd)
-        if pop['process'].returncode != 0:
-            logger.error(f"DLC 3/5: Subsampling paws failed: {tfile['paws_big']}")
+ 
+        if 'bodyCamera' not in str(file_mp4):
+            # for paws spatial downsampling after cropping in order to speed up
+            # processing x4
+            
+            tfile['paws_big'] = tfile['paws']
+            tfile['paws'] = tfile['paws'].parent / \
+                tfile['paws_big'].name.replace('paws', 'paws.small')
+            if tfile['paws'].exists() and not force:
+                return whxy
+            cmd = (
+                'ffmpeg -nostats -y -loglevel 0 -i {file_in} -vf scale=450:374 -c:v libx264 -crf 17'
+                ' -c:a copy {file_out}').format(
+                file_in=tfile['paws_big'],
+                file_out=tfile['paws'])
+            pop = _run_command(cmd)
+            if pop['process'].returncode != 0:
+                logger.error(f"DLC 3/5: Subsampling paws failed: {tfile['paws_big']}")
+
         return whxy
 
     def s04_run_dlc_specialized_neworks():
@@ -364,7 +368,7 @@ def dlc_training(file_mp4, force=False):
         with open(file_meta_data, 'w+') as fid:
             fid.write(json.dumps({'columns': columns}, indent=1))
         return file_alf_dlc, file_meta_data
-
+ 
     # run steps one by one
     s01_subsample()
     df_crop = s02_detect_rois()
@@ -372,6 +376,9 @@ def dlc_training(file_mp4, force=False):
     s04_run_dlc_specialized_neworks()
     files_alf = s05_extract_dlc_alf()
     # shutil.rmtree(tpath)  # and then clean up
+    if '.raw.transformed' in str(file_mp4):
+        os.remove(file_mp4)
+        
     return files_alf
 
 
