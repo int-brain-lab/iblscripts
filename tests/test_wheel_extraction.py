@@ -2,14 +2,16 @@ from pathlib import Path
 import numpy as np
 import unittest
 import shutil
+import logging
+
 import scipy.interpolate
 import matplotlib.pyplot as plt
 
 import alf.io
 from ibllib.io.extractors import ephys_fpga, training_wheel, ephys_trials
-from ibllib.io.raw_data_loaders import load_settings
 
 DISPLAY = False
+_logger = logging.getLogger('ibllib')
 
 
 def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
@@ -82,5 +84,6 @@ class TestWheelExtractionTraining(unittest.TestCase):
     def test_wheel_extraction_training(self):
         for rbf in self.root_path.rglob('raw_behavior_data'):
             session_path = alf.io.get_session_path(rbf)
+            _logger.info(session_path)
             bpod_wheel = training_wheel.get_wheel_data(session_path, save=False)
             self.assertTrue(bpod_wheel['re_ts'].size)
