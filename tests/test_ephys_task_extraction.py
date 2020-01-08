@@ -53,6 +53,7 @@ class TestEphysTaskExtraction(unittest.TestCase):
         init_folder = self.root_folder.joinpath("ephys_choice_world_task")
         self.sessions = [f.parent for f in init_folder.rglob('raw_ephys_data')]
         for session_path in self.sessions:
+            _logger.info(f"{session_path}")
             self._task_extraction_assertions(session_path)
 
     def _task_extraction_assertions(self, session_path):
