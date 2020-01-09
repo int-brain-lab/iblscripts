@@ -10,6 +10,8 @@ python rerun.py 26_merge_sync_ephys /mnt/s0/Data/Subjects --dry=True
 python rerun.py 27_compress_ephys_video /mnt/s0/Data/Subjects --dry=True
 """
 
+# rsync -av --progress /home/olivier/Documents/PYTHON/iblscripts/deploy/serverpc/utils/rerun.py ibladmin@iblserver.champalimaud.pt:/home/ibladmin/Documents/PYTHON/iblscripts/deploy/serverpc/utils  #noqa
+
 # Per dataset type
 import logging
 from pathlib import Path
@@ -55,19 +57,23 @@ def rerun_02_register(ses_path, drange, dry=True):
         pipes.register(file_error.parent)
 
 
-def rerun_03_compress_video_training(ses_path, drange, dry=True):
-    # for a failed compression there is an `extract.error` file in the raw_video folder
-    files_error, files_error_date = _order_glob_by_session_date(ses_path.rglob('extract.error'))
-    for file_error, date in zip(files_error, files_error_date):
+def rerun_03_compress_video_training(glob_path, drange, dry=True):
+    # look recursively for avi files, makes sure this is a training session, and create
+    # the flags if dry is set to False
+    files_wav, files_wav_date = _order_glob_by_session_date(glob_path.rglob('*.avi'))
+    for file_wav, date in zip(files_wav, files_wav_date):
         if not(date >= drange[0] and (date <= drange[1])):
             continue
-        print(file_error)
+        session_path = alf.io.get_session_path(file_wav)
+        task_type = extract_session.get_session_extractor_type(session_path)
+        if task_type not in ['training', 'biased']:
+            continue
+        if task_type is None:
+            continue
+        print(f"{file_wav} {task_type}")
         if dry:
             continue
-        file_error.unlink()
-        flags.create_compress_video_flags(file_error.parents[1])
-    if not dry:
-        logger.warning("Flags created, to compress videos, launch the compress script from deploy")
+        flags.create_compress_video_flags(session_path, flag_name='compress_video.flag')
 
 
 def rerun_04_audio_training(root_path, drange, **kwargs):
@@ -248,7 +254,7 @@ if __name__ == "__main__":
     if args.action == '01_extract_training':
         rerun_01_extract_training(ses_path, date_range, dry=args.dry)
     elif args.action == '03_video_training':
-        rerun_03_compress_video_training(ses_path, dry=args.dry)
+        rerun_03_compress_video_training(ses_path, date_range, dry=args.dry)
     elif args.action == '04_audio_training':
         rerun_04_audio_training(ses_path, date_range, dry=args.dry)
     elif args.action == '21_qc_ephys':
