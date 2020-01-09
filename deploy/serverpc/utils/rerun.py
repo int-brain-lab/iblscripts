@@ -1,5 +1,6 @@
 """
 Entry point to system commands for IBL pipeline.
+python rerun.py 01_extract_training /mnt/s0/Data/Subjects --dry=True --first=2019-12-20
 python rerun.py 04_audio_training /mnt/s0/Data/Subjects --dry=True
 python rerun.py 21_qc_ephys /mnt/s0/Data/Subjects --dry=True
 python rerun.py 22_audio_ephys /mnt/s0/Data/Subjects --dry=True
@@ -243,7 +244,9 @@ if __name__ == "__main__":
 
     date_range = [parse(args.first), parse(args.last)]
     ses_path = Path(args.folder)
-    if args.action == '04_audio_training':
+    if args.action == '01_extract_training':
+        rerun_01_extract_training(ses_path, date_range, dry=args.dry)
+    elif args.action == '04_audio_training':
         rerun_04_audio_training(ses_path, date_range, dry=args.dry)
     elif args.action == '21_qc_ephys':
         rerun_21_qc_ephys(ses_path, date_range, dry=args.dry)
