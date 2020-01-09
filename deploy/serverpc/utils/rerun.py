@@ -1,6 +1,7 @@
 """
 Entry point to system commands for IBL pipeline.
 python rerun.py 01_extract_training /mnt/s0/Data/Subjects --dry=True --first=2019-12-20
+python rerun.py 03_video_training /mnt/s0/Data/Subjects --dry=True
 python rerun.py 04_audio_training /mnt/s0/Data/Subjects --dry=True
 python rerun.py 21_qc_ephys /mnt/s0/Data/Subjects --dry=True
 python rerun.py 22_audio_ephys /mnt/s0/Data/Subjects --dry=True
@@ -54,7 +55,7 @@ def rerun_02_register(ses_path, drange, dry=True):
         pipes.register(file_error.parent)
 
 
-def rerun_03_compress_video(ses_path, drange, dry=True):
+def rerun_03_compress_video_training(ses_path, drange, dry=True):
     # for a failed compression there is an `extract.error` file in the raw_video folder
     files_error, files_error_date = _order_glob_by_session_date(ses_path.rglob('extract.error'))
     for file_error, date in zip(files_error, files_error_date):
@@ -246,6 +247,8 @@ if __name__ == "__main__":
     ses_path = Path(args.folder)
     if args.action == '01_extract_training':
         rerun_01_extract_training(ses_path, date_range, dry=args.dry)
+    elif args.action == '03_video_training':
+        rerun_03_compress_video_training(ses_path, dry=args.dry)
     elif args.action == '04_audio_training':
         rerun_04_audio_training(ses_path, date_range, dry=args.dry)
     elif args.action == '21_qc_ephys':
