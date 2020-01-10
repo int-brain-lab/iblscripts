@@ -66,7 +66,7 @@ def rerun_03_compress_video_training(glob_path, drange, dry=True):
             continue
         session_path = alf.io.get_session_path(file_wav)
         task_type = extract_session.get_session_extractor_type(session_path)
-        if task_type not in ['training', 'biased']:
+        if task_type not in ['training', 'biased', 'habituation']:
             continue
         if task_type is None:
             continue
@@ -81,7 +81,7 @@ def rerun_04_audio_training(root_path, drange, **kwargs):
     This job looks for wav files and create `audio_training.flag` for each wav file found
     """
     _rerun_wav_files(root_path, drange=drange, flag_name='audio_training.flag',
-                     task_excludes=['ephys', 'ephys_sync'], **kwargs)
+                     task_includes=['training', 'biased', 'habituation'], **kwargs)
 
 
 def rerun_05_dlc_training(root_path, drange, dry=True):
