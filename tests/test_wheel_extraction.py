@@ -17,9 +17,7 @@ _logger = logging.getLogger('ibllib')
 def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
     alf_path = session_path.joinpath('alf')
     shutil.rmtree(alf_path, ignore_errors=True)
-    sync_path = session_path.joinpath(r'raw_ephys_data')
-    sync = alf.io.load_object(sync_path, '_spikeglx_sync', short_keys=True)
-    chmap = ephys_fpga.CHMAPS['3B']['nidq']
+    sync, chmap = ephys_fpga._get_main_probe_sync(session_path, bin_exists=False)
     fpga_wheel = ephys_fpga.extract_wheel_sync(sync, chmap=chmap, save=False)
     bpod_wheel = training_wheel.get_wheel_data(session_path, save=False, display=display)
     ephys_trials.extract_all(session_path, output_path=alf_path, save=True)
@@ -57,21 +55,24 @@ class TestWheelExtractionSimpleEphys(unittest.TestCase):
 class TestWheelExtractionSessionEphys(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.session_path = Path('/datadisk/Data/IntegrationTests/wheel/ephys/KS016_2019_12_05')
-        if not self.session_path.exists():
+        self.root_path = Path('/datadisk/Data/IntegrationTests/wheel/ephys/sessions')
+        if not self.root_path.exists():
             return
+        self.sessions = [f.parent for f in self.root_path.rglob('raw_behavior_data')]
 
     def test_wheel_extraction_session(self):
-        fpga_wheel, bpod_wheel, wheel = compare_wheel_fpga_behaviour(self.session_path)
-        # makes sure that the HF component matches
-        from scipy.signal import butter, filtfilt
-        b, a = butter(3, 0.0001, btype='high', analog=False)
-        fpga = filtfilt(b, a, wheel['fpga'])
-        bpod = filtfilt(b, a, wheel['bpod'])
-        # plt.figure()
-        # plt.plot(wheel['tscale'], fpga)
-        # plt.plot(wheel['tscale'], bpod)
-        self.assertTrue(np.all(np.abs(fpga - bpod < 0.1)))
+        for session_path in self.sessions:
+            _logger.info(f"EPHYS: {session_path}")
+            fpga_wheel, bpod_wheel, wheel = compare_wheel_fpga_behaviour(session_path)
+            # makes sure that the HF component matches
+            from scipy.signal import butter, filtfilt
+            b, a = butter(3, 0.0001, btype='high', analog=False)
+            fpga = filtfilt(b, a, wheel['fpga'])
+            bpod = filtfilt(b, a, wheel['bpod'])
+            # plt.figure()
+            # plt.plot(wheel['tscale'], fpga)
+            # plt.plot(wheel['tscale'], bpod)
+            self.assertTrue(np.all(np.abs(fpga - bpod < 0.1)))
 
 
 class TestWheelExtractionTraining(unittest.TestCase):
@@ -84,6 +85,6 @@ class TestWheelExtractionTraining(unittest.TestCase):
     def test_wheel_extraction_training(self):
         for rbf in self.root_path.rglob('raw_behavior_data'):
             session_path = alf.io.get_session_path(rbf)
-            _logger.info(session_path)
+            _logger.info(f"TRAINING: {session_path}")
             bpod_wheel = training_wheel.get_wheel_data(session_path, save=False)
             self.assertTrue(bpod_wheel['re_ts'].size)
