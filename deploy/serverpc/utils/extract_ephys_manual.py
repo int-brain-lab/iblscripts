@@ -2,12 +2,15 @@ from pathlib import Path
 import shutil
 import argparse
 
+import alf.io
 from ibllib.io import spikeglx, flags
 from ibllib.pipes import experimental_data as jobs
 
 
 def re_extract_session(session_path):
     session_path = Path(session_path)
+    if not (Path(session_path) == alf.io.get_session_path(Path(session_path))):
+        raise FileNotFoundError(f"{session_path} is not a session path")
     DRY = False
     DELETE_PATTERNS = [
         'alf/channels.*.npy',
