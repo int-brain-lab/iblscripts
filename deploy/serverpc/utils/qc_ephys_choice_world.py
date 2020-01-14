@@ -87,6 +87,8 @@ def qc_ephys_session(sess_path, display=True):
 
 
 eids = one.search(task_protocol='ephyschoice', dataset_types=dtypes_search)
+eids = one.search(subject='CSHL049', date_range=['2020-01-11'])
+
 DISPLAY = False
 OFFSET = 2  # extract the last trial when there is the passive protocol trailing...
 for i, eid in enumerate(eids):
