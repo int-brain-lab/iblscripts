@@ -10,7 +10,7 @@ from oneibl.one import ONE
 from oneibl.patcher import Patcher
 
 
-_ONE = ONE(base_url='https://test.alyx.internationalbrainlab.org',
+_ONE = ONE(base_url='https://testdev.alyx.internationalbrainlab.org',
            username='test_user', password='TapetesBloc18')
 
 
@@ -20,13 +20,38 @@ class TestPatchDatasets(unittest.TestCase):
         self.one = _ONE
         self.patcher = Patcher(one=self.one)
 
-    def test_create_file(self):
+    def test_create_and_delete_file(self):
+        """
+        Creates a file, upload it to Flatiron and then removes it
+        """
         with tempfile.TemporaryDirectory() as td:
-            Path(td).joinpath('')
+            # creates the local file
+            session_path = Path(td).joinpath('flowers', '2018-07-13', '001')
+            alf_path = session_path.joinpath('alf')
+            alf_path.mkdir(parents=True)
+            new_file = alf_path.joinpath('spikes.amps.npy')
+            np.save(new_file, np.random.rand(500, 1))
+            # creates it on the database
+            self.patcher.create_dataset(new_file, server_repository='flatiron_zadorlab')
+            # download through ONE and check hashes
+            eid = self.one.search(subjects='flowers', dataset_types=['spikes.amps'])[0]
+            download0 = self.one.load(eid, dataset_types=['spikes.amps'], download_only=True,
+                                     dclass_output=True, clobber=True)[0]
+            # creates it a second time an makes sure it's not duplicated
+            self.patcher.create_dataset(new_file, server_repository='flatiron_zadorlab')
+            download = self.one.load(eid, dataset_types=['spikes.amps'], download_only=True,
+                                     dclass_output=True, clobber=True)[0]
+            self.assertEqual(download.dataset_id, download0.dataset_id)
+            self.assertTrue(hashfile.md5(download.local_path) == hashfile.md5(new_file))
+            # deletes the file
+            self.patcher.delete_dataset(dset_id=download.dataset_id, dry=False)
+            # makes sure it's not in the database anymore
+            session = self.one.search(subjects='flowers', dataset_types=['spikes.amps'])
+            self.assertEqual(len(session), 0)
 
     def test_patch_file(self):
         """
-        Downloads a file from the flatiron, modify it, patch it and download it again
+        Downloads a file from the flatiron, modify it locally, patch it and download it again
         """
         dataset_id = '04abb580-e14b-4716-9ff2-f7b95740b99f'
         dataset = self.one.alyx.rest('datasets', 'read', id=dataset_id)
@@ -50,9 +75,6 @@ class TestPatchDatasets(unittest.TestCase):
         # the dataset hash should have been updated too
         dataset = self.one.alyx.rest('datasets', 'read', id=dataset_id)
         self.assertEqual(uuid.UUID(dataset['md5']), uuid.UUID(new_check_sum))
-
-    def test_patch_existing_file(self):
-        pass
 
 
 if __name__ == "__main__":
