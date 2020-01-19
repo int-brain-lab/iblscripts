@@ -22,7 +22,7 @@ class TestPatchDatasets(unittest.TestCase):
 
     def test_create_and_delete_file(self):
         """
-        Creates a file, upload it to Flatiron and then removes it
+        Creates a file, upload it to Flatiron twice and then removes it
         """
         with tempfile.TemporaryDirectory() as td:
             # creates the local file
@@ -31,14 +31,16 @@ class TestPatchDatasets(unittest.TestCase):
             alf_path.mkdir(parents=True)
             new_file = alf_path.joinpath('spikes.amps.npy')
             np.save(new_file, np.random.rand(500, 1))
+            # try a dry run first
+            self.patcher.create_dataset(new_file, dry=True)
             # creates it on the database
             self.patcher.create_dataset(new_file, server_repository='flatiron_zadorlab')
             # download through ONE and check hashes
             eid = self.one.search(subjects='flowers', dataset_types=['spikes.amps'])[0]
             download0 = self.one.load(eid, dataset_types=['spikes.amps'], download_only=True,
                                      dclass_output=True, clobber=True)[0]
-            # creates it a second time an makes sure it's not duplicated
-            self.patcher.create_dataset(new_file, server_repository='flatiron_zadorlab')
+            # creates it a second time an makes sure it's not duplicated (also test automatic repo)
+            self.patcher.create_dataset(new_file)
             download = self.one.load(eid, dataset_types=['spikes.amps'], download_only=True,
                                      dclass_output=True, clobber=True)[0]
             self.assertEqual(download.dataset_id, download0.dataset_id)
