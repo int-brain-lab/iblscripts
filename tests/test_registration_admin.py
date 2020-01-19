@@ -7,18 +7,18 @@ import numpy as np
 
 from ibllib.io import hashfile
 from oneibl.one import ONE
-from oneibl.patcher import Patcher
+from oneibl.patcher import SSHPatcher
 
 
 _ONE = ONE(base_url='https://testdev.alyx.internationalbrainlab.org',
            username='test_user', password='TapetesBloc18')
 
 
-class TestPatchDatasets(unittest.TestCase):
+class TestPatchDatasetsSSH(unittest.TestCase):
 
     def setUp(self):
         self.one = _ONE
-        self.patcher = Patcher(one=self.one)
+        self.patcher = SSHPatcher(one=self.one)
 
     def test_create_and_delete_file(self):
         """
