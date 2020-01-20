@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ibllib.misc import version
 from ibllib.io import hashfile
 from oneibl.one import ONE
 from oneibl.patcher import SSHPatcher
@@ -76,7 +77,8 @@ class TestPatchDatasetsSSH(unittest.TestCase):
         self.assertEqual(hashfile.md5(local_file_path), new_check_sum)
         # the dataset hash should have been updated too
         dataset = self.one.alyx.rest('datasets', 'read', id=dataset_id)
-        self.assertEqual(uuid.UUID(dataset['md5']), uuid.UUID(new_check_sum))
+        self.assertEqual(uuid.UUID(dataset['hash']), uuid.UUID(new_check_sum))
+        self.assertEqual(dataset['version'], version.ibllib())
 
 
 if __name__ == "__main__":
