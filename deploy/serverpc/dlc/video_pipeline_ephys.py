@@ -238,7 +238,7 @@ def dlc_ephys(file_mp4, force=False):
     else:
         dlc_params = {
             'roi_detect': path_dlc / 'roi_detect' / 'config.yaml',
-            'eye': path_dlc / 'eye-mic-2019-04-16' / 'config.yaml',
+            'eye': path_dlc / 'eye-mic-2020-01-17' / 'config.yaml',
             'nose_tip': path_dlc / 'nose_tip' / 'config.yaml',
             'paws': path_dlc / 'paws-mic-2019-04-26' / 'config.yaml',
             'tongue': path_dlc / 'tongue-mic-2019-04-26' / 'config.yaml'}
