@@ -128,11 +128,9 @@ class TestPatchDatasetsSSH(unittest.TestCase):
         self.patcher = SSHPatcher(one=self.one)
 
     def test_create_and_delete_file(self):
-        return
         _test_create_and_delete_file(self)
 
     def test_patch_file(self):
-        return
         _patch_file(self)
 
 
@@ -140,10 +138,6 @@ class TestPatchDatasetsFTP(unittest.TestCase):
     def setUp(self):
         self.one = _ONE
         self.patcher = FTPPatcher(one=self.one)
-
-    def test_create_and_delete_file(self):
-        pass
-        # _test_create_and_delete_file(self)
 
     def test_patch_file(self):
         # we can only test registration as the FlatIron upload is not immediate in this case
