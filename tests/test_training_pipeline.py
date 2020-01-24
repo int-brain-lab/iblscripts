@@ -11,11 +11,13 @@ import ibllib.pipes.experimental_data as iblrig_pipeline
 from ibllib.pipes.transfer_rig_data import main as transfer
 from oneibl.one import ONE
 
+PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
+
 
 class TestFlagOperations(unittest.TestCase):
 
     def setUp(self):
-        self.init_folder = Path('/mnt/s0/Data/IntegrationTests/Subjects_init')
+        self.init_folder = PATH_TESTS.joinpath('Subjects_init')
         if not self.init_folder.exists():
             return
         # Set ONE to use the test database

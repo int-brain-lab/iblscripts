@@ -11,6 +11,7 @@ import alf.io
 from ibllib.io.extractors import ephys_fpga, training_wheel, ephys_trials
 
 DISPLAY = False
+PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
 _logger = logging.getLogger('ibllib')
 
 
@@ -40,8 +41,7 @@ def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
 class TestWheelExtractionSimpleEphys(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.session_path = Path(
-            '/mnt/s0/Data/IntegrationTests/wheel/ephys/three_clockwise_revolutions')
+        self.session_path = PATH_TESTS.joinpath('wheel', 'ephys', 'three_clockwise_revolutions')
         if not self.session_path.exists():
             return
 
@@ -55,7 +55,7 @@ class TestWheelExtractionSimpleEphys(unittest.TestCase):
 class TestWheelExtractionSessionEphys(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.root_path = Path('/datadisk/Data/IntegrationTests/wheel/ephys/sessions')
+        self.root_path = PATH_TESTS.joinpath('wheel', 'ephys', 'sessions')
         if not self.root_path.exists():
             return
         self.sessions = [f.parent for f in self.root_path.rglob('raw_behavior_data')]
@@ -78,7 +78,7 @@ class TestWheelExtractionSessionEphys(unittest.TestCase):
 class TestWheelExtractionTraining(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.root_path = Path('/datadisk/Data/IntegrationTests/wheel/training')
+        self.root_path = PATH_TESTS.joinpath('wheel', 'training')
         if not self.root_path.exists():
             return
 

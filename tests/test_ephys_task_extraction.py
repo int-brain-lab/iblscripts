@@ -10,6 +10,8 @@ from ibllib.ephys import ephysqc
 
 _logger = logging.getLogger('ibllib')
 
+PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
+
 BPOD_FILES = [
     '_ibl_trials.choice.npy',
     '_ibl_trials.contrastLeft.npy',
@@ -39,7 +41,7 @@ ALIGN_BPOD_FPGA_FILES = [
 class TestEphysTaskExtraction(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.root_folder = Path("/datadisk/Data/IntegrationTests/ephys")
+        self.root_folder = PATH_TESTS.joinpath("ephys")
         if not self.root_folder.exists():
             return
 
