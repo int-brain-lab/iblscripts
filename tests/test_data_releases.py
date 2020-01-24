@@ -2,13 +2,14 @@ import unittest
 from pathlib import Path
 
 import logging
-from oneibl.onelight import ONE
+import oneibl.onelight
 
 _logger = logging.getLogger('ibllib')
 
 TEST_PATH = Path('/mnt/s0/Data/IntegrationTests')
-one = ONE()
-one.set_local_dir(root_dir=str(TEST_PATH.joinpath('data-releases', 'ibl-behavioral-data-Dec2019')))
+
+datadir = TEST_PATH.joinpath('data-releases', 'ibl-behavioral-data-Dec2019')
+one = oneibl.onelight.LocalOne(root_dir=str(datadir))
 
 
 class TestEphysCompression(unittest.TestCase):
