@@ -8,11 +8,13 @@ from ibllib.pipes import extract_session
 import ibllib.io.flags
 import alf.io
 
+PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
+
 
 class TestSessions(unittest.TestCase):
 
     def setUp(self):
-        self.subjects_path = Path('/mnt/s0/Data/IntegrationTests/training')
+        self.subjects_path = PATH_TESTS.joinpath('training')
         if not self.subjects_path.exists():
             return
         # extract all sessions

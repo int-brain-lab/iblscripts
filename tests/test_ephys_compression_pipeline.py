@@ -8,6 +8,8 @@ import ibllib.pipes.experimental_data as iblrig_pipeline
 
 _logger = logging.getLogger('ibllib')
 
+TEST_PATH = Path('/mnt/s0/Data/IntegrationTests')
+
 
 class TestEphysCompression(unittest.TestCase):
 
@@ -15,10 +17,10 @@ class TestEphysCompression(unittest.TestCase):
         """
         replicate the full folder architecture with symlinks from compress_init to compress
         """
-        self.init_folder = Path('/mnt/s0/Data/IntegrationTests/ephys/compression_init')
+        self.init_folder = TEST_PATH.joinpath('ephys', 'compression_init')
         if not self.init_folder.exists():
             return
-        self.main_folder = Path('/mnt/s0/Data/IntegrationTests/ephys/compression')
+        self.main_folder = TEST_PATH.joinpath('ephys', 'compression')
         if self.main_folder.exists():
             shutil.rmtree(self.main_folder)
         self.main_folder.mkdir(exist_ok=True)

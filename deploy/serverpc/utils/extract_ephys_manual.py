@@ -2,37 +2,44 @@ from pathlib import Path
 import shutil
 import argparse
 
-from ibllib.io import spikeglx
+import alf.io
+from ibllib.io import spikeglx, flags
 from ibllib.pipes import experimental_data as jobs
 
 
 def re_extract_session(session_path):
     session_path = Path(session_path)
+    if not (Path(session_path) == alf.io.get_session_path(Path(session_path))):
+        raise FileNotFoundError(f"{session_path} is not a session path")
     DRY = False
-    DELETE_PATTERNS = ['alf/channels.*.npy',
-                       'alf/**/spikes.times*.npy',
-                       'alf/clusters.*.npy',
-                       'alf/params.py',
-                       'alf/spikes.*.npy',
-                       'alf/templates.*.npy',
-                       'alf/whitening_mat_inv.npy',
-                       'logs/*.*',
-                       'extract_register.log',
-                       'flatiron.flag',
-                        'raw_ephys_data/**/_spikeglx_ephysQcFreqAP.freq*.npy',
-                        'raw_ephys_data/**/_spikeglx_ephysQcFreqAP.power*.npy',
-                        'raw_ephys_data/**/_spikeglx_ephysQcFreqLF.freq*.npy',
-                        'raw_ephys_data/**/_spikeglx_ephysQcFreqLF.power*.npy',
-                        'raw_ephys_data/**/_spikeglx_ephysQcTimeAP.rms*.npy',
-                        'raw_ephys_data/**/_spikeglx_ephysQcTimeAP.times*.npy',
-                        'raw_ephys_data/**/_spikeglx_ephysQcTimeLF.rms*.npy',
-                        'raw_ephys_data/**/_spikeglx_ephysQcTimeLF.times*.npy',
-                        'raw_ephys_data/**/*.sync.npy',
-                        'raw_ephys_data/**/*.timestamps.npy',
+    DELETE_PATTERNS = [
+        'alf/channels.*.npy',
+        'alf/**/spikes.times*.npy',
+        'alf/clusters.*.npy',
+        'alf/params.py',
+        'alf/spikes.*.npy',
+        'alf/templates.*.npy',
+        'alf/whitening_mat_inv.npy',
+        'alf/_ibl_trials.*.npy',
+        'logs/*.*',
+        'extract_register.log',
+        'flatiron.flag',
+        'raw_ephys_data/**/_spikeglx_ephysQcFreqAP.freq*.npy',
+        'raw_ephys_data/**/_spikeglx_ephysQcFreqAP.power*.npy',
+        'raw_ephys_data/**/_spikeglx_ephysQcFreqLF.freq*.npy',
+        'raw_ephys_data/**/_spikeglx_ephysQcFreqLF.power*.npy',
+        'raw_ephys_data/**/_spikeglx_ephysQcTimeAP.rms*.npy',
+        'raw_ephys_data/**/_spikeglx_ephysQcTimeAP.times*.npy',
+        'raw_ephys_data/**/_spikeglx_ephysQcTimeLF.rms*.npy',
+        'raw_ephys_data/**/_spikeglx_ephysQcTimeLF.times*.npy',
+        'raw_ephys_data/**/*.sync.npy',
+        'raw_ephys_data/**/*.timestamps.npy',
                        ]
 
     RMTREE_PATTERNS = ['raw_ephys_data/**/ks2_alf',
-                       'alf/tmp_merge']
+                       'alf/tmp_merge',
+                       'alf/probe*',
+                       ]
 
     RENAMES = []
 
@@ -46,6 +53,8 @@ def re_extract_session(session_path):
 
     for rmt in RMTREE_PATTERNS:
         for match in session_path.glob(rmt):
+            if not match.is_dir():
+                continue
             print(match)
             if not DRY:
                 shutil.rmtree(match)
@@ -84,8 +93,13 @@ def re_extract_session(session_path):
                 continue
             ef.ap.parent.joinpath('compress_ephys.flag').touch()
     # jobs.compress_ephys(session_path, dry=True)
+
     # 22_audio_ephys.sh
+    flags.create_audio_flags(session_path, flag_name='audio_ephys.flag')
+
     # 27_compress_ephys_videos.sh
+    flags.create_compress_video_flags(session_path, flag_name='compress_video_ephys.flag')
+
     # 28_dlc_ephys.sh
 
 

@@ -4,12 +4,14 @@ from pathlib import Path
 import alf.io
 from ibllib.io.extractors import training_audio as audio
 
+TEST_PATH = Path('/mnt/s0/Data/IntegrationTests')
+
 
 class TestAudioExtraction(unittest.TestCase):
 
     def setUp(self):
-        file_wav = Path('/mnt/s0/Data/IntegrationTests/Subjects_init/ZM_1085/2019-06-24/001/'
-                        'raw_behavior_data/_iblrig_micData.raw.wav')
+        file_wav = TEST_PATH.joinpath('Subjects_init', 'ZM_1085', '2019-06-24', '001',
+                        'raw_behavior_data', '_iblrig_micData.raw.wav')
         self.ses_path = file_wav.parents[1]
         if not self.ses_path.exists():
             return

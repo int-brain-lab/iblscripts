@@ -12,11 +12,13 @@ import ibllib.io.flags
 import ibllib.pipes.experimental_data as iblrig_pipeline
 from oneibl.one import ONE
 
+PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
+
 
 class TestVideoEphys(unittest.TestCase):
 
     def test_compress_all_vids(self):
-        self.init_folder = Path('/mnt/s0/Data/IntegrationTests/ephys/ephys_video_init')
+        self.init_folder = PATH_TESTS.joinpath('ephys', 'ephys_video_init')
         with tempfile.TemporaryDirectory() as tdir:
             root_path = Path(tdir).joinpath('Subjects')
             shutil.copytree(self.init_folder, root_path)
@@ -42,7 +44,7 @@ class TestVideoEphys(unittest.TestCase):
 class TestVideoTraining(unittest.TestCase):
 
     def setUp(self):
-        self.init_folder = Path('/mnt/s0/Data/IntegrationTests/Subjects_init')
+        self.init_folder = PATH_TESTS.joinpath('Subjects_init')
         if not self.init_folder.exists():
             return
         # Set ONE to use the test database

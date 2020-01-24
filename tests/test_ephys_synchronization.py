@@ -23,7 +23,7 @@ class TestEphysCheckList(unittest.TestCase):
         for ses_path in self.folder3a.rglob('raw_ephys_data'):
             # we switched to sync using frame2ttl on November 2019
             channel = 12 if '2019-11-05' in str(ses_path) else 2
-            self.assertTrue(sync_probes.version3A(ses_path.parent, linear=True, tol=2,
+            self.assertTrue(sync_probes.version3A(ses_path.parent, type='linear', tol=2,
                                                   display=False))
             self.assertTrue(sync_probes.version3A(ses_path.parent, display=True))
             dt = _check_session_sync(ses_path, channel=channel)
@@ -33,14 +33,22 @@ class TestEphysCheckList(unittest.TestCase):
         # the assertion is already in the files
         if not self.folder3b.exists():
             return
-        for ses_path in self.folder3b.rglob('raw_ephys_data'):
-            self.assertTrue(sync_probes.version3B(ses_path.parent, linear=True, tol=10,
-                                                  display=False))
-            self.assertTrue(sync_probes.version3B(ses_path.parent, display=False))
-            dt = _check_session_sync(ses_path, 6)
-            # import matplotlib.pyplot as plt
-            # plt.plot(dt * 30000)
-            self.assertTrue(np.all(np.abs(dt * 30000) < 2))
+        """ First session is a pass """
+        ses_path = self.folder3b.joinpath("hofer", "raw_ephys_data")
+        self.assertTrue(sync_probes.version3B(ses_path.parent, type='linear', tol=10,
+                                              display=False))
+        self.assertTrue(sync_probes.version3B(ses_path.parent, display=False))
+        dt = _check_session_sync(ses_path, 6)
+        # import matplotlib.pyplot as plt
+        # plt.plot(dt * 30000)
+        self.assertTrue(np.all(np.abs(dt * 30000) < 2))
+        """ Second session has sync issues """
+        ses_path = self.folder3b.joinpath('cortexlab', 'KS014', '2019-12-03', '001',
+                                          'raw_ephys_data')
+        self.assertFalse(sync_probes.version3B(ses_path.parent, display=False))
+        dt = _check_session_sync(ses_path, 6)
+        # which doesn't prevent the sync function to output the desired output
+        self.assertTrue(np.all(np.abs(dt * 30000) < 2))
 
 
 def _check_session_sync(ses_path, channel):
@@ -49,7 +57,7 @@ def _check_session_sync(ses_path, channel):
     :param ses_path:
     :return:
     """
-    efiles = spikeglx.glob_ephys_files(ses_path)
+    efiles = spikeglx.glob_ephys_files(ses_path, bin_exists=False)
     tprobe = []
     tinterp = []
     for ef in efiles:

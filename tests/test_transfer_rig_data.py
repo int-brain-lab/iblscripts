@@ -41,9 +41,7 @@ class TestTransferRigDataEphys(unittest.TestCase):
         self.assertTrue(set(gsrc).issubset(set(gdst)))
         dst_session_path = dst_subjects_path.joinpath(
             self.session_path.relative_to(src_subjects_path))
-        flag_files = [dst_session_path.joinpath('extract_ephys.flag'),
-                      dst_session_path.joinpath('raw_ephys_qc.flag'),
-                      dst_session_path.joinpath('compress_video_ephys.flag'),
+        flag_files = [dst_session_path.joinpath('compress_video_ephys.flag'),
                       dst_session_path.joinpath('audio_ephys.flag')]
         for fl in flag_files:
             self.assertTrue(fl.exists())

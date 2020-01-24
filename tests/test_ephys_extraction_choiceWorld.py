@@ -12,6 +12,11 @@ from oneibl.one import ONE
 
 _logger = logging.getLogger('ibllib')
 
+PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
+
+one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
+          username='test_user', password='TapetesBloc18')
+
 
 class TestSpikeSortingOutput(unittest.TestCase):
 
@@ -20,10 +25,10 @@ class TestSpikeSortingOutput(unittest.TestCase):
         replicate the full folder architecture with symlinks from choice_world_init to
         choice_world
         """
-        self.init_folder = Path('/mnt/s0/Data/IntegrationTests/ephys/choice_world_init')
+        self.init_folder = PATH_TESTS.joinpath('ephys', 'choice_world_init')
         if not self.init_folder.exists():
             return
-        self.main_folder = Path('/mnt/s0/Data/IntegrationTests/ephys/choice_world')
+        self.main_folder = PATH_TESTS.joinpath('ephys', 'choice_world')
         if self.main_folder.exists():
             shutil.rmtree(self.main_folder)
         self.main_folder.mkdir(exist_ok=True)
@@ -32,8 +37,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
             link.parent.mkdir(exist_ok=True, parents=True)
             link.symlink_to(ff)
         # instantiate the one object for registration
-        self.one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
-                       username='test_user', password='TapetesBloc18')
+        self.one = one
 
     def test_spike_sorting_to_alf_registration(self):
         sessions_paths = [f.parent for f in self.main_folder.rglob('extract_ephys.flag')]
@@ -57,11 +61,13 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('_iblrig_Camera.timestamps', 3, 3),
                              ('_iblrig_ambientSensorData.raw', 1, 1),
                              ('_iblrig_codeFiles.raw', 1, 1),
-                             ('_iblrig_encoderEvents.raw', 1, 1),
-                             ('_iblrig_encoderPositions.raw', 1, 1),
-                             ('_iblrig_encoderTrialInfo.raw', 1, 1),
+                             ('_iblrig_encoderEvents.raw', 2, 2),
+                             ('_iblrig_encoderPositions.raw', 2, 2),
+                             ('_iblrig_encoderTrialInfo.raw', 2, 2),
                              ('_iblrig_taskData.raw', 1, 1),
-                             ('_iblrig_taskSettings.raw', 1, 1),
+                             ('_iblrig_taskSettings.raw', 2, 2),
+                             ('_iblrig_stimPositionScreen.raw', 1, 1),
+                             ('_iblrig_RFMapStim.raw', 1, 1),
                              ('_iblqc_ephysTimeRms.timestamps', 4, 4),
                              ('_iblqc_ephysTimeRms.rms', 4, 4),
                              ('_iblqc_ephysSpectralDensity.freqs', 4, 4),
@@ -195,7 +201,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
 class TestEphysQC(unittest.TestCase):
 
     def setUp(self):
-        self.init_folder = Path('/mnt/s0/Data/IntegrationTests/ephys/ephys_qc')
+        self.init_folder = PATH_TESTS.joinpath('ephys', 'ephys_qc')
         if not self.init_folder.exists():
             return
         self.alf_folder = self.init_folder / 'alf'
