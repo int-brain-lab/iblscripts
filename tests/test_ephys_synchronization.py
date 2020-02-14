@@ -14,6 +14,19 @@ class TestEphysCheckList(unittest.TestCase):
     def setUp(self):
         self.folder3a = INTEGRATION_TEST_FOLDER.joinpath('ephys/sync/sync_3A')
         self.folder3b = INTEGRATION_TEST_FOLDER.joinpath('ephys/sync/sync_3B')
+        self.folder3b_single = INTEGRATION_TEST_FOLDER.joinpath('ephys/sync/sync_3B_single')
+        self.folder3a_single = INTEGRATION_TEST_FOLDER.joinpath('ephys/sync/sync_3A_single')
+        folder = INTEGRATION_TEST_FOLDER.joinpath('ephys', 'sync')
+        for fil in folder.rglob('*.sync.npy'):
+            fil.unlink()
+        for fil in folder.rglob('*.timestamps.npy'):
+            fil.unlink()
+
+    def test_sync_3A_single(self):
+        ses_path = self.folder3a_single.joinpath('sub', '2019-08-09', '004')
+        self.assertTrue(sync_probes.version3A(ses_path, display=False))
+        self.assertTrue(np.all(np.load(list(
+            ses_path.rglob('*.sync.npy'))[0]) == np.array([[0, 0], [1, 1]])))
 
     def test_sync_3A(self):
         if not self.folder3a.exists():
@@ -41,6 +54,12 @@ class TestEphysCheckList(unittest.TestCase):
         dt = _check_session_sync(ses_path, 6)
         # import matplotlib.pyplot as plt
         # plt.plot(dt * 30000)
+        """ Test a single probe"""
+        ses_path_single = self.folder3b_single.joinpath('hofer', 'raw_ephys_data')
+        self.assertTrue(sync_probes.version3B(ses_path_single.parent, display=False))
+        sync_dual_probe0 = np.load(list(ses_path.rglob('*imec0.sync.npy'))[0])
+        sync_single_probe0 = np.load(list(ses_path_single.rglob('*imec0.sync.npy'))[0])
+        self.assertTrue(np.all(np.equal(sync_dual_probe0, sync_single_probe0)))
         self.assertTrue(np.all(np.abs(dt * 30000) < 2))
         """ Second session has sync issues """
         ses_path = self.folder3b.joinpath('cortexlab', 'KS014', '2019-12-03', '001',
