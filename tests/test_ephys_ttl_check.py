@@ -11,10 +11,12 @@ from pathlib import Path
 
 import ibllib.ephys.ephysqc
 
+PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
+
 
 class TestEphysCheckList(unittest.TestCase):
     def setUp(self):
-        self.init_folder = Path('/mnt/s0/Data/IntegrationTests/ephys/ttl_check')
+        self.init_folder = PATH_TESTS.joinpath('ephys', 'ttl_check')
         if not self.init_folder.exists():
             return
         for sf in self.init_folder.joinpath('ttl_3B_single').rglob('_spikeglx_sync.*.npy'):

@@ -11,6 +11,7 @@ import alf.io
 from ibllib.io.extractors import ephys_fpga, training_wheel, ephys_trials
 
 DISPLAY = False
+PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
 _logger = logging.getLogger('ibllib')
 
 
@@ -19,7 +20,7 @@ def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
     shutil.rmtree(alf_path, ignore_errors=True)
     sync, chmap = ephys_fpga._get_main_probe_sync(session_path, bin_exists=False)
     fpga_wheel = ephys_fpga.extract_wheel_sync(sync, chmap=chmap, save=False)
-    bpod_wheel = training_wheel.get_wheel_data(session_path, save=False, display=display)
+    bpod_wheel = training_wheel.get_wheel_position(session_path, save=False, display=display)
     ephys_trials.extract_all(session_path, output_path=alf_path, save=True)
     ephys_fpga.extract_behaviour_sync(sync, output_path=alf_path, chmap=chmap, save=True)
     bpod2fpga = ephys_fpga.align_with_bpod(session_path)
@@ -40,8 +41,7 @@ def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
 class TestWheelExtractionSimpleEphys(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.session_path = Path(
-            '/mnt/s0/Data/IntegrationTests/wheel/ephys/three_clockwise_revolutions')
+        self.session_path = PATH_TESTS.joinpath('wheel', 'ephys', 'three_clockwise_revolutions')
         if not self.session_path.exists():
             return
 
@@ -55,7 +55,7 @@ class TestWheelExtractionSimpleEphys(unittest.TestCase):
 class TestWheelExtractionSessionEphys(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.root_path = Path('/datadisk/Data/IntegrationTests/wheel/ephys/sessions')
+        self.root_path = PATH_TESTS.joinpath('wheel', 'ephys', 'sessions')
         if not self.root_path.exists():
             return
         self.sessions = [f.parent for f in self.root_path.rglob('raw_behavior_data')]
@@ -78,7 +78,7 @@ class TestWheelExtractionSessionEphys(unittest.TestCase):
 class TestWheelExtractionTraining(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.root_path = Path('/datadisk/Data/IntegrationTests/wheel/training')
+        self.root_path = PATH_TESTS.joinpath('wheel', 'training')
         if not self.root_path.exists():
             return
 
@@ -86,5 +86,5 @@ class TestWheelExtractionTraining(unittest.TestCase):
         for rbf in self.root_path.rglob('raw_behavior_data'):
             session_path = alf.io.get_session_path(rbf)
             _logger.info(f"TRAINING: {session_path}")
-            bpod_wheel = training_wheel.get_wheel_data(session_path, save=False)
+            bpod_wheel = training_wheel.get_wheel_position(session_path, save=False)
             self.assertTrue(bpod_wheel['re_ts'].size)

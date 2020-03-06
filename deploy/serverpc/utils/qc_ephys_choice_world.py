@@ -66,7 +66,7 @@ def qc_ephys_session(sess_path, display=True):
     qcs, qct = ephysqc.qc_fpga_task(fpga_trials, alf_trials)
 
     # do the wheel part
-    bpod_wheel = training_wheel.get_wheel_data(sess_path, save=False)
+    bpod_wheel = training_wheel.get_wheel_position(sess_path, save=False)
     fpga_wheel = ephys_fpga.extract_wheel_sync(sync, chmap=chmap, save=False)
 
     if display:
@@ -87,10 +87,9 @@ def qc_ephys_session(sess_path, display=True):
 
 
 eids = one.search(task_protocol='ephyschoice', dataset_types=dtypes_search)
-eids = one.search(subject='CSHL049', date_range=['2020-01-11'])
-
-DISPLAY = False
-OFFSET = 2  # extract the last trial when there is the passive protocol trailing...
+# eids = one.search(subject='CSHL049', date_range=['2020-01-11'], number=1)
+DISPLAY = True
+OFFSET = 0  # extract the last trial when there is the passive protocol trailing...
 for i, eid in enumerate(eids):
     if i < OFFSET:
         continue
@@ -101,12 +100,10 @@ for i, eid in enumerate(eids):
     try:
         _logger.info(f"{i}/{len(eids)} {eid} {sess_path}")
         qc_frame = qc_ephys_session(sess_path, display=DISPLAY)
-
-        break
     except Exception as e:
         _logger.error(f"{i}/{len(eids)} {eid} {sess_path}")
         _logger.error(str(e))
-
+    break
 # '53738f95-bd08-4d9d-9133-483fdb19e8da' passive stimulus issue ZM_1898 2019-12-11 002 : TODO integration test
 #  'c6d5cea7-e1c4-48e1-8898-78e039fabf2b' trial 470 (t 2048-2052) has no feedback: KS023/2019-12-11/001
 
@@ -121,5 +118,8 @@ for i, eid in enumerate(eids):
 # plt.figure()
 # plt.plot(trials['intervals_bpod'][:500, 0] + trials['intervals'][0, 0] - trials['intervals'][:500, 0])
 
-eid = one.search(subject='ibl_witten_13', date_range=['2019-11-25'])[0]
-session_info = one.alyx.rest('sessions', 'read', id=eid)
+
+import ViewEphysQC
+ViewEphysQC.viewqc(qc_frame)
+
+a = 1
