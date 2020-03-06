@@ -66,7 +66,7 @@ def qc_ephys_session(sess_path, display=True):
     qcs, qct = ephysqc.qc_fpga_task(fpga_trials, alf_trials)
 
     # do the wheel part
-    bpod_wheel = training_wheel.get_wheel_data(sess_path, save=False)
+    bpod_wheel = training_wheel.get_wheel_position(sess_path, save=False)
     fpga_wheel = ephys_fpga.extract_wheel_sync(sync, chmap=chmap, save=False)
 
     if display:

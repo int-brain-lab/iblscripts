@@ -34,7 +34,7 @@ sync_path = sess_path.joinpath(r'raw_ephys_data')
 sync = alf.io.load_object(sync_path, '_spikeglx_sync', short_keys=True)
 """get the wheel data for both fpga and bpod"""
 fpga_wheel = ibllib.io.extractors.ephys_fpga.extract_wheel_sync(sync, chmap=chmap, save=False)
-bpod_wheel = ibllib.io.extractors.training_wheel.get_wheel_data(sess_path, save=False)
+bpod_wheel = ibllib.io.extractors.training_wheel.get_wheel_position(sess_path, save=False)
 """get the behaviour data for both fpga and bpod"""
 # Out[5]: dict_keys(['ready_tone_in', 'error_tone_in', 'valve_open', 'stim_freeze', 'stimOn_times',
 # 'iti_in', 'goCue_times', 'feedback_times', 'intervals', 'response_times'])

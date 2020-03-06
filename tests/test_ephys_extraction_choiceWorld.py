@@ -119,7 +119,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
                              ('templates.waveformsChannels', nss, nss),
                              ('wheel.position', 1, 1),
                              ('wheel.timestamps', 1, 1),
-                             ('wheel.velocity', 1, 1),
+                             ('wheel.velocity', 0, 0),
                              ]
         # check that we indeed find expected number of datasets after registration
         success = True
