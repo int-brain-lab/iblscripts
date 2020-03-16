@@ -153,7 +153,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
             self.assertTrue(set(spikes.keys()).issubset(set(spikes_attributes)))
             self.assertTrue(np.min(spikes.depths) >= 0)
             self.assertTrue(np.max(spikes.depths) <= 3840)
-            self.assertTrue(10 < np.median(spikes.amps) * 1e6 < 80)  # we expect Volts
+            self.assertTrue(80 < np.median(spikes.amps) * 1e6 < 120)  # we expect Volts
 
             """Check the clusters object"""
             clusters = alf.io.load_object(probe_folder, 'clusters')
