@@ -1,6 +1,7 @@
 # Mock dataset
 
 fpga_trials = [
+# Times in FPGA clock [s]
 'ready_tone_in': gnagna, # array([ 117.47373456,  121.35742959])
 'error_tone_in': gnagna, # array([ 117.80138383,  nan])
 'valve_open': gnagna, #  array([nan,   130.47468086])
@@ -13,11 +14,11 @@ fpga_trials = [
 'intervals': gnagna,    # array([[ 115.92419256,  119.80068756],  [5456.7324425 , 5463.76686972]])}
 ]
 alf_trials = [
-# Times in Bpod clock
+# Times in Bpod clock [s]
 'goCueTrigger_times_bpod': gnagna,  # array([1.54880000e+00, 5.43220000e+00])
 'response_times_bpod': gnagna,  # array([1.87650000e+00, 6.49820000e+00])
 'intervals_bpod': gnagna,   # array([[0.0000000e+00, 4.3765030e+00], [5.3407663e+03, 5.3483007e+03]])
-# Times from session start
+# Times from session start [s]
 'goCueTrigger_times': gnagna,   # array([ 117.47299256,  121.35645899])
 'response_times': gnagna,   # array([ 117.80069256,  122.42245899])
 'intervals': gnagna,    # array([[ 115.92419256,  119.80068756], [5456.7324425 , 5463.76686972]])
