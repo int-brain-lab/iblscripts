@@ -34,6 +34,8 @@ class TestSpikeSortingOutput(unittest.TestCase):
         self.main_folder.mkdir(exist_ok=True)
         for ff in self.init_folder.rglob('*.*'):
             link = self.main_folder.joinpath(ff.relative_to(self.init_folder))
+            if 'alf' in link.parts:
+                continue
             link.parent.mkdir(exist_ok=True, parents=True)
             link.symlink_to(ff)
         # instantiate the one object for registration
@@ -157,7 +159,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
             self.assertTrue(set(spikes.keys()).issubset(set(spikes_attributes)))
             self.assertTrue(np.min(spikes.depths) >= 0)
             self.assertTrue(np.max(spikes.depths) <= 3840)
-            self.assertTrue(80 < np.median(spikes.amps) * 1e6 < 120)  # we expect Volts
+            self.assertTrue(80 < np.median(spikes.amps) * 1e6 < 200)  # we expect Volts
 
             """Check the clusters object"""
             clusters = alf.io.load_object(probe_folder, 'clusters')

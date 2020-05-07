@@ -30,7 +30,7 @@ def _test_create_and_delete_file(self):
         # try a dry run first
         self.patcher.create_dataset(new_file, dry=True)
         # creates it on the database
-        self.patcher.create_dataset(new_file, server_repository='flatiron_zadorlab')
+        self.patcher.create_dataset(new_file, repository='flatiron_zadorlab')
         # download through ONE and check hashes
         eid = self.one.search(subjects='flowers', dataset_types=['spikes.amps'])[0]
         download0 = self.one.load(eid, dataset_types=['spikes.amps'], download_only=True,
@@ -106,7 +106,7 @@ class TestPatchDatasetsGlobus(unittest.TestCase):
         # try a dry run first
         self.patcher.create_dataset(new_files, dry=True)
         # creates it on the database
-        self.patcher.create_dataset(new_files, server_repository='flatiron_zadorlab')
+        self.patcher.create_dataset(new_files, repository='flatiron_zadorlab')
         self.patcher.launch_transfers(self.gtc, wait=True)
         # download through ONE and check hashes
         eid = self.one.search(subjects='flowers', dataset_types=['spikes.amps'])[0]

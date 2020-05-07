@@ -1,5 +1,4 @@
-
-function run_ks2_ibl(rootZ, rootH)
+function run_ks2_ibl(rootZ, rootH, varargin)
 % rootZ is the directory containing the raw AP traces, one probe per folder
 % rootH is the scratch directory, SSD drive, to memmap binary data
 %
@@ -8,6 +7,11 @@ function run_ks2_ibl(rootZ, rootH)
 % rootH = '/mnt/h0';
 % run_ks2_ibl(rootZ, rootH)
 
+p=inputParser;
+p.addParameter('dir_pattern', '*.ap.bin');
+p.addParameter('channel_map_file','~/Documents/MATLAB/Kilosort2/configFiles/neuropixPhase3A_kilosortChanMap.mat');
+p.parse(varargin{:}); field = fieldnames(p.Results) ;
+for r = 1 : length(field), eval([field{r} '= p.Results.(field{r}) ; ']) ; end
 
 %% SET PATHS
 addpath(genpath('~/Documents/MATLAB/Kilosort2')) % path to kilosort folder
@@ -16,7 +20,7 @@ addpath('~/Documents/MATLAB/npy-matlab/npy-matlab')
 
 %% PARAMS
 ops.commitHash = strip(hash);
-ops.chanMap = '~/Documents/MATLAB/Kilosort2/configFiles/neuropixPhase3A_kilosortChanMap.mat';
+ops.chanMap = channel_map_file;
 ops.fs = 30000;   % sample rate
 ops.fshigh = 300;    % frequency for high pass filtering (150)
 ops.minfr_goodchannels = 0;  % minimum firing rate on a "good" channel (0 to skip)
@@ -60,7 +64,7 @@ if ~isempty(fs)
 end
 
 % find the binary file
-ops.fbinary = fullfile(rootZ, getfield(dir(fullfile(rootZ, '*.ap.bin')), 'name'));
+ops.fbinary = fullfile(rootZ, getfield(dir(fullfile(rootZ, dir_pattern)), 'name'));
 
 % preprocess data to create temp_wh.dat
 rez = preprocessDataSub(ops);
@@ -110,4 +114,4 @@ fclose(fopen([rootZ filesep 'compress_ephys.flag'], 'w+'));
 
 
 %% Run the QC on KS2 output
-[~, mess] = unix(['/home/olivier/Documents/PYTHON/iblscripts/deploy/serverpc/crontab/25_qc_spike_sorting.sh ' rootZ]);
+% [~, mess] = unix(['/home/olivier/Documents/PYTHON/iblscripts/deploy/serverpc/crontab/25_qc_spike_sorting.sh ' rootZ]);
