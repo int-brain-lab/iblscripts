@@ -66,8 +66,7 @@ class TestEphysTaskExtraction(unittest.TestCase):
         # check that the output is complete
         for f in BPOD_FILES:
             self.assertTrue(alf_path.joinpath(f).exists())
-        fpga_trials = ephys_fpga.extract_behaviour_sync(sync, chmap=chmap,
-                                                           output_path=alf_path, save=True)
+        fpga_trials = ephys_fpga.extract_behaviour_sync(sync, chmap=chmap)
         # check that the output is complete
         for f in FPGA_FILES:
             self.assertTrue(alf_path.joinpath(f).exists())

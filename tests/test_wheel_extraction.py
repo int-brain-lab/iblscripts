@@ -19,10 +19,10 @@ def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
     alf_path = session_path.joinpath('alf')
     shutil.rmtree(alf_path, ignore_errors=True)
     sync, chmap = ephys_fpga._get_main_probe_sync(session_path, bin_exists=False)
-    fpga_wheel = ephys_fpga.extract_wheel_sync(sync, chmap=chmap, save=False)
+    fpga_wheel = ephys_fpga.extract_wheel_sync(sync, chmap=chmap)
     bpod_wheel = training_wheel.get_wheel_position(session_path, save=False, display=display)
     ephys_trials.extract_all(session_path, output_path=alf_path, save=True)
-    ephys_fpga.extract_behaviour_sync(sync, output_path=alf_path, chmap=chmap, save=True)
+    ephys_fpga.extract_behaviour_sync(sync, chmap=chmap)
     bpod2fpga = ephys_fpga.align_with_bpod(session_path)
     # resample both traces to the same rate and compute correlation coeff
     bpod_wheel['re_ts'] = bpod2fpga(bpod_wheel['re_ts'])
