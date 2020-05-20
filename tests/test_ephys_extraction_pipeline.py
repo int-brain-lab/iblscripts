@@ -1,38 +1,36 @@
 import unittest
+from pathlib import Path
+import shutil
 
 from ibllib.pipes import ephys_preprocessing
 from ibllib.pipes.jobs import run_alyx_job
 from oneibl.one import ONE
 
-session_path = "/datadisk/Data/IntegrationTests/ephys/choice_world_init/KS022/2019-12-10/001"
+
+PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
+SESSION_PATH = PATH_TESTS.joinpath("ephys/choice_world/KS022/2019-12-10/001")
 one = ONE(base_url='http://localhost:8000')
-
-
-class TestEphysJobs(unittest.TestCase):
-
-    def test_EphysSyncPulses(self):
-        myjob = ephys_preprocessing.EphysPulses(session_path)
-        status = myjob.run(status=0)
-        self.assertTrue(len(myjob.outputs) == 9)
-        self.assertTrue(status == 0)
-
-    def test_RawEphysQC(self):
-        myjob = ephys_preprocessing.RawEphysQC(session_path)
-        status = myjob.run(status=0)
-        self.assertTrue(status == 0)
-        self.assertTrue(len(myjob.outputs) == 16)
-
-    def test_EphysTrials(self):
-        myjob = ephys_preprocessing.EphysTrials(session_path)
-        status = myjob.run(status=0)
-        self.assertTrue(len(myjob.outputs) == 19)
-        self.assertTrue(status == 0)
 
 
 class TestEphysPipeline(unittest.TestCase):
 
+    def setUp(self) -> None:
+        self.init_folder = PATH_TESTS.joinpath('ephys', 'choice_world_init')
+        if not self.init_folder.exists():
+            return
+        self.main_folder = PATH_TESTS.joinpath('ephys', 'choice_world')
+        if self.main_folder.exists():
+            shutil.rmtree(self.main_folder)
+        self.main_folder.mkdir(exist_ok=True)
+        for ff in self.init_folder.rglob('*.*'):
+            link = self.main_folder.joinpath(ff.relative_to(self.init_folder))
+            if 'alf' in link.parts:
+                continue
+            link.parent.mkdir(exist_ok=True, parents=True)
+            link.symlink_to(ff)
+
     def test_pipeline_with_alyx(self):
-        eid = one.eid_from_path(session_path)
+        eid = one.eid_from_path(SESSION_PATH)
 
         # prepare by deleting all jobs/tasks related
         jobs = one.alyx.rest('jobs', 'list', session=eid)
@@ -40,8 +38,8 @@ class TestEphysPipeline(unittest.TestCase):
         [one.alyx.rest('tasks', 'delete', id=task) for task in tasks]
 
         # create jobs from scratch
-        NJOBS = 3
-        ephys_pipe = ephys_preprocessing.EphysExtractionPipeline(session_path, one=one)
+        NJOBS = 4
+        ephys_pipe = ephys_preprocessing.EphysExtractionPipeline(SESSION_PATH, one=one)
         ephys_pipe.make_graph(show=False)
         alyx_tasks = ephys_pipe.init_alyx_tasks()
         self.assertTrue(len(alyx_tasks) == NJOBS)
@@ -54,23 +52,11 @@ class TestEphysPipeline(unittest.TestCase):
         self.assertTrue(len(jobs) == NJOBS)
 
         # run them and make sure their statuses got updated
+        all_datasets = []
         for jdict in jobs:
-            status, dsets = run_alyx_job(jdict=jdict, session_path=session_path, one=one)
-        jobs = one.alyx.rest('jobs', 'list', session=eid, status='Waiting')
-        jobs_done = one.alyx.rest('jobs', 'list', session=eid, status='Complete')
-        self.assertTrue(len(jobs_done) == NJOBS)
-        self.assertTrue(len(jobs) == 0)
+            status, dsets = run_alyx_job(jdict=jdict, session_path=SESSION_PATH, one=one)
+            if dsets is not None:
+                all_datasets.extend(dsets)
 
-        # make sure that re-running the make job by default doesn't change complete jobs
-        ephys_pipe.register_alyx_jobs()
-        self.assertTrue(len(one.alyx.rest('jobs', 'list',
-                                          session=eid, status='Waiting')) == 0)
-        self.assertTrue(len(one.alyx.rest('jobs', 'list',
-                                          session=eid, status='Complete')) == NJOBS)
-
-        # test the rerun option
-        ephys_pipe.register_alyx_jobs(rerun=True)
-        self.assertTrue(len(one.alyx.rest('jobs', 'list',
-                                          session=eid, status='Waiting')) == NJOBS)
-        self.assertTrue(len(one.alyx.rest('jobs', 'list',
-                                          session=eid, status='Complete')) == 0)
+        for dset in all_datasets:
+            print(dset['name'])
