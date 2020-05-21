@@ -3,7 +3,7 @@ from pathlib import Path
 import shutil
 
 from ibllib.pipes import ephys_preprocessing
-from ibllib.pipes.jobs import run_alyx_job
+from ibllib.pipes.jobs import _run_alyx_job
 from oneibl.one import ONE
 
 
@@ -37,26 +37,17 @@ class TestEphysPipeline(unittest.TestCase):
         tasks = list(set([j['task'] for j in jobs]))
         [one.alyx.rest('tasks', 'delete', id=task) for task in tasks]
 
-        # create jobs from scratch
-        NJOBS = 4
+        # create tasks and jobs from scratch
+        NJOBS = 5
         ephys_pipe = ephys_preprocessing.EphysExtractionPipeline(SESSION_PATH, one=one)
         ephys_pipe.make_graph(show=False)
         alyx_tasks = ephys_pipe.init_alyx_tasks()
         self.assertTrue(len(alyx_tasks) == NJOBS)
-
         alyx_jobs = ephys_pipe.register_alyx_jobs()
         self.assertTrue(len(alyx_jobs) == NJOBS)
 
-        # get the pending jobs from alyx
-        jobs = one.alyx.rest('jobs', 'list', session=eid, status='Waiting')
-        self.assertTrue(len(jobs) == NJOBS)
-
-        # run them and make sure their statuses got updated
-        all_datasets = []
-        for jdict in jobs:
-            status, dsets = run_alyx_job(jdict=jdict, session_path=SESSION_PATH, one=one)
-            if dsets is not None:
-                all_datasets.extend(dsets)
+        # run the pipeline
+        all_datasets = ephys_pipe.run()
 
         for dset in all_datasets:
             print(dset['name'])
