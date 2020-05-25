@@ -12,6 +12,8 @@ from oneibl.one import ONE
 PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
 SESSION_PATH = PATH_TESTS.joinpath("ephys/choice_world/KS022/2019-12-10/001")
 one = ONE(base_url='http://localhost:8000')
+# one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
+#           username='test_user', password='TapetesBloc18')
 
 
 def check_spike_sorting_output(self, session_path):

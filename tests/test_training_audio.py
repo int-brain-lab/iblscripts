@@ -1,11 +1,8 @@
 import unittest
 from pathlib import Path
-import shutil
 
 import alf.io
-import ibllib.io.flags as flags
 from ibllib.io.extractors import training_audio as audio
-from ibllib.pipes.ephys_preprocessing import EphysAudio
 
 
 TEST_PATH = Path('/mnt/s0/Data/IntegrationTests')

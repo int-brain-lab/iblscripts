@@ -4,7 +4,7 @@ import shutil
 import logging
 
 from ibllib.io import spikeglx
-import ibllib.pipes.experimental_data as iblrig_pipeline
+from ibllib.pipes.ephys_preprocessing import EphysMtscomp
 
 _logger = logging.getLogger('ibllib')
 
@@ -30,14 +30,12 @@ class TestEphysCompression(unittest.TestCase):
             link.symlink_to(ff)
 
     def test_compress_session(self):
-        iblrig_pipeline.compress_ephys(self.main_folder)
+        EphysMtscomp(self.main_folder).run()
         ephys_files = spikeglx.glob_ephys_files(self.main_folder)
         for ef in ephys_files:
             # there is only one compressed file afterwards
             self.assertTrue(ef.ap.suffix == '.cbin')
             self.assertFalse(ef.ap.with_suffix('.bin').exists())
-            # the compress flag disappeared
-            self.assertFalse(ef.ap.parent.joinpath('compress_ephys.flag').exists())
             # the compressed file is readable
             sr = spikeglx.Reader(ef.ap)
             self.assertTrue(sr.is_mtscomp)
