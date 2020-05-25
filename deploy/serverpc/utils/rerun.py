@@ -20,6 +20,7 @@ import re
 import argparse
 
 import alf.io
+import ibllib.pipes.training_preprocessing
 from ibllib.io import flags, spikeglx
 import ibllib.pipes.experimental_data as pipes
 import ibllib.pipes.extract_session as extract_session
@@ -65,7 +66,7 @@ def rerun_03_compress_video_training(glob_path, drange, dry=True):
         if not(date >= drange[0] and (date <= drange[1])):
             continue
         session_path = alf.io.get_session_path(file_wav)
-        task_type = extract_session.get_session_extractor_type(session_path)
+        task_type = ibllib.pipes.training_preprocessing.get_session_extractor_type(session_path)
         if task_type not in ['training', 'biased', 'habituation']:
             continue
         if task_type is None:
@@ -200,7 +201,7 @@ def _glob_date_range(root_path, glob_pattern, task_excludes=None, task_includes=
 
     def _test_task(f):
         # check if task is included or excluded
-        task = extract_session.get_task_extractor_type(f)
+        task = ibllib.pipes.training_preprocessing.get_task_extractor_type(f)
         if not task:
             return False
         if task_includes and task not in task_includes:
