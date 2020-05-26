@@ -56,7 +56,9 @@ class TestEphysCheckList(unittest.TestCase):
         # plt.plot(dt * 30000)
         """ Test a single probe"""
         ses_path_single = self.folder3b_single.joinpath('hofer', 'raw_ephys_data')
-        self.assertTrue(sync_probes.version3B(ses_path_single.parent, display=False))
+        qc, outputs = sync_probes.version3B(ses_path_single.parent, display=False)
+        self.assertTrue(qc)
+        self.assertTrue(len(outputs) == 2)
         sync_dual_probe0 = np.load(list(ses_path.rglob('*imec0.sync.npy'))[0])
         sync_single_probe0 = np.load(list(ses_path_single.rglob('*imec0.sync.npy'))[0])
         self.assertTrue(np.all(np.equal(sync_dual_probe0, sync_single_probe0)))
@@ -64,7 +66,9 @@ class TestEphysCheckList(unittest.TestCase):
         """ Second session has sync issues """
         ses_path = self.folder3b.joinpath('cortexlab', 'KS014', '2019-12-03', '001',
                                           'raw_ephys_data')
-        self.assertFalse(sync_probes.version3B(ses_path.parent, display=False))
+        qc, outputs = sync_probes.version3B(ses_path.parent, display=False)
+        self.assertFalse(qc)
+        self.assertTrue(len(outputs) == 2)
         dt = _check_session_sync(ses_path, 6)
         # which doesn't prevent the sync function to output the desired output
         self.assertTrue(np.all(np.abs(dt * 30000) < 2))

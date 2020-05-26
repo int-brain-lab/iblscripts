@@ -8,7 +8,7 @@ import scipy.interpolate
 import matplotlib.pyplot as plt
 
 import alf.io
-from ibllib.io.extractors import ephys_fpga, training_wheel, ephys_trials
+from ibllib.io.extractors import ephys_fpga, training_wheel
 
 DISPLAY = False
 PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
@@ -20,17 +20,20 @@ def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
     shutil.rmtree(alf_path, ignore_errors=True)
     sync, chmap = ephys_fpga._get_main_probe_sync(session_path, bin_exists=False)
     fpga_wheel = ephys_fpga.extract_wheel_sync(sync, chmap=chmap)
-    bpod_wheel = training_wheel.get_wheel_position(session_path, save=False, display=display)
-    ephys_trials.extract_all(session_path, output_path=alf_path, save=True)
-    ephys_fpga.extract_behaviour_sync(sync, chmap=chmap)
-    bpod2fpga = ephys_fpga.align_with_bpod(session_path)
+    bpod_wheel = training_wheel.get_wheel_position(session_path, display=display)
+    data, _ = ephys_fpga.extract_all(session_path)
+
+    bpod2fpga = scipy.interpolate.interp1d(data['intervals_bpod'][:, 0], data['intervals'][:, 0],
+                                           fill_value="extrapolate")
     # resample both traces to the same rate and compute correlation coeff
     bpod_wheel['re_ts'] = bpod2fpga(bpod_wheel['re_ts'])
     tmin = max([np.min(fpga_wheel['re_ts']), np.min(bpod_wheel['re_ts'])])
     tmax = min([np.max(fpga_wheel['re_ts']), np.max(bpod_wheel['re_ts'])])
     wheel = {'tscale': np.arange(tmin, tmax, 0.01)}
-    wheel['fpga'] = scipy.interpolate.interp1d(fpga_wheel['re_ts'], fpga_wheel['re_pos'])(wheel['tscale'])
-    wheel['bpod'] = scipy.interpolate.interp1d(bpod_wheel['re_ts'], bpod_wheel['re_pos'])(wheel['tscale'])
+    wheel['fpga'] = scipy.interpolate.interp1d(
+        fpga_wheel['re_ts'], fpga_wheel['re_pos'])(wheel['tscale'])
+    wheel['bpod'] = scipy.interpolate.interp1d(
+        bpod_wheel['re_ts'], bpod_wheel['re_pos'])(wheel['tscale'])
     if display:
         plt.figure()
         plt.plot(fpga_wheel['re_ts'] - bpod2fpga(0), fpga_wheel['re_pos'], '*')
@@ -86,5 +89,5 @@ class TestWheelExtractionTraining(unittest.TestCase):
         for rbf in self.root_path.rglob('raw_behavior_data'):
             session_path = alf.io.get_session_path(rbf)
             _logger.info(f"TRAINING: {session_path}")
-            bpod_wheel = training_wheel.get_wheel_position(session_path, save=False)
+            bpod_wheel = training_wheel.get_wheel_position(session_path)
             self.assertTrue(bpod_wheel['re_ts'].size)
