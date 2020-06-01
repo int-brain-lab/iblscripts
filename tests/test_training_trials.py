@@ -33,6 +33,7 @@ class TestSessions(unittest.TestCase):
             shutil.copytree(INIT_FOLDER, subjects_path)
             for fil in subjects_path.rglob('_iblrig_taskData.raw*.jsonable'):
                 session_path = fil.parents[1]
+                # task running part
                 job = TrainingTrials(session_path)
                 job.run()
                 # load camera timestamps
@@ -54,8 +55,9 @@ class TestSessions(unittest.TestCase):
                     self.assertTrue(set(wheel.keys()) == set(WHEEL_KEYS))
                     self.assertTrue(np.all(np.diff(lc.times) > 0))
             """
-            For this session only the downgoing front of a trial was detected, resulting in an error
-            for the gocuetime. The fix was to extract the downgoing front and subtract 100ms.
+            For this session only the downgoing front of a trial was detected, resulting in
+             an error for the gocuetime. The fix was to extract the downgoing front and
+             subtract 100ms.
             """
             session_path = subjects_path / "CSHL_007/2019-07-31/001"
             trials = alf.io.load_object(session_path / 'alf', '_ibl_trials')

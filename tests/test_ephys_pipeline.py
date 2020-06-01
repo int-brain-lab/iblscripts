@@ -7,6 +7,7 @@ import numpy as np
 import alf.io
 from ibllib.pipes import ephys_preprocessing
 from oneibl.one import ONE
+from oneibl.registration import RegistrationClient
 
 
 PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
@@ -87,25 +88,26 @@ class TestEphysPipeline(unittest.TestCase):
             link.symlink_to(ff)
 
     def tearDown(self):
-        shutil.rmtree(self.main_folder)
+        pass
+        # shutil.rmtree(self.main_folder)
         
     def test_pipeline_with_alyx(self):
+        # first step is to remove the session and create it anew
         eid = one.eid_from_path(SESSION_PATH)
-
-        # prepare by deleting all jobs/tasks related
-        jobs = one.alyx.rest('jobs', 'list', session=eid)
-        tasks = list(set([j['task'] for j in jobs]))
-        [one.alyx.rest('tasks', 'delete', id=task) for task in tasks]
+        if eid is not None:
+            one.alyx.rest('sessions', 'delete', id=eid)
+        RegistrationClient(one=one).register_session(SESSION_PATH, file_list=False)
+        eid = one.eid_from_path(SESSION_PATH)
 
         # create tasks and jobs from scratch
         ephys_pipe = ephys_preprocessing.EphysExtractionPipeline(SESSION_PATH, one=one)
         ephys_pipe.make_graph(show=False)
-        alyx_tasks = ephys_pipe.init_alyx_tasks()
-        self.assertTrue(len(alyx_tasks) == len(ephys_pipe.jobs))
-        alyx_jobs = ephys_pipe.register_alyx_jobs()
-        self.assertTrue(len(alyx_jobs) == len(ephys_pipe.jobs))
+        alyx_tasks = ephys_pipe.create_alyx_tasks()
+        self.assertTrue(len(alyx_tasks) == len(ephys_pipe.tasks))
 
         # run the pipeline
-        job_deck, all_datasets = ephys_pipe.run()
-        self.check_spike_sorting_output(self, SESSION_PATH)
+        task_deck, all_datasets = ephys_pipe.run()
+        check_spike_sorting_output(self, SESSION_PATH)
+
+
 
