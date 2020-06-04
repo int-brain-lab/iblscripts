@@ -1,3 +1,4 @@
+import logging
 import unittest
 from pathlib import Path
 import shutil
@@ -9,65 +10,13 @@ from ibllib.pipes import ephys_preprocessing
 from oneibl.one import ONE
 from oneibl.registration import RegistrationClient
 
+_logger = logging.getLogger('ibllib')
 
 PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
 SESSION_PATH = PATH_TESTS.joinpath("ephys/choice_world/KS022/2019-12-10/001")
 one = ONE(base_url='http://localhost:8000')
 # one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
 #           username='test_user', password='TapetesBloc18')
-
-
-def check_spike_sorting_output(self, session_path):
-    """ Check the spikes object """
-    spikes_attributes = ['depths', 'amps', 'clusters', 'times', 'templates', 'samples']
-    probe_folders = list(set([p.parent for p in session_path.joinpath(
-        'alf').rglob('spikes.times.npy')]))
-    for probe_folder in probe_folders:
-        spikes = alf.io.load_object(probe_folder, 'spikes')
-        self.assertTrue(np.max(spikes.times) > 1000)
-        self.assertTrue(alf.io.check_dimensions(spikes) == 0)
-        # check that it contains the proper keys
-        self.assertTrue(set(spikes.keys()).issubset(set(spikes_attributes)))
-        self.assertTrue(np.min(spikes.depths) >= 0)
-        self.assertTrue(np.max(spikes.depths) <= 3840)
-        self.assertTrue(80 < np.median(spikes.amps) * 1e6 < 200)  # we expect Volts
-
-        """Check the clusters object"""
-        clusters = alf.io.load_object(probe_folder, 'clusters')
-        clusters_attributes = ['depths', 'channels', 'peakToTrough', 'amps', 'metrics',
-                               'uuids', 'waveforms', 'waveformsChannels']
-        self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters]).size == 1)
-        self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
-        self.assertTrue(10 < np.nanmedian(clusters.amps) * 1e6 < 80)  # we expect Volts
-        self.assertTrue(0 < np.median(np.abs(clusters.peakToTrough)) < 5)  # we expect ms
-
-        """Check the channels object"""
-        channels = alf.io.load_object(probe_folder, 'channels')
-        channels_attributes = ['rawInd', 'localCoordinates']
-        self.assertTrue(set(channels.keys()) == set(channels_attributes))
-
-        """Check the template object"""
-        templates = alf.io.load_object(probe_folder, 'templates')
-        templates_attributes = ['waveforms', 'waveformsChannels']
-        self.assertTrue(set(templates.keys()) == set(templates_attributes))
-        self.assertTrue(np.unique([templates[k].shape[0] for k in templates]).size == 1)
-        # """Check the probes object"""
-        probes_attributes = ['description', 'trajectory']
-        probes = alf.io.load_object(session_path.joinpath('alf'), 'probes')
-        self.assertTrue(set(probes.keys()) == set(probes_attributes))
-
-        """(basic) check cross-references"""
-        nclusters = clusters.depths.size
-        nchannels = channels.rawInd.size
-        ntemplates = templates.waveforms.shape[0]
-        self.assertTrue(np.all(0 <= spikes.clusters) and
-                        np.all(spikes.clusters <= (nclusters - 1)))
-        self.assertTrue(np.all(0 <= spikes.templates) and
-                        np.all(spikes.templates <= (ntemplates - 1)))
-        self.assertTrue(np.all(0 <= clusters.channels) and
-                        np.all(clusters.channels <= (nchannels - 1)))
-        # check that the site positions channels match the depth with indexing
-        self.assertTrue(np.all(clusters.depths == channels.localCoordinates[clusters.channels, 1]))
 
 
 class TestEphysPipeline(unittest.TestCase):
@@ -107,7 +56,156 @@ class TestEphysPipeline(unittest.TestCase):
 
         # run the pipeline
         task_deck, all_datasets = ephys_pipe.run()
-        check_spike_sorting_output(self, SESSION_PATH)
+
+        # check the spike sorting output on disk
+        self.check_spike_sorting_output(SESSION_PATH)
+
+        # check the registration of datasets
+        dsets = one.alyx.rest('datasets', 'list', session=eid)
+        dtypesdb = sorted([ds['dataset_type'] for ds in dsets])
+        dtypes = sorted([ds['dataset_type'] for ds in all_datasets])
+        self.assertEqual(dtypesdb, dtypes)
+
+        nss = 2
+        EXPECTED_DATASETS = [('_iblqc_ephysSpectralDensity.freqs', 4, 4),
+                             ('_iblqc_ephysSpectralDensity.power', 4, 4),
+                             ('_iblqc_ephysTimeRms.rms', 4, 4),
+                             ('_iblqc_ephysTimeRms.timestamps', 4, 4),
+
+                             ('_iblrig_micData.raw', 1, 1),
+
+                             ('_spikeglx_sync.channels', 2, 3),
+                             ('_spikeglx_sync.polarities', 2, 3),
+                             ('_spikeglx_sync.times', 2, 3),
+
+                             ('camera.times', 3, 3),
+
+                             ('kilosort.whitening_matrix', nss, nss),
+                             ('_phy_spikes_subset.channels', nss, nss),
+                             ('_phy_spikes_subset.spikes', nss, nss),
+                             ('_phy_spikes_subset.waveforms', nss, nss),
+
+                             ('channels.localCoordinates', nss, nss),
+                             ('channels.rawInd', nss, nss),
+                             ('clusters.amps', nss, nss),
+                             ('clusters.channels', nss, nss),
+                             ('clusters.depths', nss, nss),
+                             ('clusters.probes', 0, 0),
+                             ('clusters.metrics', nss, nss),
+                             ('clusters.peakToTrough', nss, nss),
+                             ('clusters.uuids', nss, nss),
+                             ('clusters.waveforms', nss, nss),
+                             ('clusters.waveformsChannels', nss, nss),
+
+                             # ('ephysData.raw.ap', 2, 2),
+                             # ('ephysData.raw.lf', 2, 2),
+                             # ('ephysData.raw.ch', 4, 5),
+                             # ('ephysData.raw.meta', 4, 5),
+                             ('ephysData.raw.sync', 2, 2),
+                             ('ephysData.raw.timestamps', 2, 2),
+                             # ('ephysData.raw.wiring', 2, 3),
+
+                             ('probes.description', 1, 1),
+                             ('probes.trajectory', 1, 1),
+                             ('spikes.amps', nss, nss),
+                             ('spikes.clusters', nss, nss),
+                             ('spikes.depths', nss, nss),
+                             ('spikes.templates', nss, nss),
+                             ('spikes.times', nss, nss),
+                             ('templates.waveforms', nss, nss),
+                             ('templates.waveformsChannels', nss, nss),
+
+                             ('trials.choice', 1, 1),
+                             ('trials.contrastLeft', 1, 1),
+                             ('trials.contrastRight', 1, 1),
+                             ('trials.feedbackType', 1, 1),
+                             ('trials.feedback_times', 1, 1),
+                             ('trials.goCue_times', 1, 1),
+                             ('trials.goCueTrigger_times', 1, 1),
+                             ('trials.intervals', 2, 2),
+                             ('trials.probabilityLeft', 1, 1),
+                             ('trials.response_times', 1, 1),
+                             ('trials.rewardVolume', 1, 1),
+                             ('trials.stimOn_times', 1, 1),
+                             ('wheel.position', 1, 1),
+                             ('wheel.timestamps', 1, 1),
+                             ]
+        # check that we indeed find expected number of datasets after registration
+        success = True
+        for ed in EXPECTED_DATASETS:
+            count = sum([1 if ed[0] == dt else 0 for dt in dtypes])
+            if not ed[1] <= count <= ed[2]:
+                _logger.error(f'missing dataset types: {ed[0]} found {count}, '
+                              f'expected between [{ed[1]} and {ed[2]}]')
+                success = False
+            else:
+                _logger.info(f'check dataset types registration OK: {ed[0]}')
+        self.assertTrue(success)
 
 
+    def check_spike_sorting_output(self, session_path):
+        """ Check the spikes object """
+        spikes_attributes = ['depths', 'amps', 'clusters', 'times', 'templates', 'samples']
+        probe_folders = list(set([p.parent for p in session_path.joinpath(
+            'alf').rglob('spikes.times.npy')]))
+        for probe_folder in probe_folders:
+            spikes = alf.io.load_object(probe_folder, 'spikes')
+            self.assertTrue(np.max(spikes.times) > 1000)
+            self.assertTrue(alf.io.check_dimensions(spikes) == 0)
+            # check that it contains the proper keys
+            self.assertTrue(set(spikes.keys()).issubset(set(spikes_attributes)))
+            self.assertTrue(np.nanmin(spikes.depths) >= 0)
+            self.assertTrue(np.nanmax(spikes.depths) <= 3840)
+            self.assertTrue(80 < np.median(spikes.amps) * 1e6 < 200)  # we expect Volts
 
+            """Check the clusters object"""
+            clusters = alf.io.load_object(probe_folder, 'clusters')
+            clusters_attributes = ['depths', 'channels', 'peakToTrough', 'amps', 'metrics',
+                                   'uuids', 'waveforms', 'waveformsChannels']
+            self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters]).size == 1)
+            self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
+            self.assertTrue(10 < np.nanmedian(clusters.amps) * 1e6 < 80)  # we expect Volts
+            self.assertTrue(0 < np.median(np.abs(clusters.peakToTrough)) < 5)  # we expect ms
+
+            """Check the channels object"""
+            channels = alf.io.load_object(probe_folder, 'channels')
+            channels_attributes = ['rawInd', 'localCoordinates']
+            self.assertTrue(set(channels.keys()) == set(channels_attributes))
+
+            """Check the template object"""
+            templates = alf.io.load_object(probe_folder, 'templates')
+            templates_attributes = ['waveforms', 'waveformsChannels']
+            self.assertTrue(set(templates.keys()) == set(templates_attributes))
+            self.assertTrue(np.unique([templates[k].shape[0] for k in templates]).size == 1)
+            # """Check the probes object"""
+            probes_attributes = ['description', 'trajectory']
+            probes = alf.io.load_object(session_path.joinpath('alf'), 'probes')
+            self.assertTrue(set(probes.keys()) == set(probes_attributes))
+
+            """(basic) check cross-references"""
+            nclusters = clusters.depths.size
+            nchannels = channels.rawInd.size
+            ntemplates = templates.waveforms.shape[0]
+            self.assertTrue(np.all(0 <= spikes.clusters) and
+                            np.all(spikes.clusters <= (nclusters - 1)))
+            self.assertTrue(np.all(0 <= spikes.templates) and
+                            np.all(spikes.templates <= (ntemplates - 1)))
+            self.assertTrue(np.all(0 <= clusters.channels) and
+                            np.all(clusters.channels <= (nchannels - 1)))
+            # check that the site positions channels match the depth with indexing
+            self.assertTrue(np.all(clusters.depths == channels.localCoordinates[clusters.channels, 1]))
+
+            # compare against the cortexlab spikes Matlab code output if fixtures exist
+            for famps in session_path.joinpath(
+                    'raw_ephys_data', probe_folder.parts[-1]).rglob('expected_amps_V_matlab.npy'):
+                expected_amps = np.load(famps)
+                # the difference is within 2 uV
+                assert np.max(np.abs((spikes.amps * 1e6 - np.squeeze(expected_amps)))) < 2
+                _logger.info('checked ' + '/'.join(famps.parts[-2:]))
+
+            for fdepths in session_path.joinpath(
+                    'raw_ephys_data', probe_folder.parts[-1]).rglob('expected_dephts_um_matlab.npy'):
+                expected_depths = np.load(fdepths)
+                # the difference is within 2 uV
+                assert np.nanmax(np.abs((spikes.depths - np.squeeze(expected_depths)))) < .01
+                _logger.info('checked ' + '/'.join(fdepths.parts[-2:]))
