@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from ibllib.io import raw_data_loaders as rawio
 from oneibl.one import ONE
 from oneibl.registration import RegistrationClient
 from ibllib.pipes.training_preprocessing import TrainingExtractionPipeline
@@ -33,30 +34,37 @@ class TestPipeline(unittest.TestCase):
                 link.symlink_to(ff)
 
             # register jobs in alyx for all the sessions
+            nses = 0
             for fil in subjects_path.rglob('_iblrig_taskData.raw*.jsonable'):
                 session_path = fil.parents[1]
                 register_pipeline(session_path)
+                nses += 1
 
-            # TODO execute the list of jobs with the simplest scheduler possible
-            #
-            # training_jobs = one.alyx.rest('jobs', 'list', status='Waiting', ready=True,
-            #                               pipeline='ibllib.pipes.training_preprocessing')
+            # execute the list of jobs with the simplest scheduler possible
+            training_jobs = one.alyx.rest(
+                'tasks', 'list', status='Waiting', graph='TrainingExtractionPipeline')
+            self.assertEqual(nses * 4, len(training_jobs))
             # one.alyx.rest('jobs', 'read', id='32c83da4-8a2f-465e-8227-c3b540e61142')
 
-            # for tdict in training_jobs:
-            #     ses = one.alyx.rest('sessions', 'list', django=f"pk,{tdict['session']}")[0]
-            #     session_path = subjects_path.joinpath(Path(ses['subject'], ses['start_time'][:10], str(ses['number']).zfill(3)))
-            #     job, dsets = _run_alyx_task(tdict=tdict, session_path=session_path, one=one)
+            for tdict in training_jobs:
+                ses = one.alyx.rest('sessions', 'list', django=f"pk,{tdict['session']}")[0]
+                session_path = subjects_path.joinpath(Path(ses['subject'], ses['start_time'][:10],
+                                                           str(ses['number']).zfill(3)))
+                task, dsets = _run_alyx_task(tdict=tdict, session_path=session_path, one=one)
 
 
 def register_pipeline(session_path):
     # creates the session if necessary
-    print(session_path)
+    task_type = rawio.get_session_extractor_type(session_path)
+    print(session_path, task_type)
     # creates the session if it doesn't exist
     if one.eid_from_path(session_path) is None:
         RegistrationClient(one=one).register_session(session_path, file_list=False)
     pipe = TrainingExtractionPipeline(session_path, one=one)
+
+
     # this is boilerplate code just for the test
-    tasks = one.alyx.rest('tasks', 'list', pipeline=pipe.label)  # todo get the right rest filter
-    jobs = pipe.create_alyx_tasks()
-    assert (len(tasks) == len(jobs) == len(pipe.jobs))
+    eid = one.eid_from_path(session_path)
+    tasks = pipe.create_alyx_tasks(rerun__status__in='__all__')
+    alyx_tasks = one.alyx.rest('tasks', 'list', session=eid, graph=pipe.name)
+    assert (len(tasks) == len(alyx_tasks) == len(pipe.tasks))

@@ -37,8 +37,10 @@ class TestEphysPipeline(unittest.TestCase):
             link.symlink_to(ff)
 
     def tearDown(self):
-        pass
+        # it's actually useful to keep the output on disk
         # shutil.rmtree(self.main_folder)
+        pass
+
         
     def test_pipeline_with_alyx(self):
         # first step is to remove the session and create it anew
@@ -114,6 +116,7 @@ class TestEphysPipeline(unittest.TestCase):
                              ('spikes.times', nss, nss),
                              ('templates.waveforms', nss, nss),
                              ('templates.waveformsChannels', nss, nss),
+                             ('templates.amps', nss, nss),
 
                              ('trials.choice', 1, 1),
                              ('trials.contrastLeft', 1, 1),
@@ -174,13 +177,25 @@ class TestEphysPipeline(unittest.TestCase):
 
             """Check the template object"""
             templates = alf.io.load_object(probe_folder, 'templates')
-            templates_attributes = ['waveforms', 'waveformsChannels']
+            templates_attributes = ['amps', 'waveforms', 'waveformsChannels']
             self.assertTrue(set(templates.keys()) == set(templates_attributes))
             self.assertTrue(np.unique([templates[k].shape[0] for k in templates]).size == 1)
             # """Check the probes object"""
             probes_attributes = ['description', 'trajectory']
             probes = alf.io.load_object(session_path.joinpath('alf'), 'probes')
             self.assertTrue(set(probes.keys()) == set(probes_attributes))
+
+            """check sample waveforms and make sure amplitudes check out"""
+            swv = alf.io.load_object(probe_folder, '_phy_spikes_subset')
+            swv_attributes = ['spikes', 'channels', 'waveforms']
+            self.assertTrue(set(swv_attributes) == set(swv.keys()))
+            iswv = 20001
+            it = spikes.templates[swv.spikes[iswv]]
+            _, ics, ict = np.intersect1d(swv.channels[iswv], templates.waveformsChannels[it],
+                                         return_indices=True)
+            iw = templates.waveforms[it][:, ict] != 0
+            self.assertTrue(np.median(np.abs(swv.waveforms[iswv][:, ics][iw])) < 5e-5)
+            self.assertTrue(np.median(np.abs(templates.waveforms[it][:, ict][iw])) < 5e-5)
 
             """(basic) check cross-references"""
             nclusters = clusters.depths.size
@@ -195,7 +210,7 @@ class TestEphysPipeline(unittest.TestCase):
             # check that the site positions channels match the depth with indexing
             self.assertTrue(np.all(clusters.depths == channels.localCoordinates[clusters.channels, 1]))
 
-            # compare against the cortexlab spikes Matlab code output if fixtures exist
+            """ compare against the cortexlab spikes Matlab code output if fixtures exist """
             for famps in session_path.joinpath(
                     'raw_ephys_data', probe_folder.parts[-1]).rglob('expected_amps_V_matlab.npy'):
                 expected_amps = np.load(famps)
