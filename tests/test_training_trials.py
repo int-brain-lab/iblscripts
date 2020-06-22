@@ -15,10 +15,11 @@ INIT_FOLDER = PATH_TESTS.joinpath('training')
 TRIAL_KEYS_ge5 = ['goCue_times', 'probabilityLeft', 'intervals', 'stimOnTrigger_times',
                   'goCueTrigger_times', 'response_times', 'feedbackType', 'contrastLeft',
                   'feedback_times', 'rewardVolume', 'included', 'choice', 'contrastRight',
-                  'stimOn_times']
+                  'stimOn_times', 'firstMovement_times']
 TRIAL_KEYS_lt5 = ['goCue_times', 'probabilityLeft', 'intervals', 'itiDuration',
                   'goCueTrigger_times', 'response_times', 'feedbackType', 'contrastLeft',
-                  'feedback_times', 'rewardVolume', 'choice', 'contrastRight', 'stimOn_times']
+                  'feedback_times', 'rewardVolume', 'choice', 'contrastRight', 'stimOn_times',
+                  'firstMovement_times']
 WHEEL_KEYS = ['position', 'timestamps']
 
 

@@ -68,7 +68,7 @@ class TestEphysCheckList(unittest.TestCase):
                                           'raw_ephys_data')
         qc, outputs = sync_probes.version3B(ses_path.parent, display=False)
         self.assertFalse(qc)
-        self.assertTrue(len(outputs) == 2)
+        self.assertTrue(len(outputs) == 4)
         dt = _check_session_sync(ses_path, 6)
         # which doesn't prevent the sync function to output the desired output
         self.assertTrue(np.all(np.abs(dt * 30000) < 2))

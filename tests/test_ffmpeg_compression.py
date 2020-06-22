@@ -26,9 +26,9 @@ class TestVideoAudioEphys(unittest.TestCase):
                 self.assertTrue(len(list(session_path.rglob('*.avi'))) == 0)
                 self.assertTrue(len(list(session_path.rglob('*.mp4'))) == 3)
                 self.assertTrue(len(job.outputs) == 3)
-                # a second run should not output anything
+                # a second run should still output files for registration
                 job.run()
-                self.assertTrue(len(job.outputs) == 0)
+                self.assertTrue(len(job.outputs) == 3)
                 """
                 Do the audio compression test as well
                 """

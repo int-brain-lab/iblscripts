@@ -72,17 +72,16 @@ class TestEphysTaskExtraction(unittest.TestCase):
         # check that the output is complete
         for f in FPGA_FILES:
             self.assertTrue(alf_path.joinpath(f).exists())
-        # checks that all matrices in trials have the same number of trials
-        self.assertTrue(np.unique([t.shape[0] for t in trials]).size == 1)
         # check dimensions after alf load
         alf_trials = alf.io.load_object(alf_path, '_ibl_trials')
         self.assertTrue(alf.io.check_dimensions(alf_trials) == 0)
         # go deeper and check the internal fpga trials structure consistency
         fpga_trials = ephys_fpga.extract_behaviour_sync(sync, chmap)
         self.assertEqual(alf.io.check_dimensions(fpga_trials), 0)
-        self.assertTrue(np.all(np.isnan(fpga_trials['valve_open'] * fpga_trials['error_tone_in'])))
-        self.assertTrue(np.all(np.logical_xor(np.isnan(fpga_trials['valve_open']),
-                                              np.isnan(fpga_trials['error_tone_in']))))
+        self.assertTrue(np.all(np.isnan(fpga_trials['valveOpen_times']
+                                        * fpga_trials['errorCue_times'])))
+        self.assertTrue(np.all(np.logical_xor(np.isnan(fpga_trials['valveOpen_times']),
+                                              np.isnan(fpga_trials['errorCue_times']))))
         shutil.rmtree(alf_path, ignore_errors=True)
         # do the
         ephysqc.qc_fpga_task(fpga_trials, alf_trials)

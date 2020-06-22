@@ -121,17 +121,22 @@ class TestEphysPipeline(unittest.TestCase):
                              ('trials.choice', 1, 1),
                              ('trials.contrastLeft', 1, 1),
                              ('trials.contrastRight', 1, 1),
-                             ('trials.feedbackType', 1, 1),
                              ('trials.feedback_times', 1, 1),
+                             ('trials.feedbackType', 1, 1),
+                             ('trials.firstMovement_times', 1, 1),
                              ('trials.goCue_times', 1, 1),
                              ('trials.goCueTrigger_times', 1, 1),
                              ('trials.intervals', 2, 2),
                              ('trials.probabilityLeft', 1, 1),
                              ('trials.response_times', 1, 1),
                              ('trials.rewardVolume', 1, 1),
+                             ('trials.stimOff_times', 1, 1),
                              ('trials.stimOn_times', 1, 1),
                              ('wheel.position', 1, 1),
                              ('wheel.timestamps', 1, 1),
+                             ('wheelMoves.intervals', 1, 1),
+                             ('wheelMoves.peakAmplitude', 1, 1),
+                             ('wheelMoves.type', 1, 1),
                              ]
         # check that we indeed find expected number of datasets after registration
         success = True
