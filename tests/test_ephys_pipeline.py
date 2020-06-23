@@ -136,7 +136,6 @@ class TestEphysPipeline(unittest.TestCase):
                              ('wheel.timestamps', 1, 1),
                              ('wheelMoves.intervals', 1, 1),
                              ('wheelMoves.peakAmplitude', 1, 1),
-                             ('wheelMoves.type', 1, 1),
                              ]
         # check that we indeed find expected number of datasets after registration
         success = True
@@ -199,8 +198,8 @@ class TestEphysPipeline(unittest.TestCase):
             _, ics, ict = np.intersect1d(swv.channels[iswv], templates.waveformsChannels[it],
                                          return_indices=True)
             iw = templates.waveforms[it][:, ict] != 0
-            self.assertTrue(np.median(np.abs(swv.waveforms[iswv][:, ics][iw])) < 5e-5)
-            self.assertTrue(np.median(np.abs(templates.waveforms[it][:, ict][iw])) < 5e-5)
+            self.assertTrue(np.median(np.abs(swv.waveforms[iswv][:, ics][iw])) < 1e-3)
+            self.assertTrue(np.median(np.abs(templates.waveforms[it][:, ict][iw])) < 1e-3)
 
             """(basic) check cross-references"""
             nclusters = clusters.depths.size
