@@ -8,8 +8,8 @@ from oneibl.one import ONE
 from oneibl.registration import RegistrationClient
 from ibllib.pipes.training_preprocessing import TrainingExtractionPipeline
 from ibllib.pipes.tasks import _run_alyx_task
-# one = ONE(base_url='https://testdev.alyx.internationalbrainlab.org')
-one = ONE(base_url='http://localhost:8000')
+one = ONE(base_url='https://test.alyx.internationalbrainlab.org')
+# one = ONE(base_url='http://localhost:8000')
 
 PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
 INIT_FOLDER = PATH_TESTS.joinpath('Subjects_init')
@@ -37,31 +37,33 @@ class TestPipeline(unittest.TestCase):
             nses = 0
             for fil in subjects_path.rglob('_iblrig_taskData.raw*.jsonable'):
                 session_path = fil.parents[1]
-                register_pipeline(session_path)
+                create_pipeline(session_path)
                 nses += 1
 
             # execute the list of jobs with the simplest scheduler possible
             training_jobs = one.alyx.rest(
                 'tasks', 'list', status='Waiting', graph='TrainingExtractionPipeline')
-            self.assertEqual(nses * 4, len(training_jobs))
+            self.assertEqual(nses * 5, len(training_jobs))
             # one.alyx.rest('jobs', 'read', id='32c83da4-8a2f-465e-8227-c3b540e61142')
 
             for tdict in training_jobs:
                 ses = one.alyx.rest('sessions', 'list', django=f"pk,{tdict['session']}")[0]
                 session_path = subjects_path.joinpath(Path(ses['subject'], ses['start_time'][:10],
                                                            str(ses['number']).zfill(3)))
-                task, dsets = _run_alyx_task(tdict=tdict, session_path=session_path, one=one)
+                task, dsets = _run_alyx_task(tdict=tdict, session_path=session_path, one=one,
+                                             max_md5_size=1024 * 1024 * 20)
 
 
-def register_pipeline(session_path):
+def create_pipeline(session_path):
     # creates the session if necessary
     task_type = rawio.get_session_extractor_type(session_path)
     print(session_path, task_type)
-    # creates the session if it doesn't exist
-    if one.eid_from_path(session_path) is None:
-        RegistrationClient(one=one).register_session(session_path, file_list=False)
+    # delete the session if it exists
+    eid = one.eid_from_path(session_path)
+    if eid is not None:
+        one.alyx.rest('sessions', 'delete', id=eid)
+    RegistrationClient(one=one).register_session(session_path, file_list=False)
     pipe = TrainingExtractionPipeline(session_path, one=one)
-
 
     # this is boilerplate code just for the test
     eid = one.eid_from_path(session_path)

@@ -2,7 +2,7 @@ import logging
 import unittest
 from pathlib import Path
 import shutil
-
+from operator import itemgetter
 import numpy as np
 
 import alf.io
@@ -14,9 +14,9 @@ _logger = logging.getLogger('ibllib')
 
 PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
 SESSION_PATH = PATH_TESTS.joinpath("ephys/choice_world/KS022/2019-12-10/001")
-one = ONE(base_url='http://localhost:8000')
-# one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
-#           username='test_user', password='TapetesBloc18')
+# one = ONE(base_url='http://localhost:8000')
+one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
+          username='test_user', password='TapetesBloc18')
 
 
 class TestEphysPipeline(unittest.TestCase):
@@ -41,7 +41,6 @@ class TestEphysPipeline(unittest.TestCase):
         # shutil.rmtree(self.main_folder)
         pass
 
-        
     def test_pipeline_with_alyx(self):
         # first step is to remove the session and create it anew
         eid = one.eid_from_path(SESSION_PATH)
@@ -57,16 +56,15 @@ class TestEphysPipeline(unittest.TestCase):
         self.assertTrue(len(alyx_tasks) == len(ephys_pipe.tasks))
 
         # run the pipeline
-        task_deck, all_datasets = ephys_pipe.run()
+        task_deck, all_datasets = ephys_pipe.run(max_md5_size=1024 * 1024 * 20)
 
         # check the spike sorting output on disk
         self.check_spike_sorting_output(SESSION_PATH)
 
         # check the registration of datasets
         dsets = one.alyx.rest('datasets', 'list', session=eid)
-        dtypesdb = sorted([ds['dataset_type'] for ds in dsets])
-        dtypes = sorted([ds['dataset_type'] for ds in all_datasets])
-        self.assertEqual(dtypesdb, dtypes)
+        self.assertEqual(set([ds['url'][-36:] for ds in dsets]),
+                         set([ds['id'] for ds in all_datasets]))
 
         nss = 2
         EXPECTED_DATASETS = [('_iblqc_ephysSpectralDensity.freqs', 4, 4),
@@ -138,6 +136,10 @@ class TestEphysPipeline(unittest.TestCase):
                              ('wheelMoves.peakAmplitude', 1, 1),
                              ]
         # check that we indeed find expected number of datasets after registration
+        # for this we need to get the unique set of datasets
+        dids = np.array([d['id'] for d in all_datasets])
+        [_, iu] = np.unique(dids, return_index=True)
+        dtypes = sorted([ds['dataset_type'] for ds in itemgetter(*iu)(all_datasets)])
         success = True
         for ed in EXPECTED_DATASETS:
             count = sum([1 if ed[0] == dt else 0 for dt in dtypes])
@@ -148,7 +150,6 @@ class TestEphysPipeline(unittest.TestCase):
             else:
                 _logger.info(f'check dataset types registration OK: {ed[0]}')
         self.assertTrue(success)
-
 
     def check_spike_sorting_output(self, session_path):
         """ Check the spikes object """
