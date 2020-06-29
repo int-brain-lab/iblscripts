@@ -6,9 +6,8 @@ from operator import itemgetter
 import numpy as np
 
 import alf.io
-from ibllib.pipes import ephys_preprocessing
+from ibllib.pipes import local_server, ephys_preprocessing
 from oneibl.one import ONE
-from oneibl.registration import RegistrationClient
 
 _logger = logging.getLogger('ibllib')
 
@@ -35,28 +34,36 @@ class TestEphysPipeline(unittest.TestCase):
                 continue
             link.parent.mkdir(exist_ok=True, parents=True)
             link.symlink_to(ff)
+        SESSION_PATH.joinpath('extract_me.flag').touch()
 
-    def tearDown(self):
-        # it's actually useful to keep the output on disk
-        # shutil.rmtree(self.main_folder)
-        pass
-
-    def test_pipeline_with_alyx(self):
-        # first step is to remove the session and create it anew
-        eid = one.eid_from_path(SESSION_PATH)
-        if eid is not None:
-            one.alyx.rest('sessions', 'delete', id=eid)
-        RegistrationClient(one=one).register_session(SESSION_PATH, file_list=False)
-        eid = one.eid_from_path(SESSION_PATH)
-
+    def test_tasks_creation(self):
         # create tasks and jobs from scratch
         ephys_pipe = ephys_preprocessing.EphysExtractionPipeline(SESSION_PATH, one=one)
         ephys_pipe.make_graph(show=False)
         alyx_tasks = ephys_pipe.create_alyx_tasks()
         self.assertTrue(len(alyx_tasks) == len(ephys_pipe.tasks))
 
-        # run the pipeline
-        task_deck, all_datasets = ephys_pipe.run(max_md5_size=1024 * 1024 * 20)
+    def test_pipeline_with_alyx(self):
+        """
+        Test the ephys pipeline exactly as it is supposed to run on the local servers
+        :return:
+        """
+        # first step is to remove the session and create it anew
+        eid = one.eid_from_path(SESSION_PATH)
+        if eid is not None:
+            one.alyx.rest('sessions', 'delete', id=eid)
+
+        # create the jobs and run them
+        raw_ds = local_server.job_creator(SESSION_PATH, one=one, max_md5_size=1024 * 1024 * 20)
+        eid = one.eid_from_path(SESSION_PATH)
+        self.assertFalse(eid is None)  # the session is created on the database
+        # the flag has been erased
+        self.assertFalse(SESSION_PATH.joinpath('extract_me.flag').exists())
+
+        subject_path = SESSION_PATH.parents[2]
+        tasks_dict = one.alyx.rest('tasks', 'list', session=eid, status='Waiting')
+        all_datasets = local_server.tasks_runner(subject_path, tasks_dict, one=one,
+                                                 max_md5_size=1024 * 1024 * 20)
 
         # check the spike sorting output on disk
         self.check_spike_sorting_output(SESSION_PATH)
@@ -64,7 +71,7 @@ class TestEphysPipeline(unittest.TestCase):
         # check the registration of datasets
         dsets = one.alyx.rest('datasets', 'list', session=eid)
         self.assertEqual(set([ds['url'][-36:] for ds in dsets]),
-                         set([ds['id'] for ds in all_datasets]))
+                         set([ds['id'] for ds in all_datasets + raw_ds]))
 
         nss = 2
         EXPECTED_DATASETS = [('_iblqc_ephysSpectralDensity.freqs', 4, 4),
