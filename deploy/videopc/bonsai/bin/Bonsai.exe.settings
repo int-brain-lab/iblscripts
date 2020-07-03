@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<EditorSettings>
+  <WindowState>Normal</WindowState>
+  <EditorTheme>Light</EditorTheme>
+  <DesktopBounds>
+    <X>240</X>
+    <Y>137</Y>
+    <Width>1254</Width>
+    <Height>614</Height>
+  </DesktopBounds>
+  <RecentlyUsedFiles>
+    <RecentlyUsedFile>
+      <Timestamp>2020-07-03T11:58:19.6909886+01:00</Timestamp>
+      <Name>C:\iblscripts\deploy\videopc\bonsai\workflows\three_cameras_record.bonsai</Name>
+    </RecentlyUsedFile>
+    <RecentlyUsedFile>
+      <Timestamp>2020-06-30T20:00:56.1397692+01:00</Timestamp>
+      <Name>c:\iblrig\devices\microphone\record_mic.bonsai</Name>
+    </RecentlyUsedFile>
+    <RecentlyUsedFile>
+      <Timestamp>2020-06-30T19:32:00.3605180+01:00</Timestamp>
+      <Name>c:\iblrig\devices\camera_recordings\one_camera.bonsai</Name>
+    </RecentlyUsedFile>
+  </RecentlyUsedFiles>
+</EditorSettings>
