@@ -9,4 +9,4 @@ python jobs.py kill run
 ./update_ibllib.sh
 
 python jobs.py create /mnt/s0/Data/Subjects &
-python jobs.py run /mnt/s0/Data/Sujects &
+python jobs.py run /mnt/s0/Data/Subjects &
