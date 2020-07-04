@@ -58,8 +58,8 @@ def forever(func, port=None, sleep=600):
             except socket.timeout:
                 pass
             if (time.time() - t) > sleep:
-                func(*args, **kwargs)
                 t = time.time()
+                func(*args, **kwargs)
             time.sleep(2)
     return wrapper
 
