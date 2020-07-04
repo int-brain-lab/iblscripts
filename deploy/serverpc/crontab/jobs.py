@@ -65,14 +65,14 @@ def forever(func, port=None, sleep=600):
 
 
 @forever(DEFINED_PORT_RUN, 600)
-def run_tasks(subjects_path, dry=False, lab=None):
+def run_tasks(subjects_path, dry=False, lab=None, count=20):
     """
     Runs task backlog from task records in Alyx for this server
     :param subjects_path: "/mnt/s0/Data/Subjects"
     :param dry:
     :return:
     """
-    job_runner(subjects_path, lab=None, dry=dry, count=20)
+    job_runner(subjects_path, lab=lab, dry=dry, count=count)
 
 
 @forever(DEFINED_PORT_CREATE, 60 * 15)
