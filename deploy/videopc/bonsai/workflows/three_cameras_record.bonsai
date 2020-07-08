@@ -4,9 +4,9 @@
                  xmlns:p1="clr-namespace:Bonsai.PointGrey;assembly=Bonsai.PointGrey"
                  xmlns:rx="clr-namespace:Bonsai.Reactive;assembly=Bonsai.Core"
                  xmlns:cv="clr-namespace:Bonsai.Vision;assembly=Bonsai.Vision"
+                 xmlns:scr="clr-namespace:Bonsai.Scripting;assembly=Bonsai.Scripting"
                  xmlns:dsp="clr-namespace:Bonsai.Dsp;assembly=Bonsai.Dsp"
                  xmlns:io="clr-namespace:Bonsai.IO;assembly=Bonsai.System"
-                 xmlns:scr="clr-namespace:Bonsai.Scripting;assembly=Bonsai.Scripting"
                  xmlns="https://bonsai-rx.org/2018/workflow">
   <Workflow>
     <Nodes>
@@ -87,7 +87,7 @@
         <io:Append>false</io:Append>
         <io:Overwrite>true</io:Overwrite>
         <io:Suffix>None</io:Suffix>
-        <io:IncludeHeader>true</io:IncludeHeader>
+        <io:IncludeHeader>false</io:IncludeHeader>
         <io:CompatibilityMode>true</io:CompatibilityMode>
       </Expression>
       <Expression xsi:type="scr:ExpressionTransform">
@@ -190,7 +190,7 @@
         <io:Append>false</io:Append>
         <io:Overwrite>true</io:Overwrite>
         <io:Suffix>None</io:Suffix>
-        <io:IncludeHeader>true</io:IncludeHeader>
+        <io:IncludeHeader>false</io:IncludeHeader>
         <io:CompatibilityMode>true</io:CompatibilityMode>
       </Expression>
       <Expression xsi:type="scr:ExpressionTransform">
@@ -293,7 +293,7 @@
         <io:Append>false</io:Append>
         <io:Overwrite>true</io:Overwrite>
         <io:Suffix>None</io:Suffix>
-        <io:IncludeHeader>true</io:IncludeHeader>
+        <io:IncludeHeader>false</io:IncludeHeader>
         <io:CompatibilityMode>true</io:CompatibilityMode>
       </Expression>
       <Expression xsi:type="scr:ExpressionTransform">
