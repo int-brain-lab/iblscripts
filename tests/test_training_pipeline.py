@@ -45,8 +45,9 @@ class TestPipeline(unittest.TestCase):
             self.assertEqual(nses * 5, len(training_jobs))
             # one.alyx.rest('jobs', 'read', id='32c83da4-8a2f-465e-8227-c3b540e61142')
 
-            local_server.tasks_runner(subjects_path, training_jobs, one=one, dry=True)
-            local_server.tasks_runner(subjects_path, training_jobs, one=one,
+            local_server.tasks_runner(subjects_path, training_jobs, one=one, dry=True,
+                                      count=nses * 10)
+            local_server.tasks_runner(subjects_path, training_jobs, one=one, count=nses * 10,
                                       dry=False, max_md5_size=1024 * 1024 * 20)
 
 

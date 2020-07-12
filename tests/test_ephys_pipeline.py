@@ -36,13 +36,6 @@ class TestEphysPipeline(unittest.TestCase):
             link.symlink_to(ff)
         SESSION_PATH.joinpath('extract_me.flag').touch()
 
-    def test_tasks_creation(self):
-        # create tasks and jobs from scratch
-        ephys_pipe = ephys_preprocessing.EphysExtractionPipeline(SESSION_PATH, one=one)
-        ephys_pipe.make_graph(show=False)
-        alyx_tasks = ephys_pipe.create_alyx_tasks()
-        self.assertTrue(len(alyx_tasks) == len(ephys_pipe.tasks))
-
     def test_pipeline_with_alyx(self):
         """
         Test the ephys pipeline exactly as it is supposed to run on the local servers
@@ -62,9 +55,10 @@ class TestEphysPipeline(unittest.TestCase):
 
         subject_path = SESSION_PATH.parents[2]
         tasks_dict = one.alyx.rest('tasks', 'list', session=eid, status='Waiting')
-        all_datasets = local_server.tasks_runner(subject_path, tasks_dict, one=one,
-                                                 max_md5_size=1024 * 1024 * 20)
-
+        for td in tasks_dict:
+            print(td['name'])
+        all_datasets = local_server.tasks_runner(
+            subject_path, tasks_dict, one=one, max_md5_size=1024 * 1024 * 20, count=20)
         # check the spike sorting output on disk
         self.check_spike_sorting_output(SESSION_PATH)
 
