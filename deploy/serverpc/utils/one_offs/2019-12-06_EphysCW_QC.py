@@ -33,14 +33,13 @@ chmap = ibllib.io.extractors.ephys_fpga.CHMAPS['3B']['nidq']
 sync_path = sess_path.joinpath(r'raw_ephys_data')
 sync = alf.io.load_object(sync_path, '_spikeglx_sync', short_keys=True)
 """get the wheel data for both fpga and bpod"""
-fpga_wheel = ibllib.io.extractors.ephys_fpga.extract_wheel_sync(sync, chmap=chmap, save=False)
+fpga_wheel = ibllib.io.extractors.ephys_fpga.extract_wheel_sync(sync, chmap=chmap)
 bpod_wheel = ibllib.io.extractors.training_wheel.get_wheel_position(sess_path, save=False)
 """get the behaviour data for both fpga and bpod"""
 # Out[5]: dict_keys(['ready_tone_in', 'error_tone_in', 'valve_open', 'stim_freeze', 'stimOn_times',
 # 'iti_in', 'goCue_times', 'feedback_times', 'intervals', 'response_times'])
 ibllib.io.extractors.ephys_trials.extract_all(sess_path, save=True)
-fpga_behaviour = ibllib.io.extractors.ephys_fpga.extract_behaviour_sync(
-    sync, output_path=sess_path.joinpath('alf'), chmap=chmap, save=True, display=True)
+fpga_behaviour = ibllib.io.extractors.ephys_fpga.extract_behaviour_sync(sync, chmap=chmap, display=True)
 # Out[8]: dict_keys(['feedbackType', 'contrastLeft', 'contrastRight', 'probabilityLeft',
 # 'session_path', 'choice', 'rewardVolume', 'feedback_times', 'stimOn_times', 'intervals',
 # 'response_times', 'camera_timestamps', 'goCue_times', 'goCueTrigger_times',
