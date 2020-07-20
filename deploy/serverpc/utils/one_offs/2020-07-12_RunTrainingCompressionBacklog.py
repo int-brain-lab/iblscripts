@@ -22,4 +22,4 @@ for avi_file in avi_files:
         status = task.run()
         if status == 0 and task.outputs is not None:
             # on a successful run, if there is no data to register, set status to Empty
-            registered_dsets = task.register_datasets(one=one, job_id='gnagna')
+            registered_dsets = task.register_datasets(one=one)
