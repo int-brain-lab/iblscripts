@@ -76,7 +76,7 @@ def get_ephys_data(raw_ephys_apfile, label=''):
         sync = alf.io.load_object(raw_ephys_apfile.parent, '_spikeglx_sync',
                                   glob=[label], short_keys=True)
     else:
-        sync = ephys_fpga._sync_to_alf(raw_ephys_apfile, parts=label, save=True)
+        sync = ephys_fpga._sync_to_alf(raw_ephys_apfile, parts=label, save=False)
     # load reader object, and extract sync traces
     sr = ibllib.io.spikeglx.Reader(raw_ephys_apfile)
     assert int(sr.fs) == 30000, 'sampling rate is not 30 kHz, adjust script!'

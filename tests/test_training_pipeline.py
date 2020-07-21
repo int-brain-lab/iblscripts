@@ -1,97 +1,67 @@
-# -*- coding:utf-8 -*-
-# @Author: Niccolò Bonacchi
-# @Date: Tuesday, February 19th 2019, 11:45:24 am
-# @Last Modified by: Niccolò Bonacchi
-# @Last Modified time: 19-02-2019 11:46:07.077
 import shutil
+import tempfile
 import unittest
 from pathlib import Path
 
-import ibllib.pipes.experimental_data as iblrig_pipeline
-from ibllib.pipes.transfer_rig_data import main as transfer
+from ibllib.io import raw_data_loaders as rawio
 from oneibl.one import ONE
+from ibllib.pipes import local_server
+
+one = ONE(base_url='https://test.alyx.internationalbrainlab.org')
+# one = ONE(base_url='http://localhost:8000')
 
 PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
+INIT_FOLDER = PATH_TESTS.joinpath('Subjects_init')
 
 
-class TestFlagOperations(unittest.TestCase):
+class TestPipeline(unittest.TestCase):
 
-    def setUp(self):
-        self.init_folder = PATH_TESTS.joinpath('Subjects_init')
-        if not self.init_folder.exists():
+    def test_full_pipeline(self):
+
+        if not INIT_FOLDER.exists():
             return
-        # Set ONE to use the test database
-        self.one = ONE(base_url='https://test.alyx.internationalbrainlab.org',  # testdev
-                       username='test_user', password='TapetesBloc18')
 
-        self.sessions = [x.parent for x in self.init_folder.rglob(
-            'create_me.flag')]
-        self.rig_folder = self.init_folder.parent / 'RigSubjects'
-        self.server_folder = self.init_folder.parent / 'ServerSubjects'
-        self.vidfiles = list(self.init_folder.rglob('*.avi'))
-        # Init rig_folder
-        if self.rig_folder.exists():
-            shutil.rmtree(self.rig_folder)
-        shutil.copytree(self.init_folder, self.rig_folder)
+        with tempfile.TemporaryDirectory() as tdir:
+            # create symlinks in a temporary directory
+            subjects_path = Path(tdir).joinpath('Subjects')
+            subjects_path.mkdir(exist_ok=True)
+            for ff in INIT_FOLDER.rglob('*.*'):
+                link = subjects_path.joinpath(ff.relative_to(INIT_FOLDER))
+                if 'alf' in link.parts:
+                    continue
+                link.parent.mkdir(exist_ok=True, parents=True)
+                link.symlink_to(ff)
 
-    def _create(self):
-        iblrig_pipeline.create(self.rig_folder, one=self.one)
-        # Check for deletion of create_me.flag
-        cflags = list(self.server_folder.rglob('create_me.flag'))
-        self.assertTrue(cflags == [])
+            # register jobs in alyx for all the sessions
+            nses = 0
+            for fil in subjects_path.rglob('_iblrig_taskData.raw*.jsonable'):
+                session_path = fil.parents[1]
+                create_pipeline(session_path)
+                nses += 1
 
-    def _transfer(self):
-        transfer(self.rig_folder, self.server_folder)
-        # Check for deletion of transfer_me.flag
-        tflags = list(self.server_folder.rglob('transfer_me.flag'))
-        self.assertTrue(tflags == [])
-        # Check creation of extract_me.flag and compress_video.flag in folders
-        eflags = list(self.server_folder.rglob('extract_me.flag'))
-        cflags = list(self.server_folder.rglob('compress_video.flag'))
-        self.assertTrue(eflags != [])
-        self.assertTrue(cflags != [])
-        # for all sessions OK?
-        self.assertTrue(len(self.sessions) == len(eflags))
-        self.assertTrue(len(cflags) == len(self.vidfiles))
+            # execute the list of jobs with the simplest scheduler possible
+            training_jobs = one.alyx.rest(
+                'tasks', 'list', status='Waiting', graph='TrainingExtractionPipeline')
+            self.assertEqual(nses * 5, len(training_jobs))
+            # one.alyx.rest('jobs', 'read', id='32c83da4-8a2f-465e-8227-c3b540e61142')
 
-    def _extraction(self):
-        iblrig_pipeline.extract(self.server_folder)
-
-        # Check for deletion of extract_me.flag
-        eflags = list(self.server_folder.rglob('extract_me.flag'))
-        self.assertTrue(eflags == [])
-        # Check for creation of register_me.flag
-        rflags = list(self.server_folder.rglob('register_me.flag'))
-        self.assertTrue(rflags != [])
-        # Check for flag in all sessions
-        self.assertTrue(len(rflags) == len(self.sessions))
-
-    def _data_qa(self):
-        pass
-
-    def _registration(self):
-        iblrig_pipeline.register(self.server_folder, one=self.one)
-
-        # Check for deletion of register_me.flag
-        rflags = list(self.server_folder.rglob('register_me.flag'))
-        self.assertTrue(rflags == [])
-
-    def test_all(self):
-        if not self.init_folder.exists():
-            return
-        self._create()
-        self._transfer()
-        self._extraction()
-        self._data_qa()
-        self._registration()
-
-    def tearDown(self):
-        if not self.init_folder.exists():
-            return
-        shutil.rmtree(self.rig_folder, ignore_errors=True)
-        shutil.rmtree(self.server_folder, ignore_errors=True)
-        # os.system("ssh -i ~/.ssh/alyx.internationalbrainlab.org.pem ubuntu@test.alyx.internationalbrainlab.org './02_rebuild_from_cache.sh'")  # noqa
+            local_server.tasks_runner(subjects_path, training_jobs, one=one, dry=True,
+                                      count=nses * 10)
+            local_server.tasks_runner(subjects_path, training_jobs, one=one, count=nses * 10,
+                                      dry=False, max_md5_size=1024 * 1024 * 20)
 
 
-if __name__ == "__main__":
-    unittest.main(exit=False)
+def create_pipeline(session_path):
+    # creates the session if necessary
+    task_type = rawio.get_session_extractor_type(session_path)
+    print(session_path, task_type)
+    session_path.joinpath('extract_me.flag').touch()
+    # delete the session if it exists
+    eid = one.eid_from_path(session_path)
+    if eid is not None:
+        one.alyx.rest('sessions', 'delete', id=eid)
+    local_server.job_creator(session_path, one=one, max_md5_size=1024 * 1024 * 20)
+    eid = one.eid_from_path(session_path)
+    assert(eid)
+    alyx_tasks = one.alyx.rest('tasks', 'list', session=eid, graph='TrainingExtractionPipeline')
+    assert(len(alyx_tasks) == 5)

@@ -26,6 +26,6 @@ class TestEphysCompression(unittest.TestCase):
         dset_types = one.list(eid)
         assert(len(dset_types) == 13)
         # Loading a single dataset.
-        choice = one.load_dataset(eid, dset_types[0])
+        one.load_dataset(eid, dset_types[0])
         obj = one.load_object(eid, "_ibl_trials")
         assert(len(obj.keys()) == 13)

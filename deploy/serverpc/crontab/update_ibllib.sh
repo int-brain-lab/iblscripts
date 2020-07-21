@@ -8,7 +8,9 @@ git reset --hard
 git pull
 # second step is to update ibllib
 source ~/Documents/PYTHON/envs/iblenv/bin/activate
-pip install --upgrade ibllib
-#pip uninstall -y phylib
-#pip install git+https://github.com/cortex-lab/phylib.git@master
-#pip install -U mtscomp
+# pip install --upgrade ibllib
+# pip install -U mtscomp
+pip uninstall -y ibllib
+pip uninstall -y phylib
+pip install git+https://github.com/cortex-lab/phylib.git@ibl_tests
+pip install git+https://github.com/int-brain-lab/ibllib.git@master

@@ -4,35 +4,28 @@ Printing is used to request the import.
 Examples have to be able to run upon adding.
 """
 # Author: Olivier, Gaelle
+import unittest
 
-# ----- IMPORT TIME MODULE -----
-from time import perf_counter
-
-start = perf_counter()
-
-# ----- IMPORT EXAMPLES -----
-# -- Ibllib tutorial example page
-import examples.one.tutorial_script
-
-# -- Ibllib ONE examples
-# - Behavior
-import examples.one.behavior.number_mice_inproject
-import examples.one.behavior.plot_microphone_spectrogram
-import examples.one.behavior.plot_weight_curve
-import examples.one.behavior.print_water_administrations
-import examples.one.behavior.water_administrations_add_new
-import examples.one.behavior.water_administrations_weekend
-
-# - Ephys
+import matplotlib.pyplot as plt
 
 
-# - Histology
-import examples.one.histology.register_lasagna_tracks_alyx
+class TestExamplesBehaviour(unittest.TestCase):
 
-# -- Brainbox examples
-# from brainbox.examples.titi import toto
+    def test_one(self):
+        import examples.one.behavior.number_mice_inproject
+        import examples.one.behavior.print_water_administrations
+        import examples.one.behavior.water_administrations_add_new
+        import examples.one.behavior.water_administrations_weekend
+        import examples.one.behavior.plot_microphone_spectrogram
+        import examples.one.behavior.plot_weight_curve
 
-# ------ COMPUTE RUN TIME ----
-end = perf_counter()
-execution_time = (end - start)
-print(execution_time)
+    def tearDown(self):
+        plt.close()
+
+
+class TestExamplesHistology(unittest.TestCase):
+
+    def test_alyx_interactions(self):
+        pass
+        # TODO get track files somehwere
+        # import examples.one.histology.register_lasagna_tracks_alyx
