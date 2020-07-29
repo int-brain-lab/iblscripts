@@ -6,79 +6,92 @@ function run_ks2_ibl(rootZ, rootH, varargin)
 % rootZ = '/mnt/s0/Data/Subjects/ZM_1150/2019-05-07/001/raw_ephys_data/probe_right';
 % rootH = '/mnt/h0';
 % run_ks2_ibl(rootZ, rootH)
+try
+    %% 1) Set paths and get ks2 commit hash
+    addpath(genpath('~/Documents/MATLAB/Kilosort2')) % path to kilosort folder
+    addpath('~/Documents/MATLAB/npy-matlab/npy-matlab')
+    [~, hash] = unix('git --git-dir ~/Documents/MATLAB/Kilosort2/.git rev-parse --verify HEAD');
+    disp(["ks2 version: " hash])
+    
+    %% 2) Parse input arguments
+    [dir_pattern, channel_map_file] = deal([]);
+    p=inputParser;
+    p.addParameter('dir_pattern', '*.ap.bin');
+    p.addParameter('channel_map_file','~/Documents/MATLAB/Kilosort2/configFiles/neuropixPhase3A_kilosortChanMap.mat');
+    p.parse(varargin{:}); field = fieldnames(p.Results) ;
+    for r = 1 : length(field), eval([field{r} '= p.Results.(field{r}) ; ']) ; end
 
-%% 1) Set paths and get ks2 commit hash
-addpath(genpath('~/Documents/MATLAB/Kilosort2')) % path to kilosort folder
-addpath('~/Documents/MATLAB/npy-matlab/npy-matlab')
-[~, hash] = unix('git --git-dir ~/Documents/MATLAB/Kilosort2/.git rev-parse --verify HEAD');
+    %% 3) Prepare scratch folders
+    scratch_dir = [rootH filesep 'temp'];
 
-return
-%% 2) Parse input arguments
-[dir_pattern, channel_map_file] = deal([]);
-p=inputParser;
-p.addParameter('dir_pattern', '*.ap.bin');
-p.addParameter('channel_map_file','~/Documents/MATLAB/Kilosort2/configFiles/neuropixPhase3A_kilosortChanMap.mat');
-p.parse(varargin{:}); field = fieldnames(p.Results) ;
-for r = 1 : length(field), eval([field{r} '= p.Results.(field{r}) ; ']) ; end
-
-%% 5) get IBL params
-ops = ibl_ks2_params;
-
-%% 6) KS2 run
-fprintf('Looking for data inside %s \n', rootZ)
-
-% is there a channel map file in this folder?
-fs = dir(fullfile(rootZ, 'chan*.mat'));
-if ~isempty(fs)
-    ops.chanMap = fullfile(rootZ, fs(1).name);
-end
-
-% find the binary file
-ops.fbinary = fullfile(rootZ, getfield(dir(fullfile(rootZ, dir_pattern)), 'name'));
-
-% preprocess data to create temp_wh.dat
-rez = preprocessDataSub(ops);
-
-% time-reordering as a function of drift
-rez = clusterSingleBatches(rez);
-save(fullfile(rootZ, 'rez.mat'), 'rez', '-v7.3');
-
-% main tracking and template matching algorithm
-rez = learnAndSolve8b(rez);
-
-% final merges
-rez = find_merges(rez, 1);
-
-% final splits by SVD
-rez = splitAllClusters(rez, 1);
-
-% final splits by amplitudes
-rez = splitAllClusters(rez, 0);
-
-% decide on cutoff
-rez = set_cutoff(rez);
-
-fprintf('found %d good units \n', sum(rez.good>0))
-
-% write to Phy
-fprintf('Saving results to Phy  \n')
-rezToPhy(rez, rootZ);
-
-%% 7) WRAP-UP
-fid = fopen([rootZ filesep 'spike_sorting_ks2.log'], 'w+');
-for ff = fieldnames(ops)'
-    val = ops.(ff{1});
-    if isnumeric(val) | islogical(val)
-        str = mat2str(val);
-    else
-        str = val;
+    %% 5) get IBL params
+    ops = ibl_ks2_params;
+    
+    %% 6) KS2 run
+    fprintf('Looking for data inside %s \n', rootZ)
+    
+    % is there a channel map file in this folder?
+    fs = dir(fullfile(rootZ, 'chan*.mat'));
+    if ~isempty(fs)
+        ops.chanMap = fullfile(rootZ, fs(1).name);
     end
-    fwrite(fid,['ops.' ff{1} ' = ' str ';' newline]);
+    
+    % find the binary file
+    ops.fbinary = fullfile(rootZ, getfield(dir(fullfile(rootZ, dir_pattern)), 'name'));
+    
+    % preprocess data to create temp_wh.dat
+    rez = preprocessDataSub(ops);
+    
+    % time-reordering as a function of drift
+    rez = clusterSingleBatches(rez);
+    save(fullfile(rootZ, 'rez.mat'), 'rez', '-v7.3');
+    
+    % main tracking and template matching algorithm
+    rez = learnAndSolve8b(rez);
+    
+    % final merges
+    rez = find_merges(rez, 1);
+    
+    % final splits by SVD
+    rez = splitAllClusters(rez, 1);
+    
+    % final splits by amplitudes
+    rez = splitAllClusters(rez, 0);
+    
+    % decide on cutoff
+    rez = set_cutoff(rez);
+    
+    fprintf('found %d good units \n', sum(rez.good>0))
+    
+    % write to Phy
+    fprintf('Saving results to Phy  \n')
+    rezToPhy(rez, rootZ);
+    
+    %% 7) WRAP-UP
+    fid = fopen([rootZ filesep 'spike_sorting_ks2.log'], 'w+');
+    for ff = fieldnames(ops)'
+        val = ops.(ff{1});
+        if isnumeric(val) | islogical(val)
+            str = mat2str(val);
+        else
+            str = val;
+        end
+        fwrite(fid,['ops.' ff{1} ' = ' str ';' newline]);
+    end
+    fclose(fid);
+    
+    % cleanup temporary directory
+    rmdir(scratch_dir, 's');
+    
+    
+catch
+    a = lasterror;
+    str=[a.message newline];
+    for m=1:length(a.stack)
+        str = [str 'Error in ' a.stack(m).file ' line : ' num2str(a.stack(m).line) newline];
+    end
+    disp(str)
 end
-fclose(fid);
-
-% cleanup temporary directory
-rmdir(scratch_dir, 's');
 
     function ops = ibl_ks2_params
         ops.commitHash = strip(hash);
