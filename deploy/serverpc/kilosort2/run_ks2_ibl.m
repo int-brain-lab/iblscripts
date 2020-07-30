@@ -80,10 +80,6 @@ try
     end
     fclose(fid);
     
-    % cleanup temporary directory
-    rmdir(scratch_dir, 's');
-    
-    
 catch
     a = lasterror;
     str=[a.message newline];
@@ -91,6 +87,7 @@ catch
         str = [str 'Error in ' a.stack(m).file ' line : ' num2str(a.stack(m).line) newline];
     end
     disp(str)
+    disp('run_ks2_ibl.m failed') % this is used to find out that matlab failed in stdout
 end
 
     function ops = ibl_ks2_params

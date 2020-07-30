@@ -59,6 +59,12 @@ class TestEphysPipeline(unittest.TestCase):
             print(td['name'])
         all_datasets = local_server.tasks_runner(
             subject_path, tasks_dict, one=one, max_md5_size=1024 * 1024 * 20, count=20)
+
+        # check the trajectories and probe info
+        self.assertTrue(len(one.alyx.rest('insertions', 'list', session=eid)) == 2)
+        self.assertTrue(len(one.alyx.rest(
+            'trajectories', 'list', session=eid, provenance='Micro-manipulator')) == 2)
+
         # check the spike sorting output on disk
         self.check_spike_sorting_output(SESSION_PATH)
 

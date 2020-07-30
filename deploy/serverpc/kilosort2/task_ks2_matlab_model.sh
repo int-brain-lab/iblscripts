@@ -6,4 +6,4 @@ SCRATCH_DRIVE=/mnt/h0  # this is the path of the scratch SSD volume for intermed
 # --------------- DO NOT EDIT BELOW
 # sets the library path for cuda
 export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:/lib/nccl/cuda-$CUDA_VERSION:$LD_LIBRARY_PATH;
-matlab -nodesktop -nosplash -r "addpath('~/Documents/PYTHON/iblscripts/deploy/serverpc/kilosort2'); run_ks2_ibl('$1','$SCRATCH_DRIVE'); exit"
+matlab -nodesktop -nosplash -r "addpath('~/Documents/PYTHON/iblscripts/deploy/serverpc/kilosort2'); run_ks2_ibl('$1','$1'); exit"
