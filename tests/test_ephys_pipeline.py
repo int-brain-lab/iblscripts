@@ -34,7 +34,7 @@ class TestEphysPipeline(unittest.TestCase):
                 continue
             link.parent.mkdir(exist_ok=True, parents=True)
             link.symlink_to(ff)
-        SESSION_PATH.joinpath('extract_me.flag').touch()
+        SESSION_PATH.joinpath('raw_session.flag').touch()
 
     def test_pipeline_with_alyx(self):
         """
@@ -51,7 +51,7 @@ class TestEphysPipeline(unittest.TestCase):
         eid = one.eid_from_path(SESSION_PATH)
         self.assertFalse(eid is None)  # the session is created on the database
         # the flag has been erased
-        self.assertFalse(SESSION_PATH.joinpath('extract_me.flag').exists())
+        self.assertFalse(SESSION_PATH.joinpath('raw_session.flag').exists())
 
         subject_path = SESSION_PATH.parents[2]
         tasks_dict = one.alyx.rest('tasks', 'list', session=eid, status='Waiting')
