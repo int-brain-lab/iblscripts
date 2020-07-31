@@ -1,11 +1,13 @@
-function run_ks2_ibl(rootZ, rootH, varargin)
+function run_ks2_ibl(rootZ, rootH, dir_pattern, channel_map_file)
 % rootZ is the directory containing the raw AP traces, one probe per folder
 % rootH is the scratch directory, SSD drive, to memmap binary data
 %
 % Example below:
 % rootZ = '/mnt/s0/Data/Subjects/ZM_1150/2019-05-07/001/raw_ephys_data/probe_right';
-% rootH = '/mnt/h0';
+% rootH = '/mnt/h0';  # temporary folder if different than main
 % run_ks2_ibl(rootZ, rootH)
+% run_ks2_ibl(rootZ, rootH, dir_pattern, channel_map_file)
+
 try
     %% 1) Set paths and get ks2 commit hash
     addpath(genpath('~/Documents/MATLAB/Kilosort2')) % path to kilosort folder
@@ -14,20 +16,14 @@ try
     disp(["ks2 version: " hash])
     
     %% 2) Parse input arguments
-    [dir_pattern, channel_map_file] = deal([]);
-    p=inputParser;
-    p.addParameter('dir_pattern', '*.ap.bin');
-    p.addParameter('channel_map_file','~/Documents/MATLAB/Kilosort2/configFiles/neuropixPhase3A_kilosortChanMap.mat');
-    p.parse(varargin{:}); field = fieldnames(p.Results) ;
-    for r = 1 : length(field), eval([field{r} '= p.Results.(field{r}) ; ']) ; end
+    if nargin <= 1, rootH = rootZ; end
+    if nargin <= 2, dir_pattern = '*.ap.bin'; end
+    if nargin <= 3, channel_map_file = '~/Documents/MATLAB/Kilosort2/configFiles/neuropixPhase3A_kilosortChanMap.mat'; end
 
-    %% 3) Prepare scratch folders
-    scratch_dir = [rootH filesep 'temp'];
-
-    %% 5) get IBL params
+    %% 3) get IBL params
     ops = ibl_ks2_params;
     
-    %% 6) KS2 run
+    %% 4) KS2 run
     fprintf('Looking for data inside %s \n', rootZ)
     
     % is there a channel map file in this folder?
@@ -67,7 +63,7 @@ try
     fprintf('Saving results to Phy  \n')
     rezToPhy(rez, rootZ);
     
-    %% 7) WRAP-UP
+    %% 5) WRAP-UP
     fid = fopen([rootZ filesep 'spike_sorting_ks2.log'], 'w+');
     for ff = fieldnames(ops)'
         val = ops.(ff{1});
