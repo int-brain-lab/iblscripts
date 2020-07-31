@@ -198,7 +198,7 @@ class TestEphysPipeline(unittest.TestCase):
             self.assertTrue(set(probes.keys()) == set(probes_attributes))
 
             """check sample waveforms and make sure amplitudes check out"""
-            swv = alf.io.load_object(probe_folder, '_phy_spikes_subset')
+            swv = alf.io.load_object(probe_folder, 'spikes_subset')
             swv_attributes = ['spikes', 'channels', 'waveforms']
             self.assertTrue(set(swv_attributes) == set(swv.keys()))
             iswv = 20001
