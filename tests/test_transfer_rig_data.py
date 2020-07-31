@@ -42,8 +42,9 @@ class TestTransferRigDataEphys(unittest.TestCase):
         dst_session_path = dst_subjects_path.joinpath(
             self.session_path.relative_to(src_subjects_path))
         flag_files = [dst_session_path.joinpath('raw_session.flag')]
+        # only when all of the transfers did complete should the flag exist
         for fl in flag_files:
-            self.assertTrue(fl.exists())
+            self.assertFalse(fl.exists())
 
 
 class TestTransferRigDataTraining(unittest.TestCase):

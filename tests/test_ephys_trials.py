@@ -73,7 +73,7 @@ class TestEphysTaskExtraction(unittest.TestCase):
         for f in FPGA_FILES:
             self.assertTrue(alf_path.joinpath(f).exists())
         # check dimensions after alf load
-        alf_trials = alf.io.load_object(alf_path, '_ibl_trials')
+        alf_trials = alf.io.load_object(alf_path, 'trials')
         self.assertTrue(alf.io.check_dimensions(alf_trials) == 0)
         # go deeper and check the internal fpga trials structure consistency
         fpga_trials = ephys_fpga.extract_behaviour_sync(sync, chmap)

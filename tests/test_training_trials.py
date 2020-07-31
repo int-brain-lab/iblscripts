@@ -38,10 +38,10 @@ class TestSessions(unittest.TestCase):
                 job = TrainingTrials(session_path)
                 job.run()
                 # load camera timestamps
-                lc = alf.io.load_object(session_path / 'alf', '_ibl_leftCamera')
+                lc = alf.io.load_object(session_path / 'alf', 'leftCamera')
                 self.assertTrue(np.all(np.diff(lc.times) > 0))
                 # check the trials objects
-                trials = alf.io.load_object(session_path / 'alf', '_ibl_trials')
+                trials = alf.io.load_object(session_path / 'alf', 'trials')
                 self.assertTrue(alf.io.check_dimensions(trials) == 0)
                 settings = rawio.load_settings(session_path)
                 if version.ge(settings['IBLRIG_VERSION_TAG'], '5.0.0'):
@@ -51,7 +51,7 @@ class TestSessions(unittest.TestCase):
                 self.assertTrue(set(trials.keys()) == set(tkeys))
                 # check the wheel object if the extraction didn't fail
                 if job.status != -1:
-                    wheel = alf.io.load_object(session_path / 'alf', '_ibl_wheel')
+                    wheel = alf.io.load_object(session_path / 'alf', 'wheel')
                     self.assertTrue(alf.io.check_dimensions(wheel) == 0)
                     self.assertTrue(set(wheel.keys()) == set(WHEEL_KEYS))
                     self.assertTrue(np.all(np.diff(lc.times) > 0))
@@ -61,5 +61,5 @@ class TestSessions(unittest.TestCase):
              subtract 100ms.
             """
             session_path = subjects_path / "CSHL_007/2019-07-31/001"
-            trials = alf.io.load_object(session_path / 'alf', '_ibl_trials')
+            trials = alf.io.load_object(session_path / 'alf', 'trials')
             self.assertTrue(np.all(np.logical_not(np.isnan(trials.goCue_times))))
