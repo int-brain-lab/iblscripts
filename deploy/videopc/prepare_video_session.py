@@ -38,6 +38,8 @@ def main(mouse: str, training_session: bool = False) -> None:
     # Create filenames to call Bonsai
     filename = '_iblrig_{}Camera.raw.avi'
     filenamets = '_iblrig_{}Camera.timestamps.ssv'
+    filenamefc = '_iblrig_{}Camera.frame_counter.bin'
+    filenameGPIO = '_iblrig_{}Camera.GPIO.bin'
     # Open n start Bonsai view
     body = "-p:FileNameBody=" + str(SESSION_FOLDER / filename.format('body'))
     left = "-p:FileNameLeft=" + str(SESSION_FOLDER / filename.format('left'))
@@ -45,6 +47,12 @@ def main(mouse: str, training_session: bool = False) -> None:
     bodyts = "-p:FileNameBodyTimestamps=" + str(SESSION_FOLDER / filenamets.format('body'))
     leftts = "-p:FileNameLeftTimestamps=" + str(SESSION_FOLDER / filenamets.format('left'))
     rightts = "-p:FileNameRightTimestamps=" + str(SESSION_FOLDER / filenamets.format('right'))
+    bodyfc = "-p:FileNameBodyFrameCounter=" + str(SESSION_FOLDER / filenamefc.format('body'))
+    leftfc = "-p:FileNameLeftFrameCounter=" + str(SESSION_FOLDER / filenamefc.format('left'))
+    rightfc = "-p:FileNameRightFrameCounter=" + str(SESSION_FOLDER / filenamefc.format('right'))
+    bodyGPIO = "-p:FileNameBodyGPIO=" + str(SESSION_FOLDER / filenameGPIO.format('body'))
+    leftGPIO = "-p:FileNameLeftGPIO=" + str(SESSION_FOLDER / filenameGPIO.format('left'))
+    rightGPIO = "-p:FileNameRightGPIO=" + str(SESSION_FOLDER / filenameGPIO.format('right'))
 
     bodyidx = "-p:BodyCameraIndex=" + str(PARAMS['BODY_CAM_IDX'])
     leftidx = "-p:LeftCameraIndex=" + str(PARAMS['LEFT_CAM_IDX'])
@@ -57,7 +65,8 @@ def main(mouse: str, training_session: bool = False) -> None:
                      bodyidx, leftidx, rightidx])
     # Open the record_file no start
     subprocess.call([str(BONSAI), str(RECORD_FILE), noboot, body, left, right,
-                     bodyidx, leftidx, rightidx, bodyts, leftts, rightts])
+                     bodyidx, leftidx, rightidx, bodyts, leftts, rightts,
+                     bodyfc, leftfc, rightfc, bodyGPIO, leftGPIO, rightGPIO])
     # Create a transfer_me.flag file
     open(SESSION_FOLDER.parent / 'transfer_me.flag', 'w')
     return
