@@ -4,18 +4,20 @@ from pathlib import Path
 import shutil
 from operator import itemgetter
 import numpy as np
+import tempfile
 
 import alf.io
 from ibllib.pipes import local_server, ephys_preprocessing
 from oneibl.one import ONE
 
+CACHE_DIR = tempfile.TemporaryDirectory()
 _logger = logging.getLogger('ibllib')
 
 PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
 SESSION_PATH = PATH_TESTS.joinpath("ephys/choice_world/KS022/2019-12-10/001")
 # one = ONE(base_url='http://localhost:8000')
 one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
-          username='test_user', password='TapetesBloc18')
+          username='test_user', password='TapetesBloc18', cache_dir=Path(CACHE_DIR.name))
 
 
 class TestEphysPipeline(unittest.TestCase):
@@ -42,17 +44,17 @@ class TestEphysPipeline(unittest.TestCase):
         :return:
         """
         # first step is to remove the session and create it anew
-        eid = one.eid_from_path(SESSION_PATH)
+        eid = one.eid_from_path(SESSION_PATH, use_cache=False)
         if eid is not None:
             one.alyx.rest('sessions', 'delete', id=eid)
 
         # create the jobs and run them
         raw_ds = local_server.job_creator(SESSION_PATH, one=one, max_md5_size=1024 * 1024 * 20)
-        eid = one.eid_from_path(SESSION_PATH)
         self.assertFalse(eid is None)  # the session is created on the database
         # the flag has been erased
         self.assertFalse(SESSION_PATH.joinpath('raw_session.flag').exists())
 
+        eid = one.eid_from_path(SESSION_PATH, use_cache=False)
         subject_path = SESSION_PATH.parents[2]
         tasks_dict = one.alyx.rest('tasks', 'list', session=eid, status='Waiting')
         for td in tasks_dict:
