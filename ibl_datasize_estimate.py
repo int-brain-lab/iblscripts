@@ -7,14 +7,14 @@ N_TRAINING_DAYS_PER_YEAR = 49 * 5  # 245 days per year training
 # in practice we have 424Mb for 48 mins compressed at 29
 # in practice we have 1320 for 70 mins compressed at 23
 SIZE_ALF_DATA_PER_TRAINING_SESSION_GB = 20 / 1024
-SIZE_TRAINING_VIDEO_HOURLY_GB = 2  # size for all cameras (one)
+SIZE_TRAINING_VIDEO_HOURLY_GB = 1  # size for all cameras (one)
 TRAINING_SESSION_DURATION_HOURS = 1
 # ------------------------- EPHYS PARAMETERS ESTIMATIONS
 RECORDED_MICE_PER_BATCH = np.array([6, 12])  # mice recorded per batch
 TRAINING_CYCLE_DURATION_DAYS = 7 * 5  # 5 weeks from training to recording
 RECORDINGS_PER_MOUSE = np.array([4, 5])  # recordings sessions per mouse
 EPHYS_SESSION_DURATION_HOURS = 1.5
-SIZE_RECORDING_VIDEO_HOURLY_GB = np.array([4, 6]) * 3
+SIZE_RECORDING_VIDEO_HOURLY_GB = np.array([6 + 3 + 1, 14])
 SIZE_ALF_DATA_PER_RECORDING_SESSION_GB = 70 / 1024 * 3  # NB: assumes 3 versions of spike sorting
 # ------------------------- CaIM PARAMETERS ESTIMATIONS
 # 2 labs, same batches
