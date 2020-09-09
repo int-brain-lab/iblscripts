@@ -22,7 +22,7 @@ class TestAudioExtraction(unittest.TestCase):
         audio.extract_sound(self.ses_path, save=True)
         D = alf.io.load_object(self.ses_path / 'raw_behavior_data', 'audioSpectrogram')
         cues = alf.io.load_object(self.ses_path / 'raw_behavior_data', 'audioOnsetGoCue')
-        self.assertEqual(cues['times_mic'].size, 5)
+        self.assertEqual(cues['times_mic'].size, 4)
         self.assertEqual(D['power'].shape[0], D['times_mic'].shape[0])
         self.assertEqual(D['frequencies'].shape[1], D['power'].shape[1])
         # now test the registration of the data

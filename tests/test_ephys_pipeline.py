@@ -168,6 +168,12 @@ class TestEphysPipeline(unittest.TestCase):
                 _logger.info(f'check dataset types registration OK: {ed[0]}')
         self.assertTrue(success)
 
+        # check that the task QC was successfully run
+        session_dict = one.alyx.rest('sessions', 'read', id=eid)
+        self.assertNotEqual('NOT_SET', session_dict['qc'], 'qc field not updated')
+        extended = session_dict['extended_qc']
+        self.assertTrue(any(k.startswith('_task_') for k in extended.keys()))
+
     def check_spike_sorting_output(self, session_path):
         """ Check the spikes object """
         spikes_attributes = ['depths', 'amps', 'clusters', 'times', 'templates', 'samples']
