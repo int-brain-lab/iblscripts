@@ -1,4 +1,6 @@
-# Mock dataset
+"""Tests Bpod TaskQC extractors
+NB: FPGA TaskQC extractor is tested in test_ephys_extraction_choiceWorld
+"""
 import unittest
 import shutil
 from pathlib import Path
@@ -15,7 +17,6 @@ one = ONE(
 
 
 class TestBpodQCExtractors(unittest.TestCase):
-    """TODO: should be an integration test in iblscripts"""
 
     def setUp(self):
         self.one = one
