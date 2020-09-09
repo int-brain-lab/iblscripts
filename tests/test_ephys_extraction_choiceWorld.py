@@ -6,6 +6,7 @@ import logging
 import numpy as np
 
 from ibllib.ephys import ephysqc
+from ibllib.qc.base import QC
 import alf.io
 import ibllib.pipes.experimental_data as iblrig_pipeline
 from oneibl.one import ONE
@@ -41,6 +42,15 @@ class TestSpikeSortingOutput(unittest.TestCase):
 
     def test_spike_sorting_to_alf_registration(self):
         sessions_paths = [f.parent for f in self.main_folder.rglob('extract_ephys.flag')]
+        # Reset QC on Alyx for all sessions
+        for session_path in sessions_paths:
+            qc = QC(session_path, self.one, logging.getLogger('qc'))
+            if qc.eid is not None:
+                reset = self.qc.update('NOT_SET')
+                assert reset == 'NOT_SET', 'failed to reset QC field for test'
+                extended = self.one.alyx.json_field_write('sessions', field_name='extended_qc',
+                                                          uuid=self.eid, data={})
+                assert not extended, 'failed to reset extended QC field for test'
 
         """test extraction of behaviour first"""
         iblrig_pipeline.extract_ephys(self.main_folder)
@@ -48,7 +58,7 @@ class TestSpikeSortingOutput(unittest.TestCase):
         """ then sync/merge the spike sorting, making sure there are no flag files left
          and controlling that the output files dimensions make sense"""
         iblrig_pipeline.sync_merge_ephys(self.main_folder)
-        self.assertFalse(list(Path(self.main_folder).rglob('sync_merge_ephys.flag')))
+        self.assertFalse(list(self.main_folder.rglob('sync_merge_ephys.flag')))
 
         for session_path in sessions_paths:
             self.check_session_output(session_path)
@@ -139,6 +149,15 @@ class TestSpikeSortingOutput(unittest.TestCase):
                 else:
                     _logger.info(f'check dataset types registration OK: {ed[0]}')
         self.assertTrue(success)
+        # check that the task QC was successfully run
+        # get paths for sessions with trials ALF
+        trials_paths = map(lambda x: x.parent, self.main_folder.rglob('*trials.*'))
+        for session_path in set(trials_paths):
+            eid = self.one.eid_from_path(session_path)
+            outcome = self.one.alyx.rest('sessions', 'read', id=eid)['qc']
+            self.assertNotEqual('NOT_SET', outcome, 'qc field not updated')
+            extended = self.one.alyx.rest('sessions', 'read', id=eid)['extended_qc']
+            self.assertTrue(any(k.startswith('_task_') for k in extended.keys()))
 
     def check_session_output(self, session_path):
         """ Check the spikes object """
