@@ -37,6 +37,7 @@ class TestTaskQCObject(unittest.TestCase):
         self.qc.compute()
         self.assertTrue(self.qc.metrics is not None)
         self.assertTrue(self.qc.passed is not None)
+        self.assertIn('_task_passed_trial_checks', self.qc.passed, 'failed to add meta checks')
 
     def test_run(self):
         # Reset Alyx fields before test
