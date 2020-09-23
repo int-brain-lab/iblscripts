@@ -11,6 +11,17 @@ _logger = logging.getLogger('ibllib')
 TEST_PATH = Path('/mnt/s0/Data/IntegrationTests')
 
 
+class TestMtsCompRegistration(unittest.TestCase):
+    """Makes sure the ch files are registered properly"""
+
+    def test_single_run(self):
+        SESSION_PATH = TEST_PATH.joinpath("ephys/choice_world/KS022/2019-12-10/001")
+        task = EphysMtscomp(SESSION_PATH)
+        task.run()
+        self.assertTrue(sum(map(lambda x: x.suffix == '.cbin', task.outputs)) == 5)
+        self.assertTrue(sum(map(lambda x: x.suffix == '.ch', task.outputs)) == 5)
+
+
 class TestEphysCompression(unittest.TestCase):
 
     def setUp(self):
