@@ -7,7 +7,6 @@ from pathlib import Path
 
 import numpy as np
 
-from ibllib.qc.oneutils import download_taskqc_raw_data
 from ibllib.qc.task_metrics import TaskQC
 from ibllib.qc.task_extractors import TaskQCExtractor
 from ibllib.qc.oneutils import download_taskqc_raw_data
