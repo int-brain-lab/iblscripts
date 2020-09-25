@@ -7,8 +7,8 @@ from ibllib.io import raw_data_loaders as rawio
 from oneibl.one import ONE
 from ibllib.pipes import local_server
 
-one = ONE(base_url='https://test.alyx.internationalbrainlab.org')
-# one = ONE(base_url='http://localhost:8000')
+one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
+          username='test_user', password='TapetesBloc18')
 
 PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
 INIT_FOLDER = PATH_TESTS.joinpath('Subjects_init')
