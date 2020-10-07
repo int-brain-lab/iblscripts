@@ -1,3 +1,4 @@
+# cd /home/olivier/Documents/PYTHON/00_IBL/iblscripts/cloud/docker/integration
 # docker run -v /mnt/s0/Data/IntegrationTests:/mnt/s0/Data/IntegrationTests -it integration_ibllib
 #TODO put this into the Dockerfile and recompile
 apt-get update
@@ -13,3 +14,5 @@ cp /mnt/s0/Data/IntegrationTests/.one_params /root/.one_params
 
 pytest ./iblscripts/tests
 #TODO gather tests results and setup a webhook
+
+#https://cloud.google.com/compute/docs/disks/gcs-buckets
