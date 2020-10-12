@@ -77,11 +77,72 @@ class TestEphysTaskExtraction(unittest.TestCase):
         self.assertTrue(alf.io.check_dimensions(alf_trials) == 0)
         # go deeper and check the internal fpga trials structure consistency
         fpga_trials = ephys_fpga.extract_behaviour_sync(sync, chmap)
+        # check dimensions
         self.assertEqual(alf.io.check_dimensions(fpga_trials), 0)
-        self.assertTrue(np.all(np.isnan(fpga_trials['valveOpen_times']
-                                        * fpga_trials['errorCue_times'])))
-        self.assertTrue(np.all(np.logical_xor(np.isnan(fpga_trials['valveOpen_times']),
-                                              np.isnan(fpga_trials['errorCue_times']))))
+        # check that the stimOn < stimFreeze < stimOff
+        self.assertTrue(np.all(fpga_trials['stimOn_times'][:-1] < fpga_trials['stimOff_times'][:-1]))
+        self.assertTrue(np.all(fpga_trials['stimFreeze_times'][:-1] < fpga_trials['stimOff_times'][:-1]))
+        # a trial is either an error-nogo or a reward
+        self.assertTrue(np.all(np.isnan(fpga_trials['valveOpen_times'][:-1]
+                                        * fpga_trials['errorCue_times'][:-1])))
+        self.assertTrue(np.all(np.logical_xor(np.isnan(fpga_trials['valveOpen_times'][:-1]),
+                                              np.isnan(fpga_trials['errorCue_times'][:-1]))))
+
+
+        # do the task qc
+        # tqc_ephys.extractor.settings['PYBPOD_PROTOCOL']
+        from ibllib.qc.task_extractors import TaskQCExtractor
+        ex = TaskQCExtractor(session_path, lazy=True, one=None, bpod_only=False)
+
+        from ibllib.qc.task_metrics import TaskQC
+        # '/mnt/s0/Data/IntegrationTests/ephys/ephys_choice_world_task/CSP004/2019-11-27/001'
+        tqc_ephys = TaskQC(session_path)
+        _, res_ephys = tqc_ephys.run(bpod_only=False, download_data=False)
+
+        tqc_bpod = TaskQC(session_path)
+        _, res_bpod = tqc_bpod.run(bpod_only=True, download_data=False)
+
+        for k in res_ephys:
+            if k == "_task_response_feedback_delays":
+                continue
+            assert (np.abs(res_bpod[k] - res_ephys[k]) < .2)
+
         shutil.rmtree(alf_path, ignore_errors=True)
-        # do the
-        ephysqc.qc_fpga_task(fpga_trials, alf_trials)
+        # run the task QC
+        # from iblapps.task_qc_viewer.task_qc import show_session_task_qc
+        # show_session_task_qc(session_path, local=True)
+
+        from ibllib.qc.task_metrics import check_stimOff_itiIn_delays
+        from ibllib.qc.task_metrics import check_stimFreeze_delays
+        from ibllib.qc.task_metrics import check_response_feedback_delays
+
+        # #
+        # tqc_ephys.extractor.settings['PYBPOD_PROTOCOL']
+        # data_ephys = tqc_ephys.extractor.data
+        # data_bpod = tqc_bpod.extractor.data
+        #
+        # # for k in data_ephys:
+        # #     data_bpod[k] == data_ephys[k]
+        #
+        # data['stimFreeze_times']
+        # data['stimFreezeTrigger_times']
+        # tqc_bpod.extractor.data
+        #
+        #
+        # # _task_stimOff_itiIn_delays
+        # # data_bpod["stimOff_times"] - data["itiIn_times"]
+        # data_bpod["itiIn_times"] - data_ephys["itiIn_times"]
+        #
+        # data_bpod
+        # data_ephys['stimFreeze_times'][:10] - data_bpod['stimFreeze_times'][:10]
+        # fpga_trials['itiIn_times'][:10] - data_ephys['itiIn_times'][:10]
+        # fpga_trials['stimOff_times'][:10]
+        # data_ephys['stimOff_times'][:10]
+        # data_ephys['stimOff_times'] - data_ephys['itiIn_times']
+        #
+        # data_bpod['stimOff_times'] - data_bpod['itiIn_times']
+        #
+        # data_ephys['itiIn_times'][:10]
+        # data_bpod['itiIn_times'][:10]
+
+        # _task_stimFreeze_delays

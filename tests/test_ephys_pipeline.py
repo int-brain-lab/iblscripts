@@ -2,12 +2,11 @@ import logging
 import unittest
 from pathlib import Path
 import shutil
-from operator import itemgetter
 import numpy as np
 import tempfile
 
 import alf.io
-from ibllib.pipes import local_server, ephys_preprocessing
+from ibllib.pipes import local_server
 from oneibl.one import ONE
 
 CACHE_DIR = tempfile.TemporaryDirectory()
