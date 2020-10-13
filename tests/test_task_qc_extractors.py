@@ -118,7 +118,7 @@ class TestBpodQCExtractors(unittest.TestCase):
             'choice', 'feedbackType', 'goCueTrigger_times', 'wheel_timestamps', 'wheel_position',
             'wheel_moves_intervals', 'wheel_moves_peak_amplitude', 'firstMovement_times', 'phase',
             'goCue_times', 'rewardVolume', 'response_times', 'feedback_times', 'probabilityLeft',
-            'position', 'contrast', 'quiescence', 'contrastRight', 'contrastLeft', 'outcome',
+            'position', 'contrast', 'quiescence', 'contrastRight', 'contrastLeft',
             'errorCue_times', 'valveOpen_times', 'correct', 'intervals'
         ]
         self.assertCountEqual(expected, ex.data.keys())
