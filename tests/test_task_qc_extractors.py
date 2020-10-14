@@ -23,7 +23,8 @@ one = ONE(
 class TestTaskQCObject(unittest.TestCase):
     def setUp(self):
         self.one = one
-        self.eid = "b1c968ad-4874-468d-b2e4-5ffa9b9964e9"
+        # self.eid = 'a3df91c8-52a6-4afa-957b-3479a7d0897c'  # KS022/2019-12-10/001
+        self.eid = 'b1c968ad-4874-468d-b2e4-5ffa9b9964e9'
         # Make sure the data exists locally
         download_taskqc_raw_data(self.eid, one=one)
         self.session_path = self.one.path_from_eid(self.eid)
