@@ -50,9 +50,7 @@ class TestPipeline(unittest.TestCase):
             local_server.tasks_runner(subjects_path, training_jobs, one=one, count=nses * 10,
                                       dry=False, max_md5_size=1024 * 1024 * 20)
             tasks = one.alyx.rest('tasks', 'list', status='Errored',
-                                  graph='TrainingExtractionPipeline',
-                                  django="~session__task_protocol__icontains,habituation")
-            # FIXME: remove django line above when habituation extraction gets fixed
+                                  graph='TrainingExtractionPipeline')
             assert(len(tasks) == 0)
             eids = list(set([t['session'] for t in training_jobs]))
             session_dict = one.alyx.rest('sessions', 'read', id=eids[1])

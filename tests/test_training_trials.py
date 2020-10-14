@@ -23,6 +23,16 @@ TRIAL_KEYS_lt5 = ['goCue_times', 'probabilityLeft', 'intervals', 'itiDuration',
 WHEEL_KEYS = ['position', 'timestamps']
 
 
+class TestHabituation(unittest.TestCase):
+
+    def test_legacy_habituation_session(self):
+        session_path = PATH_TESTS.joinpath("Subjects_init/ZM_1098/2019-01-25/001")
+        job = TrainingTrials(session_path)
+        status = job.run()
+        assert status == 0
+        assert "No extraction of legacy habituation sessions" in job.log
+
+
 class TestSessions(unittest.TestCase):
 
     def test_trials_extraction(self):
