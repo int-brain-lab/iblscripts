@@ -52,8 +52,8 @@ class TestPipeline(unittest.TestCase):
             tasks = one.alyx.rest('tasks', 'list', status='Errored',
                                   graph='TrainingExtractionPipeline')
             assert(len(tasks) == 0)
-            eids = list(set([t['session'] for t in training_jobs]))
-            session_dict = one.alyx.rest('sessions', 'read', id=eids[1])
+            session_dict = one.alyx.rest('sessions', 'read',
+                                         id='ccfc5634-8e50-4adb-9655-62ed8868d6b8')
             self.assertTrue(len(session_dict['extended_qc'].keys()) > 4)
 
 
