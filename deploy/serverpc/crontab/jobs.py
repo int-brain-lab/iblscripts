@@ -4,13 +4,15 @@ from pathlib import Path
 import socket
 import time
 
-from ibllib.pipes.local_server import job_creator, job_runner
+from oneibl.one import ONE
+from ibllib.pipes.local_server import job_creator, job_runner, report_health
 
 DEFINED_PORT_RUN = 54320
 DEFINED_PORT_CREATE = 54321
 DEFINED_PORT_REPORT = 54322
 
 _logger = logging.getLogger('ibllib')
+one = ONE()
 
 
 def _parametrized(dec):
@@ -73,15 +75,15 @@ def run_tasks(subjects_path, dry=False, lab=None, count=20):
     :param dry:
     :return:
     """
-    job_runner(subjects_path, lab=lab, dry=dry, count=count)
+    job_runner(subjects_path, lab=lab, dry=dry, count=count, one=one)
 
 
-@forever(DEFINED_PORT_REPORT, 60 * 15)
-def create_sessions(root_path, dry=False):
+@forever(DEFINED_PORT_REPORT, 3600 * 2)
+def report():
     """
-    Labels the lab endpoint json field with health indicators
+    Labels the lab endpoint json field with health indicators every 2 hours
     """
-    server_report(root_path, dry=dry)
+    report_health(one=one)
 
 
 @forever(DEFINED_PORT_CREATE, 60 * 15)
@@ -91,7 +93,7 @@ def create_sessions(root_path, dry=False):
     create the session on Alyx if it doesn't already exist, register the raw data and create
     the tasks backloh
     """
-    job_creator(root_path, dry=dry)
+    job_creator(root_path, dry=dry, one=one)
 
 
 @forever(DEFINED_PORT_CREATE, 4)
@@ -139,7 +141,7 @@ if __name__ == "__main__":
     ALLOWED_ACTIONS = ['create', 'run', 'test', 'kill', 'status', 'report']
     parser = argparse.ArgumentParser(description='Creates jobs for new sessions')
     parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
-    parser.add_argument('folder', help='A Folder containing a session')
+    parser.add_argument('folder', help='A Folder containing a session', required=False)
     parser.add_argument('--dry', help='Dry Run', required=False, action='store_true')
     parser.add_argument('--restart', help='Restart if running', required=False,
                         action='store_true')
@@ -160,7 +162,7 @@ if __name__ == "__main__":
         assert (Path(args.folder).exists())
         if args.restart:
             _send2job('report', b"STOP")
-        report
+        report()
     elif args.action == 'test':
         if args.restart:
             _send2job('create', b"STOP")
