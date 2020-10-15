@@ -8,6 +8,7 @@ from ibllib.pipes.local_server import job_creator, job_runner
 
 DEFINED_PORT_RUN = 54320
 DEFINED_PORT_CREATE = 54321
+DEFINED_PORT_REPORT = 54322
 
 _logger = logging.getLogger('ibllib')
 
@@ -75,6 +76,14 @@ def run_tasks(subjects_path, dry=False, lab=None, count=20):
     job_runner(subjects_path, lab=lab, dry=dry, count=count)
 
 
+@forever(DEFINED_PORT_REPORT, 60 * 15)
+def create_sessions(root_path, dry=False):
+    """
+    Labels the lab endpoint json field with health indicators
+    """
+    server_report(root_path, dry=dry)
+
+
 @forever(DEFINED_PORT_CREATE, 60 * 15)
 def create_sessions(root_path, dry=False):
     """
@@ -111,17 +120,23 @@ def _send2job(name, bmessage):
 
 if __name__ == "__main__":
     """
+    Create: creates session as they get copied on the server
+    Run: run the tasks labeled as waiting on Alyx
+    Report: label the corresponding lab json field with server health indicators
     Launch neverending jobs (only single instance allowed):
         python jobs.py create /mnt/s0/Data (--dry, --restart)
         python jobs.py run /mnt/s0/Data (--dry, --restart)
+        python jobs.py report
     Check them:
         python jobs.py status create
-        python jobs.py status run        
+        python jobs.py status run
+        python jobs.py status report        
     Kill them:
         python jobs.py kill create
         python jobs.py kill run
+        python jobs.py kill report
     """
-    ALLOWED_ACTIONS = ['create', 'run', 'test', 'kill', 'status']
+    ALLOWED_ACTIONS = ['create', 'run', 'test', 'kill', 'status', 'report']
     parser = argparse.ArgumentParser(description='Creates jobs for new sessions')
     parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
     parser.add_argument('folder', help='A Folder containing a session')
@@ -141,6 +156,11 @@ if __name__ == "__main__":
         if args.restart:
             _send2job('run', b"STOP")
         run_tasks(args.folder, args.dry)
+    elif args.action == 'report':
+        assert (Path(args.folder).exists())
+        if args.restart:
+            _send2job('report', b"STOP")
+        report
     elif args.action == 'test':
         if args.restart:
             _send2job('create', b"STOP")

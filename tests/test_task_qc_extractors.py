@@ -7,7 +7,6 @@ from pathlib import Path
 
 import numpy as np
 
-from ibllib.qc.oneutils import download_taskqc_raw_data
 from ibllib.qc.task_metrics import TaskQC
 from ibllib.qc.task_extractors import TaskQCExtractor
 from ibllib.qc.oneutils import download_taskqc_raw_data
@@ -119,7 +118,7 @@ class TestBpodQCExtractors(unittest.TestCase):
             'choice', 'feedbackType', 'goCueTrigger_times', 'wheel_timestamps', 'wheel_position',
             'wheel_moves_intervals', 'wheel_moves_peak_amplitude', 'firstMovement_times', 'phase',
             'goCue_times', 'rewardVolume', 'response_times', 'feedback_times', 'probabilityLeft',
-            'position', 'contrast', 'quiescence', 'contrastRight', 'contrastLeft', 'outcome',
+            'position', 'contrast', 'quiescence', 'contrastRight', 'contrastLeft',
             'errorCue_times', 'valveOpen_times', 'correct', 'intervals'
         ]
         self.assertCountEqual(expected, ex.data.keys())

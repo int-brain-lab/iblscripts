@@ -7,8 +7,8 @@ from ibllib.io import raw_data_loaders as rawio
 from oneibl.one import ONE
 from ibllib.pipes import local_server
 
-one = ONE(base_url='https://test.alyx.internationalbrainlab.org')
-# one = ONE(base_url='http://localhost:8000')
+one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
+          username='test_user', password='TapetesBloc18')
 
 PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
 INIT_FOLDER = PATH_TESTS.joinpath('Subjects_init')
@@ -53,7 +53,7 @@ class TestPipeline(unittest.TestCase):
                                   graph='TrainingExtractionPipeline')
             assert(len(tasks) == 0)
             eids = list(set([t['session'] for t in training_jobs]))
-            session_dict = one.alyx.rest('sessions', 'read', id=eids[0])
+            session_dict = one.alyx.rest('sessions', 'read', id=eids[1])
             self.assertTrue(len(session_dict['extended_qc'].keys()) > 4)
 
 
