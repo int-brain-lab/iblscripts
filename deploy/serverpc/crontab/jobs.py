@@ -12,7 +12,6 @@ DEFINED_PORT_CREATE = 54321
 DEFINED_PORT_REPORT = 54322
 
 _logger = logging.getLogger('ibllib')
-one = ONE()
 
 
 def _parametrized(dec):
@@ -75,7 +74,7 @@ def run_tasks(subjects_path, dry=False, lab=None, count=20):
     :param dry:
     :return:
     """
-    job_runner(subjects_path, lab=lab, dry=dry, count=count, one=one)
+    job_runner(subjects_path, lab=lab, dry=dry, count=count)
 
 
 @forever(DEFINED_PORT_REPORT, 3600 * 2)
@@ -83,6 +82,7 @@ def report():
     """
     Labels the lab endpoint json field with health indicators every 2 hours
     """
+    one = ONE()
     report_health(one=one)
 
 
@@ -93,12 +93,12 @@ def create_sessions(root_path, dry=False):
     create the session on Alyx if it doesn't already exist, register the raw data and create
     the tasks backloh
     """
-    job_creator(root_path, dry=dry, one=one)
+    job_creator(root_path, dry=dry)
 
 
 @forever(DEFINED_PORT_CREATE, 4)
 def test_fcn():
-    print('TOto')
+    print('Toto')
 
 
 def _send2job(name, bmessage):
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     ALLOWED_ACTIONS = ['create', 'run', 'test', 'kill', 'status', 'report']
     parser = argparse.ArgumentParser(description='Creates jobs for new sessions')
     parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
-    parser.add_argument('folder', help='A Folder containing a session', required=False)
+    parser.add_argument('folder', help='A Folder containing a session', nargs="?")
     parser.add_argument('--dry', help='Dry Run', required=False, action='store_true')
     parser.add_argument('--restart', help='Restart if running', required=False,
                         action='store_true')
@@ -159,7 +159,6 @@ if __name__ == "__main__":
             _send2job('run', b"STOP")
         run_tasks(args.folder, args.dry)
     elif args.action == 'report':
-        assert (Path(args.folder).exists())
         if args.restart:
             _send2job('report', b"STOP")
         report()
