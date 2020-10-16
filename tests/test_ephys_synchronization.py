@@ -1,22 +1,19 @@
-import unittest
-from pathlib import Path
-
 import numpy as np
 
 import alf.io
 from ibllib.io import spikeglx
 import ibllib.ephys.sync_probes as sync_probes
 
-INTEGRATION_TEST_FOLDER = Path("/mnt/s0/Data/IntegrationTests")
+from . import base
 
 
-class TestEphysCheckList(unittest.TestCase):
+class TestEphysCheckList(base.IntegrationTest):
     def setUp(self):
-        self.folder3a = INTEGRATION_TEST_FOLDER.joinpath('ephys/sync/sync_3A')
-        self.folder3b = INTEGRATION_TEST_FOLDER.joinpath('ephys/sync/sync_3B')
-        self.folder3b_single = INTEGRATION_TEST_FOLDER.joinpath('ephys/sync/sync_3B_single')
-        self.folder3a_single = INTEGRATION_TEST_FOLDER.joinpath('ephys/sync/sync_3A_single')
-        folder = INTEGRATION_TEST_FOLDER.joinpath('ephys', 'sync')
+        self.folder3a = self.data_path.joinpath('ephys/sync/sync_3A')
+        self.folder3b = self.data_path.joinpath('ephys/sync/sync_3B')
+        self.folder3b_single = self.data_path.joinpath('ephys/sync/sync_3B_single')
+        self.folder3a_single = self.data_path.joinpath('ephys/sync/sync_3A_single')
+        folder = self.data_path.joinpath('ephys', 'sync')
         for fil in folder.rglob('*.sync.npy'):
             fil.unlink()
         for fil in folder.rglob('*.timestamps.npy'):

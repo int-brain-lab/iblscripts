@@ -5,18 +5,14 @@ on the ephysChoiceWorld task, doing a dummy without animal and check that all sy
 This test is also a synchronization extraction test, as it checks the ouput. The tear down function
 removes all _spikeglx_ files so they are regenerated from the small files accessible
 """
-
-import unittest
-from pathlib import Path
-
 import ibllib.ephys.ephysqc
 
-PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
+from . import base
 
 
-class TestEphysCheckList(unittest.TestCase):
+class TestEphysCheckList(base.IntegrationTest):
     def setUp(self):
-        self.init_folder = PATH_TESTS.joinpath('ephys', 'ttl_check')
+        self.init_folder = self.data_path.joinpath('ephys', 'ttl_check')
         if not self.init_folder.exists():
             return
         for sf in self.init_folder.joinpath('ttl_3B_single').rglob('_spikeglx_sync.*.npy'):

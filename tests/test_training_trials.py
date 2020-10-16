@@ -10,8 +10,8 @@ from ibllib.pipes.training_preprocessing import TrainingTrials
 import ibllib.io.raw_data_loaders as rawio
 import alf.io
 
-PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
-INIT_FOLDER = PATH_TESTS.joinpath('training')
+from . import base
+
 TRIAL_KEYS_ge5 = ['goCue_times', 'probabilityLeft', 'intervals', 'stimOnTrigger_times',
                   'goCueTrigger_times', 'response_times', 'feedbackType', 'contrastLeft',
                   'feedback_times', 'rewardVolume', 'included', 'choice', 'contrastRight',
@@ -23,25 +23,28 @@ TRIAL_KEYS_lt5 = ['goCue_times', 'probabilityLeft', 'intervals', 'itiDuration',
 WHEEL_KEYS = ['position', 'timestamps']
 
 
-class TestHabituation(unittest.TestCase):
+class TestHabituation(base.IntegrationTest):
 
     def test_legacy_habituation_session(self):
-        session_path = PATH_TESTS.joinpath("Subjects_init/ZM_1098/2019-01-25/001")
+        session_path = self.data_path.joinpath("Subjects_init/ZM_1098/2019-01-25/001")
         job = TrainingTrials(session_path)
         status = job.run()
         assert status == 0
         assert "No extraction of legacy habituation sessions" in job.log
 
 
-class TestSessions(unittest.TestCase):
+class TestSessions(base.IntegrationTest):
+
+    def setUp(self):
+        self.INIT_FOLDER = self.data_path.joinpath('training')
+        if not self.INIT_FOLDER.exists():
+            raise FileNotFoundError(f'Fixture {self.INIT_FOLDER.absolute()} does not exist')
 
     def test_trials_extraction(self):
-        if not INIT_FOLDER.exists():
-            return
         # extract all sessions
         with tempfile.TemporaryDirectory() as tdir:
             subjects_path = Path(tdir).joinpath('Subjects')
-            shutil.copytree(INIT_FOLDER, subjects_path)
+            shutil.copytree(self.INIT_FOLDER, subjects_path)
             for fil in subjects_path.rglob('_iblrig_taskData.raw*.jsonable'):
                 session_path = fil.parents[1]
                 # task running part
@@ -73,3 +76,7 @@ class TestSessions(unittest.TestCase):
             session_path = subjects_path / "CSHL_007/2019-07-31/001"
             trials = alf.io.load_object(session_path / 'alf', 'trials')
             self.assertTrue(np.all(np.logical_not(np.isnan(trials.goCue_times))))
+
+
+if __name__ == "__main__":
+    unittest.main(exit=False, verbosity=2)

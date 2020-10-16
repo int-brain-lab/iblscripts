@@ -1,37 +1,36 @@
 import unittest
-from pathlib import Path
 import shutil
 import logging
 
 from ibllib.io import spikeglx
 from ibllib.pipes.ephys_preprocessing import EphysMtscomp
 
+from . import base
+
 _logger = logging.getLogger('ibllib')
 
-TEST_PATH = Path('/mnt/s0/Data/IntegrationTests')
 
-
-class TestMtsCompRegistration(unittest.TestCase):
+class TestMtsCompRegistration(base.IntegrationTest):
     """Makes sure the ch files are registered properly"""
 
     def test_single_run(self):
-        SESSION_PATH = TEST_PATH.joinpath("ephys/choice_world/KS022/2019-12-10/001")
+        SESSION_PATH = self.data_path.joinpath("ephys/choice_world/KS022/2019-12-10/001")
         task = EphysMtscomp(SESSION_PATH)
         task.run()
         self.assertTrue(sum(map(lambda x: x.suffix == '.cbin', task.outputs)) == 5)
         self.assertTrue(sum(map(lambda x: x.suffix == '.ch', task.outputs)) == 5)
 
 
-class TestEphysCompression(unittest.TestCase):
+class TestEphysCompression(base.IntegrationTest):
 
     def setUp(self):
         """
         replicate the full folder architecture with symlinks from compress_init to compress
         """
-        self.init_folder = TEST_PATH.joinpath('ephys', 'compression_init')
+        self.init_folder = self.data_path.joinpath('ephys', 'compression_init')
         if not self.init_folder.exists():
             return
-        self.main_folder = TEST_PATH.joinpath('ephys', 'compression')
+        self.main_folder = self.data_path.joinpath('ephys', 'compression')
         if self.main_folder.exists():
             shutil.rmtree(self.main_folder)
         self.main_folder.mkdir(exist_ok=True)

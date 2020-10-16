@@ -25,6 +25,7 @@ class TestExamplesBehaviour(unittest.TestCase):
 
 class TestExamplesHistology(unittest.TestCase):
 
+    @unittest.skip
     def test_alyx_interactions(self):
         pass
         # TODO get track files somehwere

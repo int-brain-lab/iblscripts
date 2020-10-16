@@ -1,25 +1,21 @@
-import shutil
 import tempfile
-import unittest
 from pathlib import Path
 
 from ibllib.io import raw_data_loaders as rawio
 from oneibl.one import ONE
 from ibllib.pipes import local_server
 
+from . import base
+
 one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
           username='test_user', password='TapetesBloc18')
 
-PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
-INIT_FOLDER = PATH_TESTS.joinpath('Subjects_init')
 
-
-class TestPipeline(unittest.TestCase):
+class TestPipeline(base.IntegrationTest):
 
     def test_full_pipeline(self):
-
-        if not INIT_FOLDER.exists():
-            return
+        INIT_FOLDER = self.data_path.joinpath('Subjects_init')
+        self.assertTrue(INIT_FOLDER.exists())
 
         with tempfile.TemporaryDirectory() as tdir:
             # create symlinks in a temporary directory
