@@ -11,4 +11,4 @@ python jobs.py create /mnt/s0/Data/Subjects &
 python jobs.py kill run
 python jobs.py run /mnt/s0/Data/Subjects &
 
-python jobs.py report
+python jobs.py report &
