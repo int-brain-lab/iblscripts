@@ -48,9 +48,8 @@ class TestPipeline(base.IntegrationTest):
             tasks = one.alyx.rest('tasks', 'list', status='Errored',
                                   graph='TrainingExtractionPipeline')
             assert(len(tasks) == 0)
-            session_dict = one.alyx.rest('sessions', 'read',
-                                         id='ccfc5634-8e50-4adb-9655-62ed8868d6b8')
-            self.assertTrue(len(session_dict['extended_qc'].keys()) > 4)
+            session_dict = one.alyx.rest('sessions', 'list', django='extended_qc__isnull, False')
+            assert(len(session_dict) > 0)
 
 
 def create_pipeline(session_path):

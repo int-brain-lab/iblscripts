@@ -18,7 +18,8 @@ fi
 source ~/Documents/PYTHON/envs/iblenv/bin/activate
 # pip install --upgrade ibllib
 # pip install -U mtscomp
+pip install --upgrade pip
 pip uninstall -y ibllib
 pip uninstall -y phylib
 pip install git+https://github.com/cortex-lab/phylib.git@ibl_tests
-pip install git+https://github.com/int-brain-lab/ibllib.git@$branch
+pip install git+https://github.com/int-brain-lab/ibllib.git@$branch --upgrade-strategy eager -e
