@@ -8,6 +8,7 @@ import numpy as np
 from ibllib.misc import version
 from ibllib.pipes.training_preprocessing import TrainingTrials
 import ibllib.io.raw_data_loaders as rawio
+from oneibl.one import OneOffline
 import alf.io
 
 from . import base
@@ -39,6 +40,7 @@ class TestSessions(base.IntegrationTest):
         self.INIT_FOLDER = self.data_path.joinpath('training')
         if not self.INIT_FOLDER.exists():
             raise FileNotFoundError(f'Fixture {self.INIT_FOLDER.absolute()} does not exist')
+        self.one = OneOffline()
 
     def test_trials_extraction(self):
         # extract all sessions
@@ -48,7 +50,7 @@ class TestSessions(base.IntegrationTest):
             for fil in subjects_path.rglob('_iblrig_taskData.raw*.jsonable'):
                 session_path = fil.parents[1]
                 # task running part
-                job = TrainingTrials(session_path)
+                job = TrainingTrials(session_path, one=self.one)
                 job.run()
                 # load camera timestamps
                 lc = alf.io.load_object(session_path / 'alf', 'leftCamera')

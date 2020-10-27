@@ -1,18 +1,13 @@
-import unittest
-from pathlib import Path
 import logging
 import numpy as np
 import shutil
 
 import alf.io
 from ibllib.io.extractors import ephys_fpga
-from ibllib.ephys import ephysqc
 
 from . import base
 
 _logger = logging.getLogger('ibllib')
-
-PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
 
 BPOD_FILES = [
     '_ibl_trials.choice.npy',
@@ -42,7 +37,7 @@ ALIGN_BPOD_FPGA_FILES = [
 class TestEphysTaskExtraction(base.IntegrationTest):
 
     def setUp(self) -> None:
-        self.root_folder = PATH_TESTS.joinpath("ephys")
+        self.root_folder = self.data_path.joinpath("ephys")
         if not self.root_folder.exists():
             return
 
@@ -90,12 +85,11 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         self.assertTrue(np.all(np.logical_xor(np.isnan(fpga_trials['valveOpen_times'][:-1]),
                                               np.isnan(fpga_trials['errorCue_times'][:-1]))))
 
-
         # do the task qc
         # tqc_ephys.extractor.settings['PYBPOD_PROTOCOL']
         from ibllib.qc.task_extractors import TaskQCExtractor
         ex = TaskQCExtractor(session_path, lazy=True, one=None, bpod_only=False)
-        ex.data = trials
+        ex.data = fpga_trials
         ex.extract_data(partial=True)
 
         from ibllib.qc.task_metrics import TaskQC
