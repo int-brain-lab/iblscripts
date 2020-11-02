@@ -3,7 +3,7 @@ import unittest
 import alf.io
 from ibllib.io.extractors import training_audio as audio
 
-from . import base
+from ci.tests import base
 
 
 class TestAudioExtraction(base.IntegrationTest):

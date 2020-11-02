@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import alf.io
 from ibllib.io.extractors import ephys_fpga, training_wheel
 
-from . import base
+from ci.tests import base
 
 DISPLAY = False
 _logger = logging.getLogger('ibllib')

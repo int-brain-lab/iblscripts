@@ -11,7 +11,8 @@ The `tests` folder contains the ibllib integration tests.  These require a datas
     data_path = r'path\to\integration'
     params.write('ibl_ci', {'data_root': data_path})
     ```
- 3. Run the tests with `python –m unittest discover –s "./tests"`
+ 3. Run the tests with `python –m unittest discover –s "./tests"` or
+ `python ci/runAllTests.py -l path/to/log/output/dir`
  
  NB: `test_ephys_mtscomp/TestEphysCompression` and `test_ephys_pipeline/TestEphysPipeline` require
   admin privileges in order to create symbolic links on Windows.

@@ -5,7 +5,7 @@ from ibllib.io import raw_data_loaders as rawio
 from oneibl.one import ONE
 from ibllib.pipes import local_server
 
-from . import base
+from ci.tests import base
 
 one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
           username='test_user', password='TapetesBloc18')

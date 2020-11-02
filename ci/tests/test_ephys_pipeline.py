@@ -8,7 +8,7 @@ import alf.io
 from ibllib.pipes import local_server
 from oneibl.one import ONE
 
-from . import base
+from ci.tests import base
 
 CACHE_DIR = tempfile.TemporaryDirectory()
 _logger = logging.getLogger('ibllib')

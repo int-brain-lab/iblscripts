@@ -5,7 +5,7 @@ import shutil
 import alf.io
 from ibllib.io.extractors import ephys_fpga
 
-from . import base
+from ci.tests import base
 
 _logger = logging.getLogger('ibllib')
 

@@ -4,7 +4,7 @@ import alf.io
 from ibllib.io import spikeglx
 import ibllib.ephys.sync_probes as sync_probes
 
-from . import base
+from ci.tests import base
 
 
 class TestEphysCheckList(base.IntegrationTest):

@@ -1,11 +1,11 @@
 import shutil
-import unittest
 import tempfile
 from pathlib import Path
 
 from ibllib.pipes import ephys_preprocessing, training_preprocessing
 
-from . import base
+from ci.tests import base
+
 
 class TestVideoAudioEphys(base.IntegrationTest):
 

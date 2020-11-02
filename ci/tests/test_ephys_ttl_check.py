@@ -7,7 +7,7 @@ removes all _spikeglx_ files so they are regenerated from the small files access
 """
 import ibllib.ephys.ephysqc
 
-from . import base
+from ci.tests import base
 
 
 class TestEphysCheckList(base.IntegrationTest):

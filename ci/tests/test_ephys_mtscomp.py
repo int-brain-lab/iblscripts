@@ -5,7 +5,7 @@ import logging
 from ibllib.io import spikeglx
 from ibllib.pipes.ephys_preprocessing import EphysMtscomp
 
-from . import base
+from ci.tests import base
 
 _logger = logging.getLogger('ibllib')
 

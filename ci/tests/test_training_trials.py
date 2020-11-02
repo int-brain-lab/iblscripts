@@ -11,7 +11,7 @@ import ibllib.io.raw_data_loaders as rawio
 from oneibl.one import OneOffline
 import alf.io
 
-from . import base
+from ci.tests import base
 
 TRIAL_KEYS_ge5 = ['goCue_times', 'probabilityLeft', 'intervals', 'stimOnTrigger_times',
                   'goCueTrigger_times', 'response_times', 'feedbackType', 'contrastLeft',
