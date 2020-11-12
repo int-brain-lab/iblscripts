@@ -56,7 +56,7 @@ def create_pipeline(session_path):
     # creates the session if necessary
     task_type = rawio.get_session_extractor_type(session_path)
     print(session_path, task_type)
-    session_path.joinpath('extract_me.flag').touch()
+    session_path.joinpath('raw_session.flag').touch()
     # delete the session if it exists
     eid = one.eid_from_path(session_path)
     if eid is not None:

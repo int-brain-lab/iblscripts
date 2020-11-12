@@ -1,7 +1,7 @@
 # iblscripts
 
 ## Tests
-The `tests` folder contains the ibllib integration tests.  These require a dataset found on
+The `ci/tests` folder contains the ibllib integration tests.  These require a dataset found on
  FlatIron, in `/integration`.  To run these tests...
  
  1. Download the integration test dataset from FlatIron vis Globus.
