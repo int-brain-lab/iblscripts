@@ -159,20 +159,19 @@ class TestEphysPipeline(base.IntegrationTest):
         for ed in EXPECTED_DATASETS:
             count = sum([1 if ed[0] == dt else 0 for dt in dtypes])
             if not ed[1] <= count <= ed[2]:
-                print('toto')
-                break
                 _logger.info(f'missing dataset types: {ed[0]} found {count}, '
-                              f'expected between [{ed[1]} and {ed[2]}]')
+                             f'expected between [{ed[1]} and {ed[2]}]')
                 success = False
             else:
                 _logger.info(f'check dataset types registration OK: {ed[0]}')
         self.assertTrue(success)
-
         # check that the task QC was successfully run
         session_dict = one.alyx.rest('sessions', 'read', id=eid)
         self.assertNotEqual('NOT_SET', session_dict['qc'], 'qc field not updated')
         extended = session_dict['extended_qc']
         self.assertTrue(any(k.startswith('_task_') for k in extended.keys()))
+        # also check that the behaviour criteron was set
+        assert 'behavior' in extended
 
     def check_spike_sorting_output(self, session_path):
         """ Check the spikes object """
