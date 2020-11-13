@@ -1,6 +1,4 @@
-from pathlib import Path
 import numpy as np
-import unittest
 import shutil
 import logging
 
@@ -11,8 +9,9 @@ import matplotlib.pyplot as plt
 import alf.io
 from ibllib.io.extractors import ephys_fpga, training_wheel
 
+from ci.tests import base
+
 DISPLAY = False
-PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
 _logger = logging.getLogger('ibllib')
 
 
@@ -42,12 +41,11 @@ def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
     return raw_wheel, wheel
 
 
-class TestWheelExtractionSimpleEphys(unittest.TestCase):
+class TestWheelExtractionSimpleEphys(base.IntegrationTest):
 
     def setUp(self) -> None:
-        self.session_path = PATH_TESTS.joinpath('wheel', 'ephys', 'three_clockwise_revolutions')
-        if not self.session_path.exists():
-            return
+        self.session_path = self.data_path.joinpath('wheel', 'ephys', 'three_clockwise_revolutions')
+        assert self.session_path.exists()
 
     def test_three_clockwise_revolutions_fpga(self):
         raw_wheel, wheel = compare_wheel_fpga_behaviour(self.session_path)
@@ -56,10 +54,10 @@ class TestWheelExtractionSimpleEphys(unittest.TestCase):
         self.assertTrue(0.95 < raw_wheel['fpga_pos'][-1] / -(2 * 3.14 * 9) < 1.05)
 
 
-class TestWheelExtractionSessionEphys(unittest.TestCase):
+class TestWheelExtractionSessionEphys(base.IntegrationTest):
 
     def setUp(self) -> None:
-        self.root_path = PATH_TESTS.joinpath('wheel', 'ephys', 'sessions')
+        self.root_path = self.data_path.joinpath('wheel', 'ephys', 'sessions')
         if not self.root_path.exists():
             return
         self.sessions = [f.parent for f in self.root_path.rglob('raw_behavior_data')]
@@ -78,12 +76,11 @@ class TestWheelExtractionSessionEphys(unittest.TestCase):
             self.assertTrue(np.all(np.abs(fpga - bpod < 0.1)))
 
 
-class TestWheelExtractionTraining(unittest.TestCase):
+class TestWheelExtractionTraining(base.IntegrationTest):
 
     def setUp(self) -> None:
-        self.root_path = PATH_TESTS.joinpath('wheel', 'training')
-        if not self.root_path.exists():
-            return
+        self.root_path = self.data_path.joinpath('wheel', 'training')
+        assert self.root_path.exists()
 
     def test_wheel_extraction_training(self):
         for rbf in self.root_path.rglob('raw_behavior_data'):

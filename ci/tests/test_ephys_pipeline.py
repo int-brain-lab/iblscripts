@@ -1,7 +1,6 @@
 import logging
-import unittest
-from pathlib import Path
 import shutil
+from pathlib import Path
 import numpy as np
 import tempfile
 
@@ -9,23 +8,24 @@ import alf.io
 from ibllib.pipes import local_server
 from oneibl.one import ONE
 
+from ci.tests import base
+
 CACHE_DIR = tempfile.TemporaryDirectory()
 _logger = logging.getLogger('ibllib')
 
-PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
-SESSION_PATH = PATH_TESTS.joinpath("ephys/choice_world/KS022/2019-12-10/001")
-# one = ONE(base_url='http://localhost:8000')
-one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
-          username='test_user', password='TapetesBloc18', cache_dir=Path(CACHE_DIR.name))
 
-
-class TestEphysPipeline(unittest.TestCase):
+class TestEphysPipeline(base.IntegrationTest):
 
     def setUp(self) -> None:
-        self.init_folder = PATH_TESTS.joinpath('ephys', 'choice_world_init')
+        self.session_path = self.data_path.joinpath("ephys/choice_world/KS022/2019-12-10/001")
+        # one = ONE(base_url='http://localhost:8000')
+        self.one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
+                       username='test_user', password='TapetesBloc18',
+                       cache_dir=Path(CACHE_DIR.name))
+        self.init_folder = self.data_path.joinpath('ephys', 'choice_world_init')
         if not self.init_folder.exists():
             return
-        self.main_folder = PATH_TESTS.joinpath('ephys', 'choice_world')
+        self.main_folder = self.data_path.joinpath('ephys', 'choice_world')
         if self.main_folder.exists():
             shutil.rmtree(self.main_folder)
         self.main_folder.mkdir(exist_ok=True)
@@ -35,27 +35,28 @@ class TestEphysPipeline(unittest.TestCase):
                 continue
             link.parent.mkdir(exist_ok=True, parents=True)
             link.symlink_to(ff)
-        SESSION_PATH.joinpath('raw_session.flag').touch()
+        self.session_path.joinpath('raw_session.flag').touch()
 
     def test_pipeline_with_alyx(self):
         """
         Test the ephys pipeline exactly as it is supposed to run on the local servers
         :return:
         """
+        one = self.one
         # first step is to remove the session and create it anew
-        eid = one.eid_from_path(SESSION_PATH, use_cache=False)
+        eid = one.eid_from_path(self.session_path, use_cache=False)
         if eid is not None:
             one.alyx.rest('sessions', 'delete', id=eid)
 
         # create the jobs and run them
-        raw_ds = local_server.job_creator(SESSION_PATH, one=one, max_md5_size=1024 * 1024 * 20)
-        eid = one.eid_from_path(SESSION_PATH, use_cache=False)
+        raw_ds = local_server.job_creator(self.session_path, one=one, max_md5_size=1024 * 1024 * 20)
+        eid = one.eid_from_path(self.session_path, use_cache=False)
         self.assertFalse(eid is None)  # the session is created on the database
         # the flag has been erased
-        self.assertFalse(SESSION_PATH.joinpath('raw_session.flag').exists())
+        self.assertFalse(self.session_path.joinpath('raw_session.flag').exists())
 
-        eid = one.eid_from_path(SESSION_PATH, use_cache=False)
-        subject_path = SESSION_PATH.parents[2]
+        eid = one.eid_from_path(self.session_path, use_cache=False)
+        subject_path = self.session_path.parents[2]
         tasks_dict = one.alyx.rest('tasks', 'list', session=eid, status='Waiting')
         for td in tasks_dict:
             print(td['name'])
@@ -68,7 +69,7 @@ class TestEphysPipeline(unittest.TestCase):
             'trajectories', 'list', session=eid, provenance='Micro-manipulator')) == 2)
 
         # check the spike sorting output on disk
-        self.check_spike_sorting_output(SESSION_PATH)
+        self.check_spike_sorting_output(self.session_path)
 
         # check the registration of datasets
         dsets = one.alyx.rest('datasets', 'list', session=eid)

@@ -11,6 +11,7 @@ from ibllib.qc.task_metrics import TaskQC
 from ibllib.qc.task_extractors import TaskQCExtractor
 from ibllib.qc.oneutils import download_taskqc_raw_data
 from oneibl.one import ONE
+from ci.tests import base
 
 one = ONE(
     base_url="https://test.alyx.internationalbrainlab.org",
@@ -19,7 +20,7 @@ one = ONE(
 )
 
 
-class TestTaskQCObject(unittest.TestCase):
+class TestTaskQCObject(base.IntegrationTest):
     def setUp(self):
         self.one = one
         self.eid = "b1c968ad-4874-468d-b2e4-5ffa9b9964e9"
@@ -85,7 +86,7 @@ class TestTaskQCObject(unittest.TestCase):
         self.assertTrue(all(outcomes[k] == 'FAIL' for k in fail))
 
 
-class TestBpodQCExtractors(unittest.TestCase):
+class TestBpodQCExtractors(base.IntegrationTest):
 
     def setUp(self):
         self.one = one
