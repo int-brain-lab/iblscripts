@@ -8,16 +8,15 @@ import logging
 import shutil
 
 from ibllib.io.extractors import ephys_passive
+from ci.tests import base
+
 
 log = logging.getLogger("ibllib")
 
-PATH_TESTS = Path("/mnt/s0/Data/IntegrationTests")
-PATH_TESTS = Path("/home/nico/Downloads/FlatIron/integration")
 
-
-class TestEphysPassiveExtraction(unittest.TestCase):
+class TestEphysPassiveExtraction(base.IntegrationTest):
     def setUp(self) -> None:
-        self.root_folder = PATH_TESTS.joinpath("ephys", "passive_extraction")
+        self.root_folder = self.data_path.joinpath("ephys", "passive_extraction")
         self.session_path = self.root_folder.joinpath("SWC_054", "2020-10-10", "001")
         if not self.root_folder.exists():
             log.error(f"{self.root_folder} does not exist")
