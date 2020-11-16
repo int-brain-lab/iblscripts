@@ -5,40 +5,49 @@
 import unittest
 from pathlib import Path
 import logging
-import numpy as np
 import shutil
 
-import alf.io
 from ibllib.io.extractors import ephys_passive
-from ibllib.ephys import ephysqc
 
-_logger = logging.getLogger('ibllib')
+log = logging.getLogger("ibllib")
 
-PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
-session_path = "/home/nico/Downloads/FlatIron/mrsicflogellab/Subjects/SWC_054/2020-10-10/001"
+PATH_TESTS = Path("/mnt/s0/Data/IntegrationTests")
+PATH_TESTS = Path("/home/nico/Downloads/FlatIron/integration")
 
 
 class TestEphysPassiveExtraction(unittest.TestCase):
-
     def setUp(self) -> None:
         self.root_folder = PATH_TESTS.joinpath("ephys", "passive_extraction")
-        if not self.root_folder.exists():
-            return
         self.session_path = self.root_folder.joinpath("SWC_054", "2020-10-10", "001")
+        if not self.root_folder.exists():
+            log.error(f"{self.root_folder} does not exist")
 
     def test_task_extraction(self):
         ext = ephys_passive.PassiveChoiceWorld(self.session_path)
         data, paths = ext.extract()
+        self.assertTrue(len(data) == 4)
         self.assertTrue(paths is None)
         # data tests
 
     def test_task_extraction_files(self):
         ext = ephys_passive.PassiveChoiceWorld(self.session_path)
         data, paths = ext.extract(save=True)
-        self.assertTrue(paths is not None)
+        path_names = [x.name for x in paths]
+        expected = [
+            "_ibl_passivePeriods.intervalsTable.csv",
+            "_ibl_passiveRFM.times.npy",
+            "_ibl_passiveGabor.table.csv",
+            "_ibl_passiveStims.table.csv",
+        ]
+        self.assertTrue(all([x in path_names for x in expected]))
+
         # data tests
         # paths test
 
     def tearDown(self):
         # remove alf folder
         shutil.rmtree(self.session_path.joinpath("alf"))
+
+
+if __name__ == "__main__":
+    unittest.main(exit=False)
