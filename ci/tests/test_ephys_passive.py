@@ -45,7 +45,7 @@ class TestEphysPassiveExtraction(base.IntegrationTest):
 
     def tearDown(self):
         # remove alf folder
-        shutil.rmtree(self.session_path.joinpath("alf"))
+        shutil.rmtree(self.session_path.joinpath("alf"), ignore_errors=True)
 
 
 if __name__ == "__main__":
