@@ -149,6 +149,11 @@ class TestEphysPipeline(base.IntegrationTest):
                              ('wheel.timestamps', 1, 1),
                              ('wheelMoves.intervals', 1, 1),
                              ('wheelMoves.peakAmplitude', 1, 1),
+# Min is 0 because this session fails extraction properr extraction test in test_ephys_passive
+                             ('_ibl_passivePeriods.intervalsTable', 0, 1),
+                             ('_ibl_passiveRFM.times', 0, 1),
+                             ('_ibl_passiveGabor.table', 0, 1),
+                             ('_ibl_passiveStims.table', 0, 1),
                              ]
         # check that we indeed find expected number of datasets after registration
         # for this we need to get the unique set of datasets
