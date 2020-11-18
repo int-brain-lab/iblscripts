@@ -11,6 +11,8 @@ from ibllib.pipes.remote_server import job_transfer_ks2, job_run_ks2
 DEFINED_PORT_RUN = 54320
 DEFINED_PORT_CREATE = 54321
 DEFINED_PORT_REPORT = 54322
+DEFINED_PORT_TRANSFER = 54323
+DEFINED_PORT_RUN_KS = 54324
 
 _logger = logging.getLogger('ibllib')
 
@@ -102,7 +104,7 @@ def test_fcn():
     print('Toto')
 
 
-@forever(DEFINED_PORT_CREATE, 15)
+@forever(DEFINED_PORT_TRANSFER, 15)
 def transfer_ks2():
     """
     Create sessions: for this server, finds the extract_me flags, identify the session type,
@@ -112,14 +114,16 @@ def transfer_ks2():
     #job_transfer_ks2(probe)
     print('in transfer_ks2 job')
 
-@forever(DEFINED_PORT_RUN, 15)
+
+@forever(DEFINED_PORT_RUN_KS, 15)
 def run_ks2(session, dry=False):
     """
     Create sessions: for this server, finds the extract_me flags, identify the session type,
     create the session on Alyx if it doesn't already exist, register the raw data and create
     the tasks backloh
     """
-    job_run_ks2()
+    print('in run_ks2 job')
+    #job_run_ks2()
 
 
 def _send2job(name, bmessage):
@@ -127,6 +131,10 @@ def _send2job(name, bmessage):
         port = DEFINED_PORT_CREATE
     elif name == 'run':
         port = DEFINED_PORT_RUN
+    elif name == 'transfer_ks':
+        port = DEFINED_PORT_TRANSFER
+    elif name == 'run_ks':
+        port = DEFINED_PORT_RUN_KS
     else:
         return
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -196,8 +204,12 @@ if __name__ == "__main__":
             print('Job seems to be alright')
     elif args.action == 'transfer_ks':
         if args.restart:
-            _send2job('create', b"STOP")
+            _send2job('transfer_ks', b"STOP")
         transfer_ks2()
+    elif args.action == 'run_ks':
+        if args.restart:
+            _send2job('run_ks', b"STOP")
+        run_ks2()
     else:
         _logger.error(f'Action "{args.action}" not valid. Allowed actions are: '
                       f'{"., ".join(ALLOWED_ACTIONS)}')
