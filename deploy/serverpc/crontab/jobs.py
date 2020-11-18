@@ -6,6 +6,7 @@ import time
 
 from oneibl.one import ONE
 from ibllib.pipes.local_server import job_creator, job_runner, report_health
+from ibllib.pipes.remote_server import job_transfer_ks2, job_run_ks2
 
 DEFINED_PORT_RUN = 54320
 DEFINED_PORT_CREATE = 54321
@@ -99,6 +100,26 @@ def create_sessions(root_path, dry=False):
 @forever(DEFINED_PORT_CREATE, 4)
 def test_fcn():
     print('Toto')
+
+
+@forever(DEFINED_PORT_CREATE, 15)
+def transfer_ks2(probe_path, dry=False):
+    """
+    Create sessions: for this server, finds the extract_me flags, identify the session type,
+    create the session on Alyx if it doesn't already exist, register the raw data and create
+    the tasks backloh
+    """
+    #job_transfer_ks2(probe_path)
+    print('in transfer_ks2 job')
+
+@forever(DEFINED_PORT_RUN, 15)
+def run_ks2(session, dry=False):
+    """
+    Create sessions: for this server, finds the extract_me flags, identify the session type,
+    create the session on Alyx if it doesn't already exist, register the raw data and create
+    the tasks backloh
+    """
+    job_run_ks2()
 
 
 def _send2job(name, bmessage):
