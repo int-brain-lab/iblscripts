@@ -103,13 +103,13 @@ def test_fcn():
 
 
 @forever(DEFINED_PORT_CREATE, 15)
-def transfer_ks2(probe_path, dry=False):
+def transfer_ks2():
     """
     Create sessions: for this server, finds the extract_me flags, identify the session type,
     create the session on Alyx if it doesn't already exist, register the raw data and create
     the tasks backloh
     """
-    #job_transfer_ks2(probe_path)
+    #job_transfer_ks2(probe)
     print('in transfer_ks2 job')
 
 @forever(DEFINED_PORT_RUN, 15)
@@ -159,7 +159,8 @@ if __name__ == "__main__":
         python jobs.py kill run
         python jobs.py kill report
     """
-    ALLOWED_ACTIONS = ['create', 'run', 'test', 'kill', 'status', 'report']
+    ALLOWED_ACTIONS = ['create', 'run', 'test', 'kill', 'status', 'report', 'transfer_ks',
+                       'run_ks']
     parser = argparse.ArgumentParser(description='Creates jobs for new sessions')
     parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
     parser.add_argument('folder', help='A Folder containing a session', nargs="?")
@@ -192,7 +193,12 @@ if __name__ == "__main__":
             print('Job terminated successfully')
     elif args.action == 'status':
         if _send2job(args.folder, b"CHECK") == 0:
-            print('Job seems to be allright')
+            print('Job seems to be alright')
+    elif args.action == 'transfer_ks':
+        if _send2job('create', b"STOP") == 0:
+            print('Job seems to be alright')
+        transfer_ks2()
+
     else:
         _logger.error(f'Action "{args.action}" not valid. Allowed actions are: '
                       f'{"., ".join(ALLOWED_ACTIONS)}')
