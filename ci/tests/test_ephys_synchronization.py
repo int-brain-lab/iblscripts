@@ -97,3 +97,8 @@ def _check_session_sync(ses_path, channel):
         tstamp = sync_probes.apply_sync(ts_file, t * fs, forward=True)
         assert(np.all(tstamp - tsync < 1e-12))
     return tinterp[0] - tinterp[1]
+
+
+if __name__ == "__main__":
+    import unittest
+    unittest.main(exit=False, verbosity=2)

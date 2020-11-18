@@ -256,3 +256,8 @@ class TestEphysPipeline(base.IntegrationTest):
                 # the difference is within 2 uV
                 assert np.nanmax(np.abs((spikes.depths - np.squeeze(expected_depths)))) < .01
                 _logger.info('checked ' + '/'.join(fdepths.parts[-2:]))
+
+
+if __name__ == "__main__":
+    import unittest
+    unittest.main(exit=False)
