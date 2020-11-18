@@ -4,13 +4,9 @@
 The `ci/tests` folder contains the ibllib integration tests.  These require a dataset found on
  FlatIron, in `/integration`.  To run these tests...
  
- 1. Download the integration test dataset from FlatIron vis Globus.
- 2. Set the path to the integration folder by running the following in python:
-    ```python
-    from ibllib.io import params
-    data_path = r'path\to\integration'
-    params.write('ibl_ci', {'data_root': data_path})
-    ```
+ 1. Run the `ci/setup.py` script and following the instructions to prepare Globus for downloading 
+ the data
+ 2. Download the integration data by running the `ci/download_data.py` script.
  3. Run the tests with `python -m unittest discover -s "./ci/tests"` or
  `python ci/runAllTests.py -l path/to/log/output/dir`
  
