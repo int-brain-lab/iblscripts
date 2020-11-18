@@ -195,10 +195,9 @@ if __name__ == "__main__":
         if _send2job(args.folder, b"CHECK") == 0:
             print('Job seems to be alright')
     elif args.action == 'transfer_ks':
-        if _send2job('create', b"STOP") == 0:
-            print('Job seems to be alright')
+        if args.restart:
+            _send2job('create', b"STOP")
         transfer_ks2()
-
     else:
         _logger.error(f'Action "{args.action}" not valid. Allowed actions are: '
                       f'{"., ".join(ALLOWED_ACTIONS)}')
