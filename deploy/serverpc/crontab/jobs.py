@@ -162,7 +162,7 @@ if __name__ == "__main__":
         python jobs.py kill report
     """
     JOBS = ['create', 'run', 'test', 'report', 'transfer_ks', 'run_ks']
-    ALLOWED_ACTIONS = ['kill', 'status'] + JOBS.keys()
+    ALLOWED_ACTIONS = ['kill', 'status'] + JOBS
 
     parser = argparse.ArgumentParser(description='Creates jobs for new sessions')
     parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
