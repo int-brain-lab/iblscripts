@@ -6,10 +6,16 @@ import time
 
 from oneibl.one import ONE
 from ibllib.pipes.local_server import job_creator, job_runner, report_health
+from ibllib.pipes.remote_server import job_transfer_ks2, job_run_ks2
 
-DEFINED_PORT_RUN = 54320
-DEFINED_PORT_CREATE = 54321
-DEFINED_PORT_REPORT = 54322
+
+DEFINED_PORTS = {
+    'run': 54320,
+    'create': 54321,
+    'report': 54322,
+    'transfer_ks': 54323,
+    'run_ks': 54324
+}
 
 _logger = logging.getLogger('ibllib')
 
@@ -66,7 +72,7 @@ def forever(func, port=None, sleep=600):
     return wrapper
 
 
-@forever(DEFINED_PORT_RUN, 600)
+@forever(DEFINED_PORTS['run'], 600)
 def run_tasks(subjects_path, dry=False, lab=None, count=20):
     """
     Runs task backlog from task records in Alyx for this server
@@ -77,7 +83,7 @@ def run_tasks(subjects_path, dry=False, lab=None, count=20):
     job_runner(subjects_path, lab=lab, dry=dry, count=count)
 
 
-@forever(DEFINED_PORT_REPORT, 3600 * 2)
+@forever(DEFINED_PORTS['report'], 3600 * 2)
 def report():
     """
     Labels the lab endpoint json field with health indicators every 2 hours
@@ -86,7 +92,7 @@ def report():
     report_health(one=one)
 
 
-@forever(DEFINED_PORT_CREATE, 60 * 15)
+@forever(DEFINED_PORTS['create'], 60 * 15)
 def create_sessions(root_path, dry=False):
     """
     Create sessions: for this server, finds the extract_me flags, identify the session type,
@@ -96,18 +102,35 @@ def create_sessions(root_path, dry=False):
     job_creator(root_path, dry=dry)
 
 
-@forever(DEFINED_PORT_CREATE, 4)
+@forever(DEFINED_PORTS['create'], 4)
 def test_fcn():
     print('Toto')
 
 
+@forever(DEFINED_PORTS['transfer_ks'], 15)
+def transfer_ks():
+    """
+    Create sessions: for this server, finds the extract_me flags, identify the session type,
+    create the session on Alyx if it doesn't already exist, register the raw data and create
+    the tasks backloh
+    """
+    #job_transfer_ks2(probe)
+    print('in transfer_ks2 job')
+
+
+@forever(DEFINED_PORTS['run_ks'], 15)
+def run_ks2(session, dry=False):
+    """
+    Create sessions: for this server, finds the extract_me flags, identify the session type,
+    create the session on Alyx if it doesn't already exist, register the raw data and create
+    the tasks backloh
+    """
+    print('in run_ks2 job')
+    #job_run_ks2()
+
+
 def _send2job(name, bmessage):
-    if name == 'create':
-        port = DEFINED_PORT_CREATE
-    elif name == 'run':
-        port = DEFINED_PORT_RUN
-    else:
-        return
+    port = DEFINED_PORTS[name]
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(('localhost', port))
@@ -138,7 +161,9 @@ if __name__ == "__main__":
         python jobs.py kill run
         python jobs.py kill report
     """
-    ALLOWED_ACTIONS = ['create', 'run', 'test', 'kill', 'status', 'report']
+    JOBS = ['create', 'run', 'test', 'report', 'transfer_ks', 'run_ks']
+    ALLOWED_ACTIONS = ['kill', 'status'] + JOBS.keys()
+
     parser = argparse.ArgumentParser(description='Creates jobs for new sessions')
     parser.add_argument('action', help='Action: ' + ','.join(ALLOWED_ACTIONS))
     parser.add_argument('folder', help='A Folder containing a session', nargs="?")
@@ -147,7 +172,6 @@ if __name__ == "__main__":
                         action='store_true')
 
     args = parser.parse_args()  # returns data from the options specified (echo)
-    print(args)
     if args.action == 'create':
         assert (Path(args.folder).exists())
         if args.restart:
@@ -171,7 +195,14 @@ if __name__ == "__main__":
             print('Job terminated successfully')
     elif args.action == 'status':
         if _send2job(args.folder, b"CHECK") == 0:
-            print('Job seems to be allright')
+            print('Job seems to be alright')
+    elif args.action == 'transfer_ks':
+        if args.restart:
+            _send2job('transfer_ks', b"STOP")
+    elif args.action == 'run_ks':
+        if args.restart:
+            _send2job('run_ks', b"STOP")
+        run_ks2()
     else:
         _logger.error(f'Action "{args.action}" not valid. Allowed actions are: '
                       f'{"., ".join(ALLOWED_ACTIONS)}')
