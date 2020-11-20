@@ -13,3 +13,5 @@ python jobs.py run /mnt/s0/Data/Subjects &
 
 python jobs.py kill report
 python jobs.py report &
+
+python maintenance.py
