@@ -1,25 +1,21 @@
-import shutil
 import tempfile
-import unittest
 from pathlib import Path
 
 from ibllib.io import raw_data_loaders as rawio
 from oneibl.one import ONE
 from ibllib.pipes import local_server
 
+from ci.tests import base
+
 one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
           username='test_user', password='TapetesBloc18')
 
-PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
-INIT_FOLDER = PATH_TESTS.joinpath('Subjects_init')
 
-
-class TestPipeline(unittest.TestCase):
+class TestPipeline(base.IntegrationTest):
 
     def test_full_pipeline(self):
-
-        if not INIT_FOLDER.exists():
-            return
+        INIT_FOLDER = self.data_path.joinpath('Subjects_init')
+        self.assertTrue(INIT_FOLDER.exists())
 
         with tempfile.TemporaryDirectory() as tdir:
             # create symlinks in a temporary directory
@@ -52,16 +48,15 @@ class TestPipeline(unittest.TestCase):
             tasks = one.alyx.rest('tasks', 'list', status='Errored',
                                   graph='TrainingExtractionPipeline')
             assert(len(tasks) == 0)
-            session_dict = one.alyx.rest('sessions', 'read',
-                                         id='ccfc5634-8e50-4adb-9655-62ed8868d6b8')
-            self.assertTrue(len(session_dict['extended_qc'].keys()) > 4)
+            session_dict = one.alyx.rest('sessions', 'list', django='extended_qc__isnull, False')
+            assert(len(session_dict) > 0)
 
 
 def create_pipeline(session_path):
     # creates the session if necessary
     task_type = rawio.get_session_extractor_type(session_path)
     print(session_path, task_type)
-    session_path.joinpath('extract_me.flag').touch()
+    session_path.joinpath('raw_session.flag').touch()
     # delete the session if it exists
     eid = one.eid_from_path(session_path)
     if eid is not None:

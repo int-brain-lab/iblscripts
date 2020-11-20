@@ -1,18 +1,18 @@
 import shutil
-import unittest
 import tempfile
 from pathlib import Path
 
 from ibllib.pipes import ephys_preprocessing, training_preprocessing
 
-PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
-EPHYS_INIT_FOLDER = PATH_TESTS.joinpath('ephys', 'ephys_video_init')
-TRAINING_INIT_FOLDER = PATH_TESTS.joinpath('Subjects_init')
+from ci.tests import base
 
 
-class TestVideoAudioEphys(unittest.TestCase):
+class TestVideoAudioEphys(base.IntegrationTest):
 
     def test_compress_all_vids(self):
+        EPHYS_INIT_FOLDER = self.data_path.joinpath('ephys', 'ephys_video_init')
+        TRAINING_INIT_FOLDER = self.data_path.joinpath('Subjects_init')
+
         with tempfile.TemporaryDirectory() as tdir:
             shutil.copytree(EPHYS_INIT_FOLDER, Path(tdir).joinpath('Subjects'))
             for ts_file in Path(tdir).rglob("_iblrig_taskSettings.raw.json"):
@@ -38,19 +38,26 @@ class TestVideoAudioEphys(unittest.TestCase):
                 self.assertTrue(next(session_path.rglob('*.flac')) == job_audio.outputs[0])
 
 
-class TestVideoTraining(unittest.TestCase):
+class TestVideoTraining(base.IntegrationTest):
 
-    def setUp(self):
-        if not TRAINING_INIT_FOLDER.exists():
-            return
-        vid_files = list(TRAINING_INIT_FOLDER.rglob('*.avi'))
+    def setUp(self) -> None:
+        self.TRAINING_INIT_FOLDER = self.data_path.joinpath('Subjects_init')
+        assert self.TRAINING_INIT_FOLDER.exists()
+
+    def test_compress_training(self):
+        vid_files = list(self.TRAINING_INIT_FOLDER.rglob('*.avi'))
         for vid_file in vid_files:
             init_session_path = vid_file.parents[1]
             with tempfile.TemporaryDirectory() as tdir:
                 session_path = Path(tdir).joinpath(
-                    init_session_path.relative_to(TRAINING_INIT_FOLDER))
+                    init_session_path.relative_to(self.TRAINING_INIT_FOLDER))
                 shutil.copytree(init_session_path, session_path)
                 job = training_preprocessing.TrainingVideoCompress(session_path)
                 job.run()
                 self.assertIsNone(next(session_path.rglob('*.avi'), None))
                 self.assertEqual(next(session_path.rglob('*.mp4')), job.outputs[0])
+
+
+if __name__ == "__main__":
+    import unittest
+    unittest.main(exit=False, verbosity=2)

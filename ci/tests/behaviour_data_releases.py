@@ -1,21 +1,20 @@
-import unittest
-from pathlib import Path
-
 import logging
 import oneibl.onelight
 
+from . import base
+
 _logger = logging.getLogger('ibllib')
 
-TEST_PATH = Path('/mnt/s0/Data/IntegrationTests')
 
-datadir = TEST_PATH.joinpath('data-releases', 'ibl-behavioral-data-Dec2019')
-one = oneibl.onelight.LocalOne(root_dir=str(datadir))
+class Test(base.IntegrationTest):
 
-
-class Test(unittest.TestCase):
+    def setUp(self) -> None:
+        datadir = self.data_path.joinpath('data-releases', 'ibl-behavioral-data-Dec2019')
+        self.one = oneibl.onelight.LocalOne(root_dir=str(datadir))
 
     def test_behaviour_paper_release_2020_01(self):
         """ This mimics the script provided in the fig share"""
+        one = self.one
         # Search all sessions that have these dataset types.
         eids = one.search(['_ibl_trials.*'])
         # Select the first session.

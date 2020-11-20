@@ -1,7 +1,6 @@
 import logging
-import unittest
-from pathlib import Path
 import shutil
+from pathlib import Path
 import numpy as np
 import tempfile
 
@@ -9,23 +8,24 @@ import alf.io
 from ibllib.pipes import local_server
 from oneibl.one import ONE
 
+from ci.tests import base
+
 CACHE_DIR = tempfile.TemporaryDirectory()
 _logger = logging.getLogger('ibllib')
 
-PATH_TESTS = Path('/mnt/s0/Data/IntegrationTests')
-SESSION_PATH = PATH_TESTS.joinpath("ephys/choice_world/KS022/2019-12-10/001")
-# one = ONE(base_url='http://localhost:8000')
-one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
-          username='test_user', password='TapetesBloc18', cache_dir=Path(CACHE_DIR.name))
 
-
-class TestEphysPipeline(unittest.TestCase):
+class TestEphysPipeline(base.IntegrationTest):
 
     def setUp(self) -> None:
-        self.init_folder = PATH_TESTS.joinpath('ephys', 'choice_world_init')
+        self.session_path = self.data_path.joinpath("ephys/choice_world/KS022/2019-12-10/001")
+        # one = ONE(base_url='http://localhost:8000')
+        self.one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
+                       username='test_user', password='TapetesBloc18',
+                       cache_dir=Path(CACHE_DIR.name))
+        self.init_folder = self.data_path.joinpath('ephys', 'choice_world_init')
         if not self.init_folder.exists():
             return
-        self.main_folder = PATH_TESTS.joinpath('ephys', 'choice_world')
+        self.main_folder = self.data_path.joinpath('ephys', 'choice_world')
         if self.main_folder.exists():
             shutil.rmtree(self.main_folder)
         self.main_folder.mkdir(exist_ok=True)
@@ -35,27 +35,28 @@ class TestEphysPipeline(unittest.TestCase):
                 continue
             link.parent.mkdir(exist_ok=True, parents=True)
             link.symlink_to(ff)
-        SESSION_PATH.joinpath('raw_session.flag').touch()
+        self.session_path.joinpath('raw_session.flag').touch()
 
     def test_pipeline_with_alyx(self):
         """
         Test the ephys pipeline exactly as it is supposed to run on the local servers
         :return:
         """
+        one = self.one
         # first step is to remove the session and create it anew
-        eid = one.eid_from_path(SESSION_PATH, use_cache=False)
+        eid = one.eid_from_path(self.session_path, use_cache=False)
         if eid is not None:
             one.alyx.rest('sessions', 'delete', id=eid)
 
         # create the jobs and run them
-        raw_ds = local_server.job_creator(SESSION_PATH, one=one, max_md5_size=1024 * 1024 * 20)
-        eid = one.eid_from_path(SESSION_PATH, use_cache=False)
+        raw_ds = local_server.job_creator(self.session_path, one=one, max_md5_size=1024 * 1024 * 20)
+        eid = one.eid_from_path(self.session_path, use_cache=False)
         self.assertFalse(eid is None)  # the session is created on the database
         # the flag has been erased
-        self.assertFalse(SESSION_PATH.joinpath('raw_session.flag').exists())
+        self.assertFalse(self.session_path.joinpath('raw_session.flag').exists())
 
-        eid = one.eid_from_path(SESSION_PATH, use_cache=False)
-        subject_path = SESSION_PATH.parents[2]
+        eid = one.eid_from_path(self.session_path, use_cache=False)
+        subject_path = self.session_path.parents[2]
         tasks_dict = one.alyx.rest('tasks', 'list', session=eid, status='Waiting')
         for td in tasks_dict:
             print(td['name'])
@@ -68,7 +69,7 @@ class TestEphysPipeline(unittest.TestCase):
             'trajectories', 'list', session=eid, provenance='Micro-manipulator')) == 2)
 
         # check the spike sorting output on disk
-        self.check_spike_sorting_output(SESSION_PATH)
+        self.check_spike_sorting_output(self.session_path)
 
         # check the registration of datasets
         dsets = one.alyx.rest('datasets', 'list', session=eid)
@@ -148,6 +149,11 @@ class TestEphysPipeline(unittest.TestCase):
                              ('wheel.timestamps', 1, 1),
                              ('wheelMoves.intervals', 1, 1),
                              ('wheelMoves.peakAmplitude', 1, 1),
+# Min is 0 because this session fails extraction properr extraction test in test_ephys_passive
+                             ('_ibl_passivePeriods.intervalsTable', 0, 1),
+                             ('_ibl_passiveRFM.times', 0, 1),
+                             ('_ibl_passiveGabor.table', 0, 1),
+                             ('_ibl_passiveStims.table', 0, 1),
                              ]
         # check that we indeed find expected number of datasets after registration
         # for this we need to get the unique set of datasets
@@ -158,20 +164,19 @@ class TestEphysPipeline(unittest.TestCase):
         for ed in EXPECTED_DATASETS:
             count = sum([1 if ed[0] == dt else 0 for dt in dtypes])
             if not ed[1] <= count <= ed[2]:
-                print('toto')
-                break
                 _logger.info(f'missing dataset types: {ed[0]} found {count}, '
-                              f'expected between [{ed[1]} and {ed[2]}]')
+                             f'expected between [{ed[1]} and {ed[2]}]')
                 success = False
             else:
                 _logger.info(f'check dataset types registration OK: {ed[0]}')
         self.assertTrue(success)
-
         # check that the task QC was successfully run
         session_dict = one.alyx.rest('sessions', 'read', id=eid)
         self.assertNotEqual('NOT_SET', session_dict['qc'], 'qc field not updated')
         extended = session_dict['extended_qc']
         self.assertTrue(any(k.startswith('_task_') for k in extended.keys()))
+        # also check that the behaviour criteron was set
+        assert 'behavior' in extended
 
     def check_spike_sorting_output(self, session_path):
         """ Check the spikes object """
@@ -251,3 +256,8 @@ class TestEphysPipeline(unittest.TestCase):
                 # the difference is within 2 uV
                 assert np.nanmax(np.abs((spikes.depths - np.squeeze(expected_depths)))) < .01
                 _logger.info('checked ' + '/'.join(fdepths.parts[-2:]))
+
+
+if __name__ == "__main__":
+    import unittest
+    unittest.main(exit=False)

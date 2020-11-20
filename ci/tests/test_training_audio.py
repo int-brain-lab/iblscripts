@@ -1,18 +1,16 @@
 import unittest
-from pathlib import Path
 
 import alf.io
 from ibllib.io.extractors import training_audio as audio
 
+from ci.tests import base
 
-TEST_PATH = Path('/mnt/s0/Data/IntegrationTests')
 
-
-class TestAudioExtraction(unittest.TestCase):
+class TestAudioExtraction(base.IntegrationTest):
 
     def setUp(self):
-        file_wav = TEST_PATH.joinpath('Subjects_init', 'ZM_1085', '2019-06-24', '001',
-                                      'raw_behavior_data', '_iblrig_micData.raw.wav')
+        file_wav = self.data_path.joinpath('Subjects_init', 'ZM_1085', '2019-06-24', '001',
+                                           'raw_behavior_data', '_iblrig_micData.raw.wav')
         self.ses_path = file_wav.parents[1]
         if not self.ses_path.exists():
             return
