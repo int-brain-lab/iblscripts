@@ -54,6 +54,6 @@ data_root = input(
     f'Enter the desired location of the test data ({default}):'
 )
 data_root = Path(data_root.strip() or default).absolute()
-params.write(params_id, pars.set(data_root, str(data_root)))
+params.write(params_id, pars.set('data_root', str(data_root)))
 
 print('You may now download the data by running `./download_data.py`')
