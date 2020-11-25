@@ -56,3 +56,8 @@ class TestVideoTraining(base.IntegrationTest):
                 job.run()
                 self.assertIsNone(next(session_path.rglob('*.avi'), None))
                 self.assertEqual(next(session_path.rglob('*.mp4')), job.outputs[0])
+
+
+if __name__ == "__main__":
+    import unittest
+    unittest.main(exit=False, verbosity=2)
