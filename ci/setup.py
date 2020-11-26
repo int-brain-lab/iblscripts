@@ -19,7 +19,7 @@ script).
 3. In the new endpoint's overview page, copy the 'Endpoint UUID' field.  This is the LOCAL_REPO_ID.
 4. Go to the 'IBL Top Level' endpoint overview page and copy the 'Endpoint UUID' field.  This is
 the SOURCE_REPO_ID.
-5. Copy your GLOBUS_CLIENT_ID from somewhere (I forget where).
+5. Copy your GLOBUS_CLIENT_ID (ask the software devs for this).
 """
 )
 params_id = 'globus'
