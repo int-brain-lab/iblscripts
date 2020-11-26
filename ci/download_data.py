@@ -24,7 +24,7 @@ TIMEOUT = 24*60*60  # seconds before timeout
 
 try:
     gtc = globus.login_auto(GLOBUS_CLIENT_ID)
-except Exception:
+except ValueError:
     globus.setup(GLOBUS_CLIENT_ID)
     gtc = globus.login_auto(GLOBUS_CLIENT_ID)
 
