@@ -2,6 +2,9 @@
 set -e
 
 # $1: commit or branch to test out for ibllib
+echo $1
+echo $2
+echo $3
 
 # first step is to update iblscripts
 cd /home/ibladmin/Documents/CI/iblscripts
