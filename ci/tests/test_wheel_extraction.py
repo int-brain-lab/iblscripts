@@ -18,7 +18,7 @@ _logger = logging.getLogger('ibllib')
 def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
     alf_path = session_path.joinpath('alf')
     shutil.rmtree(alf_path, ignore_errors=True)
-    sync, chmap = ephys_fpga._get_main_probe_sync(session_path, bin_exists=False)
+    sync, chmap = ephys_fpga.get_main_probe_sync(session_path, bin_exists=False)
     fpga_t, fpga_pos = ephys_fpga.extract_wheel_sync(sync, chmap=chmap)
     bpod_t, bpod_pos = training_wheel.get_wheel_position(session_path, display=display)
     data, _ = ephys_fpga.extract_all(session_path)
