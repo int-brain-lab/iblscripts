@@ -164,8 +164,8 @@ class TestEphysPipeline(base.IntegrationTest):
         for ed in EXPECTED_DATASETS:
             count = sum([1 if ed[0] == dt else 0 for dt in dtypes])
             if not ed[1] <= count <= ed[2]:
-                _logger.info(f'missing dataset types: {ed[0]} found {count}, '
-                             f'expected between [{ed[1]} and {ed[2]}]')
+                _logger.warning(f'missing dataset types: {ed[0]} found {count}, '
+                                f'expected between [{ed[1]} and {ed[2]}]')
                 success = False
             else:
                 _logger.info(f'check dataset types registration OK: {ed[0]}')

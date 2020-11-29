@@ -134,7 +134,7 @@ class TestBpodQCExtractors(base.IntegrationTest):
 
     def test_partial_extraction(self):
         ex = TaskQCExtractor(self.session_path, lazy=True, one=self.one, bpod_only=True)
-        ex.extract_data(partial=True)
+        ex.extract_data()
         expected = [
             'stimOnTrigger_times', 'stimOffTrigger_times', 'stimOn_times', 'stimOff_times',
             'stimFreeze_times', 'stimFreezeTrigger_times', 'errorCueTrigger_times', 'itiIn_times',

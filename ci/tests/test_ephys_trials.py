@@ -90,7 +90,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         from ibllib.qc.task_extractors import TaskQCExtractor
         ex = TaskQCExtractor(session_path, lazy=True, one=None, bpod_only=False)
         ex.data = fpga_trials
-        ex.extract_data(partial=True)
+        ex.extract_data()
 
         from ibllib.qc.task_metrics import TaskQC
         # '/mnt/s0/Data/IntegrationTests/ephys/ephys_choice_world_task/CSP004/2019-11-27/001'
