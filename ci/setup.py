@@ -18,23 +18,23 @@ print(
 script).
 3. In the new endpoint's overview page, copy the 'Endpoint UUID' field.  This is the LOCAL_REPO_ID.
 4. Go to the 'IBL Top Level' endpoint overview page and copy the 'Endpoint UUID' field.  This is
-the SOURCE_REPO_ID.
+the REMOTE_REPO_ID.
 5. Copy your GLOBUS_CLIENT_ID (ask the software devs for this).
 """
 )
 params_id = 'globus'
-pars = params.read(params_id, {'local_endpoint': None, 'source_endpoint': None})
+pars = params.read(params_id, {'local_endpoint': None, 'remote_endpoint': None})
 default = pars.local_endpoint
 local_endpoint = input(
     f'Enter your LOCAL_REPO_ID ({default}):'
 )
 params.write(params_id, pars.set('local_endpoint', local_endpoint.strip() or default))
 
-default = pars.source_endpoint
-source_endpoint = input(
-    f'Enter your SOURCE_REPO_ID ({default}):'
+default = pars.remote_endpoint
+remote_endpoint = input(
+    f'Enter your REMOTE_REPO_ID ({default}):'
 )
-params.write(params_id, pars.set('source_endpoint', source_endpoint.strip() or default))
+params.write(params_id, pars.set('remote_endpoint', remote_endpoint.strip() or default))
 
 pars = oneibl.params.get()
 default = pars.GLOBUS_CLIENT_ID

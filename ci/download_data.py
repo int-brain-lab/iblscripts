@@ -12,9 +12,9 @@ from globus_sdk.exc import TransferAPIError
 logger = logging.getLogger('ibllib')
 
 # Read in parameters
-p = params.read('globus', {'local_endpoint': None, 'source_endpoint': None})
+p = params.read('globus', {'local_endpoint': None, 'remote_endpoint': None})
 LOCAL_REPO = p.local_endpoint  # Endpoint UUID from Website
-SERVER_ID = p.source_endpoint  # FlatIron
+SERVER_ID = p.remote_endpoint  # FlatIron
 DST_DIR = params.read('ibl_ci', {'data_root': '.'}).data_root
 GLOBUS_CLIENT_ID = oneibl.params.get().GLOBUS_CLIENT_ID
 # Constants
@@ -25,14 +25,16 @@ TIMEOUT = 24*60*60  # seconds before timeout
 try:
     gtc = globus.login_auto(GLOBUS_CLIENT_ID)
 except ValueError:
+    logger.info('User authentication required...')
     globus.setup(GLOBUS_CLIENT_ID)
     gtc = globus.login_auto(GLOBUS_CLIENT_ID)
 
 # Check path exists
 try:
     gtc.operation_ls(SERVER_ID, path=SRC_DIR)
-except TransferAPIError:
-    print('Failed to query source endpoint path')
+except TransferAPIError as ex:
+    logger.error(f'Failed to query source endpoint path {SRC_DIR}')
+    raise ex
 
 # Create the destination path if it does not exist
 dst_directory = as_globus_path(DST_DIR)
@@ -44,9 +46,10 @@ except TransferAPIError as ex:
         # Directory not found; create it
         try:
             gtc.operation_mkdir(LOCAL_REPO, dst_directory)
-            print(f'Created directory: {dst_directory}')
+            logger.info(f'Created directory: {dst_directory}')
         except TransferAPIError as tapie:
-            print(f'Failed to start transfer: {tapie.message}')
+            logger.error(f'Failed to create directory: {tapie.message}')
+            raise tapie
     else:
         raise ex
 
