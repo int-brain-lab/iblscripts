@@ -104,7 +104,7 @@ while running:
     if last_status != status or files_transferred != tr.data['files_transferred']:
         files_transferred = tr.data['files_transferred']
         total_files = tr.data['files'] - tr.data['files_skipped']
-        if status == 'FAILED' or detail not in ('OK', 'QUEUED', 'PAUSED_BY_ADMIN'):
+        if status == 'FAILED' or detail in status_map['FAILED']:
             logger.error(f'Transfer {status}: {tr.data["fatal_error"] or detail}')
             # If still active and error unlikely to resolve by itself, cancel the task
             if tr.data['status'] == 'ACTIVE' and detail != 'CONNECT_FAILED':
