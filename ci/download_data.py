@@ -21,6 +21,11 @@ GLOBUS_CLIENT_ID = oneibl.params.get().GLOBUS_CLIENT_ID
 SRC_DIR = '/integration'
 POLL = (5, 60*60)  # min max seconds between pinging server
 TIMEOUT = 24*60*60  # seconds before timeout
+status_map = {
+    'ACTIVE': ('QUEUED', 'ACTIVE'),
+    'FAILED': ('ENDPOINT_ERROR', 'PERMISSION_DENIED', 'CONNECT_FAILED'),
+    'INACTIVE': 'PAUSED_BY_ADMIN'
+}
 
 try:
     gtc = globus.login_auto(GLOBUS_CLIENT_ID)
@@ -75,6 +80,7 @@ task_id = response.data['task_id']
 last_status = None
 files_transferred = None
 files_skipped = 0
+subtasks_failed = 0
 poll = POLL[0]
 MAX_WAIT = 60*60
 # while not gtc.task_wait(task_id, timeout=WAIT):
@@ -85,23 +91,35 @@ while running:
                      'ENDPOINT_ERROR', 'CONNECT_FAILED', 'PAUSED_BY_ADMIN')
     """
     tr = gtc.get_task(task_id)
-    status = (
-        'QUEUED'
-        if tr.data['nice_status'] == 'Queued'
-        else tr.data['status']
+    detail = (
+        'ACTIVE'
+        if (tr.data['nice_status']) == 'OK'
+        else (tr.data['nice_status'] or tr.data['status']).upper()
     )
-    running = tr.data['status'] == 'ACTIVE'
+    status = next((k for k, v in status_map.items() if detail in v), tr.data['status'])
+    running = tr.data['status'] == 'ACTIVE' and detail in ('ACTIVE', 'QUEUED')
     if files_skipped != tr.data['files_skipped']:
         files_skipped = tr.data['files_skipped']
         logger.info(f'Skipping {files_skipped} files....')
     if last_status != status or files_transferred != tr.data['files_transferred']:
         files_transferred = tr.data['files_transferred']
         total_files = tr.data['files'] - tr.data['files_skipped']
-        if status == 'FAILED':
-            logger.error(f'Transfer {status}: {tr.data["fatal_error"]}')
+        if status == 'FAILED' or detail not in ('OK', 'QUEUED', 'PAUSED_BY_ADMIN'):
+            logger.error(f'Transfer {status}: {tr.data["fatal_error"] or detail}')
+            # If still active and error unlikely to resolve by itself, cancel the task
+            if tr.data['status'] == 'ACTIVE' and detail != 'CONNECT_FAILED':
+                gtc.cancel_task(task_id)
+                logger.warning('Transfer CANCELLED')
+        elif status == 'INACTIVE' or detail == 'PAUSED_BY_ADMIN':
+            logger.info(f'Transfer INACTIVE: {detail}')
         else:
             logger.info(
                 f'Transfer {status}: {files_transferred} of {total_files} files transferred')
+            # Report failed subtasks
+            new_failed = tr['subtasks_expired'] + tr['subtasks_failed']
+            if new_failed != subtasks_failed:
+                logger.warning(f'{abs(new_failed - subtasks_failed)} sub-tasks expired or failed')
+                subtasks_failed = new_failed
         last_status = status
         poll = POLL[0]
     else:
