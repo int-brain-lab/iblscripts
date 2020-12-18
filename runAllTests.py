@@ -22,7 +22,7 @@ from ibllib.misc.version import ibllib as ver
 logger = logging.getLogger('ibllib')
 
 try:  # Import the test packages
-    import brainbox.tests, ci.tests, ibllib
+    import brainbox.tests, ci.tests, ibllib.tests, alf.tests, oneibl.tests
 except ModuleNotFoundError as ex:
     logger.warning(f'Failed to import test packages: {ex} encountered')
 
@@ -99,13 +99,14 @@ def run_tests(coverage_source: Iterable = None,
     ci_tests = unittest.TestLoader().discover(test_dir, pattern='test_*')
     if complete:  # include ibllib and brainbox unit tests
         root = Path(ibllib.__file__).parents[1]  # Search relative to our imported ibllib package
-        test_dirs = [root.joinpath(x) for x in ('tests_ibllib', 'brainbox')]
-        logger.info('Loading unit tests from folders: \n\t' + "\n\t".join(map(str, test_dirs)))
-        assert not strict or all(x.exists() for x in test_dirs), 'Failed to find unit test folders'
-        unit_tests = [unittest.TestLoader().discover(str(x), pattern='test_*') for x in test_dirs]
-        # Merge all tests
-        ci_tests = unittest.TestSuite((ci_tests, *unit_tests))
-
+        test_dirs = [root.joinpath(x) for x in ('brainbox', 'oneibl', 'ibllib', 'alf')]
+        for tdir in test_dirs:
+            logger.info(f'Loading unit tests from folders: {tdir}')
+            assert tdir.exists(), f'Failed to find unit test folders in {tdir}'
+            unit_tests = unittest.TestLoader().discover(str(tdir), pattern='test_*', top_level_dir=root)
+            logger.info(f"Found {unit_tests.countTestCases()}, appending to the test suite")
+            ci_tests = unittest.TestSuite((ci_tests, *unit_tests))
+    logger.info(f'Complete suite contains {ci_tests.countTestCases()} tests')
     # Check all tests loaded successfully
     not_loaded = [x[12:] for x in list_tests(ci_tests) if x.startswith('_Failed')]
     if len(not_loaded) != 0:
