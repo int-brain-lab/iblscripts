@@ -1,7 +1,7 @@
 import tempfile
 from pathlib import Path
 
-from ibllib.io import raw_data_loaders as rawio
+from ibllib.io.extractors.base import get_session_extractor_type
 from oneibl.one import ONE
 from ibllib.pipes import local_server
 
@@ -54,7 +54,7 @@ class TestPipeline(base.IntegrationTest):
 
 def create_pipeline(session_path):
     # creates the session if necessary
-    task_type = rawio.get_session_extractor_type(session_path)
+    task_type = get_session_extractor_type(session_path)
     print(session_path, task_type)
     session_path.joinpath('raw_session.flag').touch()
     # delete the session if it exists
