@@ -177,6 +177,10 @@ class TestEphysPipeline(base.IntegrationTest):
         self.assertTrue(any(k.startswith('_task_') for k in extended.keys()))
         # also check that the behaviour criteron was set
         assert 'behavior' in extended
+        # check that the probes insertions have the json field labeled properly
+        pis = one.alyx.rest('insertions', 'list', session=eid)
+        for pi in pis:
+            assert('n_units' in pi['json'])
 
     def check_spike_sorting_output(self, session_path):
         """ Check the spikes object """
@@ -195,8 +199,8 @@ class TestEphysPipeline(base.IntegrationTest):
 
             """Check the clusters object"""
             clusters = alf.io.load_object(probe_folder, 'clusters')
-            clusters_attributes = ['depths', 'channels', 'peakToTrough', 'amps', 'metrics',
-                                   'uuids', 'waveforms', 'waveformsChannels']
+            clusters_attributes = ['depths', 'channels', 'peakToTrough', 'amps',
+                                   'uuids', 'waveforms', 'waveformsChannels', 'metrics']
             self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters]).size == 1)
             self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
             self.assertTrue(10 < np.nanmedian(clusters.amps) * 1e6 < 80)  # we expect Volts
