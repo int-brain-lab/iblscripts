@@ -135,13 +135,25 @@ class TestBpodQCExtractors(base.IntegrationTest):
     def test_partial_extraction(self):
         ex = TaskQCExtractor(self.session_path, lazy=True, one=self.one, bpod_only=True)
         ex.extract_data()
-        expected = [
-            'stimOnTrigger_times', 'stimOffTrigger_times', 'stimOn_times', 'stimOff_times',
-            'stimFreeze_times', 'stimFreezeTrigger_times', 'errorCueTrigger_times', 'itiIn_times',
-            'position', 'contrast', 'quiescence', 'phase', 'probabilityLeft', 'contrastRight',
-            'contrastLeft'
-        ]
-        self.assertCountEqual(expected, ex.data.keys())
+
+        expected = ['contrastLeft',
+                    'contrastRight',
+                    'phase',
+                    'position',
+                    'probabilityLeft',
+                    'quiescence',
+                    'stimOn_times']
+        expected_5up = ['contrast',
+                        'errorCueTrigger_times',
+                        'itiIn_times',
+                        'stimFreezeTrigger_times',
+                        'stimFreeze_times',
+                        'stimOffTrigger_times',
+                        'stimOff_times',
+                        'stimOnTrigger_times']
+        if version.ge(ex.settings['IBLRIG_VERSION_TAG'], '5.0.0'):
+            expected += expected_5up
+        self.assertTrue(set(expected).issubset(set(ex.data.keys())))
 
     def test_download_data(self):
         """Test behavior when download_data flag is True
