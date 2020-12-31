@@ -124,9 +124,7 @@ class TestBpodQCExtractors(base.IntegrationTest):
         expected_5up = ['contrast', 'errorCueTrigger_times', 'itiIn_times',
                         'stimFreezeTrigger_times', 'stimFreeze_times', 'stimOffTrigger_times',
                         'stimOff_times', 'stimOnTrigger_times']
-
-        if version.ge(ex.settings['IBLRIG_VERSION_TAG'], '5.0.0'):
-            expected += expected_5up
+        expected += expected_5up
 
         self.assertTrue(len(set(expected).difference(set(ex.data.keys()))) == 0)
         self.assertEqual('ephys', ex.type)
