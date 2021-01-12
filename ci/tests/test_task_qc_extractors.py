@@ -7,6 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ibllib.misc import version
 from ibllib.qc.task_metrics import TaskQC
 from ibllib.qc.task_extractors import TaskQCExtractor
 from ibllib.qc.oneutils import download_taskqc_raw_data
@@ -90,6 +91,7 @@ class TestBpodQCExtractors(base.IntegrationTest):
 
     def setUp(self):
         self.one = one
+        # TODO: this is an old 4.3 iblrig session below, add a session ge 5.0.0
         self.eid = 'b1c968ad-4874-468d-b2e4-5ffa9b9964e9'
         self.eid_incomplete = '4e0b3320-47b7-416e-b842-c34dc9004cf8'  # Missing required datasets
         # Make sure the data exists locally
@@ -113,29 +115,43 @@ class TestBpodQCExtractors(base.IntegrationTest):
 
         # Test extraction
         ex.extract_data()
-        expected = [
-            'stimOnTrigger_times', 'stimOffTrigger_times', 'stimOn_times', 'stimOff_times',
-            'stimFreeze_times', 'stimFreezeTrigger_times', 'errorCueTrigger_times', 'itiIn_times',
-            'choice', 'feedbackType', 'goCueTrigger_times', 'wheel_timestamps', 'wheel_position',
-            'wheel_moves_intervals', 'wheel_moves_peak_amplitude', 'firstMovement_times', 'phase',
-            'goCue_times', 'rewardVolume', 'response_times', 'feedback_times', 'probabilityLeft',
-            'position', 'contrast', 'quiescence', 'contrastRight', 'contrastLeft',
-            'errorCue_times', 'valveOpen_times', 'correct', 'intervals'
-        ]
-        self.assertCountEqual(expected, ex.data.keys())
+        expected = ['choice', 'contrastLeft', 'contrastRight', 'correct', 'errorCue_times',
+                    'feedbackType', 'feedback_times', 'firstMovement_times', 'goCueTrigger_times',
+                    'goCue_times', 'intervals', 'phase', 'position', 'probabilityLeft',
+                    'quiescence', 'response_times', 'rewardVolume', 'stimOn_times',
+                    'valveOpen_times', 'wheel_moves_intervals', 'wheel_moves_peak_amplitude',
+                    'wheel_position',  'wheel_timestamps']
+        expected_5up = ['errorCueTrigger_times', 'itiIn_times',
+                        'stimFreezeTrigger_times', 'stimFreeze_times', 'stimOffTrigger_times',
+                        'stimOff_times', 'stimOnTrigger_times']
+        expected += expected_5up
+
+        self.assertTrue(len(set(expected).difference(set(ex.data.keys()))) == 0)
         self.assertEqual('ephys', ex.type)
         self.assertEqual('X1', ex.wheel_encoding)
 
     def test_partial_extraction(self):
         ex = TaskQCExtractor(self.session_path, lazy=True, one=self.one, bpod_only=True)
-        ex.extract_data(partial=True)
-        expected = [
-            'stimOnTrigger_times', 'stimOffTrigger_times', 'stimOn_times', 'stimOff_times',
-            'stimFreeze_times', 'stimFreezeTrigger_times', 'errorCueTrigger_times', 'itiIn_times',
-            'position', 'contrast', 'quiescence', 'phase', 'probabilityLeft', 'contrastRight',
-            'contrastLeft'
-        ]
-        self.assertCountEqual(expected, ex.data.keys())
+        ex.extract_data()
+
+        expected = ['contrastLeft',
+                    'contrastRight',
+                    'phase',
+                    'position',
+                    'probabilityLeft',
+                    'quiescence',
+                    'stimOn_times']
+        expected_5up = ['contrast',
+                        'errorCueTrigger_times',
+                        'itiIn_times',
+                        'stimFreezeTrigger_times',
+                        'stimFreeze_times',
+                        'stimOffTrigger_times',
+                        'stimOff_times',
+                        'stimOnTrigger_times']
+        if version.ge(ex.settings['IBLRIG_VERSION_TAG'], '5.0.0'):
+            expected += expected_5up
+        self.assertTrue(set(expected).issubset(set(ex.data.keys())))
 
     def test_download_data(self):
         """Test behavior when download_data flag is True
