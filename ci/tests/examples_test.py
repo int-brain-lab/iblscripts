@@ -30,3 +30,6 @@ class TestExamplesHistology(unittest.TestCase):
         pass
         # TODO get track files somehwere
         # import examples.one.histology.register_lasagna_tracks_alyx
+
+if __name__ == "__main__":
+    unittest.main(exit=False)
