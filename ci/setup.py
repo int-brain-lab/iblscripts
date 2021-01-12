@@ -11,6 +11,8 @@ from pathlib import Path
 from ibllib.io import params
 import oneibl.params
 
+DEFAULT_PAR = {'local_endpoint': None, 'remote_endpoint': None, 'GLOBUS_CLIENT_ID': None}
+
 print(
     """Setting up Globus
 1. Login to the Globus Website (ask devs for the login credentials)
@@ -22,26 +24,28 @@ the REMOTE_REPO_ID.
 5. Copy your GLOBUS_CLIENT_ID (ask the software devs for this).
 """
 )
-params_id = 'globus'
-pars = params.read(params_id, {'local_endpoint': None, 'remote_endpoint': None})
+params_id = 'globus/admin'
+pars = params.read(params_id, DEFAULT_PAR)
 default = pars.local_endpoint
 local_endpoint = input(
     f'Enter your LOCAL_REPO_ID ({default}):'
 )
-params.write(params_id, pars.set('local_endpoint', local_endpoint.strip() or default))
+pars = pars.set('local_endpoint', local_endpoint.strip() or default)
+params.write(params_id, pars)
 
 default = pars.remote_endpoint
 remote_endpoint = input(
     f'Enter your REMOTE_REPO_ID ({default}):'
 )
-params.write(params_id, pars.set('remote_endpoint', remote_endpoint.strip() or default))
+pars = pars.set('remote_endpoint', remote_endpoint.strip() or default)
+params.write(params_id, pars)
 
-pars = oneibl.params.get()
 default = pars.GLOBUS_CLIENT_ID
 globus_client_id = input(
     f'Enter your GLOBUS_CLIENT_ID ({default}):'
 ).strip()
-params.write(oneibl.params._PAR_ID_STR, pars.set('GLOBUS_CLIENT_ID', globus_client_id or default))
+pars = pars.set('GLOBUS_CLIENT_ID', globus_client_id or default)
+params.write(params_id, pars)
 
 print(
     """Setting up fixtures
