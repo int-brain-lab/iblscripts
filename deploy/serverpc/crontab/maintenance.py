@@ -6,7 +6,10 @@ import shutil
 from oneibl.one import ONE
 import alf.io
 import ibllib.io.raw_data_loaders as raw
+from ibllib.ephys import spikes
 from ibllib.pipes.local_server import _get_lab
+from ibllib.io import spikeglx
+from ibllib.pipes.ephys_preprocessing import SpikeSorting_KS2_Matlab
 ROOT_PATH = Path('/mnt/s0/Data/Subjects')
 
 _logger = logging.getLogger('ibllib')
@@ -88,6 +91,61 @@ def correct_passive_in_wrong_folder():
 
     else:
         return
+
+
+def spike_amplitude_patching():
+    one = ONE()
+    ks2_out = ROOT_PATH.rglob('spike_sorting_ks2.log')
+    # need to get the spike sorting path
+    # need to look for the alf path, if the alf path contains templates.amps
+    # do a quick check on alyx to confirm that the dataset exists on the flatiron
+    # if it does we can skip
+    # if it doesn't then we need to find get the collection from flatiron cos of witten fuck up
+    # make that the outpath
+    # spike sorting in path
+    # make template model
+    # convert things
+    # register datasets - you know what just do the whole shabbam as we don't know if it for real
+
+    for ks2_out in ROOT_PATH.rglob('spike_sorting_ks2.log'):
+        session_path = alf.io.get_session_path(ks2_out)
+        ks2_path = Path(ks2_out).parent
+        probe = ks2_path.stem
+        alf_path = session_path.joinpath('alf', probe)
+        assert(alf_path.exists())
+        templates_file = alf_path.joinpath('templates.amps.npy')
+        if templates_file.exists():
+            eid = one.eid_from_path(session_path)
+            dset = one.alyx.rest('datasets', 'list', session=eid, name='templates.amps.npy')
+            if len(dset) > 0:
+            # then we all good
+                continue
+            else:
+                print('mismatch server and database for ' + str(alf_path))
+                # see what going on
+        else:
+            print('temps.amps dont exist for ' + str(alf_path))
+            # need to specify bin path
+            files = spikeglx.glob_ephys_files(session_path, suffix='.meta', ext='meta')
+            ap_files = [(ef.get("ap"), ef.get("label")) for ef in files if "ap" in ef.keys()]
+
+            meta_file = next(ap[0] for ap in ap_files if ap[1] == probe)
+            ap_file = meta_file.with_suffix('.cbin')
+
+            spikes.ks2_to_alf(
+                ks2_path,
+                bin_path=meta_file.parent,
+                out_path=alf_path,
+                bin_file=None,
+                ampfactor=SpikeSorting_KS2_Matlab._sample2v(ap_file),
+            )
+            # we want ap meta file for our probe label
+
+            out, _ = spikes.sync_spike_sorting(ap_file=ap_file, out_path=alf_path)
+
+            # now we need to register these datasets
+
+
 
 
 if __name__ == "__main__":
