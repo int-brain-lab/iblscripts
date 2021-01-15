@@ -9,10 +9,11 @@ import oneibl.params
 import globus_sdk
 from globus_sdk.exc import TransferAPIError
 
+GLOBUS_PARAM_STRING = 'globus/admin'
 logger = logging.getLogger('ibllib')
 
 # Read in parameters
-p = params.read('globus', {'local_endpoint': None, 'remote_endpoint': None})
+p = params.read(GLOBUS_PARAM_STRING, {'local_endpoint': None, 'remote_endpoint': None})
 LOCAL_REPO = p.local_endpoint  # Endpoint UUID from Website
 SERVER_ID = p.remote_endpoint  # FlatIron
 DST_DIR = params.read('ibl_ci', {'data_root': '.'}).data_root
@@ -28,7 +29,7 @@ status_map = {
 }
 
 try:
-    gtc = globus.login_auto(GLOBUS_CLIENT_ID)
+    gtc = globus.login_auto(GLOBUS_CLIENT_ID, str_app='globus/admin')
 except ValueError:
     logger.info('User authentication required...')
     globus.setup(GLOBUS_CLIENT_ID)

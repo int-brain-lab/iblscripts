@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import ibllib.io.extractors.base
 from oneibl.one import ONE
 import alf.io
 from ibllib.pipes import training_preprocessing
@@ -13,7 +14,7 @@ one = ONE()
 
 for avi_file in avi_files:
     session_path = alf.io.get_session_path(avi_file)
-    session_type = rawio.get_session_extractor_type(session_path)
+    session_type = ibllib.io.extractors.base.get_session_extractor_type(session_path)
     print(session_path, session_type)
     if DRY:
         continue

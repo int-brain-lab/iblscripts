@@ -45,9 +45,9 @@ class TestPipeline(base.IntegrationTest):
                                       count=nses * 10)
             local_server.tasks_runner(subjects_path, training_jobs, one=one, count=nses * 10,
                                       dry=False, max_md5_size=1024 * 1024 * 20)
-            tasks = one.alyx.rest('tasks', 'list', status='Errored',
-                                  graph='TrainingExtractionPipeline')
-            assert(len(tasks) == 0)
+            errored_tasks = one.alyx.rest('tasks', 'list', status='Errored',
+                                          graph='TrainingExtractionPipeline')
+            assert(len(errored_tasks) == 0)
             session_dict = one.alyx.rest('sessions', 'list', django='extended_qc__isnull, False')
             assert(len(session_dict) > 0)
 

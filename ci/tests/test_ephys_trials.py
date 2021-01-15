@@ -60,7 +60,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         # try once without the sync pulses
         trials, out_files = ephys_fpga.FpgaTrials(session_path).extract(save=False)
         # then extract for real
-        sync, chmap = ephys_fpga._get_main_probe_sync(session_path, bin_exists=False)
+        sync, chmap = ephys_fpga.get_main_probe_sync(session_path, bin_exists=False)
         trials, out_files = ephys_fpga.FpgaTrials(session_path).extract(
             save=True, sync=sync, chmap=chmap)
         # check that the output is complete
@@ -90,7 +90,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         from ibllib.qc.task_extractors import TaskQCExtractor
         ex = TaskQCExtractor(session_path, lazy=True, one=None, bpod_only=False)
         ex.data = fpga_trials
-        ex.extract_data(partial=True)
+        ex.extract_data()
 
         from ibllib.qc.task_metrics import TaskQC
         # '/mnt/s0/Data/IntegrationTests/ephys/ephys_choice_world_task/CSP004/2019-11-27/001'
