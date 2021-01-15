@@ -37,7 +37,7 @@ def list_tests(suite: Union[List, unittest.TestSuite, unittest.TestCase]) -> Uni
         return flatten([list_tests(x) for x in suite])
     elif not unittest.suite._isnotsuite(suite):
         return list_tests(suite._tests)
-    else:
+    elif isinstance(suite, (unittest.TestSuite, unittest.TestCase)):
         return f'{suite.__class__.__name__}/{suite._testMethodName}'
 
 
@@ -91,7 +91,7 @@ def run_tests(coverage_source: Iterable = None,
     """
     # Coverage recorded for all code within the source directory; otherwise just omit some
     # common pyCharm files
-    options = {'omit': ['*pydevd_file_utils.py', 'test_*'], 'source': coverage_source}
+    options = {'omit': ['*pydevd_file_utils.py', 'test_*'], 'source': []}
 
     # Gather tests
     test_dir = str(Path(ci.tests.__file__).parent)
@@ -106,6 +106,8 @@ def run_tests(coverage_source: Iterable = None,
             unit_tests = unittest.TestLoader().discover(str(tdir), pattern='test_*', top_level_dir=root)
             logger.info(f"Found {unit_tests.countTestCases()}, appending to the test suite")
             ci_tests = unittest.TestSuite((ci_tests, *unit_tests))
+            # for coverage, append the path of the test modules to the source key
+            options['source'].append(str(tdir))
     logger.info(f'Complete suite contains {ci_tests.countTestCases()} tests')
     # Check all tests loaded successfully
     not_loaded = [x[12:] for x in list_tests(ci_tests) if x.startswith('_Failed')]
@@ -173,8 +175,9 @@ if __name__ == "__main__":
 
     # Generate report
     logger.info('Saving coverage report to %s', report_dir)
-    total = generate_coverage_report(cov, report_dir,
-                                     relative_to=repo_dir, strict=not args.dry_run)
+
+    total = generate_coverage_report(cov, report_dir, relative_to=Path(ibllib.__file__).parent,
+                                     strict=not args.dry_run)
 
     # When running tests without a specific commit, exit without saving the result
     if args.commit is parser.get_default('commit'):
