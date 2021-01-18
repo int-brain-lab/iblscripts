@@ -9,7 +9,7 @@ import ibllib.io.raw_data_loaders as raw
 from ibllib.ephys import spikes
 from ibllib.pipes.local_server import _get_lab
 from ibllib.io import spikeglx
-from ibllib.pipes.ephys_preprocessing import SpikeSorting_KS2_Matlab
+from ibllib.pipes.ephys_preprocessing import SpikeSorting_KS2_Matlab, EphysCellsQc
 from oneibl.registration import register_dataset
 
 ROOT_PATH = Path('/mnt/s0/Data/Subjects')
@@ -163,6 +163,7 @@ def spike_amplitude_patching():
                            'text': f'amps_patching_local_server: {msg}'}
             _ = one.alyx.rest('notes', 'create', data=status_note)
 
+
     one = ONE()
 
     for ks2_out in ROOT_PATH.rglob('spike_sorting_ks2.log'):
@@ -197,29 +198,25 @@ def spike_amplitude_patching():
             if len(dset) > 0:
                 # In this case data is on flatiron, no need to do anything
                 continue
-            else:
-                # In this case data is in alf format but hasn't been registered, reconvert just
-                # to make sure and register
-                status, out, err = phy2alf_conversion(session_path, ks2_path, alf_path, probe)
-                if status == 0:
-                    _logger.info(f'Case non registered: all good for {session_path} and {probe}')
-                    register_dataset(out, one=one)
-                    add_note_to_insertion(eid, probe, one, msg='completed')
-                else:
-                    # Log the error
-                    add_note_to_insertion(eid, probe, one, msg=err)
-                    continue
-        else:
-            # In this case either old amplitude extraction or alf extraction hasn't happened at all
-            status, out, err = phy2alf_conversion(session_path, ks2_path, alf_path, probe)
-            if status == 0:
-                _logger.info(f'Case non extracted: all good for {session_path} and {probe}')
-                add_note_to_insertion(eid, probe, one, msg='completed')
+
+        # Otherwise we need to extract alf files and register datasets
+        status, out, err = phy2alf_conversion(session_path, ks2_path, alf_path, probe)
+        if status == 0:
+            try:
+                cluster_qc = EphysCellsQc(session_path, one=one)
+                qc_file, df_units, drift = cluster_qc._compute_cell_qc(alf_path)
+                out.append(qc_file)
+                cluster_qc._label_probe_qc(alf_path, df_units, drift)
                 register_dataset(out, one=one)
-            else:
-                # Log the error
-                add_note_to_insertion(eid, probe, one, msg=err)
-                continue
+                add_note_to_insertion(eid, probe, one, msg='completed')
+                _logger.info(f'All good: {session_path} and {probe}')
+            except BaseException as err2:
+                _logger.info(f'Errored at qc/ registration stage: {session_path} and {probe}')
+                add_note_to_insertion(eid, probe, one, msg=err2)
+        else:
+            # Log the error
+            add_note_to_insertion(eid, probe, one, msg=err)
+            continue
 
 
 if __name__ == "__main__":
