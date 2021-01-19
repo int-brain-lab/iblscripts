@@ -47,7 +47,7 @@ def generate_coverage_report(cov, save_path, strict=False, relative_to=None):
     :param cov: A Coverage object
     :param save_path: Where to save the coverage files
     :param strict: If True, asserts that the coverage report was created
-    :param relative_to: coverage.misc.CoverageException
+    :param relative_to: The root folder for the functions coverage
     :return:
     """
     try:
@@ -75,14 +75,11 @@ def generate_coverage_report(cov, save_path, strict=False, relative_to=None):
     return total
 
 
-def run_tests(coverage_source: Iterable = None,
-              complete: bool = True,
+def run_tests(complete: bool = True,
               strict: bool = True,
               dry_run: bool = False) -> (unittest.TestResult, Coverage, unittest.TestSuite):
     """
     Run integration tests
-    :param coverage_source: An iterable of source directory path strings for recording code
-    coverage.
     :param complete: When true ibllib unit tests are run in addition to the integration tests.
     :param strict: When true asserts that all gathered tests were successfully imported.  This
     means that a module not found error in any test module will raise an exception.
@@ -171,7 +168,7 @@ if __name__ == "__main__":
 
     # Tests
     logger.info(Path(args.repo).joinpath('*'))
-    result, cov, test_list = run_tests(coverage_source=[str(args.repo)], dry_run=args.dry_run)
+    result, cov, test_list = run_tests(dry_run=args.dry_run)
 
     # Generate report
     logger.info('Saving coverage report to %s', report_dir)
@@ -192,8 +189,11 @@ if __name__ == "__main__":
     # Save all test names if all passed, otherwise save those that failed and their error stack
     if n_failed > 0:
         details = [(list_tests(c), err) for c, err in result.failures + result.errors]
+        logger.warning('Tests failing...')
     else:
         details = list_tests(test_list)
+        logger.info('All tests pass...')
+    print(*details, sep='\n')  # Print all tests for the log
 
     report = {
         'commit': args.commit + ('_dry-run' if args.dry_run else ''),
