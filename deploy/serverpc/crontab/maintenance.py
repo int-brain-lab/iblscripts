@@ -11,6 +11,7 @@ from ibllib.pipes.local_server import _get_lab
 from ibllib.io import spikeglx
 from ibllib.pipes.ephys_preprocessing import SpikeSorting_KS2_Matlab, EphysCellsQc
 from oneibl.registration import register_dataset
+from ibllib.pipes.local_server import _run_command, _get_volume_usage
 
 ROOT_PATH = Path('/mnt/s0/Data/Subjects')
 
@@ -102,7 +103,7 @@ def spike_amplitude_patching():
     """
     Patch the datasets that have incorrect spikes.amplitude datasets. While doing it also look for
     sessions that have spikesorting/ alf folders but for some reason haven't been registered and
-    uploaded to flatiron for some reason (normally because .cbin file is missing)
+    uploaded to flatiron for some reason (normally because .cbin file is missing).
 
     Five different scenarios to consider
     1. Data extracted properly, is on flatiron and has templates.amps - do nothing
@@ -163,7 +164,6 @@ def spike_amplitude_patching():
                            'text': f'amps_patching_local_server: {msg}'}
             _ = one.alyx.rest('notes', 'create', data=status_note)
 
-
     one = ONE()
 
     for ks2_out in ROOT_PATH.rglob('spike_sorting_ks2.log'):
@@ -219,8 +219,41 @@ def spike_amplitude_patching():
             continue
 
 
+def upload_ks2_output():
+    """
+    Copy ks2 output to a .tar file and upload to flatiron for all past sessions that have
+    spike sorting output
+    """
+    # if the space on the disk > 100Gb continue, otherwise, don't bother
+    usage = _get_volume_usage('/mnt/s0/Data', 'disk')
+    if usage['disk_available'] < 500:
+        return
+
+    one = ONE()
+
+    for ks2_out in ROOT_PATH.rglob('spike_sorting_ks2.log'):
+        ks2_path = Path(ks2_out).parent
+        session_path = alf.io.get_session_path(ks2_out)
+
+        probe = ks2_path.stem
+        tar_dir = session_path.joinpath('spike_sorters', 'ks2_matlab', probe)
+        if tar_dir.joinpath('tar_existed.flag').exists():
+            # We already done this, no need to repeat!!
+            continue
+
+        eid = one.eid_from_path(session_path)
+        if eid is None:
+            # Skip sessions that don't exist on alyx!
+            continue
+
+        out = spikes.ks2_to_tar(ks2_path, tar_dir)
+        register_dataset(out, one=one)
+        tar_dir.joinpath('tar_existed.flag').touch()
+
+
 if __name__ == "__main__":
     correct_flags_biased_in_ephys_rig()
     correct_ephys_manual_video_copies()
     spike_amplitude_patching()
     correct_passive_in_wrong_folder()
+    upload_ks2_output()
