@@ -96,6 +96,7 @@ class TestEphysPipeline(base.IntegrationTest):
                              ('camera.times', 3, 3),
 
                              ('kilosort.whitening_matrix', nss, nss),
+                             ('_kilosort_raw.output', nss, nss),
                              ('_phy_spikes_subset.channels', nss, nss),
                              ('_phy_spikes_subset.spikes', nss, nss),
                              ('_phy_spikes_subset.waveforms', nss, nss),

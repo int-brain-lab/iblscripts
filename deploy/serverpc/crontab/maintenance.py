@@ -224,7 +224,7 @@ def upload_ks2_output():
     Copy ks2 output to a .tar file and upload to flatiron for all past sessions that have
     spike sorting output
     """
-    # if the space on the disk > 100Gb continue, otherwise, don't bother
+    # if the space on the disk > 500Gb continue, otherwise, don't bother
     usage = _get_volume_usage('/mnt/s0/Data', 'disk')
     if usage['disk_available'] < 500:
         return
@@ -237,6 +237,7 @@ def upload_ks2_output():
 
         probe = ks2_path.stem
         tar_dir = session_path.joinpath('spike_sorters', 'ks2_matlab', probe)
+        tar_dir.mkdir(exist_ok=True, parents=True)
         if tar_dir.joinpath('tar_existed.flag').exists():
             # We already done this, no need to repeat!!
             continue
@@ -248,6 +249,7 @@ def upload_ks2_output():
 
         out = spikes.ks2_to_tar(ks2_path, tar_dir)
         register_dataset(out, one=one)
+        # Make flag to indicate data already registered for this session
         tar_dir.joinpath('tar_existed.flag').touch()
 
 
