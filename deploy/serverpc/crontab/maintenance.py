@@ -3,6 +3,7 @@ import logging
 import os
 from datetime import datetime
 import shutil
+import numpy as np
 from oneibl.one import ONE
 import alf.io
 import ibllib.io.raw_data_loaders as raw
@@ -231,7 +232,13 @@ def upload_ks2_output():
 
     one = ONE()
 
-    for ks2_out in ROOT_PATH.rglob('spike_sorting_ks2.log'):
+    for ilog, ks2_out in enumerate(ROOT_PATH.rglob('spike_sorting_ks2.log')):
+        # check space on disk after every 25 extractions. stop if we are running low!
+        if np.mod(ilog, 25) == 0:
+            usage = _get_volume_usage('/mnt/s0/Data', 'disk')
+            if usage['disk_available'] < 500:
+                return
+
         ks2_path = Path(ks2_out).parent
         session_path = alf.io.get_session_path(ks2_out)
 
