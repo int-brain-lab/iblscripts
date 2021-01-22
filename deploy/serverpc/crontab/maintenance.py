@@ -152,17 +152,17 @@ def spike_amplitude_patching():
 
         if len(insertion) > 0:
             probe_id = insertion[0]['id']
-            status_note = {'user': 'mayo',
+            status_note = {'user': one._par.ALYX_LOGIN,
                            'content_type': 'probeinsertion',
                            'object_id': probe_id,
-                           'text': f'amps_patching_local_server: {msg}'}
+                           'text': f'amps_patching_local_server2: {msg}'}
             _ = one.alyx.rest('notes', 'create', data=status_note)
         else:
             # If the probe insertion doesn't exist, make a session note
-            status_note = {'user': 'mayo',
+            status_note = {'user': one._par.ALYX_LOGIN,
                            'content_type': 'session',
                            'object_id': eid,
-                           'text': f'amps_patching_local_server: {msg}'}
+                           'text': f'amps_patching_local_server2: {probe}: {msg}'}
             _ = one.alyx.rest('notes', 'create', data=status_note)
 
     one = ONE()
@@ -170,12 +170,16 @@ def spike_amplitude_patching():
     for ks2_out in ROOT_PATH.rglob('spike_sorting_ks2.log'):
         ks2_path = Path(ks2_out).parent
 
-        # If we already looked at this session previously, no need to try again
+        # Clean up old flags if they exist
         if ks2_path.joinpath('amps_patching_local_server.flag').exists():
+            ks2_path.joinpath('amps_patching_local_server.flag').unlink()
+
+        # If we already looked at this session previously, no need to try again
+        if ks2_path.joinpath('amps_patching_local_server2.flag').exists():
             continue
 
         # Make the flag if it is the first time looking into session
-        ks2_path.joinpath('amps_patching_local_server.flag').touch()
+        ks2_path.joinpath('amps_patching_local_server2.flag').touch()
 
         # Now proceed with everything else
         session_path = alf.io.get_session_path(ks2_out)
@@ -196,9 +200,10 @@ def spike_amplitude_patching():
         templates_file = alf_path.joinpath('templates.amps.npy')
         if templates_file.exists():
             dset = one.alyx.rest('datasets', 'list', session=eid, name='templates.amps.npy')
-            if len(dset) > 0:
-                # In this case data is on flatiron, no need to do anything
-                continue
+            # check if it has been registered for this probe specifically
+            for ds in dset:
+                if probe in ds['collection']:
+                    continue
 
         # Otherwise we need to extract alf files and register datasets
         status, out, err = phy2alf_conversion(session_path, ks2_path, alf_path, probe)
@@ -245,11 +250,25 @@ def upload_ks2_output():
         probe = ks2_path.stem
         tar_dir = session_path.joinpath('spike_sorters', 'ks2_matlab', probe)
         tar_dir.mkdir(exist_ok=True, parents=True)
+
+        # If the flag exists it means we have already extracted
         if tar_dir.joinpath('tar_existed.flag').exists():
             # We already done this, no need to repeat!!
             continue
 
         eid = one.eid_from_path(session_path)
+
+        # For latest sessions tar file will be created by task and automatically registered so we
+        # may have a case where tar file already registered and uploaded but no tar_existed.flag
+        if tar_dir.joinpath('_kilosort_raw.output.tar').exists():
+            # double check it indeed has been registered for this probe
+            dset = one.alyx.rest('datasets', 'list', session=eid, name='_kilosort_raw.output.tar')
+            for ds in dset:
+                if probe in ds['collection']:
+                    # if it has, make the flag and continue
+                    tar_dir.joinpath('tar_existed.flag').touch()
+                    continue
+
         if eid is None:
             # Skip sessions that don't exist on alyx!
             continue
