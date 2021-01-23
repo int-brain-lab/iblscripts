@@ -201,9 +201,9 @@ def spike_amplitude_patching():
         if templates_file.exists():
             dset = one.alyx.rest('datasets', 'list', session=eid, name='templates.amps.npy')
             # check if it has been registered for this probe specifically
-            for ds in dset:
-                if probe in ds['collection']:
-                    continue
+            collection = [ds['collection'].rsplit('/', 1)[-1] for ds in dset]
+            if probe in collection:
+                continue
 
         # Otherwise we need to extract alf files and register datasets
         status, out, err = phy2alf_conversion(session_path, ks2_path, alf_path, probe)
@@ -263,11 +263,10 @@ def upload_ks2_output():
         if tar_dir.joinpath('_kilosort_raw.output.tar').exists():
             # double check it indeed has been registered for this probe
             dset = one.alyx.rest('datasets', 'list', session=eid, name='_kilosort_raw.output.tar')
-            for ds in dset:
-                if probe in ds['collection']:
-                    # if it has, make the flag and continue
-                    tar_dir.joinpath('tar_existed.flag').touch()
-                    continue
+            collection = [ds['collection'].rsplit('/', 1)[-1] for ds in dset]
+            if probe in collection:
+                tar_dir.joinpath('tar_existed.flag').touch()
+                continue
 
         if eid is None:
             # Skip sessions that don't exist on alyx!
