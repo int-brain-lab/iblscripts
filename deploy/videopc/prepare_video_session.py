@@ -13,7 +13,7 @@ from ibllib.pipes.misc import load_videopc_params
 import config_cameras as cams
 
 
-def main(mouse: str, training_session: bool = False) -> None:
+def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
     SUBJECT_NAME = mouse
     PARAMS = load_videopc_params()
     DATA_FOLDER = Path(PARAMS['DATA_FOLDER_PATH'])
@@ -76,7 +76,8 @@ def main(mouse: str, training_session: bool = False) -> None:
     subprocess.call([str(BONSAI), str(RECORD_FILE), noboot, body, left, right,
                      bodyidx, leftidx, rightidx, bodyts, leftts, rightts,
                      bodyfc, leftfc, rightfc, bodyGPIO, leftGPIO, rightGPIO])
-    subprocess.call(['python', '-V'])
+    # subprocess.call(['python', '-c', 'import os; print(os.getcwd())'])
+    subprocess.call(['python', 'video_lengths.py', str(SESSION_FOLDER.parent)])
     # Create a transfer_me.flag file
     open(SESSION_FOLDER.parent / 'transfer_me.flag', 'w')
     return
