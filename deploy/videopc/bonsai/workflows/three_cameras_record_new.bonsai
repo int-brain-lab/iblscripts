@@ -45,7 +45,7 @@
               <io:Append>false</io:Append>
               <io:Overwrite>true</io:Overwrite>
               <io:Suffix>None</io:Suffix>
-              <io:IncludeHeader>false</io:IncludeHeader>
+              <io:IncludeHeader>true</io:IncludeHeader>
               <io:Selector>Timestamp,Value.Metadata.embeddedTimeStamp,Value.Metadata.embeddedFrameCounter,Value.Metadata.embeddedGPIOPinState</io:Selector>
             </Expression>
             <Expression xsi:type="MemberSelector">
