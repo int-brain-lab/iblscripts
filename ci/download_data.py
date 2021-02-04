@@ -4,7 +4,6 @@ import logging
 
 from ibllib.io import params, globus
 from ibllib.io.globus import as_globus_path
-import oneibl.params
 
 import globus_sdk
 from globus_sdk.exc import TransferAPIError
@@ -30,7 +29,7 @@ status_map = {
 }
 
 try:
-    gtc = globus.login_auto(GLOBUS_CLIENT_ID, str_app='globus/admin')
+    gtc = globus.login_auto(GLOBUS_CLIENT_ID)
 except ValueError:
     logger.info('User authentication required...')
     globus.setup(GLOBUS_CLIENT_ID)
