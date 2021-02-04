@@ -10,14 +10,15 @@ import globus_sdk
 from globus_sdk.exc import TransferAPIError
 
 GLOBUS_PARAM_STRING = 'globus/admin'
+DEFAULT_PAR = {'local_endpoint': None, 'remote_endpoint': None, 'GLOBUS_CLIENT_ID': None}
 logger = logging.getLogger('ibllib')
 
 # Read in parameters
-p = params.read(GLOBUS_PARAM_STRING, {'local_endpoint': None, 'remote_endpoint': None})
+p = params.read(GLOBUS_PARAM_STRING, DEFAULT_PAR)
 LOCAL_REPO = p.local_endpoint  # Endpoint UUID from Website
 SERVER_ID = p.remote_endpoint  # FlatIron
+GLOBUS_CLIENT_ID = p.GLOBUS_CLIENT_ID
 DST_DIR = params.read('ibl_ci', {'data_root': '.'}).data_root
-GLOBUS_CLIENT_ID = oneibl.params.get().GLOBUS_CLIENT_ID
 # Constants
 SRC_DIR = '/integration'
 POLL = (5, 60*60)  # min max seconds between pinging server
