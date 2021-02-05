@@ -14,7 +14,7 @@ class TestMtsCompRegistration(base.IntegrationTest):
     """Makes sure the ch files are registered properly"""
 
     def test_single_run(self):
-        SESSION_PATH = self.data_path.joinpath("ephys/choice_world/KS022/2019-12-10/001")
+        SESSION_PATH = self.data_path.joinpath("ephys/choice_world_init/KS022/2019-12-10/001")
         task = EphysMtscomp(SESSION_PATH)
         task.run()
         self.assertTrue(sum(map(lambda x: x.suffix == '.cbin', task.outputs)) == 5)
