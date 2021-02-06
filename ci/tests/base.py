@@ -16,11 +16,19 @@ class IntegrationTest(unittest.TestCase):
         super().__init__(*args, **kwargs)
 
         # Store the path to the integration data
-        default_data_root = params.read('ibl_ci', {'data_root': '.'}).data_root
-        self.data_path = Path(data_path or default_data_root)  # default to current directory
+        self.data_path = Path(data_path or self.default_data_root())
         data_present = (self.data_path.exists()
                         and self.data_path.is_dir()
                         and any(self.data_path.glob('Subjects_init')))
         if not data_present:
             raise FileNotFoundError(f'Invalid data root folder {self.data_path.absolute()}\n\t'
                                     'must contain a "Subjects_init" folder')
+
+    @staticmethod
+    def default_data_root():
+        """Returns the path to the integration data.
+
+        The path is loaded from the '.ibl_ci' parameter file's 'data_root' parameter,
+        or the current working directory.
+        """
+        return Path(params.read('ibl_ci', {'data_root': '.'}).data_root)

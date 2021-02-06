@@ -11,7 +11,7 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from os import sep
 from pathlib import Path
-from typing import Iterable, List, Union
+from typing import List, Union
 
 from coverage import Coverage
 from coverage.misc import CoverageException
@@ -193,6 +193,14 @@ if __name__ == "__main__":
     else:
         details = list_tests(test_list)
         logger.info('All tests pass...')
+    # A breakdown of the test numbers
+    stats = {
+        'total':  len(list_tests(test_list)) if args.dry_run else result.testsRun,
+        'failed': len(result.failures),
+        'errored': len(result.errors),
+        'skipped': len(result.skipped),
+        'passed': len(result.skipped) + n_failed - result.testsRun
+    }
     print(*details, sep='\n')  # Print all tests for the log
 
     report = {
@@ -200,6 +208,7 @@ if __name__ == "__main__":
         'results': details,
         'status': status,
         'description': description,
+        'statistics': stats,
         'coverage': total  # coverage usually updated by Node.js script
     }
 
