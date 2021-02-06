@@ -8,7 +8,7 @@ from oneibl.stream import VideoStreamer
 
 class TestONE(unittest.TestCase):
     def setUp(self) -> None:
-        url = ('/integration/dlc/videos/CSHL_015/'
+        url = ('integration/dlc/videos/CSHL_015/'
                'churchlandlab_CSHL_015_2019-11-12_001__iblrig_leftCamera.raw.short.mp4')
         root = oneibl.params.get().HTTP_DATA_SERVER
         self.url = f'{root}/{url}'

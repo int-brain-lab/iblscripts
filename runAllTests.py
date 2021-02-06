@@ -199,7 +199,7 @@ if __name__ == "__main__":
         'failed': len(result.failures),
         'errored': len(result.errors),
         'skipped': len(result.skipped),
-        'passed': len(result.skipped) + n_failed - result.testsRun
+        'passed': result.testsRun - (len(result.skipped) + n_failed)
     }
     print(*details, sep='\n')  # Print all tests for the log
 
