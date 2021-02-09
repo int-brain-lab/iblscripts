@@ -32,9 +32,6 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
     SESSION_FOLDER = DATA_FOLDER / SUBJECT_NAME / DATE / NUM / 'raw_video_data'
     SESSION_FOLDER.mkdir(parents=True, exist_ok=True)
     print(f"Created {SESSION_FOLDER}")
-    # Force trigger mode on all cams
-    cams.enable_trigger_mode()
-    print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - ON")
     # Create filenames to call Bonsai
     filenamevideo = '_iblrig_{}Camera.raw.avi'
     filenameframedata = '_iblrig_{}Camera.FrameData.csv'
@@ -54,9 +51,15 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
     start = '--start'  # --start-no-debug
     noboot = '--no-boot'
     noeditor = '--no-editor'
+    # Force trigger mode on all cams
+    cams.disable_trigger_mode()
+    print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - OFF")
     # Open the streaming file and start
     subprocess.call([str(BONSAI), str(SETUP_FILE), start, noboot,
                      bodyidx, leftidx, rightidx])
+    # Force trigger mode on all cams
+    cams.enable_trigger_mode()
+    print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - ON")
     # Open the record_file no start
     subprocess.call([str(BONSAI), str(RECORD_FILE), noboot, body, left, right,
                      bodyidx, leftidx, rightidx, bodydata, leftdata, rightdata])
