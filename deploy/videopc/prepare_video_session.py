@@ -60,8 +60,8 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
     # Force trigger mode on all cams
     cams.enable_trigger_mode()
     print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - ON")
-    # Open the record_file no start
-    subprocess.call([str(BONSAI), str(RECORD_FILE), noboot, body, left, right,
+    # Open the record_file start and wait for manual trigger mode disabling
+    subprocess.call([str(BONSAI), str(RECORD_FILE), noboot, start, body, left, right,
                      bodyidx, leftidx, rightidx, bodydata, leftdata, rightdata])
     # subprocess.call(['python', '-c', 'import os; print(os.getcwd())'])
     subprocess.call(['python', 'video_lengths.py', str(SESSION_FOLDER.parent)])
