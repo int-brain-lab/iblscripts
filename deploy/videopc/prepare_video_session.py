@@ -21,7 +21,7 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
 
     BONSAI = VIDEOPC_FOLDER_PATH / 'bonsai' / 'bin' / 'Bonsai64.exe'
     BONSAI_WORKFLOWS_PATH = BONSAI.parent.parent / 'workflows'
-    STREAM_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_stream.bonsai'
+    SETUP_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_setup.bonsai'
     RECORD_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_record.bonsai'
     if training_session:
         RECORD_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_record_biasedCW.bonsai'
@@ -36,46 +36,30 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
     cams.enable_trigger_mode()
     print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - ON")
     # Create filenames to call Bonsai
-    filename = '_iblrig_{}Camera.raw.avi'
+    filenamevideo = '_iblrig_{}Camera.raw.avi'
     filenameframedata = '_iblrig_{}Camera.FrameData.csv'
-    filenamets = '_iblrig_{}Camera.timestamps.ssv'
-    filenamefc = '_iblrig_{}Camera.frame_counter.bin'
-    filenameGPIO = '_iblrig_{}Camera.GPIO.bin'
     # Define parameters to call bonsai
     bodyidx = "-p:BodyCameraIndex=" + str(PARAMS['BODY_CAM_IDX'])
     leftidx = "-p:LeftCameraIndex=" + str(PARAMS['LEFT_CAM_IDX'])
     rightidx = "-p:RightCameraIndex=" + str(PARAMS['RIGHT_CAM_IDX'])
 
-    body = "-p:FileNameBody=" + str(SESSION_FOLDER / filename.format('body'))
-    left = "-p:FileNameLeft=" + str(SESSION_FOLDER / filename.format('left'))
-    right = "-p:FileNameRight=" + str(SESSION_FOLDER / filename.format('right'))
+    body = "-p:FileNameBody=" + str(SESSION_FOLDER / filenamevideo.format('body'))
+    left = "-p:FileNameLeft=" + str(SESSION_FOLDER / filenamevideo.format('left'))
+    right = "-p:FileNameRight=" + str(SESSION_FOLDER / filenamevideo.format('right'))
 
     bodydata = "-p:FileNameBodyData=" + str(SESSION_FOLDER / filenameframedata.format('body'))
     leftdata = "-p:FileNameLefDatat=" + str(SESSION_FOLDER / filenameframedata.format('left'))
     rightdata = "-p:FileNameRightData=" + str(SESSION_FOLDER / filenameframedata.format('right'))
 
-    bodyts = "-p:FileNameBodyTimestamps=" + str(SESSION_FOLDER / filenamets.format('body'))
-    leftts = "-p:FileNameLeftTimestamps=" + str(SESSION_FOLDER / filenamets.format('left'))
-    rightts = "-p:FileNameRightTimestamps=" + str(SESSION_FOLDER / filenamets.format('right'))
-
-    bodyfc = "-p:FileNameBodyFrameCounter=" + str(SESSION_FOLDER / filenamefc.format('body'))
-    leftfc = "-p:FileNameLeftFrameCounter=" + str(SESSION_FOLDER / filenamefc.format('left'))
-    rightfc = "-p:FileNameRightFrameCounter=" + str(SESSION_FOLDER / filenamefc.format('right'))
-
-    bodyGPIO = "-p:FileNameBodyGPIO=" + str(SESSION_FOLDER / filenameGPIO.format('body'))
-    leftGPIO = "-p:FileNameLeftGPIO=" + str(SESSION_FOLDER / filenameGPIO.format('left'))
-    rightGPIO = "-p:FileNameRightGPIO=" + str(SESSION_FOLDER / filenameGPIO.format('right'))
-
     start = '--start'  # --start-no-debug
     noboot = '--no-boot'
     noeditor = '--no-editor'
     # Open the streaming file and start
-    subprocess.call([str(BONSAI), str(STREAM_FILE), start, noboot,
+    subprocess.call([str(BONSAI), str(SETUP_FILE), start, noboot,
                      bodyidx, leftidx, rightidx])
     # Open the record_file no start
     subprocess.call([str(BONSAI), str(RECORD_FILE), noboot, body, left, right,
-                     bodyidx, leftidx, rightidx, bodyts, leftts, rightts,
-                     bodyfc, leftfc, rightfc, bodyGPIO, leftGPIO, rightGPIO])
+                     bodyidx, leftidx, rightidx, bodydata, leftdata, rightdata])
     # subprocess.call(['python', '-c', 'import os; print(os.getcwd())'])
     subprocess.call(['python', 'video_lengths.py', str(SESSION_FOLDER.parent)])
     # Create a transfer_me.flag file
