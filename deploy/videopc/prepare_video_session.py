@@ -19,7 +19,7 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
     DATA_FOLDER = Path(PARAMS['DATA_FOLDER_PATH'])
     VIDEOPC_FOLDER_PATH = Path(__file__).parent
 
-    BONSAI = VIDEOPC_FOLDER_PATH / 'bonsai' / 'bin' / 'Bonsai64.exe'
+    BONSAI = VIDEOPC_FOLDER_PATH / 'bonsai' / 'bin' / 'Bonsai.exe'
     BONSAI_WORKFLOWS_PATH = BONSAI.parent.parent / 'workflows'
     SETUP_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_setup.bonsai'
     RECORD_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_record.bonsai'
