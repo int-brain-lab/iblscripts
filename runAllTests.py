@@ -187,12 +187,13 @@ if __name__ == "__main__":
     fail_str = f'{n_failed}/{result.testsRun} tests failed'
     description = 'All passed' if result.wasSuccessful() else fail_str
     # Save all test names if all passed, otherwise save those that failed and their error stack
-    if n_failed > 0:
-        details = [(list_tests(c), err) for c, err in result.failures + result.errors]
-        logger.warning('Tests failing...')
-    else:
+    if result.wasSuccessful():
         details = list_tests(test_list)
         logger.info('All tests pass...')
+    else:
+        details = [(list_tests(c), err) for c, err in result.failures + result.errors]
+        logger.warning('Tests failing...')
+
     # A breakdown of the test numbers
     stats = {
         'total':  len(list_tests(test_list)) if args.dry_run else result.testsRun,
@@ -201,7 +202,6 @@ if __name__ == "__main__":
         'skipped': len(result.skipped),
         'passed': result.testsRun - (len(result.skipped) + n_failed)
     }
-    print(*details, sep='\n')  # Print all tests for the log
 
     report = {
         'commit': args.commit + ('_dry-run' if args.dry_run else ''),
