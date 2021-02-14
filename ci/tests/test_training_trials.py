@@ -8,7 +8,8 @@ import numpy as np
 from ibllib.misc import version
 from ibllib.pipes.training_preprocessing import TrainingTrials
 import ibllib.io.raw_data_loaders as rawio
-from oneibl.one import OneOffline
+from ibllib.io.extractors import bpod_trials
+from oneibl.one import OneOffline, ONE
 import alf.io
 
 from ci.tests import base
@@ -22,6 +23,28 @@ TRIAL_KEYS_lt5 = ['goCue_times', 'probabilityLeft', 'intervals', 'itiDuration',
                   'feedback_times', 'rewardVolume', 'choice', 'contrastRight', 'stimOn_times',
                   'firstMovement_times']
 WHEEL_KEYS = ['position', 'timestamps']
+
+
+class TestLaserBpod(base.IntegrationTest):
+    """
+    The bpod jsonable can optionally contains 'laser_stimulation' and 'laser_probability' fields
+    Sometimes only the former. THe normal biased extractor detects them automatically
+    """
+    def test_single_session(self):
+        # this session has both laser probability and laser stimulation fields labeled
+        session_path = self.data_path.joinpath("Subjects_init/ZFM-01802/2021-02-08/001")
+        _, _, _ = bpod_trials.extract_all(session_path, save=True)
+        trials = alf.io.load_object(session_path.joinpath('alf'), 'trials')
+        assert(alf.io.check_dimensions(trials) == 0)
+        assert(np.all(np.unique(trials.laser_stimulation) == np.array([0, 1])))
+        assert(np.all(np.logical_and(trials.laser_probability >= 0, trials.laser_probability <= 1)))
+        # this session has only laser stimulation labeled
+        session_path = self.data_path.joinpath("Subjects_init/ZFM-01804/2021-01-15/001")
+        _, _, _ = bpod_trials.extract_all(session_path, save=True)
+        trials = alf.io.load_object(session_path.joinpath('alf'), 'trials')
+        assert(alf.io.check_dimensions(trials) == 0)
+        assert(np.all(np.unique(trials.laser_stimulation) == np.array([0, 1])))
+        assert('laser_probability' not in trials)
 
 
 class TestHabituation(base.IntegrationTest):
