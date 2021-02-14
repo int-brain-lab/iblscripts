@@ -30,8 +30,14 @@ class TestPipeline(base.IntegrationTest):
 
             # register jobs in alyx for all the sessions
             nses = 0
-            for fil in subjects_path.rglob('_iblrig_taskData.raw*.jsonable'):
-                session_path = fil.parents[1]
+            session_stubs = [
+                './IBL_46/2019-02-19/001',  # time stamps million years in future
+                './ZM_335/2018-12-13/001',  # rotary encoder ms instead of us
+                './ZM_1085/2019-02-12/002',  # rotary encoder corrupt
+                './ZM_1085/2019-07-01/001'  # habituation session rig version 5.0.0
+            ]
+            for stub in session_stubs:
+                session_path = subjects_path.joinpath(stub)
                 create_pipeline(session_path)
                 nses += 1
 
