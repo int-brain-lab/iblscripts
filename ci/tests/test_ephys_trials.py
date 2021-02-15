@@ -47,9 +47,12 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         for session_path in self.sessions:
             self._task_extraction_assertions(session_path)
 
-    def test_task_extraction_bpod_events_mismatch(self):
+    def test_task_extraction_problems(self):
         init_folder = self.root_folder.joinpath("ephys_choice_world_task")
-        self.sessions = [f.parent for f in init_folder.rglob('raw_ephys_data')]
+        self.sessions = [
+            init_folder.joinpath("CSP004/2019-11-27/001"),  # normal session
+            init_folder.joinpath("ibl_witten_13/2019-11-25/001"),  # FPGA stops before bpod, custom sync
+            ]
         for session_path in self.sessions:
             _logger.info(f"{session_path}")
             self._task_extraction_assertions(session_path)
@@ -108,6 +111,25 @@ class TestEphysTaskExtraction(base.IntegrationTest):
 
         shutil.rmtree(alf_path, ignore_errors=True)
 
-        # plot the task QC
-        # from iblapps.task_qc_viewer.task_qc import show_session_task_qc
-        # show_session_task_qc(session_path, local=True)
+
+class TestEphysTrialsFPGA(base.IntegrationTest):
+
+    def test_frame2ttl_flicker(self):
+        return
+        from ibllib.io.extractors import ephys_fpga
+        from ibllib.qc.task_metrics import TaskQC
+        from ibllib.qc.task_extractors import TaskQCExtractor
+        init_path = self.data_path.joinpath("ephys", "ephys_choice_world_task")
+        session_path = init_path.joinpath("ibl_witten_27/2021-01-21/001")
+        dsets, out_files = ephys_fpga.extract_all(session_path, save=True)
+        # Run the task QC
+        qc = TaskQC(session_path, one=None)
+        qc.extractor = TaskQCExtractor(session_path, lazy=True, one=None)
+        # Extract extra datasets required for QC
+        qc.extractor.data = dsets
+        qc.extractor.extract_data()
+        # Aggregate and update Alyx QC fields
+        _, myqc = qc.run(update=False)
+        from ibllib.misc import pprint
+        pprint(myqc)
+        assert myqc['_task_stimOn_delays'] > 0.9  # 0.6176

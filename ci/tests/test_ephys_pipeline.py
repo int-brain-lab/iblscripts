@@ -71,6 +71,10 @@ class TestEphysPipeline(base.IntegrationTest):
         # check the spike sorting output on disk
         self.check_spike_sorting_output(self.session_path)
 
+        # quick consistency test on trials length
+        trials = alf.io.load_object(self.session_path.joinpath('alf'), 'trials')
+        assert alf.io.check_dimensions(trials) == 0
+
         # check the registration of datasets
         dsets = one.alyx.rest('datasets', 'list', session=eid)
         self.assertEqual(set([ds['url'][-36:] for ds in dsets]),
