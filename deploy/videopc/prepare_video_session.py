@@ -4,12 +4,13 @@
 # @Date: Thursday, May 2nd 2019, 5:41:56 pm
 import argparse
 import datetime
+import os
 import subprocess
 from pathlib import Path
 
 from alf.folders import next_num_folder
-
 from ibllib.pipes.misc import load_videopc_params
+
 import config_cameras as cams
 
 
@@ -45,7 +46,7 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
     right = "-p:FileNameRight=" + str(SESSION_FOLDER / filenamevideo.format('right'))
 
     bodydata = "-p:FileNameBodyData=" + str(SESSION_FOLDER / filenameframedata.format('body'))
-    leftdata = "-p:FileNameLefDatat=" + str(SESSION_FOLDER / filenameframedata.format('left'))
+    leftdata = "-p:FileNameLeftData=" + str(SESSION_FOLDER / filenameframedata.format('left'))
     rightdata = "-p:FileNameRightData=" + str(SESSION_FOLDER / filenameframedata.format('right'))
 
     start = '--start'  # --start-no-debug
@@ -54,9 +55,12 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
     # Force trigger mode on all cams
     cams.disable_trigger_mode()
     print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - OFF")
+    here = os.getcwd()
+    os.chdir(str(BONSAI_WORKFLOWS_PATH))
     # Open the streaming file and start
     subprocess.call([str(BONSAI), str(SETUP_FILE), start, noboot,
                      bodyidx, leftidx, rightidx])
+    os.chdir(here)
     # Force trigger mode on all cams
     cams.enable_trigger_mode()
     print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - ON")
