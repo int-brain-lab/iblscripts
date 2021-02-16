@@ -52,6 +52,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         self.sessions = [
             init_folder.joinpath("CSP004/2019-11-27/001"),  # normal session
             init_folder.joinpath("ibl_witten_13/2019-11-25/001"),  # FPGA stops before bpod, custom sync
+            # init_folder.joinpath("ibl_witten_27/2021-01-21/001"),  # frame2ttl flicker
             ]
         for session_path in self.sessions:
             _logger.info(f"{session_path}")
@@ -104,6 +105,10 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         tqc_bpod = TaskQC(session_path)
         _, res_bpod = tqc_bpod.run(bpod_only=True, download_data=False)
 
+        # for a swift comparison using variable explorer
+        # import pandas as pd
+        # df = pd.DataFrame([[res_bpod[k], res_ephys[k]] for k in res_ephys], index=res_ephys.keys())
+
         for k in res_ephys:
             if k == "_task_response_feedback_delays":
                 continue
@@ -115,7 +120,6 @@ class TestEphysTaskExtraction(base.IntegrationTest):
 class TestEphysTrialsFPGA(base.IntegrationTest):
 
     def test_frame2ttl_flicker(self):
-        return
         from ibllib.io.extractors import ephys_fpga
         from ibllib.qc.task_metrics import TaskQC
         from ibllib.qc.task_extractors import TaskQCExtractor
@@ -125,11 +129,16 @@ class TestEphysTrialsFPGA(base.IntegrationTest):
         # Run the task QC
         qc = TaskQC(session_path, one=None)
         qc.extractor = TaskQCExtractor(session_path, lazy=True, one=None)
-        # Extract extra datasets required for QC
+        # Extr+act extra datasets required for QC
         qc.extractor.data = dsets
         qc.extractor.extract_data()
         # Aggregate and update Alyx QC fields
         _, myqc = qc.run(update=False)
-        from ibllib.misc import pprint
-        pprint(myqc)
+        # from ibllib.misc import pprint
+        # pprint(myqc)
         assert myqc['_task_stimOn_delays'] > 0.9  # 0.6176
+        assert myqc["_task_stimFreeze_delays"] > 0.9
+        assert myqc["_task_stimOff_delays"] > 0.9
+        assert myqc["_task_stimOff_itiIn_delays"] > 0.9
+        assert myqc["_task_stimOn_delays"] > 0.9
+        assert myqc["_task_stimOn_goCue_delays"] > 0.9
