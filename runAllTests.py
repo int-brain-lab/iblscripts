@@ -4,6 +4,7 @@ as well as the coverage package.
 """
 import argparse
 import unittest
+import doctest
 import re
 import json
 import logging
@@ -51,8 +52,8 @@ def generate_coverage_report(cov, save_path, strict=False, relative_to=None):
     :return:
     """
     try:
-        total = cov.html_report(directory=str(save_path))
-        cov.xml_report(outfile=str(save_path.joinpath('CoverageResults.xml')))
+        total = cov.html_report(directory=str(save_path), skip_empty=True)
+        cov.xml_report(outfile=str(save_path.joinpath('CoverageResults.xml')), skip_empty=True)
         success = save_path.joinpath('CoverageResults.xml').exists()
         assert not strict or success, 'failed to generate XML coverage'
     except (CoverageException, AssertionError) as ex:
@@ -75,6 +76,10 @@ def generate_coverage_report(cov, save_path, strict=False, relative_to=None):
     return total
 
 
+def load_doctests(test_dir, options) -> unittest.TestSuite:
+    return doctest.DocFileSuite(*list(map(str, test_dir.rglob('*.py'))))
+
+
 def run_tests(complete: bool = True,
               strict: bool = True,
               dry_run: bool = False) -> (unittest.TestResult, Coverage, unittest.TestSuite):
@@ -88,7 +93,7 @@ def run_tests(complete: bool = True,
     """
     # Coverage recorded for all code within the source directory; otherwise just omit some
     # common pyCharm files
-    options = {'omit': ['*pydevd_file_utils.py', 'test_*'], 'source': []}
+    options = {'omit': ['*pydevd_file_utils.py', '*test_*'], 'source': []}
 
     # Gather tests
     test_dir = str(Path(ci.tests.__file__).parent)
@@ -102,7 +107,7 @@ def run_tests(complete: bool = True,
             assert tdir.exists(), f'Failed to find unit test folders in {tdir}'
             unit_tests = unittest.TestLoader().discover(str(tdir), pattern='test_*', top_level_dir=root)
             logger.info(f"Found {unit_tests.countTestCases()}, appending to the test suite")
-            ci_tests = unittest.TestSuite((ci_tests, *unit_tests))
+            ci_tests.addTests(unit_tests)
             # for coverage, append the path of the test modules to the source key
             options['source'].append(str(tdir))
     logger.info(f'Complete suite contains {ci_tests.countTestCases()} tests')
@@ -118,8 +123,10 @@ def run_tests(complete: bool = True,
 
     # Run tests with coverage
     cov = Coverage(**options)
+    # cov.exclude(r'^def \w+(.*):')
+    cov.exclude(r'^import [\w., ]+( as \w+)?$')
+    cov.exclude(r'^from [\w.]+ import [\w]+( as [\w]+)?')
     cov.start()
-
     result = unittest.TextTestRunner(verbosity=2).run(ci_tests)
 
     cov.stop()
