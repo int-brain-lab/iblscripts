@@ -18,7 +18,7 @@ def main(mouse: str, training_session: bool = False) -> None:
     SUBJECT_NAME = mouse
     PARAMS = load_videopc_params()
     DATA_FOLDER = Path(PARAMS['DATA_FOLDER_PATH'])
-    VIDEOPC_FOLDER_PATH = Path(__file__).parent
+    VIDEOPC_FOLDER_PATH = Path(__file__).absolute().parent
 
     BONSAI = VIDEOPC_FOLDER_PATH / 'bonsai' / 'bin' / 'Bonsai64.exe'
     BONSAI_WORKFLOWS_PATH = BONSAI.parent.parent / 'workflows'
@@ -58,12 +58,13 @@ def main(mouse: str, training_session: bool = False) -> None:
 
     start = '--start'  # --start-no-debug
     noboot = '--no-boot'
+
     # Force trigger mode on all cams
     cams.enable_trigger_mode()
     print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - ON")
     # Open the streaming file and start
     here = os.getcwd()
-    os.chdir(str(BONSAI_WORKFLOWS_PATH))
+    os.chdir(BONSAI_WORKFLOWS_PATH)
     subprocess.call([str(BONSAI), str(SETUP_FILE), start, noboot,
                      bodyidx, leftidx, rightidx])
     os.chdir(here)
