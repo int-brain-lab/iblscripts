@@ -106,3 +106,4 @@ if __name__ == "__main__":
         )
 
     # session_path = r"C:\iblrig_data\Subjects\_iblrig_test_mouse\2000-01-01\001"
+    # camera= 'left'
