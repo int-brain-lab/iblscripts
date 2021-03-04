@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 import alf.io
 from ibllib.io import spikeglx
@@ -18,6 +19,7 @@ class TestEphysCheckList(base.IntegrationTest):
             fil.unlink()
         for fil in folder.rglob('*.timestamps.npy'):
             fil.unlink()
+        self.addCleanup(plt.close, 'all')
 
     def test_sync_3A_single(self):
         ses_path = self.folder3a_single.joinpath('sub', '2019-08-09', '004')

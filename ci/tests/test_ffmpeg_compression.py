@@ -1,5 +1,6 @@
 import shutil
 import tempfile
+import unittest.mock
 from pathlib import Path
 
 from ibllib.pipes import ephys_preprocessing, training_preprocessing
@@ -9,10 +10,12 @@ from ci.tests import base
 
 class TestVideoAudioEphys(base.IntegrationTest):
 
-    def test_compress_all_vids(self):
+    @unittest.mock.patch('ibllib.qc.camera.CameraQC')
+    @unittest.mock.patch('ibllib.io.extractors.camera.extract_all')
+    def test_compress_all_vids(self, mock_ext, mock_qc):
         EPHYS_INIT_FOLDER = self.data_path.joinpath('ephys', 'ephys_video_init')
-        TRAINING_INIT_FOLDER = self.data_path.joinpath('Subjects_init')
 
+        mock_ext.return_value = (None, [])  # Return empty file list upon timestamp extraction
         with tempfile.TemporaryDirectory() as tdir:
             shutil.copytree(EPHYS_INIT_FOLDER, Path(tdir).joinpath('Subjects'))
             for ts_file in Path(tdir).rglob("_iblrig_taskSettings.raw.json"):
@@ -26,6 +29,8 @@ class TestVideoAudioEphys(base.IntegrationTest):
                 self.assertTrue(len(list(session_path.rglob('*.avi'))) == 0)
                 self.assertTrue(len(list(session_path.rglob('*.mp4'))) == 3)
                 self.assertTrue(len(job.outputs) == 3)
+                mock_ext.assert_called()
+                self.assertEqual(mock_qc.call_count, 3)
                 # a second run should still output files for registration
                 job.run()
                 self.assertTrue(len(job.outputs) == 3)
@@ -44,8 +49,11 @@ class TestVideoTraining(base.IntegrationTest):
         self.TRAINING_INIT_FOLDER = self.data_path.joinpath('Subjects_init')
         assert self.TRAINING_INIT_FOLDER.exists()
 
-    def test_compress_training(self):
+    @unittest.mock.patch('ibllib.qc.camera.CameraQC')
+    @unittest.mock.patch('ibllib.io.extractors.camera.extract_all')
+    def test_compress_training(self, mock_ext, _):
         vid_files = list(self.TRAINING_INIT_FOLDER.rglob('*.avi'))
+        mock_ext.return_value = (None, [])  # Return empty file list upon timestamp extraction
         for vid_file in vid_files:
             init_session_path = vid_file.parents[1]
             with tempfile.TemporaryDirectory() as tdir:

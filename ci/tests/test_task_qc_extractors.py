@@ -10,7 +10,6 @@ import numpy as np
 from ibllib.misc import version
 from ibllib.qc.task_metrics import TaskQC
 from ibllib.qc.task_extractors import TaskQCExtractor
-from ibllib.qc.oneutils import download_taskqc_raw_data
 from oneibl.one import ONE
 from ci.tests import base
 
@@ -26,10 +25,10 @@ class TestTaskQCObject(base.IntegrationTest):
         self.one = one
         self.eid = "b1c968ad-4874-468d-b2e4-5ffa9b9964e9"
         # Make sure the data exists locally
-        download_taskqc_raw_data(self.eid, one=one)
         self.session_path = self.one.path_from_eid(self.eid)
-        self.qc = TaskQC(self.eid, one=self.one)
+        self.qc = TaskQC(self.eid)
         self.qc.load_data(bpod_only=True)  # Test session has no raw FPGA data
+        self.qc.one = one  # Assign test instance after downloading data
 
     def test_compute(self):
         # Compute metrics
@@ -41,6 +40,7 @@ class TestTaskQCObject(base.IntegrationTest):
 
     def test_run(self):
         # Reset Alyx fields before test
+        assert 'test' in self.qc.one._par.ALYX_URL
         reset = self.qc.update('NOT_SET', override=True)
         assert reset == 'NOT_SET', 'failed to reset QC field for test'
         extended = self.one.alyx.json_field_write('sessions', field_name='extended_qc',
@@ -95,15 +95,15 @@ class TestBpodQCExtractors(base.IntegrationTest):
         self.eid = 'b1c968ad-4874-468d-b2e4-5ffa9b9964e9'
         self.eid_incomplete = '4e0b3320-47b7-416e-b842-c34dc9004cf8'  # Missing required datasets
         # Make sure the data exists locally
-        download_taskqc_raw_data(self.eid, one=one, fpga=True)
         self.session_path = self.one.path_from_eid(self.eid)
 
     def test_lazy_extract(self):
-        ex = TaskQCExtractor(self.session_path, lazy=True, one=self.one)
+        ex = TaskQCExtractor(self.session_path, lazy=True, one=self.one, download_data=True)
         self.assertIsNone(ex.data)
 
     def test_extraction(self):
-        ex = TaskQCExtractor(self.session_path, lazy=True, one=self.one, bpod_only=True)
+        ex = TaskQCExtractor(self.session_path,
+                             lazy=True, one=self.one, bpod_only=True, download_data=True)
         self.assertIsNone(ex.raw_data)
 
         # Test loading raw data
@@ -131,7 +131,8 @@ class TestBpodQCExtractors(base.IntegrationTest):
         self.assertEqual('X1', ex.wheel_encoding)
 
     def test_partial_extraction(self):
-        ex = TaskQCExtractor(self.session_path, lazy=True, one=self.one, bpod_only=True)
+        ex = TaskQCExtractor(self.session_path,
+                             lazy=True, one=self.one, bpod_only=True, download_data=True)
         ex.extract_data()
 
         expected = ['contrastLeft',

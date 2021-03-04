@@ -1,6 +1,10 @@
 import unittest
+import os
 from pathlib import Path
+
 from ibllib.io import params
+import alf.folders
+from oneibl.one import ONE
 
 
 class IntegrationTest(unittest.TestCase):
@@ -32,3 +36,20 @@ class IntegrationTest(unittest.TestCase):
         or the current working directory.
         """
         return Path(params.read('ibl_ci', {'data_root': '.'}).data_root)
+
+
+def list_current_sessions(one=None):
+    """
+    Get the set of session eids used in integration tests.  When writing new tests, this can be
+    a useful way of choosing which sessions to use.
+
+    :param one: An ONE object for fetching session eid from path
+    :return: Set of integration session eids
+    """
+    def not_null(itr):
+        return filter(lambda x: x is not None, itr)
+    one = one or ONE()
+    root = IntegrationTest.default_data_root()
+    folders = set(alf.folders.session_path(x[0]) for x in os.walk(root))
+    eids = not_null(one.eid_from_path(x) for x in not_null(folders))
+    return set(eids)

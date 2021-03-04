@@ -7,6 +7,7 @@ import unittest
 import doctest
 import re
 import json
+import sys
 import logging
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
@@ -127,7 +128,7 @@ def run_tests(complete: bool = True,
     cov.exclude(r'^import [\w., ]+( as \w+)?$')
     cov.exclude(r'^from [\w.]+ import [\w]+( as [\w]+)?')
     cov.start()
-    result = unittest.TextTestRunner(verbosity=2).run(ci_tests)
+    result = unittest.TextTestRunner(verbosity=2, stream=sys.stdout).run(ci_tests)
 
     cov.stop()
     cov.save()
