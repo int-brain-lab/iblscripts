@@ -26,9 +26,8 @@ class TestTaskQCObject(base.IntegrationTest):
         self.eid = "b1c968ad-4874-468d-b2e4-5ffa9b9964e9"
         # Make sure the data exists locally
         self.session_path = self.one.path_from_eid(self.eid)
-        self.qc = TaskQC(self.eid)
+        self.qc = TaskQC(self.eid, one=one)
         self.qc.load_data(bpod_only=True)  # Test session has no raw FPGA data
-        self.qc.one = one  # Assign test instance after downloading data
 
     def test_compute(self):
         # Compute metrics
@@ -164,7 +163,8 @@ class TestBpodQCExtractors(base.IntegrationTest):
         ex = TaskQCExtractor(path, lazy=True, one=self.one, download_data=True)
         self.assertTrue(ex.lazy, 'Failed to set lazy flag')
 
-        shutil.rmtree(self.session_path)  # Remove downloaded data
+        if self.session_path.exists():
+            shutil.rmtree(self.session_path)  # Remove downloaded data
         assert self.session_path.exists() is False, 'Failed to remove session folder'
         TaskQCExtractor(self.session_path, lazy=True, one=self.one, download_data=True)
         files = list(self.session_path.rglob('*.*'))
