@@ -77,8 +77,18 @@ class TestVideoIO(base.IntegrationTest):
         self.assertEqual(meta.duration.total_seconds(), 2639.616667)
 
         # Check with remote path
-        one = ONE()  # TODO Add session with video files to test Alyx
-        video_url = one.url_from_path(self.video_path)
+        one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
+                  username='test_user', password='TapetesBloc18')
+        dset = one.alyx.rest('datasets', 'list', name='_iblrig_leftCamera.raw.mp4', exist=True)[0]
+        video_url = next(fr['data_url'] for fr in dset['file_records'] if fr['data_url'])
+        expected = {
+            'length': 144120,
+            'fps': 30,
+            'width': 1280,
+            'height': 1024,
+            'size': 495090155
+        }
+
         meta = vidio.get_video_meta(video_url, one=one)
         self.assertTrue(expected.items() <= meta.items())
 

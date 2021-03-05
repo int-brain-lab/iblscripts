@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 import numpy as np
 import tempfile
+from unittest import mock
 
 import alf.io
 from ibllib.pipes import local_server
@@ -37,11 +38,19 @@ class TestEphysPipeline(base.IntegrationTest):
             link.symlink_to(ff)
         self.session_path.joinpath('raw_session.flag').touch()
 
-    def test_pipeline_with_alyx(self):
+    @mock.patch('ibllib.qc.camera.CameraQC')
+    @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
+    def test_pipeline_with_alyx(self, mock_vc, _):
         """
         Test the ephys pipeline exactly as it is supposed to run on the local servers
+        We stub the QC as it requires a video file.
+        We mock the OpenCV video capture class as the camera timestamp extractor inspects the
+        video length.
+        :param mock_vc: A mock OpenCV VideoCapture class for returning the video length
+        :param _: A stub CameraQC object
         :return:
         """
+        mock_vc().get.return_value = 40000  # Need a value for number of frames in video
         one = self.one
         # first step is to remove the session and create it anew
         eid = one.eid_from_path(self.session_path, use_cache=False)
