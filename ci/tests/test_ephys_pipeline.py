@@ -189,7 +189,7 @@ class TestEphysPipeline(base.IntegrationTest):
         self.assertNotEqual('NOT_SET', session_dict['qc'], 'qc field not updated')
         extended = session_dict['extended_qc']
         self.assertTrue(any(k.startswith('_task_') for k in extended.keys()))
-        # also check that the behaviour criteron was set
+        # also check that the behaviour criterion was set
         assert 'behavior' in extended
         # check that the probes insertions have the json field labeled properly
         pis = one.alyx.rest('insertions', 'list', session=eid)

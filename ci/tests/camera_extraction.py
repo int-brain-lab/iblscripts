@@ -5,7 +5,7 @@ Folders used:
     - Subjects_init/ZM_1098/2019-01-25/001/
 
 NB: These tests hit the main Alyx database.  This is required for full coverage of the QC (in
-particular the CameraQC._ensure_erquired_data method and MontionAlign using eid2ref).
+particular the CameraQC._ensure_required_data method and MotionAlign using eid2ref).
 """
 import unittest
 from unittest import mock
@@ -18,26 +18,22 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 
-try:
-    from brainbox.video.motion import MotionAlignment
-    from ibllib.io.extractors.ephys_fpga import get_main_probe_sync
-    import ibllib.io.extractors.camera as camio
-    import ibllib.io.raw_data_loaders as raw
-    import ibllib.qc.camera as camQC
-    from ibllib.qc.camera import CameraQC
-    from ibllib.qc.base import CRITERIA
-    import ibllib.io.video as vidio
-    from ibllib.pipes.training_preprocessing import TrainingVideoCompress
-    from ibllib.pipes.ephys_preprocessing import EphysVideoCompress
-    from brainbox.core import Bunch
-    import alf.io as alfio
-    import oneibl.params
-    from oneibl.one import ONE
+from brainbox.video.motion import MotionAlignment
+from ibllib.io.extractors.ephys_fpga import get_main_probe_sync
+import ibllib.io.extractors.camera as camio
+import ibllib.io.raw_data_loaders as raw
+import ibllib.qc.camera as camQC
+from ibllib.qc.camera import CameraQC
+from ibllib.qc.base import CRITERIA
+import ibllib.io.video as vidio
+from ibllib.pipes.training_preprocessing import TrainingVideoCompress
+from ibllib.pipes.ephys_preprocessing import EphysVideoCompress
+from brainbox.core import Bunch
+import alf.io as alfio
+import oneibl.params
+from oneibl.one import ONE
 
-    from ci.tests import base
-except ImportError as ex:
-    # TODO This must be removed once the camera_extractor branch has been merged into ibllib dev
-    raise unittest.SkipTest(f"Importing camera modules failed: {ex}")
+from ci.tests import base
 
 
 def _get_video_lengths(eid):

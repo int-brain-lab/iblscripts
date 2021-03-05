@@ -18,7 +18,8 @@ class TestPipeline(base.IntegrationTest):
     @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
     def test_full_pipeline(self, mock_vc, mock_qc):
         """
-        Test the full Training extraction pipeline.  We stub the QC as it requires a video file.
+        Test the full Training extraction pipeline.  We stub the QC as it requires a video file
+        and raw timestamps.  Training CameraQC is tested in TestVideoTraining.test_compress_qc
         We mock the OpenCV video capture class as the camera timestamp extractor inspects the
         video length.
         :param mock_vc: A mock OpenCV VideoCapture class for returning the video length
