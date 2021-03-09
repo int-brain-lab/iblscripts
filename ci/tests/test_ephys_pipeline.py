@@ -43,7 +43,7 @@ class TestEphysPipeline(base.IntegrationTest):
     def test_pipeline_with_alyx(self, mock_vc, _):
         """
         Test the ephys pipeline exactly as it is supposed to run on the local servers
-        We stub the QC as it requires a video file.
+        We stub the QC as it requires a video file and loading frames takes a while.
         We mock the OpenCV video capture class as the camera timestamp extractor inspects the
         video length.
         :param mock_vc: A mock OpenCV VideoCapture class for returning the video length

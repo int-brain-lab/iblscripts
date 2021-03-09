@@ -14,19 +14,11 @@ one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
 
 class TestPipeline(base.IntegrationTest):
 
-    @mock.patch('ibllib.pipes.training_preprocessing.CameraQC')
-    @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
-    def test_full_pipeline(self, mock_vc, mock_qc):
+    def test_full_pipeline(self):
         """
-        Test the full Training extraction pipeline.  We stub the QC as it requires a video file
-        and raw timestamps.  Training CameraQC is tested in TestVideoTraining.test_compress_qc
-        We mock the OpenCV video capture class as the camera timestamp extractor inspects the
-        video length.
-        :param mock_vc: A mock OpenCV VideoCapture class for returning the video length
-        :param mock_qc: A stub CameraQC object
+        Test the full Training extraction pipeline.
         :return:
         """
-        mock_vc().get.return_value = 0  # Need a value for number of frames in video
         INIT_FOLDER = self.data_path.joinpath('Subjects_init')
         self.assertTrue(INIT_FOLDER.exists())
 
@@ -69,7 +61,6 @@ class TestPipeline(base.IntegrationTest):
             self.assertTrue(len(errored_tasks) == 0)
             session_dict = one.alyx.rest('sessions', 'list', django='extended_qc__isnull, False')
             self.assertTrue(len(session_dict) > 0)
-            mock_qc.assert_called()
 
 
 def create_pipeline(session_path):
