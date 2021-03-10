@@ -18,7 +18,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 
-from brainbox.video.motion import MotionAlignment
+from ibllib.io.extractors.video_motion import MotionAlignment
 from ibllib.io.extractors.ephys_fpga import get_main_probe_sync
 import ibllib.io.extractors.camera as camio
 import ibllib.io.raw_data_loaders as raw
