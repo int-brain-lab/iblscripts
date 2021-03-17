@@ -11,6 +11,7 @@ from globus_sdk.exc import TransferAPIError
 GLOBUS_PARAM_STRING = 'globus/admin'
 DEFAULT_PAR = {'local_endpoint': None, 'remote_endpoint': None, 'GLOBUS_CLIENT_ID': None}
 logger = logging.getLogger('ibllib')
+logger.setLevel(logging.DEBUG)  # For logging transferred files
 
 # Read in parameters
 p = params.read(GLOBUS_PARAM_STRING, DEFAULT_PAR)
@@ -126,6 +127,12 @@ while running:
     else:
         poll = min((poll * 2, POLL[1]))
     time.sleep(poll)
+
+if logger.level == 10:
+    for info in gtc.task_successful_transfers(task_id):
+        src_file = info['source_path'].replace(SRC_DIR + '/', '')
+        dst_file = info["destination_path"].replace(dst_directory + '/', '')
+        logger.debug(f'{src_file} -> {dst_file}')
 
 # Here we should exit
 if __name__ == "__main__":
