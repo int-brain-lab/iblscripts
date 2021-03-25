@@ -129,10 +129,15 @@ while running:
     time.sleep(poll)
 
 if logger.level == 10:
-    for info in gtc.task_successful_transfers(task_id):
-        src_file = info['source_path'].replace(SRC_DIR + '/', '')
-        dst_file = info["destination_path"].replace(dst_directory + '/', '')
-        logger.debug(f'{src_file} -> {dst_file}')
+    """Sometime Globus sets the status to SUCCEEDED but doesn't truly finish.
+    The try/except handles an error thrown when querying task_successful_transfers too early"""
+    try:
+        for info in gtc.task_successful_transfers(task_id):
+            src_file = info['source_path'].replace(SRC_DIR + '/', '')
+            dst_file = info["destination_path"].replace(dst_directory + '/', '')
+            logger.debug(f'{src_file} -> {dst_file}')
+    except TransferAPIError:
+        logger.debug('Failed to query transferred files')
 
 # Here we should exit
 if __name__ == "__main__":
