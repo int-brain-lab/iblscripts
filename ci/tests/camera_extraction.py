@@ -165,7 +165,7 @@ class TestTrainingCameraExtractor(base.IntegrationTest):
         mock_vc().isOpened.return_value = True
 
         # Act as though the embedded frame data files don't exist
-        mock_aux.return_value = (None, None)
+        mock_aux.return_value = (None, [None] * 4)
         ext = camio.CameraTimestampsBpod(self.session_path)
         ts, _ = ext.extract(save=False)
 
@@ -205,7 +205,7 @@ class TestEphysCameraExtractor(base.IntegrationTest):
         session_path = root.joinpath('ephys', 'ephys_choice_world_task',
                                      'ibl_witten_27', '2021-01-21', '001')
         _, ts = raw.load_camera_ssv_times(session_path, 'left')
-        _, gpio = raw.load_embedded_frame_data(session_path, 'left')
+        _, (*_, gpio) = raw.load_embedded_frame_data(session_path, 'left')
         bpod_trials = raw.load_data(session_path)
         _, audio = raw.load_bpod_fronts(session_path, bpod_trials)
         # NB: syncing the timestamps to the audio doesn't work very well but we don't need it to
@@ -301,7 +301,7 @@ class TestEphysCameraExtractor(base.IntegrationTest):
         mock_vc().isOpened.return_value = True
 
         # Act as though the embedded frame data files don't exist
-        mock_aux.return_value = (None, None)
+        mock_aux.return_value = (None, [None] * 4)
         ext = camio.CameraTimestampsFPGA(side, self.session_path)
         sync, chmap = get_main_probe_sync(self.session_path)
         ts, _ = ext.extract(save=False, sync=sync, chmap=chmap)
@@ -529,14 +529,18 @@ class TestCameraPipeline(base.IntegrationTest):
         with tempfile.TemporaryDirectory() as tdir:
             subjects_path = Path(tdir).joinpath('Subjects', *self.training_folder.parts[-3:])
             session_path = shutil.copytree(self.training_folder, subjects_path)
-            # task running part
+            # task running part - there are no videos, should exit gracefully
             job = TrainingVideoCompress(session_path, one=self.one)
-            job.run()
+            with self.assertLogs('ibllib', level='INFO'):
+                job.run()
 
-            self.assertEqual(job.status, -1)
-            self.assertTrue('Failed to open' in job.log)
+            self.assertEqual(job.status, 0)
+            self.assertTrue('skipping' in job.log)
 
             # Now mock the video data so that extraction and QC succeed
+            video_path = session_path.joinpath('raw_video_data')
+            video_path.mkdir(parents=True)
+            video_path.joinpath('_iblrig_leftCamera.raw.mp4').touch()
             with mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture') as mock_vc, \
                     mock.patch('ibllib.pipes.training_preprocessing.CameraQC') as mock_qc:
                 def side_effect():
