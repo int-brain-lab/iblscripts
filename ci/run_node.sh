@@ -1,3 +1,3 @@
-cd /home/ibladmin/Documents/CI/matlab-ci
-DEBUG=* node -r dotenv/config main.js
+cd /home/experiment/Documents/github/matlab-ci
+DEBUG=*ci* node -r dotenv/config main.js
 
