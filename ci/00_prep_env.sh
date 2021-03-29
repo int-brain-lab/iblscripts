@@ -2,24 +2,48 @@
 set -e
 
 # $1: commit or branch to test out for ibllib
-echo $1
-echo $2
-echo $3
+# $2: path to repository, e.g. ~/Documents/github/ibllib-repo
+# $3: path to the log directory, e.g. ~/.ci/reports/5cbfa640...
 
-# first step is to update iblscripts
-cd /home/ibladmin/Documents/CI/iblscripts
+# Update ibllib in github folder in order to flake
+pushd $2
 git fetch --all
 git reset --hard HEAD
-git checkout develop
-git pull --strategy-option=theirs
+git checkout $1
+branch=$(git name-rev --name-only $1)
 
-# second step is to update ibllib
-source ~/Documents/PYTHON/envs/iblenv-ci/bin/activate
+#echo $branch
+
+# Update iblscripts
+cd ../iblscripts
+git fetch --all
+git reset --hard HEAD
+# Attempt to checkout same branch name as ibllib; fallback to dev
+# if ibllib commit is on master or branch doesn't exist in iblscripts...
+if [[ "$branch" =~ ^(remotes\/origin\/)?master$ ]] || ! git rev-parse -q --verify --end-of-options $branch; then
+	git checkout develop
+else
+	git checkout $branch
+fi
+# If not detached, pull latest
+if git symbolic-ref -q HEAD; then
+  git pull --strategy-option=theirs
+fi
+popd
+
+# second step is to re-install these into the environment
+#source ~/Documents/PYTHON/envs/iblenv-ci/bin/activate
+source /home/experiment/anaconda3/etc/profile.d/conda.sh
+conda update conda --yes --quiet
+conda remove --name ci --all --yes
+conda create -n ci --yes --quiet python=3.8
+
+conda activate ci
 
 pip uninstall -y ibllib
 pip uninstall -y phylib
 pip install git+https://github.com/cortex-lab/phylib.git@ibl_tests
 pip install git+https://github.com/int-brain-lab/ibllib.git@$1
-pip install -e /home/ibladmin/Documents/CI/iblscripts
+pip install -e /home/experiment/Documents/github/iblscripts
 
-# python /home/ibladmin/Documents/CI/iblscripts/ci/download_data.py
+python /home/experiment/Documents/github/iblscripts/ci/download_data.py
