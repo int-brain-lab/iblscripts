@@ -50,6 +50,12 @@ class TestVideoIO(base.IntegrationTest):
         self.assertEqual(frames[0].dtype, np.dtype(np.uint8))
         self.assertEqual(len(frames), 3)
 
+        # Test applying function
+        frames = vidio.get_video_frames_preload(self.video_path, n,
+                                                func=lambda x: np.mean(x, axis=2))
+        expected_shape = (len(n), 1024, 1280)
+        self.assertEqual(frames.shape, expected_shape)
+
     def test_get_video_frames_preload_perf(self):
         # Fetch x frames every 100 frames for y hundred frames total
         x = 5
