@@ -122,6 +122,9 @@ def run_tests(complete: bool = True,
     if dry_run:
         return unittest.TestResult(), Coverage(**options), ci_tests
 
+    # Make list of tests - once successfully run the tests are removed from the suite
+    test_list = list_tests(ci_tests)
+
     # Run tests with coverage
     cov = Coverage(**options)
     # cov.exclude(r'^def \w+(.*):')
@@ -133,7 +136,7 @@ def run_tests(complete: bool = True,
     cov.stop()
     cov.save()
 
-    return result, cov, ci_tests
+    return result, cov, test_list
 
 
 if __name__ == "__main__":
@@ -196,7 +199,7 @@ if __name__ == "__main__":
     description = 'All passed' if result.wasSuccessful() else fail_str
     # Save all test names if all passed, otherwise save those that failed and their error stack
     if result.wasSuccessful():
-        details = list_tests(test_list)
+        details = test_list
         logger.info('All tests pass...')
     else:
         details = [(list_tests(c), err) for c, err in result.failures + result.errors]
