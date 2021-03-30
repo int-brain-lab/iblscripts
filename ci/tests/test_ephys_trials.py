@@ -61,10 +61,6 @@ class TestEphysTaskExtraction(base.IntegrationTest):
     def _task_extraction_assertions(self, session_path):
         alf_path = session_path.joinpath('alf')
         shutil.rmtree(alf_path, ignore_errors=True)
-        # get intermediate output for QC
-        sync, chmap = ephys_fpga.get_main_probe_sync(session_path, bin_exists=False)
-        trials, out_files = ephys_fpga.FpgaTrials(session_path).extract(
-            save=True, sync=sync, chmap=chmap)
         # this gets the full output
         ephys_fpga.extract_all(session_path, save=True, bin_exists=False)
         # check that the output is complete
@@ -77,6 +73,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         alf_trials = alf.io.load_object(alf_path, 'trials')
         self.assertTrue(alf.io.check_dimensions(alf_trials) == 0)
         # go deeper and check the internal fpga trials structure consistency
+        sync, chmap = ephys_fpga.get_main_probe_sync(session_path, bin_exists=False)
         fpga_trials = ephys_fpga.extract_behaviour_sync(sync, chmap)
         # check dimensions
         self.assertEqual(alf.io.check_dimensions(fpga_trials), 0)
