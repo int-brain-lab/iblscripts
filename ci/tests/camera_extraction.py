@@ -11,6 +11,7 @@ import unittest
 from unittest import mock
 from pathlib import Path
 from collections import OrderedDict
+import logging
 import tempfile
 import shutil
 
@@ -112,6 +113,7 @@ class TestTrainingCameraExtractor(base.IntegrationTest):
         np.testing.assert_array_almost_equal(ts[:10], expected)
 
         # Test extraction parameters
+        mock_vc().get.return_value = self.n_frames
         ts, _ = ext.extract(save=False, display=True, extrapolate_missing=False)
         self.assertEqual(ts.size, self.n_frames, 'unexpected size')
         self.assertEqual(np.isnan(ts).sum(), 388, 'unexpected number of nans')
@@ -145,8 +147,11 @@ class TestTrainingCameraExtractor(base.IntegrationTest):
         trials = raw.load_data(self.session_path)
         for i in range(5):
             trials[i]['behavior_data']['Events timestamps']['Port1In'] = None
-        with self.assertRaises(AssertionError):
+        # Should fall back on the basic extraction
+        with self.assertLogs(logging.getLogger('ibllib'), logging.CRITICAL):
             ts, _ = ext.extract(save=False, bpod_trials=trials)
+        expected = np.array([25.0232, 25.0536, 25.0839, 25.1143, 25.1447])
+        np.testing.assert_array_almost_equal(ts[:5], expected)
 
         # Test behaviour when frame count array longer than number of frames
         mock_vc().get.return_value = self.n_frames - 400
@@ -309,6 +314,16 @@ class TestEphysCameraExtractor(base.IntegrationTest):
         # Verify returns unaltered FPGA times.  This behaviour will change in the future
         self.assertEqual(ts.size, 255505)
         expected = np.array([0.01363197, 0.03036363, 0.04709529, 0.06382695, 0.08055861])
+        np.testing.assert_array_almost_equal(ts[:5], expected)
+
+        # Now test fallback when GPIO or audio data are unusable (i.e. raise an assertion)
+        n = 888  # Number of GPIOs (number not important)
+        gpio = {'indices': np.sort(np.random.choice(np.arange(self.n_frames[side]), n)),
+                'polarities': np.random.choice([0, 1], n)}
+        mock_aux.return_value = (np.arange(self.n_frames[side]), [None, None, None, gpio])
+        with self.assertLogs(logging.getLogger('ibllib'), logging.CRITICAL):
+            ts, _ = ext.extract(save=False, sync=sync, chmap=chmap)
+        # Should fallback to basic extarction
         np.testing.assert_array_almost_equal(ts[:5], expected)
 
     def test_get_video_length(self):
