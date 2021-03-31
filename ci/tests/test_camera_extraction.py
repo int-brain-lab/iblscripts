@@ -688,7 +688,6 @@ class TestWheelMotionNRG(base.IntegrationTest):
             vid = next(Path(tdir).glob('*.mp4'))
             self.assertEqual(vid.name, '2018-07-13_1_flowers_l.mp4')
             self.assertEqual(round(vid.stat().st_size / 1e5), 18)
-            self.assertAlmostEqual(vid.stat().st_size, 1800311)
 
 
 if __name__ == "__main__":
