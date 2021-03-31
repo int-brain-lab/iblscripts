@@ -366,7 +366,7 @@ class TestEphysCameraExtractor(base.IntegrationTest):
         # Now test fallback when GPIO or audio data are unusable (i.e. raise an assertion)
         n = 888  # Number of GPIOs (number not important)
         gpio = {'indices': np.sort(np.random.choice(np.arange(self.n_frames[side]), n)),
-                'polarities': np.random.choice([0, 1], n)}
+                'polarities': np.insert(np.random.choice([-1, 1], n - 1), 0, -1)}
         mock_aux.return_value = (np.arange(self.n_frames[side]), [None, None, None, gpio])
         with self.assertLogs(logging.getLogger('ibllib'), logging.CRITICAL):
             ts, _ = ext.extract(save=False, sync=sync, chmap=chmap)
@@ -680,7 +680,7 @@ class TestWheelMotionNRG(base.IntegrationTest):
                              0.88054471, 0.84264046, 0.302118, 0.94302567, 0.86188695])
         np.testing.assert_array_almost_equal(expected, df[:10])
         self.assertEqual(dt_i, 0)
-        self.assertEqual(c, 19.48841741869628)
+        self.assertEqual(round(c, 5), 19.48842)
 
         # Test saving alignment video
         with tempfile.TemporaryDirectory() as tdir:
