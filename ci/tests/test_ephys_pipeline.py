@@ -58,7 +58,8 @@ class TestEphysPipeline(base.IntegrationTest):
             one.alyx.rest('sessions', 'delete', id=eid)
 
         # create the jobs and run them
-        raw_ds = local_server.job_creator(self.session_path, one=one, max_md5_size=1024 * 1024 * 20)
+        raw_ds = local_server.job_creator(self.session_path,
+                                          one=one, max_md5_size=1024 * 1024 * 20)
         eid = one.eid_from_path(self.session_path, use_cache=False)
         self.assertFalse(eid is None)  # the session is created on the database
         # the flag has been erased
@@ -163,7 +164,8 @@ class TestEphysPipeline(base.IntegrationTest):
                              ('wheel.timestamps', 1, 1),
                              ('wheelMoves.intervals', 1, 1),
                              ('wheelMoves.peakAmplitude', 1, 1),
-# Min is 0 because this session fails extraction properr extraction test in test_ephys_passive
+                             # Min is 0 because this session fails extraction proper
+                             # extraction test in test_ephys_passive
                              ('_ibl_passivePeriods.intervalsTable', 0, 1),
                              ('_ibl_passiveRFM.times', 0, 1),
                              ('_ibl_passiveGabor.table', 0, 1),
@@ -258,7 +260,9 @@ class TestEphysPipeline(base.IntegrationTest):
             self.assertTrue(np.all(0 <= clusters.channels) and
                             np.all(clusters.channels <= (nchannels - 1)))
             # check that the site positions channels match the depth with indexing
-            self.assertTrue(np.all(clusters.depths == channels.localCoordinates[clusters.channels, 1]))
+            self.assertTrue(
+                np.all(clusters.depths == channels.localCoordinates[clusters.channels, 1])
+            )
 
             """ compare against the cortexlab spikes Matlab code output if fixtures exist """
             for famps in session_path.joinpath(
@@ -268,8 +272,8 @@ class TestEphysPipeline(base.IntegrationTest):
                 assert np.max(np.abs((spikes.amps * 1e6 - np.squeeze(expected_amps)))) < 2
                 _logger.info('checked ' + '/'.join(famps.parts[-2:]))
 
-            for fdepths in session_path.joinpath(
-                    'raw_ephys_data', probe_folder.parts[-1]).rglob('expected_dephts_um_matlab.npy'):
+            folder = session_path.joinpath('raw_ephys_data', probe_folder.parts[-1])
+            for fdepths in folder.rglob('expected_dephts_um_matlab.npy'):
                 expected_depths = np.load(fdepths)
                 # the difference is within 2 uV
                 assert np.nanmax(np.abs((spikes.depths - np.squeeze(expected_depths)))) < .01

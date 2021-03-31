@@ -21,8 +21,8 @@ GLOBUS_CLIENT_ID = p.GLOBUS_CLIENT_ID
 DST_DIR = params.read('ibl_ci', {'data_root': '.'}).data_root
 # Constants
 SRC_DIR = '/integration'
-POLL = (5, 60*60)  # min max seconds between pinging server
-TIMEOUT = 24*60*60  # seconds before timeout
+POLL = (5, 60 * 60)  # min max seconds between pinging server
+TIMEOUT = 24 * 60 * 60  # seconds before timeout
 status_map = {
     'ACTIVE': ('QUEUED', 'ACTIVE'),
     'FAILED': ('ENDPOINT_ERROR', 'PERMISSION_DENIED', 'CONNECT_FAILED'),
@@ -84,7 +84,7 @@ files_transferred = None
 files_skipped = 0
 subtasks_failed = 0
 poll = POLL[0]
-MAX_WAIT = 60*60
+MAX_WAIT = 60 * 60
 # while not gtc.task_wait(task_id, timeout=WAIT):
 running = True
 while running:

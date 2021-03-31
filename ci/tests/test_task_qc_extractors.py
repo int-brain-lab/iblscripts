@@ -119,7 +119,7 @@ class TestBpodQCExtractors(base.IntegrationTest):
                     'goCue_times', 'intervals', 'phase', 'position', 'probabilityLeft',
                     'quiescence', 'response_times', 'rewardVolume', 'stimOn_times',
                     'valveOpen_times', 'wheel_moves_intervals', 'wheel_moves_peak_amplitude',
-                    'wheel_position',  'wheel_timestamps']
+                    'wheel_position', 'wheel_timestamps']
         expected_5up = ['errorCueTrigger_times', 'itiIn_times',
                         'stimFreezeTrigger_times', 'stimFreeze_times', 'stimOffTrigger_times',
                         'stimOff_times', 'stimOnTrigger_times']

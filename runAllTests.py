@@ -142,9 +142,9 @@ def run_tests(complete: bool = True,
 if __name__ == "__main__":
     r"""Run all the integration tests with coverage
     The commit id is used to identify the test report.  If none is provided no test record is saved
- 
+
     python runAllTests.py --logdir <log directory> --commit <commit sha> --repo <repo path>
-    
+
     Examples:
       python runAllTests.py -l C:\Users\User\AppData\Roaming\CI
       python runAllTests.py -l ~/.ci
@@ -207,7 +207,7 @@ if __name__ == "__main__":
 
     # A breakdown of the test numbers
     stats = {
-        'total':  len(list_tests(test_list)) if args.dry_run else result.testsRun,
+        'total': len(list_tests(test_list)) if args.dry_run else result.testsRun,
         'failed': len(result.failures),
         'errored': len(result.errors),
         'skipped': len(result.skipped),

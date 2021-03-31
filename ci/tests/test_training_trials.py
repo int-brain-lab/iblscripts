@@ -9,7 +9,7 @@ from ibllib.misc import version
 from ibllib.pipes.training_preprocessing import TrainingTrials
 import ibllib.io.raw_data_loaders as rawio
 from ibllib.io.extractors import bpod_trials
-from oneibl.one import OneOffline, ONE
+from oneibl.one import OneOffline
 import alf.io
 
 from ci.tests import base
