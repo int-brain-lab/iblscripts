@@ -22,7 +22,7 @@ class TestVideoIO(base.IntegrationTest):
         frame = vidio.get_video_frame(self.video_path, n)
         expected_shape = (1024, 1280, 3)
         self.assertEqual(frame.shape, expected_shape)
-        expected = np.array([[156, 222, 157,  75,  36,  15,  19,  20,  23]], dtype=np.uint8)
+        expected = np.array([[156, 222, 157, 75, 36, 15, 19, 20, 23]], dtype=np.uint8)
         np.testing.assert_array_equal(frame[:1, :9, 0], expected)
 
     def test_get_video_frames_preload(self):
@@ -35,9 +35,9 @@ class TestVideoIO(base.IntegrationTest):
         self.assertEqual(frames.dtype, np.dtype(np.uint8))
 
         # Test loading frames with slice
-        expected = np.array([[173, 133, 173, 216,   0],
-                             [182, 133,  22, 241,  19],
-                             [170, 152,  97,  48,  25]], dtype=np.uint8)
+        expected = np.array([[173, 133, 173, 216, 0],
+                             [182, 133, 22, 241, 19],
+                             [170, 152, 97, 48, 25]], dtype=np.uint8)
         frames = vidio.get_video_frames_preload(self.video_path, n, mask=np.s_[0, :5, 0])
         self.assertTrue(np.all(frames == expected))
         expected_shape = (len(n), 5)

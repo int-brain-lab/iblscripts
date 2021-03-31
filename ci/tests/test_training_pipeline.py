@@ -1,6 +1,5 @@
 import tempfile
 from pathlib import Path
-from unittest import mock
 
 from ibllib.io.extractors.base import get_session_extractor_type
 from oneibl.one import ONE

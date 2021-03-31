@@ -53,7 +53,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
             init_folder.joinpath("CSP004/2019-11-27/001"),  # normal session
             init_folder.joinpath("ibl_witten_13/2019-11-25/001"),  # FPGA stops before bpod, custom sync
             # init_folder.joinpath("ibl_witten_27/2021-01-21/001"),  # frame2ttl flicker
-            ]
+        ]
         for session_path in self.sessions:
             _logger.info(f"{session_path}")
             self._task_extraction_assertions(session_path)
@@ -78,11 +78,13 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         # check dimensions
         self.assertEqual(alf.io.check_dimensions(fpga_trials), 0)
         # check that the stimOn < stimFreeze < stimOff
-        self.assertTrue(np.all(fpga_trials['stimOn_times'][:-1] < fpga_trials['stimOff_times'][:-1]))
-        self.assertTrue(np.all(fpga_trials['stimFreeze_times'][:-1] < fpga_trials['stimOff_times'][:-1]))
+        self.assertTrue(
+            np.all(fpga_trials['stimOn_times'][:-1] < fpga_trials['stimOff_times'][:-1]))
+        self.assertTrue(
+            np.all(fpga_trials['stimFreeze_times'][:-1] < fpga_trials['stimOff_times'][:-1]))
         # a trial is either an error-nogo or a reward
-        self.assertTrue(np.all(np.isnan(fpga_trials['valveOpen_times'][:-1]
-                                        * fpga_trials['errorCue_times'][:-1])))
+        self.assertTrue(np.all(np.isnan(fpga_trials['valveOpen_times'][:-1] *
+                                        fpga_trials['errorCue_times'][:-1])))
         self.assertTrue(np.all(np.logical_xor(np.isnan(fpga_trials['valveOpen_times'][:-1]),
                                               np.isnan(fpga_trials['errorCue_times'][:-1]))))
 

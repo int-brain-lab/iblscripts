@@ -11,6 +11,7 @@ import unittest
 from unittest import mock
 from pathlib import Path
 from collections import OrderedDict
+import logging
 import tempfile
 import shutil
 
@@ -84,6 +85,53 @@ class TestTrainingCameraExtractor(base.IntegrationTest):
         self.addCleanup(matplotlib.use, backend)
         self.addCleanup(plt.close, 'all')
 
+    @base.disable_log(level=logging.WARNING)
+    def test_groom_pin_state(self):
+        """
+        e7098000-62a0-46a4-99df-981ee2b56988 (ZFM-01867/2/2021-03-23)
+            In this session there were occasions where the GPIO would change twice after
+            an audio TTL, perhaps because the audio TTLs are often split up into two short
+            TTLs on Bpod, some of which are caught by the camera, others not.
+
+            The function removes the short audio TTLs then assigns the rest to the GPIO fronts.
+            The unassigned audio TTL fronts and GPIO changes are removed.  Usually if the TTL
+            low-to-high is not assigned to a GPIO front, neither is the high-to-low, so both are
+            removed.  However sometimes because of mis-assigning (due to clock drift, short TTLs,
+            faulty wiring, etc.) there are some 'orphaned' TTLs/GPIO fronts leaving us with two
+            low-to-high fronts (or high-to-low) in a row.  These so-called orphaned fronts
+            should be removed too.  The goal is to end up with an array of audio TTL times and
+            GPIO times that are the same length.
+
+            Debugging output states:
+            - 2316 fronts TLLs less than 5ms apart
+            - 11 audio TTL rises were not detected by the camera
+            - 346 pin state rises could not be attributed to an audio TTL
+            - 10 audio TTL falls were not detected by the camera
+            - 345 pin state falls could not be attributed to an audio TTL
+            - 3 orphaned TTLs removed
+
+            The output arrays are not aligned per se, but should at least have *most* GPIO fronts
+            correctly assigned to the corresponding audio TTLs.
+        :return:
+        """
+        root = self.data_path
+        session_path = root.joinpath('camera', 'ZFM-01867', '2021-03-23', '002')
+        _, ts = raw.load_camera_ssv_times(session_path, 'left')
+        _, (*_, gpio) = raw.load_embedded_frame_data(session_path, 'left')
+        bpod_trials = raw.load_data(session_path)
+        _, audio = raw.load_bpod_fronts(session_path, bpod_trials)
+
+        # NB: syncing the timestamps to the audio doesn't work very well but we don't need it to
+        # for the extraction, so long as the audio and GPIO fronts match.
+        gpio, audio, _ = camio.groom_pin_state(gpio, audio, ts,
+                                               take='nearest', tolerance=.5, min_diff=5e-3)
+        # Do some checks
+        self.assertEqual(gpio['indices'].size, audio['times'].size)
+        expected = np.array([446328, 446812, 446814, 447251, 447253], dtype=int)
+        np.testing.assert_array_equal(gpio['indices'][-5:], expected)
+        expected = np.array([4448.100798, 4452.912398, 4452.934398, 4457.313998, 4457.335998])
+        np.testing.assert_array_almost_equal(audio['times'][-5:], expected)
+
     @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
     def test_extract_all(self, mock_vc):
         mock_vc().get.return_value = self.n_frames
@@ -112,6 +160,7 @@ class TestTrainingCameraExtractor(base.IntegrationTest):
         np.testing.assert_array_almost_equal(ts[:10], expected)
 
         # Test extraction parameters
+        mock_vc().get.return_value = self.n_frames
         ts, _ = ext.extract(save=False, display=True, extrapolate_missing=False)
         self.assertEqual(ts.size, self.n_frames, 'unexpected size')
         self.assertEqual(np.isnan(ts).sum(), 388, 'unexpected number of nans')
@@ -138,15 +187,18 @@ class TestTrainingCameraExtractor(base.IntegrationTest):
 
         # Test behaviour when some Bpod input values are empty
         """
-        I haven't yet seen this behaviour in the wild although 
-        CameraTimestampsBpod._times_from_bpod looks for this.  Hence I don't expect the 
+        I haven't yet seen this behaviour in the wild although
+        CameraTimestampsBpod._times_from_bpod looks for this.  Hence I don't expect the
         extraction to be successful, but we may need to if we discover such sessions.
         """
         trials = raw.load_data(self.session_path)
         for i in range(5):
             trials[i]['behavior_data']['Events timestamps']['Port1In'] = None
-        with self.assertRaises(AssertionError):
+        # Should fall back on the basic extraction
+        with self.assertLogs(logging.getLogger('ibllib'), logging.CRITICAL):
             ts, _ = ext.extract(save=False, bpod_trials=trials)
+        expected = np.array([25.0232, 25.0536, 25.0839, 25.1143, 25.1447])
+        np.testing.assert_array_almost_equal(ts[:5], expected)
 
         # Test behaviour when frame count array longer than number of frames
         mock_vc().get.return_value = self.n_frames - 400
@@ -311,6 +363,16 @@ class TestEphysCameraExtractor(base.IntegrationTest):
         expected = np.array([0.01363197, 0.03036363, 0.04709529, 0.06382695, 0.08055861])
         np.testing.assert_array_almost_equal(ts[:5], expected)
 
+        # Now test fallback when GPIO or audio data are unusable (i.e. raise an assertion)
+        n = 888  # Number of GPIOs (number not important)
+        gpio = {'indices': np.sort(np.random.choice(np.arange(self.n_frames[side]), n)),
+                'polarities': np.insert(np.random.choice([-1, 1], n - 1), 0, -1)}
+        mock_aux.return_value = (np.arange(self.n_frames[side]), [None, None, None, gpio])
+        with self.assertLogs(logging.getLogger('ibllib'), logging.CRITICAL):
+            ts, _ = ext.extract(save=False, sync=sync, chmap=chmap)
+        # Should fallback to basic extraction
+        np.testing.assert_array_almost_equal(ts[:5], expected)
+
     def test_get_video_length(self):
         # Verify using URL
         url = (oneibl.params.get().HTTP_DATA_SERVER +
@@ -335,14 +397,18 @@ class TestVideoQC(base.IntegrationTest):
         """Load a few 10 second videos for testing the various video QC checks"""
         data_path = base.IntegrationTest.default_data_root()
         video_path = data_path.joinpath('camera')
-        videos = video_path.rglob('*.mp4')
-        # dummy = data_path.joinpath('Subjects_init', 'ZM_1085', '2019-06-24', '001')
-        dummy_id = '2da56f6b-e04f-4847-9b44-686abc1e57d2'
+        videos = sorted(video_path.rglob('*.mp4'))
+        # Instantiate using session with a video path to fool constructor.
+        # To remove once we use ONE cache file
+        one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
+                  username='test_user',
+                  password='TapetesBloc18')
+        dummy_id = 'd3372b15-f696-4279-9be5-98f15783b5bb'
         qc = CameraQC(dummy_id, 'left',
-                      n_samples=10, stream=False, download_data=False, one=ONE(offline=True))
+                      n_samples=10, stream=False, download_data=False, one=one)
         qc.one = None
         qc._type = 'ephys'  # All videos come from ephys sessions
-        qcs = {}
+        qcs = OrderedDict()
         for video in videos:
             qc.video_path = video
             qc.side = vidio.label_from_path(video)
@@ -358,11 +424,11 @@ class TestVideoQC(base.IntegrationTest):
     def test_video_checks(self, display=False):
         # A tuple of QC checks and the expected outcome for each 10 second video
         video_checks = (
-            (self.qc.check_position, (3, 3, 3, 3, 3, 1, 3, 1, 2, 3, 3, 3, 3, 3, 1, 1, 3, 1)),
-            (self.qc.check_focus, (3, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)),
-            (self.qc.check_brightness, (3, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 1, 3, 3)),
+            (self.qc.check_position, (1, 2, 3, 3, 3, 3, 3, 1, 1, 3, 1, 3, 3, 3, 3, 3, 1, 3)),
+            (self.qc.check_focus, (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 3, 1, 1)),
+            (self.qc.check_brightness, (1, 1, 1, 1, 1, 3, 3, 3, 1, 3, 3, 3, 1, 1, 1, 3, 1, 1)),
             (self.qc.check_file_headers, [1] * 18),
-            (self.qc.check_resolution, (3, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 3, 3, 1, 1, 3, 1))
+            (self.qc.check_resolution, (1, 1, 1, 1, 1, 3, 3, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 3))
         )
 
         # For each check get the outcome and determine whether it matches our expected outcome
@@ -450,7 +516,8 @@ class TestCameraQC(base.IntegrationTest):
         mock_ext().read.side_effect = self.side_effect()
 
         # Run QC for the left side
-        qc = camQC.run_all_qc(session_path, cameras=('left',), stream=False, update=False,
+        one = ONE(offline=True)
+        qc = camQC.run_all_qc(session_path, cameras=('left',), stream=False, update=False, one=one,
                               n_samples=n_samples, download_data=False, extract_times=True)
         self.assertIsInstance(qc, dict)
         self.assertFalse(qc['left'].download_data)
@@ -489,7 +556,8 @@ class TestCameraQC(base.IntegrationTest):
         mock_ext().get.return_value = length
         mock_ext().read.side_effect = self.side_effect()
 
-        qc = CameraQC(session_path, 'left', stream=False, n_samples=n_samples)
+        qc = CameraQC(session_path, 'left',
+                      stream=False, n_samples=n_samples, one=ONE(offline=True))
         qc.load_data(download_data=False, extract_times=True)
         outcome, extended = qc.run(update=False)
         self.assertEqual('FAIL', outcome)
@@ -582,8 +650,12 @@ class TestCameraPipeline(base.IntegrationTest):
 class TestWheelMotionNRG(base.IntegrationTest):
 
     def setUp(self) -> None:
-        self.eid = '6c6983ef-7383-4989-9183-32b1a300d17a'
-        self.frames = np.load(self.data_path / 'camera' / f'{self.eid}_frame_samples.npy')
+        real_eid = '6c6983ef-7383-4989-9183-32b1a300d17a'
+        self.frames = np.load(self.data_path / 'camera' / f'{real_eid}_frame_samples.npy')
+        self.one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
+                       username='test_user',
+                       password='TapetesBloc18')
+        self.dummy_id = self.one.search(subject='flowers')[0]  # Some eid for connecting to Alyx
 
     def side_effect(self):
         for frame in self.frames:
@@ -594,12 +666,12 @@ class TestWheelMotionNRG(base.IntegrationTest):
         side = 'left'
         period = np.array([1730.3513333, 1734.1743333])
         mock_cv().read.side_effect = self.side_effect()
-        aln = MotionAlignment(self.eid)
-        one = aln.one
+        aln = MotionAlignment(self.dummy_id, one=self.one)
+        aln.session_path = self.data_path / 'camera' / 'SWC_054' / '2020-10-07' / '001'
         cam = alfio.load_object(aln.session_path / 'alf', f'{side}Camera')
         aln.data.camera_times = {side: cam['times']}
         aln.video_paths = {
-            side: one.path_from_eid(aln.eid) / 'raw_video_data' / f'_iblrig_{side}Camera.raw.mp4'
+            side: aln.session_path / 'raw_video_data' / f'_iblrig_{side}Camera.raw.mp4'
         }
         aln.data.wheel = alfio.load_object(aln.session_path / 'alf', 'wheel')
 
@@ -608,14 +680,14 @@ class TestWheelMotionNRG(base.IntegrationTest):
                              0.88054471, 0.84264046, 0.302118, 0.94302567, 0.86188695])
         np.testing.assert_array_almost_equal(expected, df[:10])
         self.assertEqual(dt_i, 0)
-        self.assertEqual(c, 19.48841741869628)
+        self.assertEqual(round(c, 5), 19.48842)
 
         # Test saving alignment video
         with tempfile.TemporaryDirectory() as tdir:
             aln.plot_alignment(save=tdir)
             vid = next(Path(tdir).glob('*.mp4'))
-            self.assertTrue(vid.name.endswith('2020-10-07_1_SWC_054_l.mp4'))
-            self.assertEqual(vid.stat().st_size, 1799319)
+            self.assertEqual(vid.name, '2018-07-13_1_flowers_l.mp4')
+            self.assertEqual(round(vid.stat().st_size / 1e5), 18)
 
 
 if __name__ == "__main__":
