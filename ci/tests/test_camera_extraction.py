@@ -397,7 +397,7 @@ class TestVideoQC(base.IntegrationTest):
         """Load a few 10 second videos for testing the various video QC checks"""
         data_path = base.IntegrationTest.default_data_root()
         video_path = data_path.joinpath('camera')
-        videos = video_path.rglob('*.mp4')
+        videos = sorted(video_path.rglob('*.mp4'))
         # Instantiate using session with a video path to fool constructor.
         # To remove once we use ONE cache file
         one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
@@ -408,7 +408,7 @@ class TestVideoQC(base.IntegrationTest):
                       n_samples=10, stream=False, download_data=False, one=one)
         qc.one = None
         qc._type = 'ephys'  # All videos come from ephys sessions
-        qcs = {}
+        qcs = OrderedDict()
         for video in videos:
             qc.video_path = video
             qc.side = vidio.label_from_path(video)
@@ -424,11 +424,11 @@ class TestVideoQC(base.IntegrationTest):
     def test_video_checks(self, display=False):
         # A tuple of QC checks and the expected outcome for each 10 second video
         video_checks = (
-            (self.qc.check_position, (3, 3, 3, 3, 3, 1, 3, 1, 2, 3, 3, 3, 3, 3, 1, 1, 3, 1)),
-            (self.qc.check_focus, (3, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)),
-            (self.qc.check_brightness, (3, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 1, 3, 3)),
+            (self.qc.check_position, (1, 2, 3, 3, 3, 3, 3, 1, 1, 3, 1, 3, 3, 3, 3, 3, 1, 3)),
+            (self.qc.check_focus, (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 3, 1, 1)),
+            (self.qc.check_brightness, (1, 1, 1, 1, 1, 3, 3, 3, 1, 3, 3, 3, 1, 1, 1, 3, 1, 1)),
             (self.qc.check_file_headers, [1] * 18),
-            (self.qc.check_resolution, (3, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 3, 3, 1, 1, 3, 1))
+            (self.qc.check_resolution, (1, 1, 1, 1, 1, 3, 3, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 3))
         )
 
         # For each check get the outcome and determine whether it matches our expected outcome
@@ -687,7 +687,8 @@ class TestWheelMotionNRG(base.IntegrationTest):
             aln.plot_alignment(save=tdir)
             vid = next(Path(tdir).glob('*.mp4'))
             self.assertEqual(vid.name, '2018-07-13_1_flowers_l.mp4')
-            self.assertEqual(vid.stat().st_size, 1800311)
+            self.assertEqual(round(vid.stat().st_size / 1e5), 18)
+            self.assertAlmostEqual(vid.stat().st_size, 1800311)
 
 
 if __name__ == "__main__":
