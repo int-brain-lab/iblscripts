@@ -61,12 +61,8 @@ class TestEphysTaskExtraction(base.IntegrationTest):
     def _task_extraction_assertions(self, session_path):
         alf_path = session_path.joinpath('alf')
         shutil.rmtree(alf_path, ignore_errors=True)
-        # try once without the sync pulses
-        trials, out_files = ephys_fpga.FpgaTrials(session_path).extract(save=False)
-        # then extract for real
-        sync, chmap = ephys_fpga.get_main_probe_sync(session_path, bin_exists=False)
-        trials, out_files = ephys_fpga.FpgaTrials(session_path).extract(
-            save=True, sync=sync, chmap=chmap)
+        # this gets the full output
+        ephys_fpga.extract_all(session_path, save=True, bin_exists=False)
         # check that the output is complete
         for f in BPOD_FILES:
             self.assertTrue(alf_path.joinpath(f).exists())
@@ -77,6 +73,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         alf_trials = alf.io.load_object(alf_path, 'trials')
         self.assertTrue(alf.io.check_dimensions(alf_trials) == 0)
         # go deeper and check the internal fpga trials structure consistency
+        sync, chmap = ephys_fpga.get_main_probe_sync(session_path, bin_exists=False)
         fpga_trials = ephys_fpga.extract_behaviour_sync(sync, chmap)
         # check dimensions
         self.assertEqual(alf.io.check_dimensions(fpga_trials), 0)
@@ -111,10 +108,15 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         # import pandas as pd
         # df = pd.DataFrame([[res_bpod[k], res_ephys[k]] for k in res_ephys], index=res_ephys.keys())
 
+        ok = True
         for k in res_ephys:
             if k == "_task_response_feedback_delays":
                 continue
-            assert (np.abs(res_bpod[k] - res_ephys[k]) < .2)
+            if (np.abs(res_bpod[k] - res_ephys[k]) > .2):
+                ok = False
+                print(f"{k} bpod: {res_bpod[k]}, ephys: {res_ephys[k]}")
+        assert ok
+
 
         shutil.rmtree(alf_path, ignore_errors=True)
 
