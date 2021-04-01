@@ -149,12 +149,13 @@ if __name__ == "__main__":
       python runAllTests.py -l C:\Users\User\AppData\Roaming\CI
       python runAllTests.py -l ~/.ci
     """
+    timestamp = datetime.utcnow().isoformat()
     # Defaults
     root = Path(__file__).parent.absolute()  # Default root folder
     repo_dir = Path(ibllib.__file__).parent  # Default repository source for coverage
     version = ver()
     if not version or version == 'unversioned':
-        getattr(ibllib, '__version__', datetime.now().strftime('%Y-%m-%d_%H%M%S'))
+        getattr(ibllib, '__version__', timestamp)
 
     # Parse parameters
     parser = argparse.ArgumentParser(description='Integration tests for ibllib.')
@@ -183,6 +184,7 @@ if __name__ == "__main__":
 
     # Generate report
     logger.info('Saving coverage report to %s', report_dir)
+    duration = datetime.now().utcnow() - datetime.fromisoformat(timestamp)
 
     total = generate_coverage_report(cov, report_dir, relative_to=Path(ibllib.__file__).parent,
                                      strict=not args.dry_run)
@@ -211,11 +213,13 @@ if __name__ == "__main__":
         'failed': len(result.failures),
         'errored': len(result.errors),
         'skipped': len(result.skipped),
-        'passed': result.testsRun - (len(result.skipped) + n_failed)
+        'passed': result.testsRun - (len(result.skipped) + n_failed),
+        'duration': duration.total_seconds()
     }
 
     report = {
         'commit': args.commit + ('_dry-run' if args.dry_run else ''),
+        'datetime': timestamp,  # UTC
         'results': details,
         'status': status,
         'description': description,
