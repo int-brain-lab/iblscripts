@@ -675,6 +675,10 @@ class TestWheelMotionNRG(base.IntegrationTest):
         }
         aln.data.wheel = alfio.load_object(aln.session_path / 'alf', 'wheel')
 
+        # Test value error when invalid period given
+        with self.assertRaises(ValueError):
+            aln.align_motion(period=[5000, 5000.01], side=side)
+
         dt_i, c, df = aln.align_motion(period=period, side=side)
         expected = np.array([0.90278801, 0.68067675, 0.73734772, 0.82648895, 0.80950881,
                              0.88054471, 0.84264046, 0.302118, 0.94302567, 0.86188695])
