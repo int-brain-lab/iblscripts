@@ -1,22 +1,16 @@
-"""A module for running ibllib continuous integration tests with coverage
-In order for this to work ibllib and iblscripts must be installed as python package from GitHub,
-as well as the coverage package.
+"""A module for running ibllib continuous integration tests
+In order for this to work ibllib and iblscripts must be installed as python package from GitHub.
 """
 import argparse
 import unittest
 import doctest
-import re
 import json
 import sys
 import logging
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
-from os import sep
 from pathlib import Path
 from typing import List, Union
-
-from coverage import Coverage
-from coverage.misc import CoverageException
 
 from ibllib.misc.flatten import flatten
 from ibllib.misc.version import ibllib as ver
@@ -43,59 +37,21 @@ def list_tests(suite: Union[List, unittest.TestSuite, unittest.TestCase]) -> Uni
         return f'{suite.__class__.__name__}/{suite._testMethodName}'
 
 
-def generate_coverage_report(cov, save_path, strict=False, relative_to=None):
-    """
-    Generates HTML and XML reports of test coverage and returns the total coverage
-    :param cov: A Coverage object
-    :param save_path: Where to save the coverage files
-    :param strict: If True, asserts that the coverage report was created
-    :param relative_to: The root folder for the functions coverage
-    :return:
-    """
-    try:
-        total = cov.html_report(directory=str(save_path), skip_empty=True)
-        cov.xml_report(outfile=str(save_path.joinpath('CoverageResults.xml')), skip_empty=True)
-        success = save_path.joinpath('CoverageResults.xml').exists()
-        assert not strict or success, 'failed to generate XML coverage'
-    except (CoverageException, AssertionError) as ex:
-        if strict:
-            raise ex
-        total = None
-        logger.error('Failed to save coverage: %s', ex)
-
-    if relative_to:
-        # Rename the HTML files for readability and to obscure the server's directory structure
-        pattern = re.sub(r'^[a-zA-Z]:[/\\]|[/\\]', '_', str(relative_to.parent)) + '_'  # / -> _
-        for file in Path(save_path).glob('*.html'):  # Open each html report file
-            with open(file, 'r') as f:
-                data = f.read()
-                data = data.replace(pattern, '')  # Remove long paths in filename links
-                data = data.replace(str(relative_to.parent) + sep, '')  # Remove from text
-            with open(file, 'w') as f:
-                f.write(data)  # Write back into file
-            file.rename(str(file).replace(pattern, ''))  # Rename file
-    return total
-
-
 def load_doctests(test_dir, options) -> unittest.TestSuite:
     return doctest.DocFileSuite(*list(map(str, test_dir.rglob('*.py'))))
 
 
 def run_tests(complete: bool = True,
               strict: bool = True,
-              dry_run: bool = False) -> (unittest.TestResult, Coverage, unittest.TestSuite):
+              dry_run: bool = False) -> (unittest.TestResult, str):
     """
     Run integration tests
     :param complete: When true ibllib unit tests are run in addition to the integration tests.
     :param strict: When true asserts that all gathered tests were successfully imported.  This
     means that a module not found error in any test module will raise an exception.
     :param dry_run: When true the tests are gathered but not run.
-    :return Test results and coverage objects, and test suite.
+    :return Test results and test list (or test suite if dry-run).
     """
-    # Coverage recorded for all code within the source directory; otherwise just omit some
-    # common pyCharm files
-    options = {'omit': ['*pydevd_file_utils.py', '*test_*'], 'source': []}
-
     # Gather tests
     test_dir = str(Path(ci.tests.__file__).parent)
     logger.info(f'Loading integration tests from {test_dir}')
@@ -109,8 +65,7 @@ def run_tests(complete: bool = True,
             unit_tests = unittest.TestLoader().discover(str(tdir), pattern='test_*', top_level_dir=root)
             logger.info(f"Found {unit_tests.countTestCases()}, appending to the test suite")
             ci_tests.addTests(unit_tests)
-            # for coverage, append the path of the test modules to the source key
-            options['source'].append(str(tdir))
+
     logger.info(f'Complete suite contains {ci_tests.countTestCases()} tests')
     # Check all tests loaded successfully
     not_loaded = [x[12:] for x in list_tests(ci_tests) if x.startswith('_Failed')]
@@ -120,27 +75,19 @@ def run_tests(complete: bool = True,
         logger.warning(err_msg)
 
     if dry_run:
-        return unittest.TestResult(), Coverage(**options), ci_tests
+        return unittest.TestResult(), ci_tests
 
     # Make list of tests - once successfully run the tests are removed from the suite
     test_list = list_tests(ci_tests)
 
-    # Run tests with coverage
-    cov = Coverage(**options)
-    # cov.exclude(r'^def \w+(.*):')
-    cov.exclude(r'^import [\w., ]+( as \w+)?$')
-    cov.exclude(r'^from [\w.]+ import [\w]+( as [\w]+)?')
-    cov.start()
+    # Run tests
     result = unittest.TextTestRunner(verbosity=2, stream=sys.stdout).run(ci_tests)
 
-    cov.stop()
-    cov.save()
-
-    return result, cov, test_list
+    return result, test_list
 
 
 if __name__ == "__main__":
-    r"""Run all the integration tests with coverage
+    r"""Run all the integration tests
     The commit id is used to identify the test report.  If none is provided no test record is saved
 
     python runAllTests.py --logdir <log directory> --commit <commit sha> --repo <repo path>
@@ -180,14 +127,11 @@ if __name__ == "__main__":
 
     # Tests
     logger.info(Path(args.repo).joinpath('*'))
-    result, cov, test_list = run_tests(dry_run=args.dry_run)
+    result, test_list = run_tests(dry_run=args.dry_run)
 
     # Generate report
     logger.info('Saving coverage report to %s', report_dir)
     duration = datetime.now().utcnow() - datetime.fromisoformat(timestamp)
-
-    total = generate_coverage_report(cov, report_dir, relative_to=Path(ibllib.__file__).parent,
-                                     strict=not args.dry_run)
 
     # When running tests without a specific commit, exit without saving the result
     if args.commit is parser.get_default('commit'):
@@ -224,7 +168,7 @@ if __name__ == "__main__":
         'status': status,
         'description': description,
         'statistics': stats,
-        'coverage': total  # coverage usually updated by Node.js script
+        'coverage': None  # coverage updated from XML report by Node.js script
     }
 
     if db_file.exists():

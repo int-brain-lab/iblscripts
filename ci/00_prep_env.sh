@@ -20,10 +20,14 @@ git fetch --all
 git reset --hard HEAD
 # Attempt to checkout same branch name as ibllib; fallback to dev
 # if ibllib commit is on master or branch doesn't exist in iblscripts...
-if [[ "$branch" =~ ^(remotes\/origin\/)?master$ ]] || ! git rev-parse -q --verify --end-of-options $branch; then
-	git checkout develop
+if [[ "$branch" =~ ^(remotes\/origin\/)?master$ ]] || \
+   [[ "$branch" =~ ^remotes\/origin\/HEAD$ ]] || \
+   ! git rev-parse -q --verify --end-of-options $branch; then
+        echo Checking out develop branch of iblscripts
+        git checkout develop
 else
-	git checkout $branch
+        echo Checking out $branch of iblscripts
+        git checkout $branch
 fi
 # If not detached, pull latest
 if git symbolic-ref -q HEAD; then
