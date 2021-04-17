@@ -2,10 +2,10 @@ from pathlib import Path
 from os import sep
 import re
 import argparse
-import logging
+from logging import DEBUG
 
-logger = logging.getLogger('ibllib')
-
+from ibllib.misc.misc import _logger
+_logger.setLevel(DEBUG)
 
 if __name__ == "__main__":
     r"""Remove source paths from coverage HTML report files
@@ -32,11 +32,11 @@ if __name__ == "__main__":
         # Default repository source for coverage
         relative_to = Path(ibllib.__file__).parent.parent
     else:
-        relative_to = Path(args.directory)
+        relative_to = Path(args.source)
 
-    logger.info('removing source directory from HTML report')
-    logger.debug(f'HTML source directory = {args.directory}')
-    logger.debug(f'code source directory = {relative_to}')
+    _logger.info('removing source directory from HTML report')
+    _logger.debug(f'HTML source directory = {args.directory}')
+    _logger.debug(f'code source directory = {relative_to}')
 
     # Rename the HTML files for readability and to obscure the server's directory structure
     pattern = re.sub(r'^[a-zA-Z]:[/\\]|[/\\]|\.', '_', str(relative_to)) + '_'  # / -> _
@@ -59,9 +59,10 @@ if __name__ == "__main__":
         # Replace filename values
         data = data.replace(str(relative_to) + sep, '')
         # Replace name values
-        pattern = re.sub(r'^[a-zA-Z]:[/\\]|[/\\]', '.', str(relative_to))
+        pattern = re.sub(r'^[a-zA-Z]:[/\\]|[/\\]', '.', str(relative_to)) + '.'
+        pattern = pattern[int(relative_to.anchor == '/'):]
         data = data.replace(pattern, '')
-        data = data.replace('<package name=".', '<package name="')  # Remove starting period
+        # data = data.replace('<package name=".', '<package name="')  # Remove starting period
         # Inject source into tag
         src_tag = '<source>'
         i = data.index(src_tag) + len(src_tag)
@@ -71,4 +72,4 @@ if __name__ == "__main__":
             f.write(data)  # Write back into file
         n_changed += 1
 
-    logger.debug(f'{n_changed} files changed')
+    _logger.debug(f'{n_changed} files changed')
