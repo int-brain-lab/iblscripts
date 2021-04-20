@@ -17,3 +17,4 @@ RUN mamba install conda-build
 RUN mamba clean --all
 RUN conda develop ./ibllib && conda develop ./phylib && conda develop ./phy
 RUN cd ibllib && git checkout develop
+VOLUME ["/data/flatiron/", "/data/output"]
