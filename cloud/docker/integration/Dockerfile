@@ -4,7 +4,8 @@ LABEL version="0.1"
 LABEL description="Parent image for containers using iblenv"
 
 WORKDIR /data
-COPY . /data/iblenv/
+
+RUN git clone https://github.com/int-brain-lab/iblenv /data/iblenv
 RUN apt install libgl1-mesa-glx -y
 RUN git clone https://github.com/int-brain-lab/ibllib.git
 RUN git clone https://github.com/cortex-lab/phy.git
