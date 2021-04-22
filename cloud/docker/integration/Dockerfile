@@ -1,7 +1,10 @@
+#docker build -t ibl/iblenv:base
+#Run above to build the image yourself.
+
 FROM continuumio/miniconda3
 LABEL maintainer="International Brain Lab"
 LABEL version="0.1"
-LABEL description="Parent image for containers using iblenv"
+LABEL description="Parent image for containers using iblenv, inherits miniconda and ubuntu"
 
 WORKDIR /data
 
@@ -17,4 +20,3 @@ RUN mamba install conda-build
 RUN mamba clean --all
 RUN conda develop ./ibllib && conda develop ./phylib && conda develop ./phy
 RUN cd ibllib && git checkout develop
-VOLUME ["/data/flatiron/", "/data/output"]
