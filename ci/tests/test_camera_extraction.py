@@ -635,7 +635,7 @@ class TestCameraPipeline(base.IntegrationTest):
         self.assertEqual(job.status, 0)
         self.assertEqual(len(mock_qc.call_args_list), 3)  # Once per camera
         labels = ('left', 'right', 'body')
-        self.assertCountEqual(labels, [arg.kwargs['label'] for arg in mock_qc.call_args_list])
+        self.assertCountEqual(labels, [arg.args[-1]for arg in mock_qc.call_args_list])
 
         [self.assertEqual(call[0][0], self.ephys_folder) for call in mock_qc.call_args_list]
         mock_qc().run.assert_called_with(update=True)
