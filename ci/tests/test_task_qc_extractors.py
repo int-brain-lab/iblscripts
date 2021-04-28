@@ -82,7 +82,8 @@ class TestTaskQCObject(base.IntegrationTest):
                if self.qc.criteria['WARNING'] <= v <= self.qc.criteria['PASS']]
         self.assertTrue(all(outcomes[k] == 'WARNING' for k in wrn))
         # FAIL
-        fail = [k for k, v in results.items() if v <= self.qc.criteria['FAIL']]
+        fail = [k for k, v in results.items() if v <= self.qc.criteria['FAIL']
+                and k not in TaskQC.fcns_value2status]
         self.assertTrue(all(outcomes[k] == 'FAIL' for k in fail))
 
 
