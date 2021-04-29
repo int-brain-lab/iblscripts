@@ -57,7 +57,7 @@ def _save_qc_frames(qc, **kwargs):
     frame_ids = np.insert(indices, 0, 0)  # First read is not saved and may be
     # re-read
     wheel_present = camQC.data_for_keys(('position', 'timestamps', 'period'), qc.data['wheel'])
-    if wheel_present and qc.side != 'body':
+    if wheel_present and qc.label != 'body':
         a, b = qc.data.wheel.period
         mask = np.logical_and(qc.data.timestamps >= a, qc.data.timestamps <= b)
         wheel_align_frames, = np.where(mask)
@@ -411,7 +411,7 @@ class TestVideoQC(base.IntegrationTest):
         qcs = OrderedDict()
         for video in videos:
             qc.video_path = video
-            qc.side = vidio.label_from_path(video)
+            qc.label = vidio.label_from_path(video)
             qc.n_samples = 10
             qc.load_video_data()
             qcs[video] = qc.data.copy()
@@ -439,7 +439,7 @@ class TestVideoQC(base.IntegrationTest):
             frame_samples = []
             for path, data in self.data.items():
                 self.qc.data = data
-                self.qc.side = vidio.label_from_path(path)
+                self.qc.label = vidio.label_from_path(path)
                 outcomes.append(check())
                 frame_samples.append(data.frame_samples[0])
 
@@ -515,7 +515,7 @@ class TestCameraQC(base.IntegrationTest):
         mock_ext().get.return_value = length
         mock_ext().read.side_effect = self.side_effect()
 
-        # Run QC for the left side
+        # Run QC for the left label
         one = ONE(offline=True)
         qc = camQC.run_all_qc(session_path, cameras=('left',), stream=False, update=False, one=one,
                               n_samples=n_samples, download_data=False, extract_times=True)
@@ -635,7 +635,7 @@ class TestCameraPipeline(base.IntegrationTest):
         self.assertEqual(job.status, 0)
         self.assertEqual(len(mock_qc.call_args_list), 3)  # Once per camera
         labels = ('left', 'right', 'body')
-        self.assertCountEqual(labels, [arg.kwargs['side'] for arg in mock_qc.call_args_list])
+        self.assertCountEqual(labels, [arg.args[-1]for arg in mock_qc.call_args_list])
 
         [self.assertEqual(call[0][0], self.ephys_folder) for call in mock_qc.call_args_list]
         mock_qc().run.assert_called_with(update=True)

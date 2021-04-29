@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -e
+set -e
 
 # ./02_run_coverage.sh master /home/experiment/Documents/github/ibllib-repo /home/experiment/.ci
 # $1: commit or branch to test out for ibllib
@@ -10,8 +10,8 @@ source /home/experiment/anaconda3/etc/profile.d/conda.sh
 conda activate ci
 
 # Flake ibllib and save the output in a separate log
-mkdir -p $3
-pushd $2
+mkdir -p "$3"
+pushd "$2"
 flake8 . --tee --output-file="$3/flake_output.txt"
 popd
 
