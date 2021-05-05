@@ -102,8 +102,8 @@ def compare_camera_timestamps_between_two_probes(sync_right, sync_left):
 
     for cam_code in [2, 3, 4]:
 
-        cam_times_left = ephys_fpga._get_sync_fronts(sync_left, cam_code)['times']
-        cam_times_right = ephys_fpga._get_sync_fronts(sync_right, cam_code)['times']
+        cam_times_left = ephys_fpga.get_sync_fronts(sync_left, cam_code)['times']
+        cam_times_right = ephys_fpga.get_sync_fronts(sync_right, cam_code)['times']
 
         assert len(cam_times_left) == len(
             cam_times_right), "# time stamps don't match between probes"
@@ -165,7 +165,7 @@ def event_extraction_and_comparison(sr, sync):
 
     chan_fronts = {}
 
-    sync_up_fronts = ephys_fpga._get_sync_fronts(sync, 0)['times'][0::2]
+    sync_up_fronts = ephys_fpga.get_sync_fronts(sync, 0)['times'][0::2]
     sync_up_fronts = np.array(sync_up_fronts) * sr.fs
 
     assert len(sync_up_fronts) == 500, 'There are not all sync pulses'
@@ -350,13 +350,13 @@ def evaluate_camera_sync(d, sync, show_plots=SHOW_PLOTS):
         '_iblrig_rightCamera.raw.avi': 4,
         '_iblrig_leftCamera.raw.avi': 2}
 
-    s3 = ephys_fpga._get_sync_fronts(sync, 0)  # get arduino sync signal
+    s3 = ephys_fpga.get_sync_fronts(sync, 0)  # get arduino sync signal
 
     for vid in d:
         # threshold brightness time-series of the camera to have it in {-1,1}
         r3 = [1 if x > np.mean(d[vid][0]) else -1 for x in d[vid][0]]
         # fpga cam time stamps
-        cam_times = ephys_fpga._get_sync_fronts(sync, y[vid])['times']
+        cam_times = ephys_fpga.get_sync_fronts(sync, y[vid])['times']
 
         # assuming at the end the frames are dropped
         drops = len(cam_times) - len(r3) * 2
@@ -444,7 +444,7 @@ def compare_bpod_json_with_fpga(sync_test_folder, sync, show_plots=SHOW_PLOTS):
     assert len(ups) == 500, 'not all pulses detected in bpod!'
 
     # get the fpga signal from the sync object
-    s3 = ephys_fpga._get_sync_fronts(sync, 0)['times'][::2]
+    s3 = ephys_fpga.get_sync_fronts(sync, 0)['times'][::2]
 
     assert len(s3) == 500, 'not all fronts detected in fpga signal!'
 

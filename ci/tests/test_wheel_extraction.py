@@ -44,7 +44,8 @@ def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
 class TestWheelExtractionSimpleEphys(base.IntegrationTest):
 
     def setUp(self) -> None:
-        self.session_path = self.data_path.joinpath('wheel', 'ephys', 'three_clockwise_revolutions')
+        self.session_path = \
+            self.data_path.joinpath('wheel', 'ephys', 'three_clockwise_revolutions')
         assert self.session_path.exists()
 
     def test_three_clockwise_revolutions_fpga(self):

@@ -9,14 +9,13 @@ Requirements:
 from pathlib import Path
 
 from ibllib.io import params
-import oneibl.params
 
 DEFAULT_PAR = {'local_endpoint': None, 'remote_endpoint': None, 'GLOBUS_CLIENT_ID': None}
 
 print(
     """Setting up Globus
 1. Login to the Globus Website (ask devs for the login credentials)
-2. Go to Endpoints and create a new endpoint for the local device (the one that will run this 
+2. Go to Endpoints and create a new endpoint for the local device (the one that will run this
 script).
 3. In the new endpoint's overview page, copy the 'Endpoint UUID' field.  This is the LOCAL_REPO_ID.
 4. Go to the 'IBL Top Level' endpoint overview page and copy the 'Endpoint UUID' field.  This is
