@@ -52,9 +52,6 @@ class TestSessions(base.IntegrationTest):
                 # task running part
                 job = TrainingTrials(session_path, one=self.one)
                 job.run()
-                # load camera timestamps
-                lc = alf.io.load_object(session_path / 'alf', 'leftCamera')
-                self.assertTrue(np.all(np.diff(lc.times) > 0))
                 # check the trials objects
                 trials = alf.io.load_object(session_path / 'alf', 'trials')
                 self.assertTrue(alf.io.check_dimensions(trials) == 0)
@@ -69,7 +66,6 @@ class TestSessions(base.IntegrationTest):
                     wheel = alf.io.load_object(session_path / 'alf', 'wheel')
                     self.assertTrue(alf.io.check_dimensions(wheel) == 0)
                     self.assertTrue(set(wheel.keys()) == set(WHEEL_KEYS))
-                    self.assertTrue(np.all(np.diff(lc.times) > 0))
             """
             For this session only the downgoing front of a trial was detected, resulting in
              an error for the gocuetime. The fix was to extract the downgoing front and

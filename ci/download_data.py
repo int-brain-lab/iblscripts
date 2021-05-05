@@ -4,24 +4,25 @@ import logging
 
 from ibllib.io import params, globus
 from ibllib.io.globus import as_globus_path
-import oneibl.params
 
 import globus_sdk
 from globus_sdk.exc import TransferAPIError
 
 GLOBUS_PARAM_STRING = 'globus/admin'
+DEFAULT_PAR = {'local_endpoint': None, 'remote_endpoint': None, 'GLOBUS_CLIENT_ID': None}
 logger = logging.getLogger('ibllib')
+logger.setLevel(logging.DEBUG)  # For logging transferred files
 
 # Read in parameters
-p = params.read(GLOBUS_PARAM_STRING, {'local_endpoint': None, 'remote_endpoint': None})
+p = params.read(GLOBUS_PARAM_STRING, DEFAULT_PAR)
 LOCAL_REPO = p.local_endpoint  # Endpoint UUID from Website
 SERVER_ID = p.remote_endpoint  # FlatIron
+GLOBUS_CLIENT_ID = p.GLOBUS_CLIENT_ID
 DST_DIR = params.read('ibl_ci', {'data_root': '.'}).data_root
-GLOBUS_CLIENT_ID = oneibl.params.get().GLOBUS_CLIENT_ID
 # Constants
 SRC_DIR = '/integration'
-POLL = (5, 60*60)  # min max seconds between pinging server
-TIMEOUT = 24*60*60  # seconds before timeout
+POLL = (5, 60 * 60)  # min max seconds between pinging server
+TIMEOUT = 24 * 60 * 60  # seconds before timeout
 status_map = {
     'ACTIVE': ('QUEUED', 'ACTIVE'),
     'FAILED': ('ENDPOINT_ERROR', 'PERMISSION_DENIED', 'CONNECT_FAILED'),
@@ -29,7 +30,7 @@ status_map = {
 }
 
 try:
-    gtc = globus.login_auto(GLOBUS_CLIENT_ID, str_app='globus/admin')
+    gtc = globus.login_auto(GLOBUS_CLIENT_ID)
 except ValueError:
     logger.info('User authentication required...')
     globus.setup(GLOBUS_CLIENT_ID)
@@ -83,7 +84,7 @@ files_transferred = None
 files_skipped = 0
 subtasks_failed = 0
 poll = POLL[0]
-MAX_WAIT = 60*60
+MAX_WAIT = 60 * 60
 # while not gtc.task_wait(task_id, timeout=WAIT):
 running = True
 while running:
@@ -126,6 +127,17 @@ while running:
     else:
         poll = min((poll * 2, POLL[1]))
     time.sleep(poll)
+
+if logger.level == 10:
+    """Sometime Globus sets the status to SUCCEEDED but doesn't truly finish.
+    The try/except handles an error thrown when querying task_successful_transfers too early"""
+    try:
+        for info in gtc.task_successful_transfers(task_id):
+            src_file = info['source_path'].replace(SRC_DIR + '/', '')
+            dst_file = info["destination_path"].replace(dst_directory + '/', '')
+            logger.debug(f'{src_file} -> {dst_file}')
+    except TransferAPIError:
+        logger.debug('Failed to query transferred files')
 
 # Here we should exit
 if __name__ == "__main__":

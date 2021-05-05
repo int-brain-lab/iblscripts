@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 import numpy as np
 import tempfile
+from unittest import mock
 
 import alf.io
 from ibllib.pipes import local_server
@@ -37,11 +38,19 @@ class TestEphysPipeline(base.IntegrationTest):
             link.symlink_to(ff)
         self.session_path.joinpath('raw_session.flag').touch()
 
-    def test_pipeline_with_alyx(self):
+    @mock.patch('ibllib.qc.camera.CameraQC')
+    @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
+    def test_pipeline_with_alyx(self, mock_vc, _):
         """
         Test the ephys pipeline exactly as it is supposed to run on the local servers
+        We stub the QC as it requires a video file and loading frames takes a while.
+        We mock the OpenCV video capture class as the camera timestamp extractor inspects the
+        video length.
+        :param mock_vc: A mock OpenCV VideoCapture class for returning the video length
+        :param _: A stub CameraQC object
         :return:
         """
+        mock_vc().get.return_value = 40000  # Need a value for number of frames in video
         one = self.one
         # first step is to remove the session and create it anew
         eid = one.eid_from_path(self.session_path, use_cache=False)
@@ -49,7 +58,8 @@ class TestEphysPipeline(base.IntegrationTest):
             one.alyx.rest('sessions', 'delete', id=eid)
 
         # create the jobs and run them
-        raw_ds = local_server.job_creator(self.session_path, one=one, max_md5_size=1024 * 1024 * 20)
+        raw_ds = local_server.job_creator(self.session_path,
+                                          one=one, max_md5_size=1024 * 1024 * 20)
         eid = one.eid_from_path(self.session_path, use_cache=False)
         self.assertFalse(eid is None)  # the session is created on the database
         # the flag has been erased
@@ -70,6 +80,10 @@ class TestEphysPipeline(base.IntegrationTest):
 
         # check the spike sorting output on disk
         self.check_spike_sorting_output(self.session_path)
+
+        # quick consistency test on trials length
+        trials = alf.io.load_object(self.session_path.joinpath('alf'), 'trials')
+        assert alf.io.check_dimensions(trials) == 0
 
         # check the registration of datasets
         dsets = one.alyx.rest('datasets', 'list', session=eid)
@@ -150,7 +164,8 @@ class TestEphysPipeline(base.IntegrationTest):
                              ('wheel.timestamps', 1, 1),
                              ('wheelMoves.intervals', 1, 1),
                              ('wheelMoves.peakAmplitude', 1, 1),
-# Min is 0 because this session fails extraction properr extraction test in test_ephys_passive
+                             # Min is 0 because this session fails extraction proper
+                             # extraction test in test_ephys_passive
                              ('_ibl_passivePeriods.intervalsTable', 0, 1),
                              ('_ibl_passiveRFM.times', 0, 1),
                              ('_ibl_passiveGabor.table', 0, 1),
@@ -176,7 +191,7 @@ class TestEphysPipeline(base.IntegrationTest):
         self.assertNotEqual('NOT_SET', session_dict['qc'], 'qc field not updated')
         extended = session_dict['extended_qc']
         self.assertTrue(any(k.startswith('_task_') for k in extended.keys()))
-        # also check that the behaviour criteron was set
+        # also check that the behaviour criterion was set
         assert 'behavior' in extended
         # check that the probes insertions have the json field labeled properly
         pis = one.alyx.rest('insertions', 'list', session=eid)
@@ -245,7 +260,9 @@ class TestEphysPipeline(base.IntegrationTest):
             self.assertTrue(np.all(0 <= clusters.channels) and
                             np.all(clusters.channels <= (nchannels - 1)))
             # check that the site positions channels match the depth with indexing
-            self.assertTrue(np.all(clusters.depths == channels.localCoordinates[clusters.channels, 1]))
+            self.assertTrue(
+                np.all(clusters.depths == channels.localCoordinates[clusters.channels, 1])
+            )
 
             """ compare against the cortexlab spikes Matlab code output if fixtures exist """
             for famps in session_path.joinpath(
@@ -255,8 +272,8 @@ class TestEphysPipeline(base.IntegrationTest):
                 assert np.max(np.abs((spikes.amps * 1e6 - np.squeeze(expected_amps)))) < 2
                 _logger.info('checked ' + '/'.join(famps.parts[-2:]))
 
-            for fdepths in session_path.joinpath(
-                    'raw_ephys_data', probe_folder.parts[-1]).rglob('expected_dephts_um_matlab.npy'):
+            folder = session_path.joinpath('raw_ephys_data', probe_folder.parts[-1])
+            for fdepths in folder.rglob('expected_dephts_um_matlab.npy'):
                 expected_depths = np.load(fdepths)
                 # the difference is within 2 uV
                 assert np.nanmax(np.abs((spikes.depths - np.squeeze(expected_depths)))) < .01

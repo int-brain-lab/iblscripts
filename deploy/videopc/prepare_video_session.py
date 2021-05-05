@@ -18,7 +18,7 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
     SUBJECT_NAME = mouse
     PARAMS = load_videopc_params()
     DATA_FOLDER = Path(PARAMS['DATA_FOLDER_PATH'])
-    VIDEOPC_FOLDER_PATH = Path(__file__).parent
+    VIDEOPC_FOLDER_PATH = Path(__file__).absolute().parent
 
     BONSAI = VIDEOPC_FOLDER_PATH / 'bonsai' / 'bin' / 'Bonsai.exe'
     BONSAI_WORKFLOWS_PATH = BONSAI.parent.parent / 'workflows'

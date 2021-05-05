@@ -14,6 +14,10 @@ one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
 class TestPipeline(base.IntegrationTest):
 
     def test_full_pipeline(self):
+        """
+        Test the full Training extraction pipeline.
+        :return:
+        """
         INIT_FOLDER = self.data_path.joinpath('Subjects_init')
         self.assertTrue(INIT_FOLDER.exists())
 
@@ -30,8 +34,14 @@ class TestPipeline(base.IntegrationTest):
 
             # register jobs in alyx for all the sessions
             nses = 0
-            for fil in subjects_path.rglob('_iblrig_taskData.raw*.jsonable'):
-                session_path = fil.parents[1]
+            session_stubs = [
+                './IBL_46/2019-02-19/001',  # time stamps million years in future
+                './ZM_335/2018-12-13/001',  # rotary encoder ms instead of us
+                './ZM_1085/2019-02-12/002',  # rotary encoder corrupt
+                './ZM_1085/2019-07-01/001'  # habituation session rig version 5.0.0
+            ]
+            for stub in session_stubs:
+                session_path = subjects_path.joinpath(stub)
                 create_pipeline(session_path)
                 nses += 1
 
@@ -47,9 +57,9 @@ class TestPipeline(base.IntegrationTest):
                                       dry=False, max_md5_size=1024 * 1024 * 20)
             errored_tasks = one.alyx.rest('tasks', 'list', status='Errored',
                                           graph='TrainingExtractionPipeline')
-            assert(len(errored_tasks) == 0)
+            self.assertTrue(len(errored_tasks) == 0)
             session_dict = one.alyx.rest('sessions', 'list', django='extended_qc__isnull, False')
-            assert(len(session_dict) > 0)
+            self.assertTrue(len(session_dict) > 0)
 
 
 def create_pipeline(session_path):

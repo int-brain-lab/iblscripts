@@ -10,7 +10,6 @@ import numpy as np
 from ibllib.misc import version
 from ibllib.qc.task_metrics import TaskQC
 from ibllib.qc.task_extractors import TaskQCExtractor
-from ibllib.qc.oneutils import download_taskqc_raw_data
 from oneibl.one import ONE
 from ci.tests import base
 
@@ -26,9 +25,8 @@ class TestTaskQCObject(base.IntegrationTest):
         self.one = one
         self.eid = "b1c968ad-4874-468d-b2e4-5ffa9b9964e9"
         # Make sure the data exists locally
-        download_taskqc_raw_data(self.eid, one=one)
         self.session_path = self.one.path_from_eid(self.eid)
-        self.qc = TaskQC(self.eid, one=self.one)
+        self.qc = TaskQC(self.eid, one=one)
         self.qc.load_data(bpod_only=True)  # Test session has no raw FPGA data
 
     def test_compute(self):
@@ -41,6 +39,7 @@ class TestTaskQCObject(base.IntegrationTest):
 
     def test_run(self):
         # Reset Alyx fields before test
+        assert 'test' in self.qc.one._par.ALYX_URL
         reset = self.qc.update('NOT_SET', override=True)
         assert reset == 'NOT_SET', 'failed to reset QC field for test'
         extended = self.one.alyx.json_field_write('sessions', field_name='extended_qc',
@@ -83,7 +82,8 @@ class TestTaskQCObject(base.IntegrationTest):
                if self.qc.criteria['WARNING'] <= v <= self.qc.criteria['PASS']]
         self.assertTrue(all(outcomes[k] == 'WARNING' for k in wrn))
         # FAIL
-        fail = [k for k, v in results.items() if v <= self.qc.criteria['FAIL']]
+        fail = [k for k, v in results.items() if v <= self.qc.criteria['FAIL']
+                and k not in TaskQC.fcns_value2status]
         self.assertTrue(all(outcomes[k] == 'FAIL' for k in fail))
 
 
@@ -95,15 +95,15 @@ class TestBpodQCExtractors(base.IntegrationTest):
         self.eid = 'b1c968ad-4874-468d-b2e4-5ffa9b9964e9'
         self.eid_incomplete = '4e0b3320-47b7-416e-b842-c34dc9004cf8'  # Missing required datasets
         # Make sure the data exists locally
-        download_taskqc_raw_data(self.eid, one=one, fpga=True)
         self.session_path = self.one.path_from_eid(self.eid)
 
     def test_lazy_extract(self):
-        ex = TaskQCExtractor(self.session_path, lazy=True, one=self.one)
+        ex = TaskQCExtractor(self.session_path, lazy=True, one=self.one, download_data=True)
         self.assertIsNone(ex.data)
 
     def test_extraction(self):
-        ex = TaskQCExtractor(self.session_path, lazy=True, one=self.one, bpod_only=True)
+        ex = TaskQCExtractor(self.session_path,
+                             lazy=True, one=self.one, bpod_only=True, download_data=True)
         self.assertIsNone(ex.raw_data)
 
         # Test loading raw data
@@ -120,7 +120,7 @@ class TestBpodQCExtractors(base.IntegrationTest):
                     'goCue_times', 'intervals', 'phase', 'position', 'probabilityLeft',
                     'quiescence', 'response_times', 'rewardVolume', 'stimOn_times',
                     'valveOpen_times', 'wheel_moves_intervals', 'wheel_moves_peak_amplitude',
-                    'wheel_position',  'wheel_timestamps']
+                    'wheel_position', 'wheel_timestamps']
         expected_5up = ['errorCueTrigger_times', 'itiIn_times',
                         'stimFreezeTrigger_times', 'stimFreeze_times', 'stimOffTrigger_times',
                         'stimOff_times', 'stimOnTrigger_times']
@@ -131,7 +131,8 @@ class TestBpodQCExtractors(base.IntegrationTest):
         self.assertEqual('X1', ex.wheel_encoding)
 
     def test_partial_extraction(self):
-        ex = TaskQCExtractor(self.session_path, lazy=True, one=self.one, bpod_only=True)
+        ex = TaskQCExtractor(self.session_path,
+                             lazy=True, one=self.one, bpod_only=True, download_data=True)
         ex.extract_data()
 
         expected = ['contrastLeft',
@@ -163,7 +164,8 @@ class TestBpodQCExtractors(base.IntegrationTest):
         ex = TaskQCExtractor(path, lazy=True, one=self.one, download_data=True)
         self.assertTrue(ex.lazy, 'Failed to set lazy flag')
 
-        shutil.rmtree(self.session_path)  # Remove downloaded data
+        if self.session_path.exists():
+            shutil.rmtree(self.session_path)  # Remove downloaded data
         assert self.session_path.exists() is False, 'Failed to remove session folder'
         TaskQCExtractor(self.session_path, lazy=True, one=self.one, download_data=True)
         files = list(self.session_path.rglob('*.*'))

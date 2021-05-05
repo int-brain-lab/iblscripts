@@ -243,8 +243,8 @@ def dlc_training(file_mp4, force=False):
             # concatenate this in a flat matrix
             columns.extend([f'{c[1]}_{c[2]}' for c in df.columns.to_flat_index()])
             if 'A' not in locals():
-                A = np.zeros([df.shape[0], 0], np.float)
-            A = np.c_[A, np.array(df).astype(np.float)]
+                A = np.zeros([df.shape[0], 0], float)
+            A = np.c_[A, np.array(df).astype(float)]
         assert(len(columns) == A.shape[1])
 
         # write the ALF files without depending on ibllib
