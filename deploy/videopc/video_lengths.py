@@ -63,10 +63,8 @@ def get_video_length(video_path):
     return length
 
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("I need a session_path as input...")
-    session_path = Path(sys.argv[1])
+def main(session_path, display=True):
+    session_path = Path(session_path)
     video_lengths = [get_video_length(p) for p in session_path.rglob("*.avi")]
     data_frames = [
         load_CameraFrameData_file(session_path, camera=c) for c in ("left", "right", "body")
@@ -90,20 +88,38 @@ if __name__ == "__main__":
 
         frame_counter_lengths = [x[0] for x in array_lengths]
         GPIO_state_lengths = [x[1] for x in array_lengths]
+        out = {
+            'session_path': session_path,
+            'video_lengths': video_lengths,
+            'frame_counter_lengths': frame_counter_lengths,
+            'GPIO_state_lengths': GPIO_state_lengths
+        }
         print(
             "\n",
-            sys.argv[1], "\n",
+            session_path, "\n",
             sorted(video_lengths), "<-- Video lengths", "\n",
             sorted(frame_counter_lengths), "<-- Frame counter lengths", "\n",
             sorted(GPIO_state_lengths), "<-- GPIO state lengths", "\n",
         )
     else:
-        print(
-            "\n",
-            sys.argv[1], "\n",
-            sorted(video_lengths), "<-- Video lengths", "\n",
-            sorted(len_frames), "<-- Frame Data lengths", "\n",
-        )
+        out = {
+            'session_path': session_path,
+            'video_lengths': video_lengths,
+            'frame_data_lengths': len_frames
+        }
+        if display:
+            print(
+                "\n",
+                session_path, "\n",
+                sorted(video_lengths), "<-- Video lengths", "\n",
+                sorted(len_frames), "<-- Frame Data lengths", "\n",
+            )
+    return out
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("I need a session_path as input...")
+    main(sys.argv[1])
 
     # session_path = r"C:\iblrig_data\Subjects\_iblrig_test_mouse\2000-01-01\001"
     # camera= 'left'
