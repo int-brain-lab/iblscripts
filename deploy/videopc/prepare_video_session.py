@@ -12,6 +12,7 @@ from alf.folders import next_num_folder
 from ibllib.pipes.misc import load_videopc_params
 
 import config_cameras as cams
+from video_lengths import main as len_files
 
 
 def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
@@ -54,23 +55,30 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
     noeditor = '--no-editor'
     # Force trigger mode on all cams
     cams.disable_trigger_mode()
-    print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - OFF")
     here = os.getcwd()
     os.chdir(str(BONSAI_WORKFLOWS_PATH))
     # Open the streaming file and start
     subprocess.call([str(BONSAI), str(SETUP_FILE), start, noboot,
                      bodyidx, leftidx, rightidx])
-    os.chdir(here)
     # Force trigger mode on all cams
     cams.enable_trigger_mode()
-    print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - ON")
     # Open the record_file start and wait for manual trigger mode disabling
-    subprocess.call([str(BONSAI), str(RECORD_FILE), noboot, start, body, left, right,
+    rec = subprocess.Popen([str(BONSAI), str(RECORD_FILE), noboot, start, body, left, right,
                      bodyidx, leftidx, rightidx, bodydata, leftdata, rightdata])
-    # subprocess.call(['python', '-c', 'import os; print(os.getcwd())'])
-    subprocess.call(['python', 'video_lengths.py', str(SESSION_FOLDER.parent)])
+    print("\nPRESS ENTER TO START CAMERAS" * 10)
+    untrigger = input('') or 1
+    print("ENTER key press detected, starting cameras...")
+    if untrigger:
+        cams.disable_trigger_mode()
+        print("\nTo terminate video acquisition, please stop and close Bonsai workflow.")
+    rec.wait()
+    os.chdir(here)
+    # TODO: check lengths immediately! warn if bad data no create flag!
+    lengths = len_files(SESSION_FOLDER.parent)
     # Create a transfer_me.flag file
     open(SESSION_FOLDER.parent / 'transfer_me.flag', 'w')
+    print(f"\nCreated transfer flag for session {SESSION_FOLDER.parent}")
+    print ("Video acquisition session finished.")
     return
 
 
