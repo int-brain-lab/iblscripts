@@ -23,10 +23,10 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
 
     BONSAI = VIDEOPC_FOLDER_PATH / 'bonsai' / 'bin' / 'Bonsai.exe'
     BONSAI_WORKFLOWS_PATH = BONSAI.parent.parent / 'workflows'
-    SETUP_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_setup.bonsai'
-    RECORD_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_record.bonsai'
+    SETUP_FILE = BONSAI_WORKFLOWS_PATH / 'EphysRig_SetupCameras.bonsai'
+    RECORD_FILE = BONSAI_WORKFLOWS_PATH / 'EphysRig_SaveVideo_EphysTasks.bonsai'
     if training_session:
-        RECORD_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_record_biasedCW.bonsai'
+        RECORD_FILE = BONSAI_WORKFLOWS_PATH / 'EphysRig_SaveVideo_TrainingTasks.bonsai'
 
     DATE = datetime.datetime.now().date().isoformat()
     NUM = next_num_folder(DATA_FOLDER / SUBJECT_NAME / DATE)
@@ -36,7 +36,7 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
     print(f"Created {SESSION_FOLDER}")
     # Create filenames to call Bonsai
     filenamevideo = '_iblrig_{}Camera.raw.avi'
-    filenameframedata = '_iblrig_{}Camera.FrameData.csv'
+    filenameframedata = '_iblrig_{}Camera.FrameData.bin'
     # Define parameters to call bonsai
     bodyidx = "-p:BodyCameraIndex=" + str(PARAMS['BODY_CAM_IDX'])
     leftidx = "-p:LeftCameraIndex=" + str(PARAMS['LEFT_CAM_IDX'])
@@ -73,8 +73,11 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
         print("\nTo terminate video acquisition, please stop and close Bonsai workflow.")
     rec.wait()
     os.chdir(here)
-    # TODO: check lengths immediately! warn if bad data no create flag!
-    lengths = len_files(SESSION_FOLDER.parent)
+    # Check lengths
+    lengths = len_files(SESSION_FOLDER.parent, display=True)  # Will printout the results
+    # XXX: Consider not creating the transfer flag if lengths are not good:
+    #       will impact the transfer script as it requires both transfers to be completed before
+    #       creating the raw_session.flag
     # Create a transfer_me.flag file
     open(SESSION_FOLDER.parent / 'transfer_me.flag', 'w')
     print(f"\nCreated transfer flag for session {SESSION_FOLDER.parent}")
