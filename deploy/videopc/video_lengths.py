@@ -19,11 +19,26 @@ def load_CameraFrameData_file(session_path, camera: str) -> pd.DataFrame:
     if session_path is None:
         return
     raw_path = Path(session_path).joinpath("raw_video_data")
-    # Check if frame data file exists
+    # Check if csv frame data file exists
     frame_data_file = raw_path.joinpath(f"_iblrig_{camera}Camera.FrameData.csv")
     if frame_data_file.exists():
         fdata = pd.read_csv(frame_data_file)
-        return fdata
+        out_dataframe = fdata
+    # Check if bin frame data file exists
+    frame_data_file = raw_path.joinpath(f"_iblrig_{camera}Camera.FrameData.bin")
+    if frame_data_file.exists():
+        fdata = np.fromfile(frame_data_file, dtype=np.float64)
+        assert len(fdata) % 4 == 0, "Missing values: expected length of array is not % 4"
+        rows = int(len(fdata) / 4)
+        fdata_values = np.reshape(fdata.astype(np.int64), (rows, 4))
+        columns = [
+            "Timestamp",
+            "Value.Metadata.embeddedTimeStamp",
+            "Value.Metadata.embeddedFrameCounter",
+            "Value.Metadata.embeddedGPIOPinState"
+        ]
+        out_dataframe = pd.DataFrame(fdata_values, columns=columns)
+    return out_dataframe
 
 
 def load_embedded_frame_data(session_path, camera: str, raw=False):
