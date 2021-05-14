@@ -2,8 +2,6 @@
 # -*- coding:utf-8 -*-
 # @Author: Niccolò Bonacchi
 # @Date: Friday, November 8th 2019, 2:02:12 pm
-from pathlib import Path
-
 from ibllib.pipes.misc import create_custom_ephys_wirings, get_iblscripts_folder
 
 

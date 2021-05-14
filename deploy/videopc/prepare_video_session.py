@@ -4,12 +4,13 @@
 # @Date: Thursday, May 2nd 2019, 5:41:56 pm
 import argparse
 import datetime
+import os
 import subprocess
 from pathlib import Path
 
 from alf.folders import next_num_folder
-
 from ibllib.pipes.misc import load_videopc_params
+
 import config_cameras as cams
 
 
@@ -17,11 +18,11 @@ def main(mouse: str, training_session: bool = False) -> None:
     SUBJECT_NAME = mouse
     PARAMS = load_videopc_params()
     DATA_FOLDER = Path(PARAMS['DATA_FOLDER_PATH'])
-    VIDEOPC_FOLDER_PATH = Path(__file__).parent
+    VIDEOPC_FOLDER_PATH = Path(__file__).absolute().parent
 
     BONSAI = VIDEOPC_FOLDER_PATH / 'bonsai' / 'bin' / 'Bonsai64.exe'
     BONSAI_WORKFLOWS_PATH = BONSAI.parent.parent / 'workflows'
-    STREAM_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_stream.bonsai'
+    SETUP_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_setup.bonsai'
     RECORD_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_record.bonsai'
     if training_session:
         RECORD_FILE = BONSAI_WORKFLOWS_PATH / 'three_cameras_record_biasedCW.bonsai'
@@ -32,9 +33,6 @@ def main(mouse: str, training_session: bool = False) -> None:
     SESSION_FOLDER = DATA_FOLDER / SUBJECT_NAME / DATE / NUM / 'raw_video_data'
     SESSION_FOLDER.mkdir(parents=True, exist_ok=True)
     print(f"Created {SESSION_FOLDER}")
-    # Force trigger mode on all cams
-    cams.enable_trigger_mode()
-    print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - ON")
     # Create filenames to call Bonsai
     filename = '_iblrig_{}Camera.raw.avi'
     filenamets = '_iblrig_{}Camera.timestamps.ssv'
@@ -60,9 +58,16 @@ def main(mouse: str, training_session: bool = False) -> None:
 
     start = '--start'  # --start-no-debug
     noboot = '--no-boot'
+
+    # Force trigger mode on all cams
+    cams.enable_trigger_mode()
+    print(f"Found {cams.NUM_CAMERAS} cameras. Trigger mode - ON")
     # Open the streaming file and start
-    subprocess.call([str(BONSAI), str(STREAM_FILE), start, noboot,
+    here = os.getcwd()
+    os.chdir(BONSAI_WORKFLOWS_PATH)
+    subprocess.call([str(BONSAI), str(SETUP_FILE), start, noboot,
                      bodyidx, leftidx, rightidx])
+    os.chdir(here)
     # Open the record_file no start
     subprocess.call([str(BONSAI), str(RECORD_FILE), noboot, body, left, right,
                      bodyidx, leftidx, rightidx, bodyts, leftts, rightts,
