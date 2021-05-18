@@ -135,8 +135,8 @@ def main(session_path, display=True):
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("I need a session_path as input...")
-    # main(sys.argv[1])
+    main(sys.argv[1])
 
-    session_path = r"C:\iblrig_data\Subjects\_iblrig_test_mouse\2000-01-01\001"
-    main(session_path)
+    # session_path = r"C:\iblrig_data\Subjects\_iblrig_test_mouse\2000-01-01\001"
+    # main(session_path)
     # camera= 'left'
