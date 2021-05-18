@@ -15,6 +15,7 @@ import pandas as pd
 
 
 def load_CameraFrameData_file(session_path, camera: str) -> pd.DataFrame:
+    out_dataframe = None
     session_path = Path(session_path)
     if session_path is None:
         return
@@ -32,7 +33,7 @@ def load_CameraFrameData_file(session_path, camera: str) -> pd.DataFrame:
         rows = int(len(fdata) / 4)
         fdata_values = np.reshape(fdata.astype(np.int64), (rows, 4))
         columns = [
-            "Timestamp",
+            "Timestamp",  # UTC ticks
             "Value.Metadata.embeddedTimeStamp",
             "Value.Metadata.embeddedFrameCounter",
             "Value.Metadata.embeddedGPIOPinState"
@@ -134,7 +135,8 @@ def main(session_path, display=True):
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("I need a session_path as input...")
-    main(sys.argv[1])
+    # main(sys.argv[1])
 
-    # session_path = r"C:\iblrig_data\Subjects\_iblrig_test_mouse\2000-01-01\001"
+    session_path = r"C:\iblrig_data\Subjects\_iblrig_test_mouse\2000-01-01\001"
+    main(session_path)
     # camera= 'left'
