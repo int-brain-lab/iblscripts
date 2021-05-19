@@ -70,6 +70,8 @@ def get_ephys_data(raw_ephys_apfile, label=''):
     E.g.
     raw_ephys_apfile =
     sync_test_folder + '/ephys/20190709_sync_right_g0_t0.imec.ap.bin'
+
+    Note: sr must be closed after reading data
     """
 
     if alf.io.exists(raw_ephys_apfile.parent, '_spikeglx_sync', glob=[label]):
@@ -78,7 +80,7 @@ def get_ephys_data(raw_ephys_apfile, label=''):
     else:
         sync = ephys_fpga._sync_to_alf(raw_ephys_apfile, parts=label, save=False)
     # load reader object, and extract sync traces
-    sr = ibllib.io.spikeglx.Reader(raw_ephys_apfile)
+    sr = ibllib.io.spikeglx.Reader(raw_ephys_apfile, open=True)
     assert int(sr.fs) == 30000, 'sampling rate is not 30 kHz, adjust script!'
     _logger.info('extracted %s' % raw_ephys_apfile)
     return sr, sync
@@ -123,7 +125,7 @@ def compare_camera_timestamps_between_two_probes(sync_right, sync_left):
 
 def first_occ_index(array, n_at_least):
     """
-    Getting index of first occurence in boolean array
+    Getting index of first occurrence in boolean array
     with at least n consecutive False entries
     """
     curr_found_false = 0
@@ -159,7 +161,6 @@ def event_extraction_and_comparison(sr, sync):
     # if the data is needed as well, loop over the file
     # raw data contains raw ephys traces, while raw_sync contains the 16 sync
     # traces
-
     rawdata, _ = sr.read_samples(0, BATCH_SIZE_SAMPLES)
     _, chans = rawdata.shape
 
@@ -491,6 +492,7 @@ def run_synchronization_protocol(sync_test_folder, display=SHOW_PLOTS):
     # compare ephys fronts with fpga pulse signal for right probe
     _logger.info('compare ephys fronts with fpga pulse signal for right probe')
     chan_fronts, sync_fronts = event_extraction_and_comparison(sr_right, sync_right)
+    sr_left.close(), sr_right.close()  # Close files
     evaluate_ephys(chan_fronts, sync_fronts, show_plots=display)
 
     # do camera check
