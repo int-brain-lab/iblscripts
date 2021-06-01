@@ -36,7 +36,7 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
     print(f"Created {SESSION_FOLDER}")
     # Create filenames to call Bonsai
     filenamevideo = '_iblrig_{}Camera.raw.avi'
-    filenameframedata = '_iblrig_{}Camera.FrameData.bin'
+    filenameframedata = '_iblrig_{}Camera.frameData.bin'
     # Define parameters to call bonsai
     bodyidx = "-p:BodyCameraIndex=" + str(PARAMS['BODY_CAM_IDX'])
     leftidx = "-p:LeftCameraIndex=" + str(PARAMS['LEFT_CAM_IDX'])

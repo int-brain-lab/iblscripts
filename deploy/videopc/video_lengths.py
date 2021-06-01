@@ -26,7 +26,7 @@ def load_CameraFrameData_file(session_path, camera: str) -> pd.DataFrame:
         fdata = pd.read_csv(frame_data_file)
         out_dataframe = fdata
     # Check if bin frame data file exists
-    frame_data_file = raw_path.joinpath(f"_iblrig_{camera}Camera.FrameData.bin")
+    frame_data_file = raw_path.joinpath(f"_iblrig_{camera}Camera.frameData.bin")
     if frame_data_file.exists():
         fdata = np.fromfile(frame_data_file, dtype=np.float64)
         assert len(fdata) % 4 == 0, "Missing values: expected length of array is not % 4"

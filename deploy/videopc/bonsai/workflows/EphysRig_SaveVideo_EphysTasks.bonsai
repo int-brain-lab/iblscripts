@@ -61,7 +61,7 @@
             </Expression>
             <Expression xsi:type="Combinator">
               <Combinator xsi:type="dsp:MatrixWriter">
-                <dsp:Path>D:\iblrig_data\Subjects\_iblrig_test_mouse\2000-01-01\001\raw_video_data\_iblrig_leftCamera.FrameData.bin</dsp:Path>
+                <dsp:Path>D:\iblrig_data\Subjects\_iblrig_test_mouse\2000-01-01\001\raw_video_data\_iblrig_leftCamera.frameData.bin</dsp:Path>
                 <dsp:Suffix>None</dsp:Suffix>
                 <dsp:Overwrite>true</dsp:Overwrite>
                 <dsp:Layout>ColumnMajor</dsp:Layout>
@@ -111,7 +111,7 @@
             </Expression>
             <Expression xsi:type="Combinator">
               <Combinator xsi:type="dsp:MatrixWriter">
-                <dsp:Path>D:\iblrig_data\Subjects\_iblrig_test_mouse\2000-01-01\001\raw_video_data\_iblrig_rightCamera.FrameData.bin</dsp:Path>
+                <dsp:Path>D:\iblrig_data\Subjects\_iblrig_test_mouse\2000-01-01\001\raw_video_data\_iblrig_rightCamera.frameData.bin</dsp:Path>
                 <dsp:Suffix>None</dsp:Suffix>
                 <dsp:Overwrite>true</dsp:Overwrite>
                 <dsp:Layout>ColumnMajor</dsp:Layout>
@@ -161,7 +161,7 @@
             </Expression>
             <Expression xsi:type="Combinator">
               <Combinator xsi:type="dsp:MatrixWriter">
-                <dsp:Path>D:\iblrig_data\Subjects\_iblrig_test_mouse\2000-01-01\001\raw_video_data\_iblrig_bodyCamera.FrameData.bin</dsp:Path>
+                <dsp:Path>D:\iblrig_data\Subjects\_iblrig_test_mouse\2000-01-01\001\raw_video_data\_iblrig_bodyCamera.frameData.bin</dsp:Path>
                 <dsp:Suffix>None</dsp:Suffix>
                 <dsp:Overwrite>true</dsp:Overwrite>
                 <dsp:Layout>ColumnMajor</dsp:Layout>
