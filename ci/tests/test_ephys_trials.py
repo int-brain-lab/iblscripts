@@ -2,7 +2,7 @@ import logging
 import numpy as np
 import shutil
 
-import alf.io
+import one.alf.io as alfio
 from ibllib.io.extractors import ephys_fpga
 
 from ci.tests import base
@@ -70,13 +70,13 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         for f in FPGA_FILES:
             self.assertTrue(alf_path.joinpath(f).exists())
         # check dimensions after alf load
-        alf_trials = alf.io.load_object(alf_path, 'trials')
-        self.assertTrue(alf.io.check_dimensions(alf_trials) == 0)
+        alf_trials = alfio.load_object(alf_path, 'trials')
+        self.assertTrue(alfio.check_dimensions(alf_trials) == 0)
         # go deeper and check the internal fpga trials structure consistency
         sync, chmap = ephys_fpga.get_main_probe_sync(session_path, bin_exists=False)
         fpga_trials = ephys_fpga.extract_behaviour_sync(sync, chmap)
         # check dimensions
-        self.assertEqual(alf.io.check_dimensions(fpga_trials), 0)
+        self.assertEqual(alfio.check_dimensions(fpga_trials), 0)
         # check that the stimOn < stimFreeze < stimOff
         self.assertTrue(
             np.all(fpga_trials['stimOn_times'][:-1] < fpga_trials['stimOff_times'][:-1]))
@@ -116,8 +116,6 @@ class TestEphysTaskExtraction(base.IntegrationTest):
                 ok = False
                 print(f"{k} bpod: {res_bpod[k]}, ephys: {res_ephys[k]}")
         assert ok
-
-
         shutil.rmtree(alf_path, ignore_errors=True)
 
 

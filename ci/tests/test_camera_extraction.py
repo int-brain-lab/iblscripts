@@ -29,10 +29,10 @@ from ibllib.qc.base import CRITERIA
 import ibllib.io.video as vidio
 from ibllib.pipes.training_preprocessing import TrainingVideoCompress
 from ibllib.pipes.ephys_preprocessing import EphysVideoCompress
-from brainbox.core import Bunch
-import alf.io as alfio
-import oneibl.params
-from oneibl.one import ONE
+from iblutil.util import Bunch
+import one.alf.io as alfio
+import one.params
+from one.api import ONE
 
 from ci.tests import base
 
@@ -375,7 +375,7 @@ class TestEphysCameraExtractor(base.IntegrationTest):
 
     def test_get_video_length(self):
         # Verify using URL
-        url = (oneibl.params.get().HTTP_DATA_SERVER +
+        url = (one.params.get().HTTP_DATA_SERVER +
                '/mainenlab/Subjects/ZM_1743/2019-06-14/001/raw_video_data/'
                '_iblrig_leftCamera.raw.71cfeef2-2aa5-46b5-b88f-ca07e3d92474.mp4')
         length = camio.get_video_length(url)
@@ -478,7 +478,7 @@ class TestCameraQC(base.IntegrationTest):
         session_path = self.incomplete
 
         qc = CameraQC(session_path, 'left',
-                      stream=False, download_data=False, one=ONE(offline=True), n_samples=20)
+                      stream=False, download_data=False, one=ONE(mode='local'), n_samples=20)
         outcome, extended = qc.run(update=False)
         self.assertEqual('FAIL', outcome)
         expected = {
@@ -516,7 +516,7 @@ class TestCameraQC(base.IntegrationTest):
         mock_ext().read.side_effect = self.side_effect()
 
         # Run QC for the left label
-        one = ONE(offline=True)
+        one = ONE(mode='local')
         qc = camQC.run_all_qc(session_path, cameras=('left',), stream=False, update=False, one=one,
                               n_samples=n_samples, download_data=False, extract_times=True)
         self.assertIsInstance(qc, dict)
@@ -557,7 +557,7 @@ class TestCameraQC(base.IntegrationTest):
         mock_ext().read.side_effect = self.side_effect()
 
         qc = CameraQC(session_path, 'left',
-                      stream=False, n_samples=n_samples, one=ONE(offline=True))
+                      stream=False, n_samples=n_samples, one=ONE(mode='local'))
         qc.load_data(download_data=False, extract_times=True)
         outcome, extended = qc.run(update=False)
         self.assertEqual('FAIL', outcome)
@@ -591,7 +591,7 @@ class TestCameraPipeline(base.IntegrationTest):
             raise FileNotFoundError(f'Fixture {self.ephys_folder} does not exist')
         if not self.training_folder.exists():
             raise FileNotFoundError(f'Fixture {self.training_folder} does not exist')
-        self.one = ONE(offline=True)
+        self.one = ONE(mode='local')
 
     def test_training(self):
         with tempfile.TemporaryDirectory() as tdir:

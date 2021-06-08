@@ -1,13 +1,12 @@
 import logging
-from pathlib import Path
 import shutil
 
 import numpy as np
 
-import alf.io
+import one.alf.io as alfio
 from ibllib.pipes.ephys_preprocessing import EphysTrials
 from ibllib.pipes.training_preprocessing import TrainingTrials
-from oneibl.one import ONE
+from one.api import ONE
 
 from ci.tests import base
 
@@ -58,13 +57,13 @@ EPHYS_TRIALS_SIGNATURE = ('_ibl_trials.feedbackType.npy',
 class TestEphysTaskExtraction(base.IntegrationTest):
 
     def setUp(self) -> None:
-        self.one_offline = ONE(offline=True)
+        self.one_offline = ONE(mode='local')
 
     def test_ephys_biased_opto(self):
         """Guido's task"""
         desired_output = list(EPHYS_TRIALS_SIGNATURE) + ['_ibl_trials.laser_probability.npy', '_ibl_trials.laser_stimulation.npy']
         session_path = self.data_path.joinpath("personal_projects/ephys_biased_opto/ZFM-01802/2021-03-10/001")
-        shutil.rmtree(session_path.joinpath('alf'), ignore_errors=True)
+        shutil.move(session_path.joinpath('alf'), session_path.joinpath('alf.bk'))
         _logger.info(f"{session_path}")
         task = EphysTrials(session_path, one=self.one_offline)
         task.run()
@@ -86,7 +85,7 @@ class TestTrainingTaskExtraction(base.IntegrationTest):
         desired_output = list(TRAINING_TRIALS_SIGNATURE) + ['_ibl_trials.laser_stimulation.npy']
         # this session has only laser stimulation labeled
         session_path = self.data_path.joinpath("personal_projects/biased_opto/ZFM-01804/2021-01-15/001")
-        shutil.rmtree(session_path.joinpath('alf'), ignore_errors=True)
+        shutil.move(session_path.joinpath('alf'), session_path.joinpath('alf.bk'))
         task = TrainingTrials(session_path, one=self.one_offline)
         task.run()
         assert task.status == 0
@@ -98,7 +97,7 @@ class TestTrainingTaskExtraction(base.IntegrationTest):
         # this session has both laser probability and laser stimulation fields labeled
         desired_output = list(TRAINING_TRIALS_SIGNATURE) + ['_ibl_trials.laser_probability.npy', '_ibl_trials.laser_stimulation.npy']
         session_path = self.data_path.joinpath("personal_projects/biased_opto/ZFM-01802/2021-02-08/001")
-        shutil.rmtree(session_path.joinpath('alf'), ignore_errors=True)
+        shutil.move(session_path.joinpath('alf'), session_path.joinpath('alf.bk'))
         task = TrainingTrials(session_path, one=self.one_offline)
         task.run()
         assert task.status == 0
@@ -109,7 +108,8 @@ class TestTrainingTaskExtraction(base.IntegrationTest):
 
 
 def check_trials_and_clean_up(session_path):
-    trials = alf.io.load_object(session_path.joinpath('alf'), 'trials')
-    assert (alf.io.check_dimensions(trials) == 0)
+    trials = alfio.load_object(session_path.joinpath('alf'), 'trials')
+    assert (alfio.check_dimensions(trials) == 0)
     shutil.rmtree(session_path.joinpath('alf'), ignore_errors=True)
+    shutil.move(session_path.joinpath('alf.bk'), session_path.joinpath('alf'))
     return trials

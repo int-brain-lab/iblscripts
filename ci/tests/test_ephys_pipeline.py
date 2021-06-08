@@ -5,9 +5,9 @@ import numpy as np
 import tempfile
 from unittest import mock
 
-import alf.io
+import one.alf.io as alfio
 from ibllib.pipes import local_server
-from oneibl.one import ONE
+from one.api import ONE
 
 from ci.tests import base
 
@@ -53,40 +53,42 @@ class TestEphysPipeline(base.IntegrationTest):
         mock_vc().get.return_value = 40000  # Need a value for number of frames in video
         one = self.one
         # first step is to remove the session and create it anew
-        eid = one.eid_from_path(self.session_path, use_cache=False)
+        one.alyx.clear_rest_cache()
+        eid = one.path2eid(self.session_path, query_type='remote')
         if eid is not None:
             one.alyx.rest('sessions', 'delete', id=eid)
 
         # create the jobs and run them
         raw_ds = local_server.job_creator(self.session_path,
                                           one=one, max_md5_size=1024 * 1024 * 20)
-        eid = one.eid_from_path(self.session_path, use_cache=False)
+        one.alyx.clear_rest_cache()
+        eid = one.path2eid(self.session_path, query_type='remote')
         self.assertFalse(eid is None)  # the session is created on the database
         # the flag has been erased
         self.assertFalse(self.session_path.joinpath('raw_session.flag').exists())
 
-        eid = one.eid_from_path(self.session_path, use_cache=False)
         subject_path = self.session_path.parents[2]
-        tasks_dict = one.alyx.rest('tasks', 'list', session=eid, status='Waiting')
+        tasks_dict = one.alyx.rest('tasks', 'list', session=eid, status='Waiting', no_cache=True)
         for td in tasks_dict:
             print(td['name'])
         all_datasets = local_server.tasks_runner(
             subject_path, tasks_dict, one=one, max_md5_size=1024 * 1024 * 20, count=20)
 
         # check the trajectories and probe info
-        self.assertTrue(len(one.alyx.rest('insertions', 'list', session=eid)) == 2)
-        self.assertTrue(len(one.alyx.rest(
-            'trajectories', 'list', session=eid, provenance='Micro-manipulator')) == 2)
+        self.assertTrue(len(one.alyx.rest('insertions', 'list', session=eid, no_cache=True)) == 2)
+        traj = one.alyx.rest('trajectories', 'list',
+                             session=eid, provenance='Micro-manipulator', no_cache=True)
+        self.assertTrue(len(traj) == 2)
 
         # check the spike sorting output on disk
         self.check_spike_sorting_output(self.session_path)
 
         # quick consistency test on trials length
-        trials = alf.io.load_object(self.session_path.joinpath('alf'), 'trials')
-        assert alf.io.check_dimensions(trials) == 0
+        trials = alfio.load_object(self.session_path.joinpath('alf'), 'trials')
+        assert alfio.check_dimensions(trials) == 0
 
         # check the registration of datasets
-        dsets = one.alyx.rest('datasets', 'list', session=eid)
+        dsets = one.alyx.rest('datasets', 'list', session=eid, no_cache=True)
         self.assertEqual(set([ds['url'][-36:] for ds in dsets]),
                          set([ds['id'] for ds in all_datasets + raw_ds]))
 
@@ -187,16 +189,16 @@ class TestEphysPipeline(base.IntegrationTest):
                 _logger.info(f'check dataset types registration OK: {ed[0]}')
         self.assertTrue(success)
         # check that the task QC was successfully run
-        session_dict = one.alyx.rest('sessions', 'read', id=eid)
+        session_dict = one.alyx.rest('sessions', 'read', id=eid, no_cache=True)
         self.assertNotEqual('NOT_SET', session_dict['qc'], 'qc field not updated')
         extended = session_dict['extended_qc']
         self.assertTrue(any(k.startswith('_task_') for k in extended.keys()))
         # also check that the behaviour criterion was set
         assert 'behavior' in extended
         # check that the probes insertions have the json field labeled properly
-        pis = one.alyx.rest('insertions', 'list', session=eid)
+        pis = one.alyx.rest('insertions', 'list', session=eid, no_cache=True)
         for pi in pis:
-            assert('n_units' in pi['json'])
+            assert 'n_units' in pi['json']
 
     def check_spike_sorting_output(self, session_path):
         """ Check the spikes object """
@@ -204,9 +206,9 @@ class TestEphysPipeline(base.IntegrationTest):
         probe_folders = list(set([p.parent for p in session_path.joinpath(
             'alf').rglob('spikes.times.npy')]))
         for probe_folder in probe_folders:
-            spikes = alf.io.load_object(probe_folder, 'spikes')
+            spikes = alfio.load_object(probe_folder, 'spikes')
             self.assertTrue(np.max(spikes.times) > 1000)
-            self.assertTrue(alf.io.check_dimensions(spikes) == 0)
+            self.assertTrue(alfio.check_dimensions(spikes) == 0)
             # check that it contains the proper keys
             self.assertTrue(set(spikes.keys()).issubset(set(spikes_attributes)))
             self.assertTrue(np.nanmin(spikes.depths) >= 0)
@@ -214,7 +216,7 @@ class TestEphysPipeline(base.IntegrationTest):
             self.assertTrue(80 < np.median(spikes.amps) * 1e6 < 200)  # we expect Volts
 
             """Check the clusters object"""
-            clusters = alf.io.load_object(probe_folder, 'clusters')
+            clusters = alfio.load_object(probe_folder, 'clusters')
             clusters_attributes = ['depths', 'channels', 'peakToTrough', 'amps',
                                    'uuids', 'waveforms', 'waveformsChannels', 'metrics']
             self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters]).size == 1)
@@ -223,22 +225,22 @@ class TestEphysPipeline(base.IntegrationTest):
             self.assertTrue(0 < np.median(np.abs(clusters.peakToTrough)) < 5)  # we expect ms
 
             """Check the channels object"""
-            channels = alf.io.load_object(probe_folder, 'channels')
+            channels = alfio.load_object(probe_folder, 'channels')
             channels_attributes = ['rawInd', 'localCoordinates']
             self.assertTrue(set(channels.keys()) == set(channels_attributes))
 
             """Check the template object"""
-            templates = alf.io.load_object(probe_folder, 'templates')
+            templates = alfio.load_object(probe_folder, 'templates')
             templates_attributes = ['amps', 'waveforms', 'waveformsChannels']
             self.assertTrue(set(templates.keys()) == set(templates_attributes))
             self.assertTrue(np.unique([templates[k].shape[0] for k in templates]).size == 1)
             # """Check the probes object"""
             probes_attributes = ['description', 'trajectory']
-            probes = alf.io.load_object(session_path.joinpath('alf'), 'probes')
+            probes = alfio.load_object(session_path.joinpath('alf'), 'probes')
             self.assertTrue(set(probes.keys()) == set(probes_attributes))
 
             """check sample waveforms and make sure amplitudes check out"""
-            swv = alf.io.load_object(probe_folder, 'spikes_subset')
+            swv = alfio.load_object(probe_folder, 'spikes_subset')
             swv_attributes = ['spikes', 'channels', 'waveforms']
             self.assertTrue(set(swv_attributes) == set(swv.keys()))
             iswv = 20001

@@ -4,9 +4,9 @@ from pathlib import Path
 from functools import wraps
 import logging
 
-from ibllib.io import params
-import alf.folders
-from oneibl.one import ONE
+from iblutil.io import params
+import one.alf.folders as alf_folders
+from one.api import ONE
 
 
 class IntegrationTest(unittest.TestCase):
@@ -52,8 +52,8 @@ def list_current_sessions(one=None):
         return filter(lambda x: x is not None, itr)
     one = one or ONE()
     root = IntegrationTest.default_data_root()
-    folders = set(alf.folders.session_path(x[0]) for x in os.walk(root))
-    eids = not_null(one.eid_from_path(x) for x in not_null(folders))
+    folders = set(alf_folders.session_path(x[0]) for x in os.walk(root))
+    eids = not_null(one.path2eid(x) for x in not_null(folders))
     return set(eids)
 
 

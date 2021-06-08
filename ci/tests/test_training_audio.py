@@ -1,6 +1,6 @@
 import unittest
 
-import alf.io
+import one.alf.io as alfio
 from ibllib.io.extractors import training_audio as audio
 
 from ci.tests import base
@@ -18,8 +18,8 @@ class TestAudioExtraction(base.IntegrationTest):
     def test_qc_extract(self):
         # extract audio
         audio.extract_sound(self.ses_path, save=True)
-        D = alf.io.load_object(self.ses_path / 'raw_behavior_data', 'audioSpectrogram')
-        cues = alf.io.load_object(self.ses_path / 'raw_behavior_data', 'audioOnsetGoCue')
+        D = alfio.load_object(self.ses_path / 'raw_behavior_data', 'audioSpectrogram')
+        cues = alfio.load_object(self.ses_path / 'raw_behavior_data', 'audioOnsetGoCue')
         self.assertEqual(cues['times_mic'].size, 4)
         self.assertEqual(D['power'].shape[0], D['times_mic'].shape[0])
         self.assertEqual(D['frequencies'].shape[1], D['power'].shape[1])

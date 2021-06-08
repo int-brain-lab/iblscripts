@@ -4,13 +4,14 @@ NB: FPGA TaskQC extractor is tested in test_ephys_extraction_choiceWorld
 import unittest
 import shutil
 from pathlib import Path
+import tempfile
 
 import numpy as np
 
 from ibllib.misc import version
 from ibllib.qc.task_metrics import TaskQC
 from ibllib.qc.task_extractors import TaskQCExtractor
-from oneibl.one import ONE
+from one.api import ONE
 from ci.tests import base
 
 one = ONE(
@@ -25,7 +26,7 @@ class TestTaskQCObject(base.IntegrationTest):
         self.one = one
         self.eid = "b1c968ad-4874-468d-b2e4-5ffa9b9964e9"
         # Make sure the data exists locally
-        self.session_path = self.one.path_from_eid(self.eid)
+        self.session_path = self.one.eid2path(self.eid)
         self.qc = TaskQC(self.eid, one=one)
         self.qc.load_data(bpod_only=True)  # Test session has no raw FPGA data
 
@@ -39,7 +40,7 @@ class TestTaskQCObject(base.IntegrationTest):
 
     def test_run(self):
         # Reset Alyx fields before test
-        assert 'test' in self.qc.one._par.ALYX_URL
+        assert 'test' in self.qc.one.alyx.base_url
         reset = self.qc.update('NOT_SET', override=True)
         assert reset == 'NOT_SET', 'failed to reset QC field for test'
         extended = self.one.alyx.json_field_write('sessions', field_name='extended_qc',
@@ -49,18 +50,20 @@ class TestTaskQCObject(base.IntegrationTest):
         # Test update as False
         outcome, _ = self.qc.run(update=False)
         self.assertEqual('FAIL', outcome)
-        extended = self.one.alyx.rest('sessions', 'read', id=self.eid)['extended_qc']
+        extended = self.one.alyx.rest('sessions', 'read',
+                                      id=self.eid, no_cache=True)['extended_qc']
         self.assertDictEqual({}, extended, 'unexpected update to extended qc')
-        outcome = self.one.alyx.rest('sessions', 'read', id=self.eid)['qc']
+        outcome = self.one.alyx.rest('sessions', 'read', id=self.eid, no_cache=True)['qc']
         self.assertEqual('NOT_SET', outcome, 'unexpected update to qc')
 
         # Test update as True
         outcome, results = self.qc.run(update=True)
         self.assertEqual('FAIL', outcome)
-        extended = self.one.alyx.rest('sessions', 'read', id=self.eid)['extended_qc']
+        extended = self.one.alyx.rest('sessions', 'read',
+                                      id=self.eid, no_cache=True)['extended_qc']
         expected = list(results.keys()) + ['task']
         self.assertCountEqual(expected, extended.keys(), 'unexpected update to extended qc')
-        qc_field = self.one.alyx.rest('sessions', 'read', id=self.eid)['qc']
+        qc_field = self.one.alyx.rest('sessions', 'read', id=self.eid, no_cache=True)['qc']
         self.assertEqual(outcome, qc_field, 'unexpected update to qc')
 
     def test_compute_session_status(self):
@@ -95,7 +98,7 @@ class TestBpodQCExtractors(base.IntegrationTest):
         self.eid = 'b1c968ad-4874-468d-b2e4-5ffa9b9964e9'
         self.eid_incomplete = '4e0b3320-47b7-416e-b842-c34dc9004cf8'  # Missing required datasets
         # Make sure the data exists locally
-        self.session_path = self.one.path_from_eid(self.eid)
+        self.session_path = self.one.eid2path(self.eid)
 
     def test_lazy_extract(self):
         ex = TaskQCExtractor(self.session_path, lazy=True, one=self.one, download_data=True)
@@ -157,20 +160,22 @@ class TestBpodQCExtractors(base.IntegrationTest):
     def test_download_data(self):
         """Test behavior when download_data flag is True
         """
-        # path = self.one.path_from_eid(self.eid_incomplete)  # FIXME Returns None
-        det = one.get_details(self.eid_incomplete)
-        path = (Path(one._par.CACHE_DIR) / det['lab'] / 'Subjects' /
-                det['subject'] / det['start_time'][:10] / str(det['number']))
+        path = one.eid2path(self.eid_incomplete)
         ex = TaskQCExtractor(path, lazy=True, one=self.one, download_data=True)
         self.assertTrue(ex.lazy, 'Failed to set lazy flag')
 
-        if self.session_path.exists():
-            shutil.rmtree(self.session_path)  # Remove downloaded data
-        assert self.session_path.exists() is False, 'Failed to remove session folder'
-        TaskQCExtractor(self.session_path, lazy=True, one=self.one, download_data=True)
-        files = list(self.session_path.rglob('*.*'))
-        expected = 6  # NB This session is missing raw ephys data and missing some datasets
-        self.assertEqual(len(files), expected)
+        # Swap cache dir for temporary directory.  This should trigger re-download of the data
+        # without interfering with the integration data
+        with tempfile.TemporaryDirectory() as tdir:
+            _cache = self.one._cache_dir
+            self.one.alyx._par = self.one.alyx._par.set('CACHE_DIR', tdir)
+            try:
+                TaskQCExtractor(self.session_path, lazy=True, one=self.one, download_data=True)
+                files = list(self.session_path.rglob('*.*'))
+                expected = 6  # NB This session is missing raw ephys data and missing some datasets
+                self.assertEqual(len(files), expected)
+            finally:
+                self.one.alyx._par = self.one.alyx._par.set('CACHE_DIR', _cache)
 
 
 if __name__ == "__main__":

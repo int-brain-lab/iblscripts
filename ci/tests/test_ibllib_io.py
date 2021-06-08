@@ -5,7 +5,7 @@ import time
 import numpy as np
 
 import ibllib.io.video as vidio
-from oneibl.one import ONE
+from one.api import ONE
 from ci.tests import base
 
 
