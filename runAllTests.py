@@ -12,13 +12,13 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import List, Union
 
-from ibllib.misc.flatten import flatten
+from iblutil.util import flatten
 from ibllib.misc.version import ibllib as ver
 
 logger = logging.getLogger('ibllib')
 
 try:  # Import the test packages
-    import brainbox.tests, ci.tests, ibllib.tests, alf.tests, oneibl.tests
+    import brainbox.tests, ci.tests, ibllib.tests
 except ModuleNotFoundError as ex:
     logger.warning(f'Failed to import test packages: {ex} encountered')
 
@@ -58,7 +58,7 @@ def run_tests(complete: bool = True,
     ci_tests = unittest.TestLoader().discover(test_dir, pattern='test_*')
     if complete:  # include ibllib and brainbox unit tests
         root = Path(ibllib.__file__).parents[1]  # Search relative to our imported ibllib package
-        test_dirs = [root.joinpath(x) for x in ('brainbox', 'oneibl', 'ibllib', 'alf')]
+        test_dirs = [root.joinpath(x) for x in ('brainbox', 'ibllib')]
         for tdir in test_dirs:
             logger.info(f'Loading unit tests from folders: {tdir}')
             assert tdir.exists(), f'Failed to find unit test folders in {tdir}'
