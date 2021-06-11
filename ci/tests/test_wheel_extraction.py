@@ -52,7 +52,7 @@ class TestWheelExtractionSimpleEphys(base.IntegrationTest):
 
     def tearDown(self) -> None:
         # Restore ALF folder
-        self.session_path.joinpath('alf').unlink(missing_ok=True)
+        shutil.rmtree(self.session_path.joinpath('alf'))
         shutil.move(self.session_path.joinpath('alf.bk'), self.session_path.joinpath('alf'))
 
     def test_three_clockwise_revolutions_fpga(self):
@@ -76,7 +76,7 @@ class TestWheelExtractionSessionEphys(base.IntegrationTest):
     def tearDown(self) -> None:
         # Restore ALF folder
         for session_path in self.sessions:
-            session_path.joinpath('alf').unlink(missing_ok=True)
+            shutil.rmtree(session_path.joinpath('alf'))
             shutil.move(session_path.joinpath('alf.bk'), session_path.joinpath('alf'))
 
     def test_wheel_extraction_session(self):

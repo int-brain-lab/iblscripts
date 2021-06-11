@@ -2,8 +2,6 @@
 NB: FPGA TaskQC extractor is tested in test_ephys_extraction_choiceWorld
 """
 import unittest
-import shutil
-from pathlib import Path
 import tempfile
 
 import numpy as np

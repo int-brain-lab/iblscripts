@@ -176,7 +176,7 @@ class TestEphysPipeline(base.IntegrationTest):
         # check that we indeed find expected number of datasets after registration
         # for this we need to get the unique set of datasets
         dids = np.array([d['id'] for d in all_datasets])
-        assert set(dids).issubset(set([ds['url'][-36:] for ds in dsets]))
+        self.assertTrue(set(dids).issubset(set([ds['url'][-36:] for ds in dsets])))
         dtypes = sorted([ds['dataset_type'] for ds in dsets])
         success = True
         for ed in EXPECTED_DATASETS:
@@ -194,7 +194,7 @@ class TestEphysPipeline(base.IntegrationTest):
         extended = session_dict['extended_qc']
         self.assertTrue(any(k.startswith('_task_') for k in extended.keys()))
         # also check that the behaviour criterion was set
-        assert 'behavior' in extended
+        self.assertTrue('behavior' in extended)
         # check that the probes insertions have the json field labeled properly
         pis = one.alyx.rest('insertions', 'list', session=eid, no_cache=True)
         for pi in pis:
