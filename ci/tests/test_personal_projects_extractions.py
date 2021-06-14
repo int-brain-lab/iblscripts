@@ -79,13 +79,14 @@ class TestTrainingTaskExtraction(base.IntegrationTest):
     """
 
     def setUp(self) -> None:
-        self.one_offline = ONE(offline=True)
+        self.one_offline = ONE(mode='local')
 
     def test_biased_opto(self):
         desired_output = list(TRAINING_TRIALS_SIGNATURE) + ['_ibl_trials.laser_stimulation.npy']
         # this session has only laser stimulation labeled
         session_path = self.data_path.joinpath("personal_projects/biased_opto/ZFM-01804/2021-01-15/001")
-        shutil.move(session_path.joinpath('alf'), session_path.joinpath('alf.bk'))
+        if session_path.joinpath('alf').exists():
+            shutil.move(session_path.joinpath('alf'), session_path.joinpath('alf.bk'))
         task = TrainingTrials(session_path, one=self.one_offline)
         task.run()
         assert task.status == 0
@@ -95,9 +96,11 @@ class TestTrainingTaskExtraction(base.IntegrationTest):
         assert set([p.name for p in task.outputs]) == set(desired_output)
 
         # this session has both laser probability and laser stimulation fields labeled
-        desired_output = list(TRAINING_TRIALS_SIGNATURE) + ['_ibl_trials.laser_probability.npy', '_ibl_trials.laser_stimulation.npy']
+        desired_output = list(TRAINING_TRIALS_SIGNATURE) + \
+                         ['_ibl_trials.laser_probability.npy', '_ibl_trials.laser_stimulation.npy']
         session_path = self.data_path.joinpath("personal_projects/biased_opto/ZFM-01802/2021-02-08/001")
-        shutil.move(session_path.joinpath('alf'), session_path.joinpath('alf.bk'))
+        if session_path.joinpath('alf').exists():
+            shutil.move(session_path.joinpath('alf'), session_path.joinpath('alf.bk'))
         task = TrainingTrials(session_path, one=self.one_offline)
         task.run()
         assert task.status == 0
@@ -111,5 +114,6 @@ def check_trials_and_clean_up(session_path):
     trials = alfio.load_object(session_path.joinpath('alf'), 'trials')
     assert (alfio.check_dimensions(trials) == 0)
     shutil.rmtree(session_path.joinpath('alf'), ignore_errors=True)
-    shutil.move(session_path.joinpath('alf.bk'), session_path.joinpath('alf'))
+    if session_path.joinpath('alf.bk').exists():
+        shutil.move(session_path.joinpath('alf.bk'), session_path.joinpath('alf'))
     return trials
