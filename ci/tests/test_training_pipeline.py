@@ -3,7 +3,6 @@ from pathlib import Path
 
 from ibllib.io.extractors.base import get_session_extractor_type
 from one.api import ONE
-from one.tests import TEST_DB_1
 from ibllib.pipes import local_server
 
 from ci.tests import base
@@ -19,7 +18,7 @@ class TestPipeline(base.IntegrationTest):
         self.assertTrue(INIT_FOLDER.exists())
 
         with tempfile.TemporaryDirectory() as tdir:
-            one = ONE(**TEST_DB_1, cache_dir=tdir, cache_rest=None)
+            one = ONE(**base.TEST_DB, cache_dir=tdir, cache_rest=None)
             # create symlinks in a temporary directory
             subjects_path = Path(tdir).joinpath('mainenlab', 'Subjects')
             subjects_path.mkdir(exist_ok=True, parents=True)

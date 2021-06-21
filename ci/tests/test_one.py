@@ -2,11 +2,10 @@ import numpy as np
 
 from ibllib.io.video import VideoStreamer
 from one.api import ONE
-from one.tests import TEST_DB_1
 
-from ci.tests.base import IntegrationTest
+from ci.tests.base import IntegrationTest, TEST_DB
 
-one = ONE(**TEST_DB_1)
+one = ONE(**TEST_DB)
 
 
 class TestVideoStreamer(IntegrationTest):

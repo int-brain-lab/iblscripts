@@ -10,10 +10,9 @@ from ibllib.misc import version
 from ibllib.qc.task_metrics import TaskQC
 from ibllib.qc.task_extractors import TaskQCExtractor
 from one.api import ONE
-from one.tests import TEST_DB_1
 from ci.tests import base
 
-one = ONE(**TEST_DB_1)
+one = ONE(**base.TEST_DB)
 
 
 class TestTaskQCObject(base.IntegrationTest):

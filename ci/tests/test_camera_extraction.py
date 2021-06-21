@@ -33,7 +33,6 @@ from iblutil.util import Bunch
 import one.alf.io as alfio
 import one.params
 from one.api import ONE
-from one.tests import TEST_DB_1
 
 from ci.tests import base
 
@@ -401,7 +400,7 @@ class TestVideoQC(base.IntegrationTest):
         videos = sorted(video_path.rglob('*.mp4'))
         # Instantiate using session with a video path to fool constructor.
         # To remove once we use ONE cache file
-        one = ONE(**TEST_DB_1)
+        one = ONE(**base.TEST_DB)
         dummy_id = 'd3372b15-f696-4279-9be5-98f15783b5bb'
         qc = CameraQC(dummy_id, 'left',
                       n_samples=10, stream=False, download_data=False, one=one)
@@ -651,7 +650,7 @@ class TestWheelMotionNRG(base.IntegrationTest):
     def setUp(self) -> None:
         real_eid = '6c6983ef-7383-4989-9183-32b1a300d17a'
         self.frames = np.load(self.data_path / 'camera' / f'{real_eid}_frame_samples.npy')
-        self.one = ONE(**TEST_DB_1)
+        self.one = ONE(**base.TEST_DB)
         self.dummy_id = self.one.search(subject='flowers')[0]  # Some eid for connecting to Alyx
 
     def side_effect(self):
