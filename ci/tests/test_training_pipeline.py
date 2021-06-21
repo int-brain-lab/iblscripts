@@ -3,16 +3,13 @@ from pathlib import Path
 
 from ibllib.io.extractors.base import get_session_extractor_type
 from one.api import ONE
+from one.tests import TEST_DB_1
 from ibllib.pipes import local_server
 
 from ci.tests import base
 
-one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
-          username='test_user', password='TapetesBloc18')
-
 
 class TestPipeline(base.IntegrationTest):
-
     def test_full_pipeline(self):
         """
         Test the full Training extraction pipeline.
@@ -22,9 +19,10 @@ class TestPipeline(base.IntegrationTest):
         self.assertTrue(INIT_FOLDER.exists())
 
         with tempfile.TemporaryDirectory() as tdir:
+            one = ONE(**TEST_DB_1, cache_dir=tdir, cache_rest=None)
             # create symlinks in a temporary directory
-            subjects_path = Path(tdir).joinpath('Subjects')
-            subjects_path.mkdir(exist_ok=True)
+            subjects_path = Path(tdir).joinpath('mainenlab', 'Subjects')
+            subjects_path.mkdir(exist_ok=True, parents=True)
             for ff in INIT_FOLDER.rglob('*.*'):
                 link = subjects_path.joinpath(ff.relative_to(INIT_FOLDER))
                 if 'alf' in link.parts:
@@ -42,7 +40,7 @@ class TestPipeline(base.IntegrationTest):
             ]
             for stub in session_stubs:
                 session_path = subjects_path.joinpath(stub)
-                create_pipeline(session_path)
+                create_pipeline(session_path, one)
                 nses += 1
 
             # execute the list of jobs with the simplest scheduler possible
@@ -64,13 +62,13 @@ class TestPipeline(base.IntegrationTest):
             self.assertTrue(len(session_dict) > 0)
 
 
-def create_pipeline(session_path):
+def create_pipeline(session_path, one):
     # creates the session if necessary
     task_type = get_session_extractor_type(session_path)
     print(session_path, task_type)
     session_path.joinpath('raw_session.flag').touch()
     # delete the session if it exists
-    eid = one.path2eid(session_path)
+    eid = one.path2eid(session_path, query_type='remote')
     if eid is not None:
         one.alyx.rest('sessions', 'delete', id=eid)
     local_server.job_creator(session_path, one=one, max_md5_size=1024 * 1024 * 20)

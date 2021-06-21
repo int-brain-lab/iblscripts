@@ -1,17 +1,15 @@
 import logging
 import shutil
-from pathlib import Path
 import numpy as np
-import tempfile
 from unittest import mock
 
 import one.alf.io as alfio
 from ibllib.pipes import local_server
 from one.api import ONE
+from one.tests import TEST_DB_1
 
 from ci.tests import base
 
-CACHE_DIR = tempfile.TemporaryDirectory()
 _logger = logging.getLogger('ibllib')
 
 
@@ -19,10 +17,7 @@ class TestEphysPipeline(base.IntegrationTest):
 
     def setUp(self) -> None:
         self.session_path = self.data_path.joinpath("ephys/choice_world/KS022/2019-12-10/001")
-        # one = ONE(base_url='http://localhost:8000')
-        self.one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
-                       username='test_user', password='TapetesBloc18',
-                       cache_dir=Path(CACHE_DIR.name))
+        self.one = ONE(**TEST_DB_1, cache_dir=self.data_path)
         self.init_folder = self.data_path.joinpath('ephys', 'choice_world_init')
         if not self.init_folder.exists():
             return

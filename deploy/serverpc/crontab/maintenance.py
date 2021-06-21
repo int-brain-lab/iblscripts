@@ -61,7 +61,7 @@ def correct_passive_in_wrong_folder():
     Finds the occasions where the data has been transferred manually and the passive folder has
     has not been moved and got the correct file structure
     """
-    one = ONE()
+    one = ONE(cache_rest=None)
     lab = _get_lab(one)
     if lab[0] == 'wittenlab':
 
@@ -165,7 +165,7 @@ def spike_amplitude_patching():
                            'text': f'amps_patching_local_server2: {probe}: {msg}'}
             _ = one.alyx.rest('notes', 'create', data=status_note)
 
-    one = ONE()
+    one = ONE(cache_rest=None)
 
     for ks2_out in ROOT_PATH.rglob('spike_sorting_ks2.log'):
         ks2_path = Path(ks2_out).parent
@@ -235,7 +235,7 @@ def upload_ks2_output():
     if usage['disk_available'] < 500:
         return
 
-    one = ONE()
+    one = ONE(cache_rest=None)
 
     for ilog, ks2_out in enumerate(ROOT_PATH.rglob('spike_sorting_ks2.log')):
         # check space on disk after every 25 extractions. stop if we are running low!

@@ -88,7 +88,7 @@ def report():
     """
     Labels the lab endpoint json field with health indicators every 2 hours
     """
-    one = ONE()
+    one = ONE(cache_rest=None)
     report_health(one=one)
 
 
