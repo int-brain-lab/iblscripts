@@ -3,6 +3,7 @@ import numpy as np
 import shutil
 
 import one.alf.io as alfio
+from one.api import ONE
 from ibllib.io.extractors import ephys_fpga
 
 from ci.tests import base
@@ -97,11 +98,11 @@ class TestEphysTaskExtraction(base.IntegrationTest):
 
         from ibllib.qc.task_metrics import TaskQC
         # '/mnt/s0/Data/IntegrationTests/ephys/ephys_choice_world_task/CSP004/2019-11-27/001'
-        tqc_ephys = TaskQC(session_path)
+        tqc_ephys = TaskQC(session_path, one=ONE(mode='local'))
         tqc_ephys.extractor = ex
         _, res_ephys = tqc_ephys.run(bpod_only=False, download_data=False)
 
-        tqc_bpod = TaskQC(session_path)
+        tqc_bpod = TaskQC(session_path, one=ONE(mode='local'))
         _, res_bpod = tqc_bpod.run(bpod_only=True, download_data=False)
 
         # for a swift comparison using variable explorer
@@ -129,8 +130,8 @@ class TestEphysTrialsFPGA(base.IntegrationTest):
         session_path = init_path.joinpath("ibl_witten_27/2021-01-21/001")
         dsets, out_files = ephys_fpga.extract_all(session_path, save=True)
         # Run the task QC
-        qc = TaskQC(session_path, one=None)
-        qc.extractor = TaskQCExtractor(session_path, lazy=True, one=None)
+        qc = TaskQC(session_path, one=ONE(mode='local'))
+        qc.extractor = TaskQCExtractor(session_path, lazy=True, one=ONE(mode='local'))
         # Extr+act extra datasets required for QC
         qc.extractor.data = dsets
         qc.extractor.extract_data()

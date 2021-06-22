@@ -470,13 +470,14 @@ class TestCameraQC(base.IntegrationTest):
         )
         self._call_count = -1
         self.frames = np.array([])
+        self.one = ONE(mode='local', base_url='https://alyx.internationalbrainlab.org')
 
     def test_incomplete_session(self):
         # Verify using local path
         session_path = self.incomplete
 
         qc = CameraQC(session_path, 'left',
-                      stream=False, download_data=False, one=ONE(mode='local'), n_samples=20)
+                      stream=False, download_data=False, one=self.one, n_samples=20)
         outcome, extended = qc.run(update=False)
         self.assertEqual('FAIL', outcome)
         expected = {
@@ -514,7 +515,7 @@ class TestCameraQC(base.IntegrationTest):
         mock_ext().read.side_effect = self.side_effect()
 
         # Run QC for the left label
-        one = ONE(mode='local')
+        one = self.one
         qc = camQC.run_all_qc(session_path, cameras=('left',), stream=False, update=False, one=one,
                               n_samples=n_samples, download_data=False, extract_times=True)
         self.assertIsInstance(qc, dict)
@@ -555,7 +556,7 @@ class TestCameraQC(base.IntegrationTest):
         mock_ext().read.side_effect = self.side_effect()
 
         qc = CameraQC(session_path, 'left',
-                      stream=False, n_samples=n_samples, one=ONE(mode='local'))
+                      stream=False, n_samples=n_samples, one=self.one)
         qc.load_data(download_data=False, extract_times=True)
         outcome, extended = qc.run(update=False)
         self.assertEqual('FAIL', outcome)
