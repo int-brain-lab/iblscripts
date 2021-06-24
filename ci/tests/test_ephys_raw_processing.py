@@ -15,7 +15,9 @@ class TestEphysSpikeSortingPreProc(base.IntegrationTest):
 
     def test_pre_proc(self):
         # first makes sure the import works properly
-        import pyfftw # sudo apt-get install -y libfftw3-dev
+        import pyfftw
+        # sudo apt-get install -y libfftw3-dev
+        # pip install pyFFTW
         _logger.info("pyfftw import ok")
         cbin_file = self.data_path.joinpath('ephys/ephys_spike_sorting/adc_test.ap.cbin')
         sr = spikeglx.Reader(cbin_file, open=True)
