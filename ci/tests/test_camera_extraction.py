@@ -18,6 +18,10 @@ import shutil
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+from iblutil.util import Bunch
+import one.alf.io as alfio
+import one.params
+from one.api import ONE
 
 from ibllib.io.extractors.video_motion import MotionAlignment
 from ibllib.io.extractors.ephys_fpga import get_main_probe_sync
@@ -29,10 +33,6 @@ from ibllib.qc.base import CRITERIA
 import ibllib.io.video as vidio
 from ibllib.pipes.training_preprocessing import TrainingVideoCompress
 from ibllib.pipes.ephys_preprocessing import EphysVideoCompress
-from iblutil.util import Bunch
-import one.alf.io as alfio
-import one.params
-from one.api import ONE
 
 from ci.tests import base
 
@@ -516,6 +516,11 @@ class TestCameraQC(base.IntegrationTest):
 
         # Run QC for the left label
         one = self.one
+        # Now mock the video data so that extraction and QC succeed
+        video_path = session_path.joinpath('raw_video_data', '_iblrig_leftCamera.raw.mp4')
+        if not video_path.exists():
+            video_path.touch()
+            self.addCleanup(video_path.unlink)
         qc = camQC.run_all_qc(session_path, cameras=('left',), stream=False, update=False, one=one,
                               n_samples=n_samples, download_data=False, extract_times=True)
         self.assertIsInstance(qc, dict)
@@ -557,6 +562,8 @@ class TestCameraQC(base.IntegrationTest):
 
         qc = CameraQC(session_path, 'left',
                       stream=False, n_samples=n_samples, one=self.one)
+        # Add a dummy video path (we stub the VideoCapture class anyway)
+        qc.video_path = session_path.joinpath('raw_video_data', '_iblrig_leftCamera.raw.mp4')
         qc.load_data(download_data=False, extract_times=True)
         outcome, extended = qc.run(update=False)
         self.assertEqual('FAIL', outcome)
