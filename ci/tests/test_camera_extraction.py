@@ -470,7 +470,7 @@ class TestCameraQC(base.IntegrationTest):
         )
         self._call_count = -1
         self.frames = np.array([])
-        self.one = ONE(mode='local', base_url='https://alyx.internationalbrainlab.org')
+        self.one = ONE(mode='local', silent=True)
 
     def test_incomplete_session(self):
         # Verify using local path
