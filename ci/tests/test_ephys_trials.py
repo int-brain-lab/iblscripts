@@ -61,7 +61,10 @@ class TestEphysTaskExtraction(base.IntegrationTest):
 
     def _task_extraction_assertions(self, session_path):
         alf_path = session_path.joinpath('alf')
-        shutil.rmtree(alf_path, ignore_errors=True)
+        if alf_path.exists():
+            # Back-up alf files and restore on teardown
+            shutil.move(alf_path, alf_path.parent / 'alf.bk')
+            self.addCleanup(lambda: shutil.move(alf_path.parent / 'alf.bk', alf_path))
         # this gets the full output
         ephys_fpga.extract_all(session_path, save=True, bin_exists=False)
         # check that the output is complete
