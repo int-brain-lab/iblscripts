@@ -277,8 +277,7 @@ class TestEphysPipeline(base.IntegrationTest):
 
     def tearDown(self) -> None:
         if self.main_folder.exists():
-            shutil.rmtree(self.main_folder)
-            self.main_folder.rmdir()
+            shutil.rmtree(self.main_folder.parent)
 
 
 if __name__ == "__main__":
