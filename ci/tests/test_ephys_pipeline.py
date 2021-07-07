@@ -15,15 +15,15 @@ _logger = logging.getLogger('ibllib')
 class TestEphysPipeline(base.IntegrationTest):
 
     def setUp(self) -> None:
-        self.session_path = self.data_path.joinpath("ephys/choice_world/KS022/2019-12-10/001")
-        self.one = ONE(**base.TEST_DB, cache_dir=self.data_path)
+        self.one = ONE(**base.TEST_DB, cache_dir=self.data_path / 'ephys')
         self.init_folder = self.data_path.joinpath('ephys', 'choice_world_init')
         if not self.init_folder.exists():
             return
-        self.main_folder = self.data_path.joinpath('ephys', 'choice_world')
+        self.main_folder = self.data_path.joinpath('ephys', 'cortexlab', 'Subjects')
+        self.session_path = self.main_folder.joinpath('KS022', '2019-12-10', '001')
         if self.main_folder.exists():
             shutil.rmtree(self.main_folder)
-        self.main_folder.mkdir(exist_ok=True)
+        self.main_folder.mkdir(exist_ok=True, parents=True)
         for ff in self.init_folder.rglob('*.*'):
             link = self.main_folder.joinpath(ff.relative_to(self.init_folder))
             if 'alf' in link.parts:
@@ -274,6 +274,11 @@ class TestEphysPipeline(base.IntegrationTest):
                 # the difference is within 2 uV
                 assert np.nanmax(np.abs((spikes.depths - np.squeeze(expected_depths)))) < .01
                 _logger.info('checked ' + '/'.join(fdepths.parts[-2:]))
+
+    def tearDown(self) -> None:
+        if self.main_folder.exists():
+            shutil.rmtree(self.main_folder)
+            self.main_folder.rmdir()
 
 
 if __name__ == "__main__":
