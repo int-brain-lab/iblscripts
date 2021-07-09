@@ -15,7 +15,7 @@ _logger = logging.getLogger('ibllib')
 class TestEphysPipeline(base.IntegrationTest):
 
     def setUp(self) -> None:
-        self.one = ONE(**base.TEST_DB, cache_dir=self.data_path / 'ephys')
+        self.one = ONE(**base.TEST_DB, cache_dir=self.data_path / 'ephys', cache_rest=None)
         self.init_folder = self.data_path.joinpath('ephys', 'choice_world_init')
         if not self.init_folder.exists():
             return
