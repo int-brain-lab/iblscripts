@@ -6,7 +6,7 @@ from scipy.signal import butter, filtfilt
 import scipy.interpolate
 import matplotlib.pyplot as plt
 
-import one.alf.io as alfio
+from one.alf.files import get_session_path
 from ibllib.io.extractors import ephys_fpga, training_wheel
 
 from ci.tests import base
@@ -101,7 +101,7 @@ class TestWheelExtractionTraining(base.IntegrationTest):
 
     def test_wheel_extraction_training(self):
         for rbf in self.root_path.rglob('raw_behavior_data'):
-            session_path = alfio.get_session_path(rbf)
+            session_path = get_session_path(rbf)
             _logger.info(f"TRAINING: {session_path}")
             bpod_t, _ = training_wheel.get_wheel_position(session_path)
             self.assertTrue(bpod_t.size)

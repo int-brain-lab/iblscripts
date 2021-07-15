@@ -6,7 +6,7 @@ import logging
 import json
 
 from iblutil.io import params
-import one.alf.folders as alf_folders
+from one.alf.files import get_session_path
 from one.api import ONE
 
 
@@ -53,7 +53,7 @@ def list_current_sessions(one=None):
         return filter(lambda x: x is not None, itr)
     one = one or ONE()
     root = IntegrationTest.default_data_root()
-    folders = set(alf_folders.session_path(x[0]) for x in os.walk(root))
+    folders = set(get_session_path(x[0]) for x in os.walk(root))
     eids = not_null(one.path2eid(x) for x in not_null(folders))
     return set(eids)
 
