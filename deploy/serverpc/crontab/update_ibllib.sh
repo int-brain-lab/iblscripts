@@ -3,7 +3,7 @@ set -e
 # first step is to update iblscripts
 cd ~/Documents/PYTHON/iblscripts
 git fetch --all
-git checkout -f master
+git checkout -f ONE2
 git reset --hard
 git pull
 # second step is to update ibllib
@@ -23,4 +23,5 @@ pip uninstall -y ibllib
 pip uninstall -y phylib
 pip install git+https://github.com/cortex-lab/phylib.git@ibl_tests
 pip install git+https://github.com/int-brain-lab/ibllib.git@$branch --upgrade-strategy eager
+pip install -U git+https://github.com/int-brain-lab/ONE.git
 pip install pyfftw
