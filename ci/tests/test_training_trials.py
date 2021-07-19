@@ -8,8 +8,8 @@ import numpy as np
 from ibllib.misc import version
 from ibllib.pipes.training_preprocessing import TrainingTrials
 import ibllib.io.raw_data_loaders as rawio
-from oneibl.one import OneOffline
-import alf.io
+from one.api import One
+import one.alf.io as alfio
 
 from ci.tests import base
 
@@ -40,7 +40,7 @@ class TestSessions(base.IntegrationTest):
         self.INIT_FOLDER = self.data_path.joinpath('training')
         if not self.INIT_FOLDER.exists():
             raise FileNotFoundError(f'Fixture {self.INIT_FOLDER.absolute()} does not exist')
-        self.one = OneOffline()
+        self.one = One(mode='local')
 
     def test_trials_extraction(self):
         # extract all sessions
@@ -53,8 +53,8 @@ class TestSessions(base.IntegrationTest):
                 job = TrainingTrials(session_path, one=self.one)
                 job.run()
                 # check the trials objects
-                trials = alf.io.load_object(session_path / 'alf', 'trials')
-                self.assertTrue(alf.io.check_dimensions(trials) == 0)
+                trials = alfio.load_object(session_path / 'alf', 'trials')
+                self.assertTrue(alfio.check_dimensions(trials) == 0)
                 settings = rawio.load_settings(session_path)
                 if version.ge(settings['IBLRIG_VERSION_TAG'], '5.0.0'):
                     tkeys = TRIAL_KEYS_ge5
@@ -63,8 +63,8 @@ class TestSessions(base.IntegrationTest):
                 self.assertTrue(set(trials.keys()) == set(tkeys))
                 # check the wheel object if the extraction didn't fail
                 if job.status != -1:
-                    wheel = alf.io.load_object(session_path / 'alf', 'wheel')
-                    self.assertTrue(alf.io.check_dimensions(wheel) == 0)
+                    wheel = alfio.load_object(session_path / 'alf', 'wheel')
+                    self.assertTrue(alfio.check_dimensions(wheel) == 0)
                     self.assertTrue(set(wheel.keys()) == set(WHEEL_KEYS))
             """
             For this session only the downgoing front of a trial was detected, resulting in
@@ -72,7 +72,7 @@ class TestSessions(base.IntegrationTest):
              subtract 100ms.
             """
             session_path = subjects_path / "CSHL_007/2019-07-31/001"
-            trials = alf.io.load_object(session_path / 'alf', 'trials')
+            trials = alfio.load_object(session_path / 'alf', 'trials')
             self.assertTrue(np.all(np.logical_not(np.isnan(trials.goCue_times))))
 
 

@@ -20,7 +20,7 @@ coverage erase  # Be extra careful and erase previous coverage
 source=$(pip show ibllib | awk -F':' '$1 == "Location" { print $2 }' | xargs)
 
 pkgs=''
-for pkg in 'ibllib' 'oneibl' 'brainbox' 'alf'
+for pkg in 'ibllib' 'brainbox'
 do
    #pkgs+="${source}/${pkg},"
    pkgs+="${pkg},"

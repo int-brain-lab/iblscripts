@@ -3,10 +3,11 @@ import os
 from pathlib import Path
 from functools import wraps
 import logging
+import json
 
-from ibllib.io import params
-import alf.folders
-from oneibl.one import ONE
+from iblutil.io import params
+from one.alf.files import get_session_path
+from one.api import ONE
 
 
 class IntegrationTest(unittest.TestCase):
@@ -52,8 +53,8 @@ def list_current_sessions(one=None):
         return filter(lambda x: x is not None, itr)
     one = one or ONE()
     root = IntegrationTest.default_data_root()
-    folders = set(alf.folders.session_path(x[0]) for x in os.walk(root))
-    eids = not_null(one.eid_from_path(x) for x in not_null(folders))
+    folders = set(get_session_path(x[0]) for x in os.walk(root))
+    eids = not_null(one.path2eid(x) for x in not_null(folders))
     return set(eids)
 
 
@@ -78,3 +79,20 @@ def disable_log(level=logging.CRITICAL, restore_level=None, quiet=False):
             return output
         return wrapper
     return decorator
+
+
+def _get_test_db():
+    db_json = os.getenv('TEST_DB_CONFIG', None)
+    if db_json:
+        with open(db_json, 'r') as f:
+            return json.load(f)
+    else:
+        return {
+            'base_url': 'https://test.alyx.internationalbrainlab.org',
+            'username': 'test_user',
+            'password': 'TapetesBloc18',
+            'silent': True
+        }
+
+
+TEST_DB = _get_test_db()

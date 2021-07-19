@@ -2,8 +2,8 @@ import time
 from datetime import datetime, timedelta
 import logging
 
-from ibllib.io import params, globus
-from ibllib.io.globus import as_globus_path
+from iblutil.io import params
+from ibllib.io import globus
 
 import globus_sdk
 from globus_sdk.exc import TransferAPIError
@@ -21,7 +21,7 @@ GLOBUS_CLIENT_ID = p.GLOBUS_CLIENT_ID
 DST_DIR = params.read('ibl_ci', {'data_root': '.'}).data_root
 # Constants
 SRC_DIR = '/integration'
-POLL = (5, 60 * 60)  # min max seconds between pinging server
+POLL = (5, 60 * 2)  # min max seconds between pinging server
 TIMEOUT = 24 * 60 * 60  # seconds before timeout
 status_map = {
     'ACTIVE': ('QUEUED', 'ACTIVE'),
@@ -44,7 +44,7 @@ except TransferAPIError as ex:
     raise ex
 
 # Create the destination path if it does not exist
-dst_directory = as_globus_path(DST_DIR)
+dst_directory = globus.as_globus_path(DST_DIR)
 
 try:
     gtc.operation_ls(LOCAL_REPO, path=dst_directory)
@@ -103,6 +103,7 @@ while running:
     if files_skipped != tr.data['files_skipped']:
         files_skipped = tr.data['files_skipped']
         logger.info(f'Skipping {files_skipped} files....')
+        poll = POLL[0]
     if last_status != status or files_transferred != tr.data['files_transferred']:
         files_transferred = tr.data['files_transferred']
         total_files = tr.data['files'] - tr.data['files_skipped']
