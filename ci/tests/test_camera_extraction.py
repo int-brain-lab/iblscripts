@@ -239,23 +239,45 @@ class TestEphysCameraExtractor(base.IntegrationTest):
     def setUp(self) -> None:
         self.ephys_eid = '6c6983ef-7383-4989-9183-32b1a300d17a'
         self.session_path = self.data_path / 'camera' / 'SWC_054' / '2020-10-07' / '001'
+        self.groom_session_path = self.data_path.joinpath('ephys', 'ephys_choice_world_task',
+                                                          'ibl_witten_27', '2021-01-21', '001')
         self.n_frames = OrderedDict(left=255617, right=641484, body=128035)
         backend = matplotlib.get_backend()
         matplotlib.use('Agg')  # Use non-interactive backend
         self.addCleanup(matplotlib.use, backend)
         self.addCleanup(plt.close, 'all')
 
+    def tearDown(self) -> None:
+        self._remove_frameData_file(self.groom_session_path, label='left')
+        self._remove_frameData_file(self.session_path, label='left')
+        self._remove_frameData_file(self.session_path, label='body')
+        self._remove_frameData_file(self.session_path, label='right')
+        return super().tearDown()
+
     # @unittest.skip
     # def test_load_embedded_frame_data(self):
     #     # eid = 'c7832bca-5cfb-4676-a1ec-f87cd7640ae5'  # messed up pin state
     #     pass
 
-    def test_groom_pin_state(self):
+    def _make_frameData_file(self, session_path, label='left'):
+        bns_ts, cam_ts = raw.load_camera_ssv_times(session_path, camera=label)
+        bns_ts = bns_ts.astype(np.uint32)
+        cam_ts = cam_ts.astype(np.uint32)
+        fc = raw.load_camera_frame_count(session_path, 'left').astype(np.uint32)
+        GPIO_file = session_path.joinpath('raw_video_data', f'_iblrig_{label}Camera.GPIO.bin')
+        raw_gpio = np.fromfile(GPIO_file, dtype=np.float64).astype(np.uint32)
+        np.concatenate([bns_ts, cam_ts, fc, raw_gpio], axis=0).astype(np.float64).tofile(
+            session_path / 'raw_video_data' / f'_iblrig_{label}Camera.frameData.bin')
+
+    def _remove_frameData_file(self, session_path, label='left'):
+        f = session_path.joinpath('raw_video_data', f'_iblrig_{label}Camera.frameData.bin')
+        if f.exists():
+            f.unlink()
+
+    def _groom_pin_state(self):
         # ibl_witten_27\2021-01-14\001  # Can't assign a pin state
         # CSK-im-002\2021-01-16\001  # Another example
-        root = self.data_path
-        session_path = root.joinpath('ephys', 'ephys_choice_world_task',
-                                     'ibl_witten_27', '2021-01-21', '001')
+        session_path = self.groom_session_path
         _, ts = raw.load_camera_ssv_times(session_path, 'left')
         _, (*_, gpio) = raw.load_embedded_frame_data(session_path, 'left')
         bpod_trials = raw.load_data(session_path)
@@ -279,8 +301,20 @@ class TestEphysCameraExtractor(base.IntegrationTest):
         gpio_, *_ = camio.groom_pin_state(gpio, audio, ts_short)
         self.assertFalse(np.any(gpio_['indices'] >= ts.size))
 
+    def test_groom_pin_state(self):
+        self._groom_pin_state()
+        self._make_frameData_file(self.groom_session_path, label='left')
+        self._groom_pin_state()
+
+    def test_extract_all(self):
+        self._extract_all()
+        self._make_frameData_file(self.session_path, label='left')
+        self._make_frameData_file(self.session_path, label='body')
+        self._make_frameData_file(self.session_path, label='right')
+        self._extract_all()
+
     @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
-    def test_extract_all(self, mock_vc):
+    def _extract_all(self, mock_vc):
         mock_vc().get.side_effect = self.n_frames.values()
 
         out, fil = camio.extract_all(self.session_path, save=False)
