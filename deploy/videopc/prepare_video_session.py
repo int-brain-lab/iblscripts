@@ -8,7 +8,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from alf.folders import next_num_folder
+from one.alf.io import next_num_folder
 from ibllib.pipes.misc import load_videopc_params
 
 import config_cameras as cams

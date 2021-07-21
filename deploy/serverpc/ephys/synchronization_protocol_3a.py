@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.cbook import flatten
 import cv2  # pip install opencv-python
-import alf.io
+import one.alf.io as alfio
 import ibllib.io.spikeglx
 import ibllib.plots
 import ibllib.io.extractors.ephys_fpga as ephys_fpga
@@ -74,8 +74,8 @@ def get_ephys_data(raw_ephys_apfile, label=''):
     Note: sr must be closed after reading data
     """
 
-    if alf.io.exists(raw_ephys_apfile.parent, '_spikeglx_sync', glob=[label]):
-        sync = alf.io.load_object(raw_ephys_apfile.parent, '_spikeglx_sync',
+    if alfio.exists(raw_ephys_apfile.parent, '_spikeglx_sync', glob=[label]):
+        sync = alfio.load_object(raw_ephys_apfile.parent, '_spikeglx_sync',
                                   glob=[label], short_keys=True)
     else:
         sync = ephys_fpga._sync_to_alf(raw_ephys_apfile, parts=label, save=False)

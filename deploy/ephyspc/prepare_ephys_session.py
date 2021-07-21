@@ -6,7 +6,7 @@ import argparse
 import datetime
 from pathlib import Path
 
-from alf.folders import next_num_folder
+from one.alf.io import next_num_folder
 from ibllib.pipes.misc import load_ephyspc_params
 
 

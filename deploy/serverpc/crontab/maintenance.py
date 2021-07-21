@@ -3,16 +3,18 @@ import logging
 import os
 from datetime import datetime
 import shutil
+
 import numpy as np
-from oneibl.one import ONE
-import alf.io
+from one.api import ONE
+from one.alf.files import get_session_path
+
 import ibllib.io.raw_data_loaders as raw
 from ibllib.ephys import spikes
 from ibllib.pipes.local_server import _get_lab
 from ibllib.io import spikeglx
 from ibllib.pipes.ephys_preprocessing import SpikeSorting_KS2_Matlab, EphysCellsQc
-from oneibl.registration import register_dataset
-from ibllib.pipes.local_server import _run_command, _get_volume_usage
+from ibllib.oneibl.registration import register_dataset
+from ibllib.pipes.local_server import _get_volume_usage
 
 ROOT_PATH = Path('/mnt/s0/Data/Subjects')
 
@@ -26,7 +28,7 @@ def correct_ephys_manual_video_copies():
         video = True
         passive = True
         behaviour = True
-        session_path = alf.io.get_session_path(flag)
+        session_path = get_session_path(flag)
         avi_files = list(session_path.joinpath('raw_video_data').glob('*.avi'))
 
         if len(avi_files) < 3:
@@ -45,7 +47,7 @@ def correct_flags_biased_in_ephys_rig():
     """
     N_DAYS = 7
     for flag in ROOT_PATH.rglob('video_data_transferred.flag'):
-        session_path = alf.io.get_session_path(flag)
+        session_path = get_session_path(flag)
         ses_date = datetime.strptime(session_path.parts[-2], "%Y-%M-%d")
         if (datetime.now() - ses_date).days > N_DAYS:
             settings = raw.load_settings(session_path)
@@ -66,7 +68,7 @@ def correct_passive_in_wrong_folder():
     if lab[0] == 'wittenlab':
 
         for flag in ROOT_PATH.rglob('passive_data_for_ephys.flag'):
-            passive_data_path = alf.io.get_session_path(flag)
+            passive_data_path = get_session_path(flag)
             passive_session = passive_data_path.stem
             passive_folder = passive_data_path.joinpath('raw_behavior_data')
             sessions = os.listdir(passive_data_path.parent)
@@ -182,7 +184,7 @@ def spike_amplitude_patching():
         ks2_path.joinpath('amps_patching_local_server2.flag').touch()
 
         # Now proceed with everything else
-        session_path = alf.io.get_session_path(ks2_out)
+        session_path = get_session_path(ks2_out)
         eid = one.eid_from_path(session_path)
         if eid is None:
             # Skip sessions that don't exist on alyx!
@@ -245,7 +247,7 @@ def upload_ks2_output():
                 return
 
         ks2_path = Path(ks2_out).parent
-        session_path = alf.io.get_session_path(ks2_out)
+        session_path = get_session_path(ks2_out)
 
         probe = ks2_path.stem
         tar_dir = session_path.joinpath('spike_sorters', 'ks2_matlab', probe)
