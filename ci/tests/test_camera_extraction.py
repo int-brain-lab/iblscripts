@@ -259,15 +259,37 @@ class TestEphysCameraExtractor(base.IntegrationTest):
     #     # eid = 'c7832bca-5cfb-4676-a1ec-f87cd7640ae5'  # messed up pin state
     #     pass
 
-    def _make_frameData_file(self, session_path, label='left'):
-        bns_ts, cam_ts = raw.load_camera_ssv_times(session_path, camera=label)
-        bns_ts = bns_ts.astype(np.uint32)
-        cam_ts = cam_ts.astype(np.uint32)
-        fc = raw.load_camera_frame_count(session_path, 'left').astype(np.uint32)
+    def _make_frameData_file(self, session_path, label='left') -> np.array:
+        """
+        Creates a frameData file from old timestamps, gpio and frame_counter files
+        for testing purposes
+        :param session_path: Path to the session to which the frameData file belongs
+        :param label: Label of the frameData file (left, right, body)
+        :return: A numpy array of the frameData file
+        """
+        fpath = next(session_path.rglob(f'_iblrig_{label.lower()}Camera.timestamps*.ssv'), None)
+        bns_ts, _ = raw.load_camera_ssv_times(session_path, camera=label)
+        # Need to load the raw camera ts data from the file, apply fix for wrong order
+        with open(fpath, 'r') as f:
+            line = f.readline()
+        type_map = OrderedDict(bonsai='<M8[ns]', camera='<u4')
+        try:
+            int(line.split(' ')[1])
+        except ValueError:
+            type_map.move_to_end('bonsai')
+        ssv_params = dict(names=type_map.keys(), dtype=','.join(type_map.values()), delimiter=' ')
+        ssv_times = np.genfromtxt(fpath, **ssv_params)  # np.loadtxt is slower for some reason
+        cam_ts = ssv_times['camera']
+        # Cast to floats to avoid type errors in reloading the data
+        bns_ts = bns_ts.astype(np.float64)
+        cam_ts = cam_ts.astype(np.float64)
+        fc = raw.load_camera_frame_count(session_path, label).astype(np.float64)
         GPIO_file = session_path.joinpath('raw_video_data', f'_iblrig_{label}Camera.GPIO.bin')
-        raw_gpio = np.fromfile(GPIO_file, dtype=np.float64).astype(np.uint32)
-        np.concatenate([bns_ts, cam_ts, fc, raw_gpio], axis=0).astype(np.float64).tofile(
+        raw_gpio = np.fromfile(GPIO_file, dtype=np.float64).astype(np.float64)
+        out = np.vstack((bns_ts, cam_ts, fc[:len(cam_ts)], raw_gpio[:len(cam_ts)])).T
+        out.astype(np.float64).tofile(
             session_path / 'raw_video_data' / f'_iblrig_{label}Camera.frameData.bin')
+        return out
 
     def _remove_frameData_file(self, session_path, label='left'):
         f = session_path.joinpath('raw_video_data', f'_iblrig_{label}Camera.frameData.bin')
@@ -303,26 +325,32 @@ class TestEphysCameraExtractor(base.IntegrationTest):
 
     def test_groom_pin_state(self):
         self._groom_pin_state()
-        self._make_frameData_file(self.groom_session_path, label='left')
+        # Create a frameData file from old timestamps, gpio, and frame_counter files
+        data = self._make_frameData_file(self.groom_session_path, label='left')
+        # Rerun same test
         self._groom_pin_state()
 
-    def test_extract_all(self):
-        self._extract_all()
+    @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
+    def test_extract_all_bin_file(self, mock_vc):
+        mock_vc().get.side_effect = self.n_frames.values()
+
         self._make_frameData_file(self.session_path, label='left')
-        self._make_frameData_file(self.session_path, label='body')
         self._make_frameData_file(self.session_path, label='right')
-        self._extract_all()
+        self._make_frameData_file(self.session_path, label='body')
+
+        out, fil = camio.extract_all(self.session_path, save=False)
+        self.assertTrue(len(out), 3)
+        self.assertFalse(fil)
+
 
     @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
-    def _extract_all(self, mock_vc):
+    def test_extract_all(self, mock_vc):
         mock_vc().get.side_effect = self.n_frames.values()
 
         out, fil = camio.extract_all(self.session_path, save=False)
         self.assertTrue(len(out), 3)
         self.assertFalse(fil)
 
-        with self.assertRaises(ValueError):
-            camio.extract_all(self.session_path, save=False, session_type='fake')
         with self.assertRaises(ValueError):
             camio.extract_all(self.session_path, save=False, labels=('head', 'tail', 'front'))
 
