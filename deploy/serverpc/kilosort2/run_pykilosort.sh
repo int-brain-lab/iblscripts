@@ -1,6 +1,14 @@
 #!/bin/bash
-export PATH=/usr/local/cuda-10.0/bin:$PATH
-export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:/usr/local/cuda-10.0/extras/CUPTI/lib64:/lib/nccl/cuda-10.0:$LD_LIBRARY_PATH; echo /usr/local/cuda-10.0
-source ~/Documents/PYTHON/envs/pyks/bin/activate
+
+#!/bin/bash
+# task_ks2_matlab /folder/to/raw/ephys/file /scratch/folder
+CUDA_VERSION=10.0  # this is the CUDA version compatible with the Matlab executable
+SCRATCH_DRIVE=/home/olivier/scratch  # this is the path of the scratch SSD volume for intermediate KS2 results swapping
+
+# --------------- DO NOT EDIT BELOW
+# sets the library path for cuda
+export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:/lib/nccl/cuda-$CUDA_VERSION:$LD_LIBRARY_PATH;
+source ~/anaconda3/etc/profile.d/conda.sh
+conda activate pyks2
 #python --version
-python ~/Documents/PYTHON/00_IBL/iblscripts/deploy/serverpc/kilosort2/run_pykilosort.py $1
+python ~/Documents/PYTHON/00_IBL/iblscripts/deploy/serverpc/kilosort2/run_pykilosort.py $1 $SCRATCH_DRIVE
