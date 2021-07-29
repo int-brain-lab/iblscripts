@@ -8,7 +8,7 @@ import numpy as np
 from one.alf.files import get_session_path
 from ibllib.io import spikeglx
 import ibllib.dsp.voltage as voltage
-import ibllib.ephys as ephys
+from ibllib.ephys import spikes, neuropixel
 from pykilosort import add_default_handler, run, Bunch
 
 _logger = logging.getLogger("pykilosort")
@@ -29,7 +29,7 @@ def run_spike_sorting_ibl(bin_file, delete=True, version=1):
     add_default_handler(level='DEBUG')
     add_default_handler(level='DEBUG', filename=bin_file.parent.joinpath(f"{START_TIME.isoformat()}_kilosort.log"))
 
-    h = ephys.neuropixel.trace_header(version=version)
+    h = neuropixel.trace_header(version=version)
     probe = Bunch()
     probe.NchanTOT = 385
     probe.chanMap = np.arange(384)
@@ -90,4 +90,4 @@ if __name__ == "__main__":
     # convert the pykilosort output to ALF IBL format
     ks_path = bin_destriped.parent.joinpath('output')
     s2v = _sample2v(cbin_file)
-    ephys.spikes.ks2_to_alf(ks_path, bin_destriped, alf_dir, ampfactor=s2v)
+    spikes.ks2_to_alf(ks_path, bin_destriped, alf_dir, ampfactor=s2v)
