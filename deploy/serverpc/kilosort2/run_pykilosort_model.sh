@@ -7,8 +7,8 @@ SCRATCH_DRIVE=/home/olivier/scratch  # this is the path of the scratch SSD volum
 
 # --------------- DO NOT EDIT BELOW
 # sets the library path for cuda
-export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:/lib/nccl/cuda-$CUDA_VERSION:$LD_LIBRARY_PATH;
+
 source ~/anaconda3/etc/profile.d/conda.sh
 conda activate pyks2
-#python --version
+export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:/lib/nccl/cuda-$CUDA_VERSION:$LD_LIBRARY_PATH;
 python ~/Documents/PYTHON/00_IBL/iblscripts/deploy/serverpc/kilosort2/run_pykilosort.py $1 $SCRATCH_DRIVE

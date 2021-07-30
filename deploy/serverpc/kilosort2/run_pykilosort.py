@@ -24,6 +24,7 @@ def run_spike_sorting_ibl(bin_file, delete=True, version=1):
     """
     This runs the spike sorting and outputs the raw pykilosort without ALF conversion
     """
+    bin_file = Path(bin_file)
     START_TIME = datetime.datetime.now()
 
     add_default_handler(level='DEBUG')
@@ -44,6 +45,7 @@ def run_spike_sorting_ibl(bin_file, delete=True, version=1):
             shutil.rmtree(bin_file.parent.joinpath(".kilosort"))
     except Exception as e:
         _logger.exception("Error in the main loop")
+        raise e
 
     [_logger.removeHandler(h) for h in _logger.handlers]
 
@@ -80,7 +82,10 @@ if __name__ == "__main__":
 
     # run pre-processing
     bin_destriped = temp_dir.joinpath(cbin_file.name).with_suffix('.bin')
-    voltage.decompress_destripe_cbin(sr=cbin_file, output_file=bin_destriped)
+    if bin_destriped.exists():
+        print('skip pre-proc')
+    else:
+        voltage.decompress_destripe_cbin(sr=cbin_file, output_file=bin_destriped)
     if not bin_destriped.with_suffix('.meta').exists():
         bin_destriped.with_suffix('.meta').symlink_to(cbin_file.with_suffix('.meta'))
 
