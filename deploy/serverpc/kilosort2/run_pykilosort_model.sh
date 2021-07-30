@@ -3,7 +3,7 @@
 #!/bin/bash
 # task_ks2_matlab /folder/to/raw/ephys/file /scratch/folder
 CUDA_VERSION=10.0  # this is the CUDA version compatible with the Matlab executable
-SCRATCH_DRIVE=/home/olivier/scratch  # this is the path of the scratch SSD volume for intermediate KS2 results swapping
+SCRATCH_DRIVE=/mnt/h0  # this is the path of the scratch SSD volume for intermediate KS2 results swapping
 
 # --------------- DO NOT EDIT BELOW
 # sets the library path for cuda
