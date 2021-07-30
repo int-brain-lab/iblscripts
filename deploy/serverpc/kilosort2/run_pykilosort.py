@@ -20,15 +20,17 @@ def _sample2v(ap_file):
     return s2v["ap"][0]
 
 
-def run_spike_sorting_ibl(bin_file, delete=True, version=1):
+def run_spike_sorting_ibl(bin_file, delete=True, version=1, alf_path=None):
     """
     This runs the spike sorting and outputs the raw pykilosort without ALF conversion
     """
-    bin_file = Path(bin_file)
     START_TIME = datetime.datetime.now()
+    bin_file = Path(bin_file)
+    log_file = bin_file.parent.joinpath(f"{START_TIME.isoformat()}_kilosort.log")
+    log_file.parent.mkdir(exist_ok=True, parents=True)
 
     add_default_handler(level='DEBUG')
-    add_default_handler(level='DEBUG', filename=bin_file.parent.joinpath(f"{START_TIME.isoformat()}_kilosort.log"))
+    add_default_handler(level='DEBUG', filename=log_file)
 
     h = neuropixel.trace_header(version=version)
     probe = Bunch()
@@ -48,6 +50,13 @@ def run_spike_sorting_ibl(bin_file, delete=True, version=1):
         raise e
 
     [_logger.removeHandler(h) for h in _logger.handlers]
+    shutil.move(log_file, bin_file.parent.joinpath('output', 'spike_sorting_pykilosort.log'))
+
+    # convert the pykilosort output to ALF IBL format
+    if alf_path is not None:
+        s2v = _sample2v(bin_file)
+        alf_path.mkdir(exist_ok=True, parents=True)
+        spikes.ks2_to_alf(bin_file.parent.joinpath('output'), bin_destriped, alf_dir, ampfactor=s2v)
 
 
 if __name__ == "__main__":
@@ -91,11 +100,5 @@ if __name__ == "__main__":
     # run pykilosort
     run_spike_sorting_ibl(bin_destriped, delete=DELETE, version=1)
 
-    # convert the pykilosort output to ALF IBL format
-    ks_path = bin_destriped.parent.joinpath('output')
-    s2v = _sample2v(cbin_file)
-    alf_dir.mkdir(exist_ok=True, parents=True)
-    spikes.ks2_to_alf(ks_path, bin_destriped, alf_dir, ampfactor=s2v)
-
     # mop-up all temporary files
-    shutil.rmtree(bin_destriped.parent)
+    # shutil.rmtree(bin_destriped.parent)
