@@ -52,7 +52,6 @@ def run_spike_sorting_ibl(bin_file, delete=True, version=1):
 
 if __name__ == "__main__":
     """
-
     directory structure example:
         input file: ./CSH_ZAD_029/2020-09-09/001/raw_ephys_data/probe00/_spikeglx_ephysData_g0_t0.nidq.cbin
         session_path: ./CSH_ZAD_029/2020-09-09/001
@@ -95,4 +94,8 @@ if __name__ == "__main__":
     # convert the pykilosort output to ALF IBL format
     ks_path = bin_destriped.parent.joinpath('output')
     s2v = _sample2v(cbin_file)
+    alf_dir.mkdir(exist_ok=True, parents=True)
     spikes.ks2_to_alf(ks_path, bin_destriped, alf_dir, ampfactor=s2v)
+
+    # mop-up all temporary files
+    shutil.rmtree(bin_destriped.parent)
