@@ -101,4 +101,4 @@ if __name__ == "__main__":
     run_spike_sorting_ibl(bin_destriped, delete=DELETE, version=1)
 
     # mop-up all temporary files
-    # shutil.rmtree(bin_destriped.parent)
+    shutil.rmtree(bin_destriped.parent)
