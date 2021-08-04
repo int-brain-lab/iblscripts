@@ -2,7 +2,8 @@ import logging
 import numpy as np
 import shutil
 
-import alf.io
+import one.alf.io as alfio
+from one.api import ONE
 from ibllib.io.extractors import ephys_fpga
 
 from ci.tests import base
@@ -60,7 +61,10 @@ class TestEphysTaskExtraction(base.IntegrationTest):
 
     def _task_extraction_assertions(self, session_path):
         alf_path = session_path.joinpath('alf')
-        shutil.rmtree(alf_path, ignore_errors=True)
+        if alf_path.exists():
+            # Back-up alf files and restore on teardown
+            shutil.move(alf_path, alf_path.parent / 'alf.bk')
+            self.addCleanup(lambda: shutil.move(alf_path.parent / 'alf.bk', alf_path))
         # this gets the full output
         ephys_fpga.extract_all(session_path, save=True, bin_exists=False)
         # check that the output is complete
@@ -70,13 +74,13 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         for f in FPGA_FILES:
             self.assertTrue(alf_path.joinpath(f).exists())
         # check dimensions after alf load
-        alf_trials = alf.io.load_object(alf_path, 'trials')
-        self.assertTrue(alf.io.check_dimensions(alf_trials) == 0)
+        alf_trials = alfio.load_object(alf_path, 'trials')
+        self.assertTrue(alfio.check_dimensions(alf_trials) == 0)
         # go deeper and check the internal fpga trials structure consistency
         sync, chmap = ephys_fpga.get_main_probe_sync(session_path, bin_exists=False)
         fpga_trials = ephys_fpga.extract_behaviour_sync(sync, chmap)
         # check dimensions
-        self.assertEqual(alf.io.check_dimensions(fpga_trials), 0)
+        self.assertEqual(alfio.check_dimensions(fpga_trials), 0)
         # check that the stimOn < stimFreeze < stimOff
         self.assertTrue(
             np.all(fpga_trials['stimOn_times'][:-1] < fpga_trials['stimOff_times'][:-1]))
@@ -97,11 +101,11 @@ class TestEphysTaskExtraction(base.IntegrationTest):
 
         from ibllib.qc.task_metrics import TaskQC
         # '/mnt/s0/Data/IntegrationTests/ephys/ephys_choice_world_task/CSP004/2019-11-27/001'
-        tqc_ephys = TaskQC(session_path)
+        tqc_ephys = TaskQC(session_path, one=ONE(mode='local'))
         tqc_ephys.extractor = ex
         _, res_ephys = tqc_ephys.run(bpod_only=False, download_data=False)
 
-        tqc_bpod = TaskQC(session_path)
+        tqc_bpod = TaskQC(session_path, one=ONE(mode='local'))
         _, res_bpod = tqc_bpod.run(bpod_only=True, download_data=False)
 
         # for a swift comparison using variable explorer
@@ -116,8 +120,6 @@ class TestEphysTaskExtraction(base.IntegrationTest):
                 ok = False
                 print(f"{k} bpod: {res_bpod[k]}, ephys: {res_ephys[k]}")
         assert ok
-
-
         shutil.rmtree(alf_path, ignore_errors=True)
 
 
@@ -131,8 +133,8 @@ class TestEphysTrialsFPGA(base.IntegrationTest):
         session_path = init_path.joinpath("ibl_witten_27/2021-01-21/001")
         dsets, out_files = ephys_fpga.extract_all(session_path, save=True)
         # Run the task QC
-        qc = TaskQC(session_path, one=None)
-        qc.extractor = TaskQCExtractor(session_path, lazy=True, one=None)
+        qc = TaskQC(session_path, one=ONE(mode='local'))
+        qc.extractor = TaskQCExtractor(session_path, lazy=True, one=ONE(mode='local'))
         # Extr+act extra datasets required for QC
         qc.extractor.data = dsets
         qc.extractor.extract_data()

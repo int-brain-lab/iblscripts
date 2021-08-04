@@ -1,15 +1,11 @@
 import numpy as np
 
-from oneibl.stream import VideoStreamer
-from oneibl.one import ONE
+from ibllib.io.video import VideoStreamer
+from one.api import ONE
 
-from ci.tests.base import IntegrationTest
+from ci.tests.base import IntegrationTest, TEST_DB
 
-one = ONE(
-    base_url="https://test.alyx.internationalbrainlab.org",
-    username="test_user",
-    password="TapetesBloc18",
-)
+one = ONE(**TEST_DB)
 
 
 class TestVideoStreamer(IntegrationTest):

@@ -3,16 +3,18 @@ import logging
 import os
 from datetime import datetime
 import shutil
+
 import numpy as np
-from oneibl.one import ONE
-import alf.io
+from one.api import ONE
+from one.alf.files import get_session_path
+
 import ibllib.io.raw_data_loaders as raw
 from ibllib.ephys import spikes
 from ibllib.pipes.local_server import _get_lab
 from ibllib.io import spikeglx
 from ibllib.pipes.ephys_preprocessing import SpikeSorting_KS2_Matlab, EphysCellsQc
-from oneibl.registration import register_dataset
-from ibllib.pipes.local_server import _run_command, _get_volume_usage
+from ibllib.oneibl.registration import register_dataset
+from ibllib.pipes.local_server import _get_volume_usage
 
 ROOT_PATH = Path('/mnt/s0/Data/Subjects')
 
@@ -26,7 +28,7 @@ def correct_ephys_manual_video_copies():
         video = True
         passive = True
         behaviour = True
-        session_path = alf.io.get_session_path(flag)
+        session_path = get_session_path(flag)
         avi_files = list(session_path.joinpath('raw_video_data').glob('*.avi'))
 
         if len(avi_files) < 3:
@@ -45,7 +47,7 @@ def correct_flags_biased_in_ephys_rig():
     """
     N_DAYS = 7
     for flag in ROOT_PATH.rglob('video_data_transferred.flag'):
-        session_path = alf.io.get_session_path(flag)
+        session_path = get_session_path(flag)
         ses_date = datetime.strptime(session_path.parts[-2], "%Y-%M-%d")
         if (datetime.now() - ses_date).days > N_DAYS:
             settings = raw.load_settings(session_path)
@@ -61,12 +63,12 @@ def correct_passive_in_wrong_folder():
     Finds the occasions where the data has been transferred manually and the passive folder has
     has not been moved and got the correct file structure
     """
-    one = ONE()
+    one = ONE(cache_rest=None)
     lab = _get_lab(one)
     if lab[0] == 'wittenlab':
 
         for flag in ROOT_PATH.rglob('passive_data_for_ephys.flag'):
-            passive_data_path = alf.io.get_session_path(flag)
+            passive_data_path = get_session_path(flag)
             passive_session = passive_data_path.stem
             passive_folder = passive_data_path.joinpath('raw_behavior_data')
             sessions = os.listdir(passive_data_path.parent)
@@ -165,7 +167,7 @@ def spike_amplitude_patching():
                            'text': f'amps_patching_local_server2: {probe}: {msg}'}
             _ = one.alyx.rest('notes', 'create', data=status_note)
 
-    one = ONE()
+    one = ONE(cache_rest=None)
 
     for ks2_out in ROOT_PATH.rglob('spike_sorting_ks2.log'):
         ks2_path = Path(ks2_out).parent
@@ -182,7 +184,7 @@ def spike_amplitude_patching():
         ks2_path.joinpath('amps_patching_local_server2.flag').touch()
 
         # Now proceed with everything else
-        session_path = alf.io.get_session_path(ks2_out)
+        session_path = get_session_path(ks2_out)
         eid = one.eid_from_path(session_path)
         if eid is None:
             # Skip sessions that don't exist on alyx!
@@ -235,7 +237,7 @@ def upload_ks2_output():
     if usage['disk_available'] < 500:
         return
 
-    one = ONE()
+    one = ONE(cache_rest=None)
 
     for ilog, ks2_out in enumerate(ROOT_PATH.rglob('spike_sorting_ks2.log')):
         # check space on disk after every 25 extractions. stop if we are running low!
@@ -245,7 +247,7 @@ def upload_ks2_output():
                 return
 
         ks2_path = Path(ks2_out).parent
-        session_path = alf.io.get_session_path(ks2_out)
+        session_path = get_session_path(ks2_out)
 
         probe = ks2_path.stem
         tar_dir = session_path.joinpath('spike_sorters', 'ks2_matlab', probe)
@@ -278,9 +280,50 @@ def upload_ks2_output():
         tar_dir.joinpath('tar_existed.flag').touch()
 
 
+def remove_old_spike_sortings_outputs():
+
+    ks2_output = ['amplitudes.npy',
+                  'channel_map.npy',
+                  'channel_positions.npy',
+                  'cluster_Amplitude.tsv',
+                  'cluster_ContamPct.tsv',
+                  'cluster_group.tsv',
+                  'cluster_KSLabel.tsv',
+                  'params.py',
+                  'pc_feature_ind.npy',
+                  'pc_features.npy',
+                  'similar_templates.npy',
+                  'spike_clusters.npy',
+                  'spike_sorting_ks2.log',
+                  'spike_templates.npy',
+                  'spike_times.npy',
+                  'template_feature_ind.npy',
+                  'template_features.npy',
+                  'templates.npy',
+                  'templates_ind.npy',
+                  'whitening_mat.npy',
+                  'whitening_mat_inv.npy']
+    siz = 0
+    for ks2_flag in ROOT_PATH.rglob('spike_sorting_ks2.log'):
+        session_path = get_session_path(ks2_flag)
+        ks2_path = ks2_flag.parent
+        probe = ks2_path.parts[-1]
+        tar_dir = session_path.joinpath('spike_sorters', 'ks2_matlab', probe)
+        if not any((tar_dir.joinpath('tar_existed.flag').exists(), tar_dir.joinpath('_kilosort_raw.output.tar'))):
+            continue
+        for fn in ks2_output:
+            fil = next(tar_dir.glob(fn), None)
+            if fil is None:
+                continue
+            siz += fil.stat().st_size
+            fil.unlink()
+    _logger.info(f'remove old spike sorting outputs removed {siz / 1024 ** 3} Go')
+
+
 if __name__ == "__main__":
     correct_flags_biased_in_ephys_rig()
     correct_ephys_manual_video_copies()
     spike_amplitude_patching()
     upload_ks2_output()
     correct_passive_in_wrong_folder()
+    remove_old_spike_sortings_outputs()  # this should run once and could be deprecated

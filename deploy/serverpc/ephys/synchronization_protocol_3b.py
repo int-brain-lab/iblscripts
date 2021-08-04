@@ -111,10 +111,12 @@ def get_3b_sync_signal(binFullPath):
 def get_ephys_data(raw_ephys_apfile):
     """
     That's the analog signal from the ap.bin file
+
+    Note: sr must be closed after use
     """
 
     # load reader object, and extract sync traces
-    sr = ibllib.io.spikeglx.Reader(raw_ephys_apfile)
+    sr = ibllib.io.spikeglx.Reader(raw_ephys_apfile, open=True)
     assert int(sr.fs) == 30000, 'sampling rate is not 30 kHz, adjust script!'
     _logger.info('extracted %s' % raw_ephys_apfile)
     return sr
@@ -481,11 +483,13 @@ def run_synchronization_protocol(sync_test_folder, display=SHOW_PLOTS):
     # compare ephys fronts with fpga pulse signal for right probe
     _logger.info('compare ephys fronts with fpga pulse signal for right probe')
     chan_fronts, sync_fronts = front_extraction_from_arduino_and_ephys(sr_right, sync)
+    sr_right.close()
     evaluate_ephys(chan_fronts, sync_fronts, show_plots=display)
 
     # compare ephys fronts with fpga pulse signal for left probe
     _logger.info('compare ephys fronts with fpga pulse signal for left probe')
     chan_fronts, sync_fronts = front_extraction_from_arduino_and_ephys(sr_left, sync)
+    sr_left.close()
     evaluate_ephys(chan_fronts, sync_fronts, show_plots=display)
 
     # do camera check

@@ -4,7 +4,7 @@ from pathlib import Path
 import socket
 import time
 
-from oneibl.one import ONE
+from one.api import ONE
 from ibllib.pipes.local_server import job_creator, job_runner, report_health
 from ibllib.pipes.remote_server import job_transfer_ks2, job_run_ks2
 
@@ -88,7 +88,7 @@ def report():
     """
     Labels the lab endpoint json field with health indicators every 2 hours
     """
-    one = ONE()
+    one = ONE(cache_rest=None)
     report_health(one=one)
 
 

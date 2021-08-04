@@ -1,4 +1,4 @@
-#docker build -t ibl/yass:base .
+#docker build -t internationalbrainlab/yass:base .
 FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
 
 # link the cuda libraries
@@ -20,7 +20,7 @@ ARG PYTHON=python3.7
 ENV LANG C.UTF-8
 ENV CONDA_PATH=/opt/anaconda3
 ENV ENVIRONMENT_NAME=main
-SHELL ["/bin/bash", "-c"]
+#SHELL ["/bin/bash", "-c"]
 
 # Download and install Anaconda.
 ENV LATEST_CONDA_SCRIPT "Anaconda3-5.3.1-Linux-x86_64.sh"
@@ -38,8 +38,8 @@ RUN conda install pytorch==1.2
 #RUN rm $LATEST_CONDA_SCRIPT
 #conda install pytorch==1.2.0 torchvision==0.4.0 cudatoolkit=10.0 -c pytorch
 
-RUN git clone https://github.com/paninski-lab/yass \
-   && cd yass \
+RUN git clone --depth 1 --single-branch --branch master https://github.com/paninski-lab/yass
+RUN cd yass \
    && pip --no-cache-dir install -e . \
    && cd src/gpu_bspline_interp \
    && python setup.py install --force \
@@ -50,5 +50,5 @@ RUN git clone https://github.com/paninski-lab/yass \
    && pip install .
 
 RUN pip install scipy==1.2.0
-#cd yass/samples/10chan
-#yass sort config.yaml
+
+#RUN cd yass/samples/10chan && yass sort config.yaml

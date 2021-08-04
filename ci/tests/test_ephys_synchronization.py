@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import alf.io
+import one.alf.io as alfio
 from ibllib.io import spikeglx
 import ibllib.ephys.sync_probes as sync_probes
 
@@ -85,7 +85,7 @@ def _check_session_sync(ses_path, channel):
     for ef in efiles:
         if not ef.get('ap'):
             continue
-        sync_events = alf.io.load_object(ef.ap.parent, 'sync', short_keys=True)
+        sync_events = alfio.load_object(ef.ap.parent, 'sync', short_keys=True)
         # the first step is to construct list arrays with probe sync
         sync_file = ef.ap.parent.joinpath(ef.ap.name.replace('.ap.', '.sync.')).with_suffix('.npy')
         t = sync_events.times[sync_events.channels == channel]

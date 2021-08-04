@@ -6,7 +6,7 @@ from scipy.signal import butter, filtfilt
 import scipy.interpolate
 import matplotlib.pyplot as plt
 
-import alf.io
+from one.alf.files import get_session_path
 from ibllib.io.extractors import ephys_fpga, training_wheel
 
 from ci.tests import base
@@ -47,6 +47,13 @@ class TestWheelExtractionSimpleEphys(base.IntegrationTest):
         self.session_path = \
             self.data_path.joinpath('wheel', 'ephys', 'three_clockwise_revolutions')
         assert self.session_path.exists()
+        # Back up ALF folder
+        shutil.move(self.session_path.joinpath('alf'), self.session_path.joinpath('alf.bk'))
+
+    def tearDown(self) -> None:
+        # Restore ALF folder
+        shutil.rmtree(self.session_path.joinpath('alf'))
+        shutil.move(self.session_path.joinpath('alf.bk'), self.session_path.joinpath('alf'))
 
     def test_three_clockwise_revolutions_fpga(self):
         raw_wheel, wheel = compare_wheel_fpga_behaviour(self.session_path)
@@ -62,6 +69,15 @@ class TestWheelExtractionSessionEphys(base.IntegrationTest):
         if not self.root_path.exists():
             return
         self.sessions = [f.parent for f in self.root_path.rglob('raw_behavior_data')]
+        # Back up ALF folders
+        for session_path in self.sessions:
+            shutil.move(session_path.joinpath('alf'), session_path.joinpath('alf.bk'))
+
+    def tearDown(self) -> None:
+        # Restore ALF folder
+        for session_path in self.sessions:
+            shutil.rmtree(session_path.joinpath('alf'))
+            shutil.move(session_path.joinpath('alf.bk'), session_path.joinpath('alf'))
 
     def test_wheel_extraction_session(self):
         for session_path in self.sessions:
@@ -85,7 +101,7 @@ class TestWheelExtractionTraining(base.IntegrationTest):
 
     def test_wheel_extraction_training(self):
         for rbf in self.root_path.rglob('raw_behavior_data'):
-            session_path = alf.io.get_session_path(rbf)
+            session_path = get_session_path(rbf)
             _logger.info(f"TRAINING: {session_path}")
             bpod_t, _ = training_wheel.get_wheel_position(session_path)
             self.assertTrue(bpod_t.size)

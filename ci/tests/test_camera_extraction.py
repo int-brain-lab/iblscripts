@@ -18,6 +18,10 @@ import shutil
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+from iblutil.util import Bunch
+import one.alf.io as alfio
+import one.params
+from one.api import ONE
 
 from ibllib.io.extractors.video_motion import MotionAlignment
 from ibllib.io.extractors.ephys_fpga import get_main_probe_sync
@@ -29,10 +33,6 @@ from ibllib.qc.base import CRITERIA
 import ibllib.io.video as vidio
 from ibllib.pipes.training_preprocessing import TrainingVideoCompress
 from ibllib.pipes.ephys_preprocessing import EphysVideoCompress
-from brainbox.core import Bunch
-import alf.io as alfio
-import oneibl.params
-from oneibl.one import ONE
 
 from ci.tests import base
 
@@ -375,7 +375,7 @@ class TestEphysCameraExtractor(base.IntegrationTest):
 
     def test_get_video_length(self):
         # Verify using URL
-        url = (oneibl.params.get().HTTP_DATA_SERVER +
+        url = (one.params.get().HTTP_DATA_SERVER +
                '/mainenlab/Subjects/ZM_1743/2019-06-14/001/raw_video_data/'
                '_iblrig_leftCamera.raw.71cfeef2-2aa5-46b5-b88f-ca07e3d92474.mp4')
         length = camio.get_video_length(url)
@@ -400,9 +400,7 @@ class TestVideoQC(base.IntegrationTest):
         videos = sorted(video_path.rglob('*.mp4'))
         # Instantiate using session with a video path to fool constructor.
         # To remove once we use ONE cache file
-        one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
-                  username='test_user',
-                  password='TapetesBloc18')
+        one = ONE(**base.TEST_DB)
         dummy_id = 'd3372b15-f696-4279-9be5-98f15783b5bb'
         qc = CameraQC(dummy_id, 'left',
                       n_samples=10, stream=False, download_data=False, one=one)
@@ -472,13 +470,14 @@ class TestCameraQC(base.IntegrationTest):
         )
         self._call_count = -1
         self.frames = np.array([])
+        self.one = ONE(mode='local', silent=True)
 
     def test_incomplete_session(self):
         # Verify using local path
         session_path = self.incomplete
 
         qc = CameraQC(session_path, 'left',
-                      stream=False, download_data=False, one=ONE(offline=True), n_samples=20)
+                      stream=False, download_data=False, one=self.one, n_samples=20)
         outcome, extended = qc.run(update=False)
         self.assertEqual('FAIL', outcome)
         expected = {
@@ -516,7 +515,12 @@ class TestCameraQC(base.IntegrationTest):
         mock_ext().read.side_effect = self.side_effect()
 
         # Run QC for the left label
-        one = ONE(offline=True)
+        one = self.one
+        # Now mock the video data so that extraction and QC succeed
+        video_path = session_path.joinpath('raw_video_data', '_iblrig_leftCamera.raw.mp4')
+        if not video_path.exists():
+            video_path.touch()
+            self.addCleanup(video_path.unlink)
         qc = camQC.run_all_qc(session_path, cameras=('left',), stream=False, update=False, one=one,
                               n_samples=n_samples, download_data=False, extract_times=True)
         self.assertIsInstance(qc, dict)
@@ -557,7 +561,9 @@ class TestCameraQC(base.IntegrationTest):
         mock_ext().read.side_effect = self.side_effect()
 
         qc = CameraQC(session_path, 'left',
-                      stream=False, n_samples=n_samples, one=ONE(offline=True))
+                      stream=False, n_samples=n_samples, one=self.one)
+        # Add a dummy video path (we stub the VideoCapture class anyway)
+        qc.video_path = session_path.joinpath('raw_video_data', '_iblrig_leftCamera.raw.mp4')
         qc.load_data(download_data=False, extract_times=True)
         outcome, extended = qc.run(update=False)
         self.assertEqual('FAIL', outcome)
@@ -591,7 +597,7 @@ class TestCameraPipeline(base.IntegrationTest):
             raise FileNotFoundError(f'Fixture {self.ephys_folder} does not exist')
         if not self.training_folder.exists():
             raise FileNotFoundError(f'Fixture {self.training_folder} does not exist')
-        self.one = ONE(offline=True)
+        self.one = ONE(mode='local')
 
     def test_training(self):
         with tempfile.TemporaryDirectory() as tdir:
@@ -652,9 +658,7 @@ class TestWheelMotionNRG(base.IntegrationTest):
     def setUp(self) -> None:
         real_eid = '6c6983ef-7383-4989-9183-32b1a300d17a'
         self.frames = np.load(self.data_path / 'camera' / f'{real_eid}_frame_samples.npy')
-        self.one = ONE(base_url='https://test.alyx.internationalbrainlab.org',
-                       username='test_user',
-                       password='TapetesBloc18')
+        self.one = ONE(**base.TEST_DB)
         self.dummy_id = self.one.search(subject='flowers')[0]  # Some eid for connecting to Alyx
 
     def side_effect(self):
