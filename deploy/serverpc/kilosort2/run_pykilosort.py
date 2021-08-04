@@ -100,5 +100,5 @@ if __name__ == "__main__":
     # run pykilosort
     run_spike_sorting_ibl(bin_destriped, delete=DELETE, version=1)
 
-    # mop-up all temporary files
-    shutil.rmtree(bin_destriped.parent)
+    # # mop-up all temporary files
+    # shutil.rmtree(bin_destriped.parent)
