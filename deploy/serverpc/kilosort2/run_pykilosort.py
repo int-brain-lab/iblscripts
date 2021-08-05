@@ -56,7 +56,7 @@ def run_spike_sorting_ibl(bin_file, delete=True, version=1, alf_path=None):
     if alf_path is not None:
         s2v = _sample2v(bin_file)
         alf_path.mkdir(exist_ok=True, parents=True)
-        spikes.ks2_to_alf(bin_file.parent.joinpath('output'), bin_destriped, alf_dir, ampfactor=s2v)
+        spikes.ks2_to_alf(bin_file.parent.joinpath('output'), bin_destriped, alf_path, ampfactor=s2v)
 
 
 if __name__ == "__main__":
@@ -65,8 +65,7 @@ if __name__ == "__main__":
         input file: ./CSH_ZAD_029/2020-09-09/001/raw_ephys_data/probe00/_spikeglx_ephysData_g0_t0.nidq.cbin
         session_path: ./CSH_ZAD_029/2020-09-09/001
         alf_dir: ./CSH_ZAD_029/2020-09-09/001/alf
-        scratch dir: /mnt/h0
-        temp_dir: /mnt/h0/CSH_ZAD_029_2020-09-09_001_probe00
+        scratch_dir: /mnt/h0/CSH_ZAD_029_2020-09-09_001_probe00
     """
 
     DELETE = True
@@ -81,15 +80,10 @@ if __name__ == "__main__":
     assert cbin_file.exists(), f"{cbin_file} not found !"
     _logger.info(f"Spike sorting {cbin_file}")
 
-    # create the temporary directory structure
-    session_path = get_session_path(cbin_file)
-    probe_name = cbin_file.parts[-2]
-    alf_dir = session_path.joinpath('alf', probe_name)
-    temp_dir = scratch_dir.joinpath('_'.join(list(session_path.parts[-3:]) + [probe_name]))
-    temp_dir.mkdir(exist_ok=True, parents=True)
+    scratch_dir.mkdir(exist_ok=True, parents=True)
 
     # run pre-processing
-    bin_destriped = temp_dir.joinpath(cbin_file.name).with_suffix('.bin')
+    bin_destriped = scratch_dir.joinpath(cbin_file.name).with_suffix('.bin')
     if bin_destriped.exists():
         print('skip pre-proc')
     else:
