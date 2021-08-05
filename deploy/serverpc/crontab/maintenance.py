@@ -12,7 +12,7 @@ import ibllib.io.raw_data_loaders as raw
 from ibllib.ephys import spikes
 from ibllib.pipes.local_server import _get_lab
 from ibllib.io import spikeglx
-from ibllib.pipes.ephys_preprocessing import SpikeSorting_KS2_Matlab, EphysCellsQc
+from ibllib.pipes.ephys_preprocessing import SpikeSorting, EphysCellsQc
 from ibllib.oneibl.registration import register_dataset
 from ibllib.pipes.local_server import _get_volume_usage
 
