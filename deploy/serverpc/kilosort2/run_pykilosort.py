@@ -29,8 +29,8 @@ def run_spike_sorting_ibl(bin_file, delete=True, version=1, alf_path=None):
     log_file = bin_file.parent.joinpath(f"{START_TIME.isoformat()}_kilosort.log")
     log_file.parent.mkdir(exist_ok=True, parents=True)
 
-    add_default_handler(level='DEBUG')
-    add_default_handler(level='DEBUG', filename=log_file)
+    add_default_handler(level='INFO')
+    add_default_handler(level='INFO', filename=log_file)
 
     h = neuropixel.trace_header(version=version)
     probe = Bunch()
@@ -68,7 +68,7 @@ if __name__ == "__main__":
         scratch_dir: /mnt/h0/CSH_ZAD_029_2020-09-09_001_probe00
     """
 
-    DELETE = True
+    DELETE = False
     parser = argparse.ArgumentParser(description='Run Kilosort for a bin AP file')
     parser.add_argument('cbin_file', help='compressed binary file with *.cbin extension')
     parser.add_argument('scratch_dir', help='scratch directory')
