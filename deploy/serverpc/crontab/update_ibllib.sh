@@ -24,4 +24,10 @@ pip uninstall -y phylib
 pip install git+https://github.com/cortex-lab/phylib.git@ibl_tests
 pip install git+https://github.com/int-brain-lab/ibllib.git@$branch --upgrade-strategy eager
 pip install -U git+https://github.com/int-brain-lab/ONE.git
-pip install pyfftw
+
+# auto-update pykilosort
+cd ~/Documents/PYTHON/SPIKE_SORTING/pykilosort
+git fetch --all
+git checkout -f ibl_prod
+git reset --hard
+git pull
