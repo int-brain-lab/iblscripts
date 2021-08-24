@@ -12,7 +12,7 @@ import ibllib.io.raw_data_loaders as raw
 from ibllib.ephys import spikes
 from ibllib.pipes.local_server import _get_lab
 from ibllib.io import spikeglx
-from ibllib.pipes.ephys_preprocessing import SpikeSorting_KS2_Matlab, EphysCellsQc
+from ibllib.pipes.ephys_preprocessing import SpikeSorting, EphysCellsQc
 from ibllib.oneibl.registration import register_dataset
 from ibllib.pipes.local_server import _get_volume_usage
 
@@ -137,7 +137,7 @@ def spike_amplitude_patching():
                 bin_path=meta_file.parent,
                 out_path=alf_path,
                 bin_file=None,
-                ampfactor=SpikeSorting_KS2_Matlab._sample2v(ap_file))
+                ampfactor=SpikeSorting._sample2v(ap_file))
 
             # Sync the probes
             out_files, _ = spikes.sync_spike_sorting(ap_file=ap_file, out_path=alf_path)
@@ -280,9 +280,50 @@ def upload_ks2_output():
         tar_dir.joinpath('tar_existed.flag').touch()
 
 
+def remove_old_spike_sortings_outputs():
+
+    ks2_output = ['amplitudes.npy',
+                  'channel_map.npy',
+                  'channel_positions.npy',
+                  'cluster_Amplitude.tsv',
+                  'cluster_ContamPct.tsv',
+                  'cluster_group.tsv',
+                  'cluster_KSLabel.tsv',
+                  'params.py',
+                  'pc_feature_ind.npy',
+                  'pc_features.npy',
+                  'similar_templates.npy',
+                  'spike_clusters.npy',
+                  'spike_sorting_ks2.log',
+                  'spike_templates.npy',
+                  'spike_times.npy',
+                  'template_feature_ind.npy',
+                  'template_features.npy',
+                  'templates.npy',
+                  'templates_ind.npy',
+                  'whitening_mat.npy',
+                  'whitening_mat_inv.npy']
+    siz = 0
+    for ks2_flag in ROOT_PATH.rglob('spike_sorting_ks2.log'):
+        session_path = get_session_path(ks2_flag)
+        ks2_path = ks2_flag.parent
+        probe = ks2_path.parts[-1]
+        tar_dir = session_path.joinpath('spike_sorters', 'ks2_matlab', probe)
+        if not any((tar_dir.joinpath('tar_existed.flag').exists(), tar_dir.joinpath('_kilosort_raw.output.tar'))):
+            continue
+        for fn in ks2_output:
+            fil = next(tar_dir.glob(fn), None)
+            if fil is None:
+                continue
+            siz += fil.stat().st_size
+            fil.unlink()
+    _logger.info(f'remove old spike sorting outputs removed {siz / 1024 ** 3} Go')
+
+
 if __name__ == "__main__":
     correct_flags_biased_in_ephys_rig()
     correct_ephys_manual_video_copies()
     spike_amplitude_patching()
     upload_ks2_output()
     correct_passive_in_wrong_folder()
+    remove_old_spike_sortings_outputs()  # this should run once and could be deprecated

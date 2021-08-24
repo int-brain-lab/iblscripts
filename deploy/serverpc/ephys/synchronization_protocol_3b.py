@@ -185,15 +185,8 @@ def front_extraction_from_arduino_and_ephys(sr, sync):
 
     for pulse in range(500):  # there are 500 square pulses
 
-        if pulse == 0:
-
-            first = int(sync_up_fronts[0] - period_duration / 4)
-            last = int(first + period_duration)
-
-        else:
-
-            first = int(sync_up_fronts[0] - period_duration / 4 + period_duration)
-            last = int(first + period_duration)
+        first = int(sync_up_fronts[pulse] - period_duration / 4)
+        last = int(first + period_duration)
 
         if k % 100 == 0:
             print('segment %s of %s' % (k, 500))
@@ -211,7 +204,7 @@ def front_extraction_from_arduino_and_ephys(sr, sync):
         Mean = np.median(rawdata.T[i])
         Std = np.std(rawdata.T[i])
 
-        ups = np.invert(rawdata.T[i] > Mean + 6 * Std)
+        ups = np.invert(rawdata.T[i] > Mean + 3 * Std)
 
         up_fronts = []
         up_fronts.append(first_occ_index(ups, 3) + first)
