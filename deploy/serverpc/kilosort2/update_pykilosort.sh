@@ -9,4 +9,5 @@ git pull
 source ~/anaconda3/etc/profile.d/conda.sh
 conda deactivate
 conda activate pyks2
-pip install -U ibllib --upgrade-strategy eager
+pip install -U ibllib
+pip install -U phylib
