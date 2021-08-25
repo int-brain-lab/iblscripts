@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 cd ~/Documents/PYTHON/iblscripts/deploy/serverpc/crontab
 source ~/Documents/PYTHON/envs/iblenv/bin/activate
 

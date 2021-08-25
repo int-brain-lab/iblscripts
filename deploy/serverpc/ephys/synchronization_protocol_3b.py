@@ -204,7 +204,7 @@ def front_extraction_from_arduino_and_ephys(sr, sync):
         Mean = np.median(rawdata.T[i])
         Std = np.std(rawdata.T[i])
 
-        ups = np.invert(rawdata.T[i] > Mean + 6 * Std)
+        ups = np.invert(rawdata.T[i] > Mean + 3 * Std)
 
         up_fronts = []
         up_fronts.append(first_occ_index(ups, 3) + first)

@@ -12,7 +12,7 @@ import ibllib.io.raw_data_loaders as raw
 from ibllib.ephys import spikes
 from ibllib.pipes.local_server import _get_lab
 from ibllib.io import spikeglx
-from ibllib.pipes.ephys_preprocessing import SpikeSorting_KS2_Matlab, EphysCellsQc
+from ibllib.pipes.ephys_preprocessing import SpikeSorting, EphysCellsQc
 from ibllib.oneibl.registration import register_dataset
 from ibllib.pipes.local_server import _get_volume_usage
 
@@ -137,7 +137,7 @@ def spike_amplitude_patching():
                 bin_path=meta_file.parent,
                 out_path=alf_path,
                 bin_file=None,
-                ampfactor=SpikeSorting_KS2_Matlab._sample2v(ap_file))
+                ampfactor=SpikeSorting._sample2v(ap_file))
 
             # Sync the probes
             out_files, _ = spikes.sync_spike_sorting(ap_file=ap_file, out_path=alf_path)
