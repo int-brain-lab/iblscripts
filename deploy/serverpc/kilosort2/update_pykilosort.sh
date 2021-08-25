@@ -9,5 +9,6 @@ git pull
 source ~/anaconda3/etc/profile.d/conda.sh
 conda deactivate
 conda activate pyks2
-pip install -U ibllib
+pip uninstall -y ibllib
+pip install git+https://github.com/int-brain-lab/ibllib.git@$pykilosort
 pip install -U phylib
