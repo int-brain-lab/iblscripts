@@ -26,7 +26,7 @@ def run_spike_sorting_ibl(bin_file, delete=True, version=1, alf_path=None):
     """
     START_TIME = datetime.datetime.now()
     bin_file = Path(bin_file)
-    log_file = bin_file.parent.joinpath(f"{START_TIME.isoformat()}_kilosort.log")
+    log_file = bin_file.parent.joinpath(f"_{START_TIME.isoformat()}_kilosort.log")
     log_file.parent.mkdir(exist_ok=True, parents=True)
 
     add_default_handler(level='INFO')
