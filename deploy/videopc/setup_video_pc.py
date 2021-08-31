@@ -138,16 +138,7 @@ def pip_install_ibllib(env_name='iblenv'):
     pip = get_env_pip(env_name=env_name)
 
     print(f"\n\nINFO: Installing ibllib python library\n")
-    os.system(f"{pip} install ibllib -U")
-
-
-def pip_install_iblutil(env_name='iblenv'):
-    """Install iblutil to python environment
-    """
-    pip = get_env_pip(env_name=env_name)
-
-    print(f"\n\nINFO: Installing iblutil python library\n")
-    os.system(f"{pip} install iblutil -U")
+    os.system(f"{pip} install -y -U ibllib")
 
 
 def create_environment(env_name="iblenv", use_conda_yaml=False, force=False):
