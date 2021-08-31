@@ -185,6 +185,18 @@ def create_environment(env_name="iblenv", use_conda_yaml=False, force=False):
     print(f"{env_name} installed.")
 
 
+
+def install_bonsai():
+    if sys.platform not in ["Windows", "windows", "win32"]:
+        print("\n\nSkippinig Bonsai installation now on Windows platform")
+        return
+    here = os.getcwd()
+    os.chdir("./bonsai/bin/")
+    os.system("setup.bat")
+    os.chdir(here)
+    return
+
+
 def setup_videopc(env_name='iblenv'):
     """Setup the iblrig video PC.
     Create python environment,
@@ -206,6 +218,7 @@ def setup_videopc(env_name='iblenv'):
     download_pyspin()
     unzip_pyspin()
     pip_install_pyspin(env_name=env_name)
+    install_bonsai()
 
 
 if __name__ == "__main__":
