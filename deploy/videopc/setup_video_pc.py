@@ -139,7 +139,7 @@ def pip_install_ibllib(env_name='iblenv'):
     pip = get_env_pip(env_name=env_name)
 
     print(f"\n\nINFO: Installing ibllib python library\n")
-    os.system(f"{pip} install -U ibllib")
+    os.system(f"{pip} install -U ibllib --use-feature=2020-resolver")
 
 
 def create_environment(env_name="iblenv", use_conda_yaml=False, force=False):
