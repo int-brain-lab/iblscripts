@@ -139,7 +139,7 @@ def pip_install_ibllib(env_name='iblenv'):
     pip = get_env_pip(env_name=env_name)
 
     print(f"\n\nINFO: Installing ibllib python library\n")
-    os.system(f"{pip} install -y -U ibllib")
+    os.system(f"{pip} install -U ibllib")
 
 
 def create_environment(env_name="iblenv", use_conda_yaml=False, force=False):
@@ -154,22 +154,22 @@ def create_environment(env_name="iblenv", use_conda_yaml=False, force=False):
     # Creates commands
     create_command = f"conda create -y -n {env_name} python=3.7"
     remove_command = f"conda env remove -y -n {env_name}"
-    if not env or force:
-        os.system(remove_command)
+    if not env:
         os.system(create_command)
     else:
         print(
             "Found pre-existing environment in {}".format(env),
             "\nDo you want to reinstall the environment? (y/n):",
         )
-        user_input = input() if not force else force
+        user_input = input() if not force else "y"
         print(user_input)
         if user_input == "y":
             os.system(remove_command)
-            return create_environment(env_name=env_name)
+            shutil.rmtree(env, ignore_errors=True)
+            return create_environment(env_name=env_name, force=force)
         elif user_input != "n" and user_input != "y":
             print("Please answer 'y' or 'n'")
-            return create_environment(env_name=env_name)
+            return create_environment(env_name=env_name, force=force)
         elif user_input == "n":
             return
 
@@ -188,8 +188,10 @@ def install_bonsai():
         user_input = user_input.lower()
         print(user_input)
         if user_input == "y":
-            shutil.rmtree(Path(os.getcwd()).joinpath("bonsai", "bin"), ignore_errors=True)
-            os.system("git pull")
+            bbin_folder = Path(os.getcwd()).joinpath("bonsai", "bin")
+            if bbin_folder.exists():
+                shutil.rmtree(bbin_folder, ignore_errors=True)
+            os.system("git reset --hard")
             return install_bonsai()
         elif user_input != "n" and user_input != "y":
             print("Please answer 'y' or 'n'")
