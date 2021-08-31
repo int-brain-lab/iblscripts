@@ -181,6 +181,19 @@ def install_bonsai():
     if sys.platform not in ["Windows", "windows", "win32"]:
         print("\n\nSkippinig Bonsai installation now on Windows platform")
         return
+    if Path(os.getcwd()).joinpath("bonsai", "bin", "Bonsai.exe").exists():
+        print("\n\nBonsai already installed")
+        user_input = input("Do you want to reinstall Bonsai? (y/n): ")
+        user_input = user_input.lower()
+        print(user_input)
+        if user_input == "y":
+            os.system("del bonsai")
+            os.system("git pull")
+            return install_bonsai()
+        elif user_input != "n" and user_input != "y":
+            print("Please answer 'y' or 'n'")
+            return install_bonsai()
+        return
     here = os.getcwd()
     os.chdir("./bonsai/bin/")
     os.system("setup.bat")
