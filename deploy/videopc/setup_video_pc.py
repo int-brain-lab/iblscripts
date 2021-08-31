@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import zipfile
@@ -187,7 +188,7 @@ def install_bonsai():
         user_input = user_input.lower()
         print(user_input)
         if user_input == "y":
-            os.system("del bonsai")
+            shutil.rmtree(Path(os.getcwd()).joinpath("bonsai", "bin"), ignore_errors=True)
             os.system("git pull")
             return install_bonsai()
         elif user_input != "n" and user_input != "y":
