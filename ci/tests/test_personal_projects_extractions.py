@@ -2,11 +2,11 @@ import logging
 import shutil
 
 import numpy as np
-
 import one.alf.io as alfio
+from one.api import ONE
+
 from ibllib.pipes.ephys_preprocessing import EphysTrials
 from ibllib.pipes.training_preprocessing import TrainingTrials
-from one.api import ONE
 
 from ci.tests import base
 
