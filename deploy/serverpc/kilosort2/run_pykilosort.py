@@ -42,7 +42,7 @@ def run_spike_sorting_ibl(bin_file, delete=True, version=1, alf_path=None):
 
     try:
         _logger.info(f"Starting KS, output in {bin_file.parent}")
-        run(bin_file, probe=probe, dir_path=bin_file.parent, n_channels=probe.NchanTOT, dtype=np.int16, sample_rate=3e4)
+        run(bin_file, probe=probe, dir_path=bin_file.parent)
         if delete:
             shutil.rmtree(bin_file.parent.joinpath(".kilosort"))
     except Exception as e:
