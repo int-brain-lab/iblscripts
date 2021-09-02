@@ -2,7 +2,7 @@
 cd ~/Documents/PYTHON/SPIKE_SORTING/pykilosort
 git fetch --all
 git checkout -f ibl_prod
-git reset --hard
+git reset --hard origin/ibl_prod
 git pull
 
 # auto-update the environment
