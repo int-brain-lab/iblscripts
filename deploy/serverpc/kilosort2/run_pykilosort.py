@@ -26,7 +26,7 @@ def run_spike_sorting_ibl(bin_file, delete=True, version=1, alf_path=None):
     """
     START_TIME = datetime.datetime.now()
     bin_file = Path(bin_file)
-    log_file = bin_file.parent.joinpath(f"{START_TIME.isoformat()}_kilosort.log")
+    log_file = bin_file.parent.joinpath(f"_{START_TIME.isoformat()}_kilosort.log")
     log_file.parent.mkdir(exist_ok=True, parents=True)
 
     add_default_handler(level='INFO')
@@ -42,7 +42,7 @@ def run_spike_sorting_ibl(bin_file, delete=True, version=1, alf_path=None):
 
     try:
         _logger.info(f"Starting KS, output in {bin_file.parent}")
-        run(bin_file, probe=probe, dir_path=bin_file.parent, n_channels=probe.NchanTOT, dtype=np.int16, sample_rate=3e4)
+        run(bin_file, probe=probe, dir_path=bin_file.parent)
         if delete:
             shutil.rmtree(bin_file.parent.joinpath(".kilosort"))
     except Exception as e:
