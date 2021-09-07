@@ -49,5 +49,6 @@ conda activate ci
 pip install phylib
 pip install git+https://github.com/int-brain-lab/ibllib.git@$1
 pip install -e /home/experiment/Documents/github/iblscripts
+pip install pyfftw
 
 python /home/experiment/Documents/github/iblscripts/ci/download_data.py
