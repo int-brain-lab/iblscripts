@@ -46,7 +46,7 @@ conda activate ci
 
 pip uninstall -y ibllib
 pip uninstall -y phylib
-pip install git+https://github.com/cortex-lab/phylib.git@ibl_tests
+pip install phylib
 pip install git+https://github.com/int-brain-lab/ibllib.git@$1
 pip install -e /home/experiment/Documents/github/iblscripts
 
