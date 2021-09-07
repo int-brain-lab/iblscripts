@@ -38,14 +38,14 @@ popd
 # second step is to re-install these into the environment
 #source ~/Documents/PYTHON/envs/iblenv-ci/bin/activate
 source /home/experiment/anaconda3/etc/profile.d/conda.sh
-conda update conda --yes --quiet
+#conda update conda --yes --quiet
 conda remove --name ci --all --yes
 conda create -n ci --yes --quiet python=3.8
 
 conda activate ci
 
-pip uninstall -y ibllib
-pip uninstall -y phylib
+#pip uninstall -y ibllib
+#pip uninstall -y phylib
 pip install phylib
 pip install git+https://github.com/int-brain-lab/ibllib.git@$1
 pip install -e /home/experiment/Documents/github/iblscripts
