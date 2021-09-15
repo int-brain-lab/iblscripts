@@ -6,7 +6,7 @@ from iblutil.io import params
 from ibllib.io import globus
 
 import globus_sdk
-from globus_sdk.exc import TransferAPIError
+from globus_sdk import TransferAPIError
 
 GLOBUS_PARAM_STRING = 'globus/admin'
 DEFAULT_PAR = {'local_endpoint': None, 'remote_endpoint': None, 'GLOBUS_CLIENT_ID': None}
