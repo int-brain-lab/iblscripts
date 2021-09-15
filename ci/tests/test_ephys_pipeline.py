@@ -193,6 +193,12 @@ class TestEphysPipeline(base.IntegrationTest):
         pis = one.alyx.rest('insertions', 'list', session=eid, no_cache=True)
         for pi in pis:
             assert 'n_units' in pi['json']
+        # check that tasks ran with proper status
+        tasks_end = one.alyx.rest('tasks', 'list', session=eid, no_cache=True)
+        for t in tasks_end:
+            if t['name'] in ['EphysPassive', 'EphysDLC']:
+                continue
+            assert t['status'] == 'Complete', f"{t['name']} FAILED and shouldn't have for this test"
 
     def check_spike_sorting_output(self, session_path):
         """ Check the spikes object """

@@ -231,7 +231,7 @@ class TestTrainingCameraExtractor(base.IntegrationTest):
         # Expect raw Bpod times to be returned
         mock_vc().get.return_value = self.n_frames - 400
         ts, _ = ext.extract(save=False)
-        self.assertEqual(ts.size, 107525)  # NB: This behaviour will change in the future
+        self.assertEqual(ts.size, mock_vc().get.return_value)  # NB: This behaviour will change in the future
 
 
 class TestEphysCameraExtractor(base.IntegrationTest):
@@ -698,7 +698,10 @@ class TestCameraPipeline(base.IntegrationTest):
     def test_ephys(self, mock_qc):
         # task running part
         job = EphysVideoCompress(self.ephys_folder, one=self.one)
-        job.run()
+        with mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture') as mock_vc:
+            length = 68453
+            mock_vc().get.return_value = length
+            job.run()
 
         self.assertEqual(job.status, 0)
         self.assertEqual(len(mock_qc.call_args_list), 3)  # Once per camera
