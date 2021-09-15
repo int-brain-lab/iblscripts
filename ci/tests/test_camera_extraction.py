@@ -231,7 +231,7 @@ class TestTrainingCameraExtractor(base.IntegrationTest):
         # Expect raw Bpod times to be returned
         mock_vc().get.return_value = self.n_frames - 400
         ts, _ = ext.extract(save=False)
-        self.assertEqual(ts.size, 107525)  # NB: This behaviour will change in the future
+        self.assertEqual(ts.size, mock_vc().get.return_value)  # NB: This behaviour will change in the future
 
 
 class TestEphysCameraExtractor(base.IntegrationTest):
