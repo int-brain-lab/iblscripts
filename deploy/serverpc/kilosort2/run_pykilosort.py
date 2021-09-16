@@ -5,7 +5,6 @@ import logging
 import shutil
 
 import numpy as np
-from one.alf.files import get_session_path
 from ibllib.io import spikeglx
 import ibllib.dsp.voltage as voltage
 from ibllib.ephys import spikes, neuropixel
