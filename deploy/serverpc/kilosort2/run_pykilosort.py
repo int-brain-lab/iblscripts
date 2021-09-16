@@ -9,7 +9,7 @@ from one.alf.files import get_session_path
 from ibllib.io import spikeglx
 import ibllib.dsp.voltage as voltage
 from ibllib.ephys import spikes, neuropixel
-from pykilosort import add_default_handler, run, Bunch
+from pykilosort import add_default_handler, run, Bunch, __version__
 
 _logger = logging.getLogger("pykilosort")
 
@@ -41,7 +41,7 @@ def run_spike_sorting_ibl(bin_file, delete=True, version=1, alf_path=None):
     probe.kcoords = np.zeros(384)
 
     try:
-        _logger.info(f"Starting KS, output in {bin_file.parent}")
+        _logger.info(f"Starting Pykilosort version {__version__}, output in {bin_file.parent}")
         run(bin_file, probe=probe, dir_path=bin_file.parent)
         if delete:
             shutil.rmtree(bin_file.parent.joinpath(".kilosort"))
