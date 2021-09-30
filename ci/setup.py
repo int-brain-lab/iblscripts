@@ -8,7 +8,7 @@ Requirements:
 """
 from pathlib import Path
 
-from ibllib.io import params
+from iblutil.io import params
 
 DEFAULT_PAR = {'local_endpoint': None, 'remote_endpoint': None, 'GLOBUS_CLIENT_ID': None}
 
