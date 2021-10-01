@@ -87,10 +87,11 @@ class TestEphysPipeline(base.IntegrationTest):
                          set([ds['id'] for ds in all_datasets + raw_ds]))
 
         nss = 2
-        EXPECTED_DATASETS = [('_iblqc_ephysSpectralDensity.freqs', 4, 4),
-                             ('_iblqc_ephysSpectralDensity.power', 4, 4),
-                             ('_iblqc_ephysTimeRms.rms', 4, 4),
-                             ('_iblqc_ephysTimeRms.timestamps', 4, 4),
+        EXPECTED_DATASETS = [('_iblqc_ephysSpectralDensity.freqs', 2, 2),
+                             ('_iblqc_ephysSpectralDensity.power', 2, 2),
+                             ('_iblqc_ephysTimeRms.rms', 2, 2),
+                             ('_iblqc_ephysTimeRms.timestamps', 2, 2),
+                             ('_iblqc_ephysChannels.RMS', 2, 2),
 
                              ('_iblrig_Camera.frame_counter', 3, 3),
                              ('_iblrig_Camera.GPIO', 3, 3),
