@@ -10,6 +10,7 @@ from ibllib.ephys import spikes, neuropixel
 from pykilosort import add_default_handler, run, Bunch, __version__
 from pykilosort.params import KilosortParams
 
+
 _logger = logging.getLogger("pykilosort")
 
 
@@ -44,17 +45,10 @@ def run_spike_sorting_ibl(bin_file, scratch_dir=None, delete=True, neuropixel_ve
     add_default_handler(level=log_level)
     add_default_handler(level=log_level, filename=log_file)
     # construct the probe geometry information
-    h = neuropixel.trace_header(version=neuropixel_version)
-    probe = Bunch()
-    probe.NchanTOT = 385
-    probe.chanMap = np.arange(384)
-    probe.xc = h['x']
-    probe.yc = h['y']
-    probe.kcoords = np.zeros(384)
-
+    ibl_params = ibl_pykilosort_params(neuropixel_version=neuropixel_version)
     try:
         _logger.info(f"Starting Pykilosort version {__version__}, output in {bin_file.parent}")
-        run(bin_file, probe=probe, dir_path=scratch_dir, output_dir=ks_output_dir)
+        run(bin_file, dir_path=scratch_dir, output_dir=ks_output_dir, **ibl_params)
         if delete:
             shutil.rmtree(bin_file.parent.joinpath(".kilosort"))
     except Exception as e:
@@ -71,9 +65,21 @@ def run_spike_sorting_ibl(bin_file, scratch_dir=None, delete=True, neuropixel_ve
         spikes.ks2_to_alf(ks_output_dir, bin_file, alf_path, ampfactor=s2v)
 
 
-def ibl_pykilosort_params():
+def ibl_pykilosort_params(neuropixel_version=1):
+    h = neuropixel.trace_header(version=neuropixel_version)
+    probe = Bunch()
+    probe.NchanTOT = 385
+    probe.chanMap = np.arange(384)
+    probe.xc = h['x']
+    probe.yc = h['y']
+    probe.kcoords = np.zeros(384)
+
     params = KilosortParams()
-    params.save_drift_output = True
+    params.preprocessing_function = 'destriping'
+    params.probe = probe
+    # params = {k: dict(params)[k] for k in sorted(dict(params))}
+    return dict(params)
+
 
 if __name__ == "__main__":
     """
