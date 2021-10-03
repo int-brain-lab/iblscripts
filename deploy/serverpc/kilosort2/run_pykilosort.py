@@ -8,6 +8,7 @@ import numpy as np
 from ibllib.io import spikeglx
 from ibllib.ephys import spikes, neuropixel
 from pykilosort import add_default_handler, run, Bunch, __version__
+from pykilosort.params import KilosortParams
 
 _logger = logging.getLogger("pykilosort")
 
@@ -37,7 +38,7 @@ def run_spike_sorting_ibl(bin_file, scratch_dir=None, delete=True, neuropixel_ve
     # handles all the paths infrastructure
     assert scratch_dir is not None
     bin_file = Path(bin_file)
-    scratch_dir.parent.mkdir(exist_ok=True, parents=True)
+    scratch_dir.mkdir(exist_ok=True, parents=True)
     ks_output_dir = Path(ks_output_dir) if ks_output_dir is not None else scratch_dir.joinpath('output')
     log_file = scratch_dir.joinpath(f"_{START_TIME.isoformat()}_kilosort.log")
     add_default_handler(level=log_level)
@@ -69,6 +70,10 @@ def run_spike_sorting_ibl(bin_file, scratch_dir=None, delete=True, neuropixel_ve
         alf_path.mkdir(exist_ok=True, parents=True)
         spikes.ks2_to_alf(ks_output_dir, bin_file, alf_path, ampfactor=s2v)
 
+
+def ibl_pykilosort_params():
+    params = KilosortParams()
+    params.save_drift_output = True
 
 if __name__ == "__main__":
     """
