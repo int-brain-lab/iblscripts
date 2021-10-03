@@ -18,24 +18,32 @@ def _sample2v(ap_file):
     return s2v["ap"][0]
 
 
-def run_spike_sorting_ibl(bin_file, delete=True, version=1, ks_output_dir=None, alf_path=None, log_level='INFO'):
+def run_spike_sorting_ibl(bin_file, scratch_dir=None, delete=True, neuropixel_version=1,
+                          ks_output_dir=None, alf_path=None, log_level='INFO'):
     """
     This runs the spike sorting and outputs the raw pykilosort without ALF conversion
-    bin_file: binary file full path to run
-    delete (true): removes temporary data after run (.pykilosort folder)
-    version (1): Neuropixel version
-    ks_output_dir (None): location of ks output data, defaults to output folder next to the bin file
-    alf_path (None): if specified, performs ks to ALF conversion in the specified folder
+    neuroversion (1)
+    :param bin_file: binary file full path to
+    :param scratch_dir: working directory (home of the .kilosort folder) SSD drive preferred.
+    :param delete: bool, optional, defaults to True: whether or not to delete the .kilosort temp folder
+    :param neuropixel_version: float, optional, defaults to 1: the Neuropixel probe version
+    :param ks_output_dir: string or Path: output directory defaults to None, in which case it will output in the
+     scratch directory.
+    :param alf_path: strint or Path, optional: if specified, performs ks to ALF conversion in the specified folder
+    :param log_level: string, optional, defaults to 'INFO'
+    :return:
     """
     START_TIME = datetime.datetime.now()
+    # handles all the paths infrastructure
+    assert scratch_dir is not None
     bin_file = Path(bin_file)
-    log_file = bin_file.parent.joinpath(f"_{START_TIME.isoformat()}_kilosort.log")
-    log_file.parent.mkdir(exist_ok=True, parents=True)
-
+    scratch_dir.parent.mkdir(exist_ok=True, parents=True)
+    ks_output_dir = Path(ks_output_dir) if ks_output_dir is not None else scratch_dir.joinpath('output')
+    log_file = scratch_dir.joinpath(f"_{START_TIME.isoformat()}_kilosort.log")
     add_default_handler(level=log_level)
     add_default_handler(level=log_level, filename=log_file)
-
-    h = neuropixel.trace_header(version=version)
+    # construct the probe geometry information
+    h = neuropixel.trace_header(version=neuropixel_version)
     probe = Bunch()
     probe.NchanTOT = 385
     probe.chanMap = np.arange(384)
@@ -45,7 +53,7 @@ def run_spike_sorting_ibl(bin_file, delete=True, version=1, ks_output_dir=None, 
 
     try:
         _logger.info(f"Starting Pykilosort version {__version__}, output in {bin_file.parent}")
-        run(bin_file, probe=probe, dir_path=bin_file.parent, output_dir=ks_output_dir)
+        run(bin_file, probe=probe, dir_path=scratch_dir, output_dir=ks_output_dir)
         if delete:
             shutil.rmtree(bin_file.parent.joinpath(".kilosort"))
     except Exception as e:
@@ -53,7 +61,6 @@ def run_spike_sorting_ibl(bin_file, delete=True, version=1, ks_output_dir=None, 
         raise e
 
     [_logger.removeHandler(h) for h in _logger.handlers]
-    ks_output_dir = Path(ks_output_dir) or bin_file.parent.joinpath('output')
     shutil.move(log_file, ks_output_dir.joinpath('spike_sorting_pykilosort.log'))
 
     # convert the pykilosort output to ALF IBL format
@@ -68,7 +75,7 @@ if __name__ == "__main__":
     directory structure example:
         input file: ./CSH_ZAD_029/2020-09-09/001/raw_ephys_data/probe00/_spikeglx_ephysData_g0_t0.nidq.cbin
         session_path: ./CSH_ZAD_029/2020-09-09/001
-        alf_dir: ./CSH_ZAD_029/2020-09-09/001/alf
+        alf_dir: ./CSH_ZAD_029/2020-09-09/001/alf/pykilosort
         scratch_dir: /mnt/h0/CSH_ZAD_029_2020-09-09_001_probe00
     """
 
@@ -84,22 +91,5 @@ if __name__ == "__main__":
     assert cbin_file.exists(), f"{cbin_file} not found !"
     _logger.info(f"Spike sorting {cbin_file}")
 
-    scratch_dir.mkdir(exist_ok=True, parents=True)
+    run_spike_sorting_ibl(cbin_file, scratch_dir=scratch_dir, delete=DELETE)
 
-    # if PRE_PROC:
-    #     # run pre-processing
-    #     import ibllib.dsp.voltage as voltage
-    #     bin_destriped = scratch_dir.joinpath(cbin_file.name).with_suffix('.bin')
-    #     if bin_destriped.exists():
-    #         print('skip pre-proc')
-    #     else:
-    #         voltage.decompress_destripe_cbin(sr=cbin_file, output_file=bin_destriped)
-    #     if not bin_destriped.with_suffix('.meta').exists():
-    #         bin_destriped.with_suffix('.meta').symlink_to(cbin_file.with_suffix('.meta'))
-    #
-    #     # run pykilosort
-    #     run_spike_sorting_ibl(bin_destriped, delete=DELETE, version=1)
-    run_spike_sorting_ibl(cbin_file, delete=DELETE, version=1)
-
-    # # mop-up all temporary files
-    # shutil.rmtree(bin_destriped.parent)
