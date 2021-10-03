@@ -50,7 +50,7 @@ def run_spike_sorting_ibl(bin_file, scratch_dir=None, delete=True, neuropixel_ve
         _logger.info(f"Starting Pykilosort version {__version__}, output in {bin_file.parent}")
         run(bin_file, dir_path=scratch_dir, output_dir=ks_output_dir, **ibl_params)
         if delete:
-            shutil.rmtree(bin_file.parent.joinpath(".kilosort"))
+            shutil.rmtree(scratch_dir.joinpath(".kilosort"), ignore_errors=True)
     except Exception as e:
         _logger.exception("Error in the main loop")
         raise e
