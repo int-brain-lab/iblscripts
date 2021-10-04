@@ -24,9 +24,14 @@ class TestEphysPipeline(base.IntegrationTest):
         if self.main_folder.exists():
             shutil.rmtree(self.main_folder)
         self.main_folder.mkdir(exist_ok=True, parents=True)
+        # Ignore some files that are in the integration data. On the long run these should be removed from FlatIron
+        ignore_files = ['_iblqc_ephysSpectralDensityAP.freqs.npy',
+                        '_iblqc_ephysSpectralDensityAP.power.npy',
+                        '_iblqc_ephysTimeRmsAP.rms.npy',
+                        '_iblqc_ephysTimeRmsAP.timestamps.npy']
         for ff in self.init_folder.rglob('*.*'):
             link = self.main_folder.joinpath(ff.relative_to(self.init_folder))
-            if 'alf' in link.parts:
+            if 'alf' in link.parts or link.name in ignore_files:
                 continue
             link.parent.mkdir(exist_ok=True, parents=True)
             link.symlink_to(ff)
@@ -195,8 +200,10 @@ class TestEphysPipeline(base.IntegrationTest):
         for pi in pis:
             assert 'n_units' in pi['json']
             assert 'extended_qc' in pi['json']
-            assert 'apRms_p10' in pi['json']['extended_qc']
-            assert 'apRms_p90' in pi['json']['extended_qc']
+            assert 'apRms_p10_raw' in pi['json']['extended_qc']
+            assert 'apRms_p90_raw' in pi['json']['extended_qc']
+            assert 'apRms_p10_proc' in pi['json']['extended_qc']
+            assert 'apRms_p90_proc' in pi['json']['extended_qc']
         # check that tasks ran with proper status
         tasks_end = one.alyx.rest('tasks', 'list', session=eid, no_cache=True)
         for t in tasks_end:
