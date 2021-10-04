@@ -194,6 +194,9 @@ class TestEphysPipeline(base.IntegrationTest):
         pis = one.alyx.rest('insertions', 'list', session=eid, no_cache=True)
         for pi in pis:
             assert 'n_units' in pi['json']
+            assert 'extended_qc' in pi['json']
+            assert 'apRms_p10' in pi['json']['extended_qc']
+            assert 'apRms_p90' in pi['json']['extended_qc']
         # check that tasks ran with proper status
         tasks_end = one.alyx.rest('tasks', 'list', session=eid, no_cache=True)
         for t in tasks_end:
