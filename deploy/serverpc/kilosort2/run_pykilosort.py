@@ -21,7 +21,7 @@ def _sample2v(ap_file):
 
 
 def run_spike_sorting_ibl(bin_file, scratch_dir=None, delete=True, neuropixel_version=1,
-                          ks_output_dir=None, alf_path=None, log_level='INFO'):
+                          ks_output_dir=None, alf_path=None, log_level='INFO', params=None):
     """
     This runs the spike sorting and outputs the raw pykilosort without ALF conversion
     neuroversion (1)
@@ -45,7 +45,7 @@ def run_spike_sorting_ibl(bin_file, scratch_dir=None, delete=True, neuropixel_ve
     add_default_handler(level=log_level)
     add_default_handler(level=log_level, filename=log_file)
     # construct the probe geometry information
-    ibl_params = ibl_pykilosort_params(neuropixel_version=neuropixel_version)
+    ibl_params = params or ibl_pykilosort_params(neuropixel_version=neuropixel_version)
     try:
         _logger.info(f"Starting Pykilosort version {__version__}, output in {bin_file.parent}")
         run(bin_file, dir_path=scratch_dir, output_dir=ks_output_dir, **ibl_params)
