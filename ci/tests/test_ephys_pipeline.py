@@ -144,6 +144,7 @@ class TestEphysPipeline(base.IntegrationTest):
                              ('templates.waveforms', nss, nss),
                              ('templates.waveformsChannels', nss, nss),
                              ('templates.amps', nss, nss),
+                             ('_ibl_log.info', nss, nss),
 
                              ('trials.choice', 1, 1),
                              ('trials.contrastLeft', 1, 1),
