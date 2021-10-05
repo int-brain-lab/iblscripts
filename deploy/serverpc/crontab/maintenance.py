@@ -324,6 +324,6 @@ if __name__ == "__main__":
     correct_flags_biased_in_ephys_rig()
     correct_ephys_manual_video_copies()
     spike_amplitude_patching()
-    upload_ks2_output()
+    # upload_ks2_output()
     correct_passive_in_wrong_folder()
-    remove_old_spike_sortings_outputs()  # this should run once and could be deprecated
+    # remove_old_spike_sortings_outputs()
