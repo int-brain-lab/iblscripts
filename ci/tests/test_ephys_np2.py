@@ -26,7 +26,7 @@ class TestNeuropixel2ConverterNP24(base.IntegrationTest):
         _ = [sglx.close() for sglx in self.sglx_instances]
 
         # here should look for any directories with test in it and delete
-        test_dir = list(self.file_path.parent.parent.glob('*test'))
+        test_dir = list(self.file_path.parent.parent.glob('*test*'))
         _ = [shutil.rmtree(test) for test in test_dir]
         self.meta_file.unlink()
 
