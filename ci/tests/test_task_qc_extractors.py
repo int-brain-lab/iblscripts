@@ -161,7 +161,7 @@ class TestBpodQCExtractors(base.IntegrationTest):
         # Swap cache dir for temporary directory.  This should trigger re-download of the data
         # without interfering with the integration data
         with tempfile.TemporaryDirectory() as tdir:
-            _cache = self.one._cache_dir
+            _cache = self.one.cache_dir
             self.one.alyx._par = self.one.alyx._par.set('CACHE_DIR', tdir)
             try:
                 TaskQCExtractor(self.session_path, lazy=True, one=self.one, download_data=True)
