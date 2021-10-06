@@ -541,20 +541,8 @@ class TestCameraQC(base.IntegrationTest):
         qc = CameraQC(session_path, 'left',
                       stream=False, download_data=False, one=self.one, n_samples=20)
         outcome, extended = qc.run(update=False)
-        self.assertEqual('FAIL', outcome)
-        expected = {
-            '_videoLeft_brightness': 'FAIL',
-            '_videoLeft_camera_times': ('PASS', 0),
-            '_videoLeft_dropped_frames': 'NOT_SET',
-            '_videoLeft_file_headers': 'PASS',
-            '_videoLeft_focus': 'PASS',
-            '_videoLeft_framerate': 'NOT_SET',
-            '_videoLeft_pin_state': 'NOT_SET',
-            '_videoLeft_position': 'WARNING',
-            '_videoLeft_resolution': 'PASS',
-            '_videoLeft_timestamps': 'NOT_SET',
-            '_videoLeft_wheel_alignment': 'NOT_SET'
-        }
+        self.assertEqual('NOT_SET', outcome)
+        expected = {}
         self.assertEqual(expected, extended)
 
     @mock.patch('ibllib.qc.camera.get_video_meta')
