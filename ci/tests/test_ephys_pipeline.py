@@ -18,7 +18,7 @@ class TestEphysPipeline(base.IntegrationTest):
         self.one = ONE(**base.TEST_DB, cache_dir=self.data_path / 'ephys', cache_rest=None)
         self.init_folder = self.data_path.joinpath('ephys', 'choice_world_init')
         if not self.init_folder.exists():
-            return
+            raise FileNotFoundError()
         self.main_folder = self.data_path.joinpath('ephys', 'cortexlab', 'Subjects')
         self.session_path = self.main_folder.joinpath('KS022', '2019-12-10', '001')
         if self.main_folder.exists():
@@ -139,6 +139,9 @@ class TestEphysPipeline(base.IntegrationTest):
 
                              ('probes.description', 1, 1),
                              ('probes.trajectory', 1, 1),
+                             ('drift_depths.um', nss, nss),
+                             ('drift.times', nss, nss),
+                             ('drift.um', nss, nss),
                              ('spikes.amps', nss, nss),
                              ('spikes.clusters', nss, nss),
                              ('spikes.depths', nss, nss),
@@ -147,6 +150,7 @@ class TestEphysPipeline(base.IntegrationTest):
                              ('templates.waveforms', nss, nss),
                              ('templates.waveformsChannels', nss, nss),
                              ('templates.amps', nss, nss),
+                             ('_ibl_log.info', nss, nss),
 
                              ('trials.choice', 1, 1),
                              ('trials.contrastLeft', 1, 1),
@@ -254,7 +258,7 @@ class TestEphysPipeline(base.IntegrationTest):
             swv = alfio.load_object(probe_folder, 'spikes_subset')
             swv_attributes = ['spikes', 'channels', 'waveforms']
             self.assertTrue(set(swv_attributes) == set(swv.keys()))
-            iswv = 20001
+            iswv = 10000
             it = spikes.templates[swv.spikes[iswv]]
             _, ics, ict = np.intersect1d(swv.channels[iswv], templates.waveformsChannels[it],
                                          return_indices=True)
