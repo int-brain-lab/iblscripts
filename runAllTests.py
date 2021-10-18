@@ -61,7 +61,7 @@ def run_tests(complete: bool = True,
         # include ibllib and brainbox unit tests, plus personal projects
         root = Path(ibllib.__file__).parents[1]  # Search relative to our imported ibllib package
         test_dirs = [root.joinpath(x) for x in ('brainbox', 'ibllib')]
-        test_dirs.append(Path(projects.__file__).parents[1])  # this contains the personal projects tests
+        test_dirs.append(Path(projects.__file__).parent)  # this contains the personal projects tests
         for tdir in test_dirs:
             logger.info(f'Loading unit tests from folders: {tdir}')
             assert tdir.exists(), f'Failed to find unit test folders in {tdir}'
