@@ -14,6 +14,7 @@ from typing import List, Union
 
 from iblutil.util import flatten
 from ibllib.misc.version import ibllib as ver
+import projects
 
 logger = logging.getLogger('ibllib')
 
@@ -56,15 +57,18 @@ def run_tests(complete: bool = True,
     test_dir = str(Path(ci.tests.__file__).parent)
     logger.info(f'Loading integration tests from {test_dir}')
     ci_tests = unittest.TestLoader().discover(test_dir, pattern='test_*')
-    if complete:  # include ibllib and brainbox unit tests
+    if complete:
+        # include ibllib and brainbox unit tests, plus personal projects
         root = Path(ibllib.__file__).parents[1]  # Search relative to our imported ibllib package
         test_dirs = [root.joinpath(x) for x in ('brainbox', 'ibllib')]
+        test_dirs.append(Path(projects.__file__).parent)  # this contains the personal projects tests
         for tdir in test_dirs:
             logger.info(f'Loading unit tests from folders: {tdir}')
             assert tdir.exists(), f'Failed to find unit test folders in {tdir}'
             unit_tests = unittest.TestLoader().discover(str(tdir), pattern='test_*', top_level_dir=root)
             logger.info(f"Found {unit_tests.countTestCases()}, appending to the test suite")
             ci_tests.addTests(unit_tests)
+
 
     logger.info(f'Complete suite contains {ci_tests.countTestCases()} tests')
     # Check all tests loaded successfully
