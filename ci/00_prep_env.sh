@@ -44,9 +44,8 @@ conda create -n ci --yes --quiet python=3.8
 
 conda activate ci
 
-#pip uninstall -y ibllib
-#pip uninstall -y phylib
-pip install phylib
+pip install -U phylib
+pip install -U ONE-api
 pip install git+https://github.com/int-brain-lab/ibllib.git@$1
 pip install -e /home/experiment/Documents/github/iblscripts
 pip install pyfftw
