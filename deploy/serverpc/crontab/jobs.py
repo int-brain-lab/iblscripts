@@ -11,10 +11,12 @@ from ibllib.pipes.remote_server import job_transfer_ks2, job_run_ks2
 
 DEFINED_PORTS = {
     'run': 54320,
+    'run_small': 54320,
     'create': 54321,
     'report': 54322,
     'transfer_ks': 54323,
-    'run_ks': 54324
+    'run_ks': 54324,
+    'run_large': 54324,
 }
 
 _logger = logging.getLogger('ibllib')
@@ -81,6 +83,28 @@ def run_tasks(subjects_path, dry=False, lab=None, count=20):
     :return:
     """
     job_runner(subjects_path, lab=lab, dry=dry, count=count)
+
+
+@forever(DEFINED_PORTS['run_small'], 600)
+def run_tasks_small(subjects_path, dry=False, lab=None, count=20):
+    """
+    Runs backlog of tasks excluding video compression, spike sorting and dlc from task records in Alyx for this server
+    :param subjects_path: "/mnt/s0/Data/Subjects"
+    :param dry:
+    :return:
+    """
+    job_runner(subjects_path, mode='small', lab=lab, dry=dry, count=count)
+
+
+@forever(DEFINED_PORTS['run_large'], 600)
+def run_tasks_large(subjects_path, dry=False, lab=None, count=20):
+    """
+    Runs backlog of video compression, spike sorting and dlc tasks from task records in Alyx for this server
+    :param subjects_path: "/mnt/s0/Data/Subjects"
+    :param dry:
+    :return:
+    """
+    job_runner(subjects_path, mode='large', lab=lab, dry=dry, count=count)
 
 
 @forever(DEFINED_PORTS['report'], 3600 * 2)
@@ -161,7 +185,7 @@ if __name__ == "__main__":
         python jobs.py kill run
         python jobs.py kill report
     """
-    JOBS = ['create', 'run', 'test', 'report', 'transfer_ks', 'run_ks']
+    JOBS = ['create', 'run', 'run_small', 'run_large', 'test', 'report', 'transfer_ks', 'run_ks']
     ALLOWED_ACTIONS = ['kill', 'status'] + JOBS
 
     parser = argparse.ArgumentParser(description='Creates jobs for new sessions')
@@ -182,6 +206,16 @@ if __name__ == "__main__":
         if args.restart:
             _send2job('run', b"STOP")
         run_tasks(args.folder, args.dry)
+    elif args.action == 'run_small':
+        assert (Path(args.folder).exists())
+        if args.restart:
+            _send2job('run_small', b"STOP")
+        run_tasks_small(args.folder, args.dry)
+    elif args.action == 'run_large':
+        assert (Path(args.folder).exists())
+        if args.restart:
+            _send2job('run_large', b"STOP")
+        run_tasks_large(args.folder, args.dry)
     elif args.action == 'report':
         if args.restart:
             _send2job('report', b"STOP")
