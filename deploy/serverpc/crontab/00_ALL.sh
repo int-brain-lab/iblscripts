@@ -17,5 +17,6 @@ python jobs.py kill report
 python jobs.py report &
 
 ../kilosort2/update_pykilosort.sh
+../dlc/update_dlcenv.sh
 
 python maintenance.py
