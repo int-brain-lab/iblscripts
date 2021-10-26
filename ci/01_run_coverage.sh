@@ -28,7 +28,7 @@ done
 pkgs=${pkgs%?} # remove last comma
 
 # Build up sources
-coverage run --omit=*pydevd_file_utils.py,*test_* --source="$pkgs" \
+coverage run --omit=*pydevd_file_utils.py,*test_*,*tests* --source="$pkgs" \
 /home/experiment/Documents/github/iblscripts/runAllTests.py -c "$1" -r "$2" --logdir "$3"
 #coverage report --skip-covered
 
