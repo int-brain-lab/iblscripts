@@ -23,6 +23,7 @@ _logger = logging.getLogger('ibllib')
 
 def correct_ephys_manual_video_copies():
     """
+    FIXME What does this function do???
     """
     for flag in ROOT_PATH.rglob('ephys_data_transferred.flag'):
         video = True
@@ -91,7 +92,7 @@ def correct_passive_in_wrong_folder():
             flag.unlink()
 
             # find the tasks for this session and set it to waiting
-            eid = one.eid_from_path(session_path)
+            eid = one.path2eid(session_path)
             if eid:
                 tasks = one.alyx.rest('tasks', 'list', session=eid, name='TrainingRegisterRaw')
                 if len(tasks) > 0:
@@ -185,7 +186,7 @@ def spike_amplitude_patching():
 
         # Now proceed with everything else
         session_path = get_session_path(ks2_out)
-        eid = one.eid_from_path(session_path)
+        eid = one.path2eid(session_path)
         if eid is None:
             # Skip sessions that don't exist on alyx!
             continue
@@ -258,7 +259,7 @@ def upload_ks2_output():
             # We already done this, no need to repeat!!
             continue
 
-        eid = one.eid_from_path(session_path)
+        eid = one.path2eid(session_path)
 
         # For latest sessions tar file will be created by task and automatically registered so we
         # may have a case where tar file already registered and uploaded but no tar_existed.flag
