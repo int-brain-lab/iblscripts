@@ -7,13 +7,6 @@ from ibllib.io import spikeglx
 
 from ci.tests import base
 
-import time
-# TODO
-# test compression
-#
-
-# TODO does it work from a compressed file?
-
 
 class TestNeuropixel2ConverterNP24(base.IntegrationTest):
     """
@@ -212,7 +205,6 @@ class TestNeuropixel2ConverterNP21(base.IntegrationTest):
         shutil.copy(file_path, self.file_path)
         shutil.copy(meta_file, self.meta_file)
         self.sglx_instances = []
-
 
     def tearDown(self):
         _ = [sglx.close() for sglx in self.sglx_instances]
