@@ -91,6 +91,8 @@ class TestEphysPipeline(base.IntegrationTest):
                              ('_iblqc_ephysSpectralDensity.power', 4, 4),
                              ('_iblqc_ephysTimeRms.rms', 4, 4),
                              ('_iblqc_ephysTimeRms.timestamps', 4, 4),
+                             ('_iblqc_ephysChannels.rawSpikeRates', 2, 2),
+                             ('_iblqc_ephysChannels.RMS', 2, 2),
 
                              ('_iblrig_Camera.frame_counter', 3, 3),
                              ('_iblrig_Camera.GPIO', 3, 3),
