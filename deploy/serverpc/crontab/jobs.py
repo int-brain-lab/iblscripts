@@ -121,7 +121,7 @@ def create_sessions(root_path, dry=False):
     """
     Create sessions: for this server, finds the extract_me flags, identify the session type,
     create the session on Alyx if it doesn't already exist, register the raw data and create
-    the tasks backloh
+    the tasks backlog
     """
     job_creator(root_path, dry=dry)
 
