@@ -43,8 +43,8 @@ class TestReadSpikeSorting(IntegrationTest):
             eid, one=one, probe=pname, spike_sorter=None, revision=None)
         _check(spikes[pname]['times'])
         assert channels[pname]['acronym'] is None
-        spikes, clusters, channels = bbone.load_spike_sorting_fast(eid, one=one, probe=pname, spike_sorter=None,
-                                                                   revision=None, brain_regions=br)
+        spikes, clusters, channels = bbone.load_spike_sorting_fast(
+            eid, one=one, probe=pname, spike_sorter=None, revision=None, brain_regions=br)
         _check(spikes[pname]['times'])
         assert len(channels[pname]['acronym']) == 384
         assert 'acronym' in clusters[pname].keys()
