@@ -4,10 +4,12 @@ import hashlib
 from one.api import One
 
 from ci.tests.base import IntegrationTest
-from brainbox.io.one import _load_spike_sorting, load_spike_sorting_fast
+import brainbox.io.one as bbone
+from ibllib.atlas.regions import BrainRegions
 
 _logger = logging.getLogger('ibllib')
 _logger.setLevel(10)
+br = BrainRegions()
 
 
 def _check(times, spike_sorter='pykilosort'):
@@ -28,7 +30,6 @@ class TestReadSpikeSorting(IntegrationTest):
         print('Building ONE cache from filesystem...')
         self.one = One.setup(self.root_path, silent=True)
 
-
     def tearDown(self) -> None:
         for file in self.root_path.glob('*.pqt'):
             file.unlink()
@@ -38,23 +39,59 @@ class TestReadSpikeSorting(IntegrationTest):
         one = self.one
         eid = one.path2eid(self.session_path)
 
-        spikes, clusters, channels = load_spike_sorting_fast(eid, one=one, probe=pname, spike_sorter=None, revision=None)
+        spikes, clusters, channels = bbone.load_spike_sorting_fast(
+            eid, one=one, probe=pname, spike_sorter=None, revision=None)
         _check(spikes[pname]['times'])
+        assert channels[pname]['acronym'] is None
+        spikes, clusters, channels = bbone.load_spike_sorting_fast(
+            eid, one=one, probe=pname, spike_sorter=None, revision=None, brain_regions=br)
+        _check(spikes[pname]['times'])
+        assert len(channels[pname]['acronym']) == 384
+        assert 'acronym' in clusters[pname].keys()
 
         # try loading data that doesn't exist
-        spikes, clusters, channels = load_spike_sorting_fast(eid, one=one, probe=pname, spike_sorter='not_on_list', revision=None)
+        spikes, clusters, channels = bbone.load_spike_sorting_fast(
+            eid, one=one, probe=pname, spike_sorter='not_on_list', revision=None)
         assert spikes == {}
-        spikes, clusters, channels = load_spike_sorting_fast(eid, one=one, probe='not_on_list', spike_sorter=None, revision=None)
+        spikes, clusters, channels = bbone.load_spike_sorting_fast(
+            eid, one=one, probe='not_on_list', spike_sorter=None, revision=None)
         assert spikes == {}
 
         # makes sure this is the pykilosort that is returned by default1
-        spikes, clusters, channels = _load_spike_sorting(eid=eid, one=one, collection=f'alf/*{pname}/*', return_channels=True)
+        spikes, clusters, channels = bbone._load_spike_sorting(
+            eid=eid, one=one, collection=f'alf/*{pname}/*', return_channels=True)
         _check(spikes[pname]['times'])
 
         # load spike sorting for a non default sorter
-        spikes, clusters, channels = load_spike_sorting_fast(eid, one=one, probe=pname, spike_sorter='ks2_preproc_tests', revision=None)
+        spikes, clusters, channels = bbone.load_spike_sorting_fast(
+            eid, one=one, probe=pname, spike_sorter='ks2_preproc_tests', revision=None)
         _check(spikes[pname]['times'], spike_sorter='ks2_preproc_tests')
 
         # load spike sorting for a non default sorter at the folder root
-        spikes, clusters, channels = load_spike_sorting_fast(eid, one=one, probe=pname, spike_sorter='', revision=None)
+        spikes, clusters, channels = bbone.load_spike_sorting_fast(
+            eid, one=one, probe=pname, spike_sorter='', revision=None)
         _check(spikes[pname]['times'], spike_sorter='')
+
+
+class TestLoadTrials(IntegrationTest):
+
+    def setUp(self) -> None:
+        self.root_path = self.data_path.joinpath('ephys', 'choice_world_init')
+        self.session_path = self.root_path.joinpath('KS022', '2019-12-10', '001')
+        print('Building ONE cache from filesystem...')
+        self.one = One.setup(self.root_path, silent=True)
+
+    def test_load_trials_df(self):
+        eid = self.one.to_eid(self.session_path)
+        trials = bbone.load_trials_df(eid, one=self.one)
+        expected = [
+            'choice', 'probabilityLeft', 'feedbackType', 'feedback_times', 'contrastLeft',
+            'contrastRight', 'goCue_times', 'stimOn_times', 'trial_start', 'trial_end'
+        ]
+        self.assertCountEqual(trials.columns, expected)
+        trials = bbone.load_trials_df(eid, one=self.one, ret_wheel=True)
+        self.assertIn('wheel_velocity', trials)
+
+    def tearDown(self) -> None:
+        for file in self.root_path.glob('*.pqt'):
+            file.unlink()
