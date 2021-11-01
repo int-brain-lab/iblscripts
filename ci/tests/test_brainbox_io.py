@@ -1,14 +1,15 @@
 import logging
 import hashlib
-import tempfile
 
 from one.api import One
 
 from ci.tests.base import IntegrationTest
 import brainbox.io.one as bbone
+from ibllib.atlas.regions import BrainRegions
 
 _logger = logging.getLogger('ibllib')
 _logger.setLevel(10)
+br = BrainRegions()
 
 
 def _check(times, spike_sorter='pykilosort'):
@@ -41,6 +42,12 @@ class TestReadSpikeSorting(IntegrationTest):
         spikes, clusters, channels = bbone.load_spike_sorting_fast(
             eid, one=one, probe=pname, spike_sorter=None, revision=None)
         _check(spikes[pname]['times'])
+        assert channels[pname]['acronym'] is None
+        spikes, clusters, channels = bbone.load_spike_sorting_fast(
+            eid, one=one, probe=pname, spike_sorter=None, revision=None, brain_regions=br)
+        _check(spikes[pname]['times'])
+        assert len(channels[pname]['acronym']) == 384
+        assert 'acronym' in clusters[pname].keys()
 
         # try loading data that doesn't exist
         spikes, clusters, channels = bbone.load_spike_sorting_fast(
