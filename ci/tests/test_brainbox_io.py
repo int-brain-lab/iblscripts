@@ -1,11 +1,16 @@
 import logging
 import hashlib
 
-from one.api import One
+import numpy as np
 
-from ci.tests.base import IntegrationTest
+from one.api import One
+from one.alf.io import load_object
 import brainbox.io.one as bbone
 from ibllib.atlas.regions import BrainRegions
+from ibllib.ephys.neuropixel import trace_header
+
+
+from ci.tests.base import IntegrationTest
 
 _logger = logging.getLogger('ibllib')
 _logger.setLevel(10)
@@ -33,6 +38,27 @@ class TestReadSpikeSorting(IntegrationTest):
     def tearDown(self) -> None:
         for file in self.root_path.glob('*.pqt'):
             file.unlink()
+
+    def test_channel_conversion_interpolation(self):
+        BUNCH_KEYS = set(['x', 'y', 'z', 'acronym', 'atlas_id', 'axial_um', 'lateral_um'])
+        ALF_KEYS = set(['localCoordinates', 'mlapdv', 'brainLocationIds_ccf_2017'])
+        pname = 'probe01'
+        alf_channels = load_object(self.session_path.joinpath('alf', pname), 'channels')
+        channels = bbone._channels_alf2bunch(alf_channels)
+        assert set(channels.keys()) == BUNCH_KEYS
+
+        h = trace_header(1)
+        raw_channels = bbone.channel_locations_interpolation(
+            alf_channels, {'localCoordinates': np.c_[h['x'], h['y']]})
+        assert set(raw_channels.keys()) == ALF_KEYS
+        channels = bbone.channel_locations_interpolation(
+            alf_channels, {'localCoordinates': np.c_[h['x'], h['y']]}, brain_regions=br)
+        assert set(channels.keys()) == BUNCH_KEYS
+
+        # this function should also be able to take a bunch formatted dict as input
+        channels = bbone.channel_locations_interpolation(
+            channels, {'localCoordinates': np.c_[h['x'], h['y']]}, brain_regions=br)
+        assert set(channels.keys()) == BUNCH_KEYS
 
     def test_read_spike_sorting(self):
         pname = 'probe01'
