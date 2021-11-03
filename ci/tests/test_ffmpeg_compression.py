@@ -26,6 +26,7 @@ class TestVideoAudioEphys(base.IntegrationTest):
                 job = ephys_preprocessing.EphysVideoCompress(session_path)
                 job.run()
                 jobqc = ephys_preprocessing.EphysVideoSyncQc(session_path)
+                jobqc.force = False  # Make sure it doesn't go into globus mode
                 jobqc.run()
                 # check output files and non-existent inputs
                 self.assertTrue(len(list(session_path.rglob('*.avi'))) == 0)

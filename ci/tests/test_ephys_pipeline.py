@@ -93,10 +93,10 @@ class TestEphysSignatures(base.IntegrationTest):
 
     def test_SpikeSorting_signatures(self):
         EphysTask = ephys_tasks.SpikeSorting
-        session_paths = self.folder_path.joinpath('Spikesorting', '3A')
+        session_paths = self.folder_path.joinpath('SpikeSorting', '3A')
         self.assert_task_inputs_outputs(session_paths, EphysTask)
 
-        session_paths = self.folder_path.joinpath('Spikesorting', '3B')
+        session_paths = self.folder_path.joinpath('SpikeSorting', '3B')
         self.assert_task_inputs_outputs(session_paths, EphysTask)
 
 
