@@ -20,11 +20,13 @@ class TestVideoAudioEphys(base.IntegrationTest):
             shutil.copytree(EPHYS_INIT_FOLDER, Path(tdir).joinpath('Subjects'))
             for ts_file in Path(tdir).rglob("_iblrig_taskSettings.raw.json"):
                 """
-                Test the video compression
+                Test the video compression and video and sync qc jobs
                 """
                 session_path = ts_file.parents[1]
                 job = ephys_preprocessing.EphysVideoCompress(session_path)
                 job.run()
+                jobqc = ephys_preprocessing.EphysVideoSyncQc(session_path)
+                jobqc.run()
                 # check output files and non-existent inputs
                 self.assertTrue(len(list(session_path.rglob('*.avi'))) == 0)
                 self.assertTrue(len(list(session_path.rglob('*.mp4'))) == 3)

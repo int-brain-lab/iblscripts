@@ -32,7 +32,7 @@ from ibllib.qc.camera import CameraQC
 from ibllib.qc.base import CRITERIA
 import ibllib.io.video as vidio
 from ibllib.pipes.training_preprocessing import TrainingVideoCompress
-from ibllib.pipes.ephys_preprocessing import EphysVideoCompress
+from ibllib.pipes.ephys_preprocessing import EphysVideoCompress, EphysVideoSyncQc
 
 from ci.tests import base
 
@@ -686,10 +686,12 @@ class TestCameraPipeline(base.IntegrationTest):
     def test_ephys(self, mock_qc):
         # task running part
         job = EphysVideoCompress(self.ephys_folder, one=self.one)
+        jobqc = EphysVideoSyncQc(self.ephys_folder, one=self.one)
         with mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture') as mock_vc:
             length = 68453
             mock_vc().get.return_value = length
             job.run()
+            jobqc.run()
 
         self.assertEqual(job.status, 0)
         self.assertEqual(len(mock_qc.call_args_list), 3)  # Once per camera
@@ -698,7 +700,10 @@ class TestCameraPipeline(base.IntegrationTest):
 
         [self.assertEqual(call[0][0], self.ephys_folder) for call in mock_qc.call_args_list]
         mock_qc().run.assert_called_with(update=True)
-        self.assertEqual(len(job.outputs), 6)
+        # Three datasets for video compress job
+        self.assertEqual(len(job.outputs), 3)
+        # Three datasets for video sync qc job
+        self.assertEqual(len(jobqc.outputs), 3)
 
         # check the file objects
         for label in labels:
