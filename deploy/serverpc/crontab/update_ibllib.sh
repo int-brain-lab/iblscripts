@@ -32,6 +32,6 @@ pip uninstall -y ibllib
 pip uninstall -y ONE-api
 pip uninstall -y phylib
 pip install phylib
+pip install git+https://github.com/int-brain-lab/ONE.git@$one_branch
 pip install git+https://github.com/int-brain-lab/ibllib.git@$ibllib_branch --upgrade-strategy eager
-pip install -U git+https://github.com/int-brain-lab/ONE.git@$one_branch
 pip install -U git+https://github.com/int-brain-lab/project_extraction.git
