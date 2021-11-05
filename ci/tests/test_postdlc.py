@@ -13,7 +13,7 @@ class TestEphysPostDLC(base.IntegrationTest):
 			return
 		# Run the task, without qc as we don't use a real session here and qc requires the database
 		self.task = EphysPostDLC(self.root_folder)
-		self.task.run(run_qc=False)
+		self.task.run(overwrite=True, run_qc=False)
 		# Load integration test target data, replace NaNs with 0 to enable comparison
 		self.target_data = dict()
 		self.target_data['licks'] = np.load(self.root_folder.joinpath('targets', 'licks.times.npy'))
