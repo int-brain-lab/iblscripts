@@ -2,7 +2,10 @@
 Folders used:
     - camera/
     - ephys/ephys_choice_world_task/ibl_witten_27/2021-01-21/001/
+    - ephys/choice_world_init/KS022/2019-12-10/001
     - Subjects_init/ZM_1098/2019-01-25/001/
+    - training/CSHL_003/2019-04-05/001/
+
 
 NB: These tests hit the main Alyx database.  This is required for full coverage of the QC (in
 particular the CameraQC._ensure_required_data method and MotionAlign using eid2ref).
