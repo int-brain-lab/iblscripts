@@ -27,6 +27,9 @@ class TestEphysPipeline(base.IntegrationTest):
         for ff in self.init_folder.rglob('*.*'):
             link = self.main_folder.joinpath(ff.relative_to(self.init_folder))
             if 'alf' in link.parts:
+                if 'dlc' in link.name:
+                    link.parent.mkdir(exist_ok=True, parents=True)
+                    link.symlink_to(ff)
                 continue
             link.parent.mkdir(exist_ok=True, parents=True)
             link.symlink_to(ff)
@@ -63,6 +66,11 @@ class TestEphysPipeline(base.IntegrationTest):
 
         subject_path = self.session_path.parents[2]
         tasks_dict = one.alyx.rest('tasks', 'list', session=eid, status='Waiting', no_cache=True)
+        # Hack for PostDLC to ignore DLC status for now, until DLC is actually in the pipeline
+        idx = tasks_dict.index([t for t in tasks_dict if t['name'] == 'EphysPostDLC'][0])
+        id_compress = [t['id'] for t in tasks_dict if t['name'] == 'EphysVideoCompress'][0]
+        tasks_dict[idx]['parents'] = [id_compress]
+        # Hack end, to be removed later
         for td in tasks_dict:
             print(td['name'])
         all_datasets = local_server.tasks_runner(
@@ -106,6 +114,8 @@ class TestEphysPipeline(base.IntegrationTest):
                              ('_spikeglx_sync.times', 2, 3),
 
                              ('camera.times', 3, 3),
+                             ('camera.features', 2, 2),
+                             ('licks.times', 1, 1),
 
                              ('kilosort.whitening_matrix', nss, nss),
                              ('_kilosort_raw.output', nss, nss),
@@ -195,6 +205,9 @@ class TestEphysPipeline(base.IntegrationTest):
         self.assertTrue(any(k.startswith('_task_') for k in extended.keys()))
         # also check that the behaviour criterion was set
         self.assertTrue('behavior' in extended)
+        # check that new DLC qc is added properly
+        self.assertEqual(extended['_dlcLeft_pupil_diameter_snr'], [True, 12.066])
+        self.assertEqual(extended['_dlcRight_pupil_diameter_snr'], [True, 6.53])
         # check that the probes insertions have the json field labeled properly
         pis = one.alyx.rest('insertions', 'list', session=eid, no_cache=True)
         for pi in pis:
