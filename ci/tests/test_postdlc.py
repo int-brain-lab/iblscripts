@@ -1,3 +1,5 @@
+import unittest
+
 import pandas as pd
 import numpy as np
 
@@ -39,4 +41,5 @@ class TestEphysPostDLC(base.IntegrationTest):
 		self.assertTrue(all(licks == self.target_data['licks']))
 
 
-
+if __name__ == "__main__":
+	unittest.main(exit=False)
