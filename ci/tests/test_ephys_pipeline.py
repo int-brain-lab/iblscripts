@@ -209,14 +209,13 @@ class TestEphysPipeline(base.IntegrationTest):
                              ('_iblqc_ephysTimeRms.timestamps', 4, 4),
                              ('_iblqc_ephysChannels.rawSpikeRates', 2, 2),
                              ('_iblqc_ephysChannels.RMS', 2, 2),
-                             ('_iblqc_ephysChannels.channels', 2, 2),
+                             ('_iblqc_ephysChannels.labels', 2, 2),
 
                              ('_iblrig_Camera.frame_counter', 3, 3),
                              ('_iblrig_Camera.GPIO', 3, 3),
                              ('_iblrig_Camera.raw', 3, 3),
                              ('_iblrig_Camera.timestamps', 3, 3),
                              ('_iblrig_micData.raw', 1, 1),
-
 
                              ('_spikeglx_sync.channels', 2, 3),
                              ('_spikeglx_sync.polarities', 2, 3),
