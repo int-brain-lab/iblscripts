@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # A script to renew let's encrypt certificates from within a restricted AWS EC2 instance
 # $1 - security group to add, e.g. sg-0e21a23cf76d78537
 # $2 - instance ID, e.g. i-0eb9d0f10dcd87365 (optional if running from instance)
