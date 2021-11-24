@@ -18,6 +18,20 @@ class TestEphysSignatures(base.IntegrationTest):
     def setUp(self):
         self.folder_path = self.data_path.joinpath('ephys', 'ephys_signatures')
 
+    def make_new_dataset(self):
+        """helper function to use to create a new dataset"""
+        from iblscripts.ci.tests.base import IntegrationTest
+        import json
+        data_path = IntegrationTest.default_data_root()
+        folder_path = data_path.joinpath('ephys', 'ephys_signatures', 'RawEphysQC')
+        for json_file in folder_path.rglob('result.json'):
+            with open(json_file) as fid:
+                result = json.load(fid)
+            if result['outputs'] == True:
+                for bin_file in json_file.parent.rglob('*ap.meta'):
+                    bin_file.parent.joinpath("_iblqc_ephysChannels.labels.npy").touch()
+                    print(bin_file)
+
     def assert_task_inputs_outputs(self, session_paths, EphysTask):
         for session_path in session_paths.iterdir():
             task = EphysTask(session_path)
@@ -28,8 +42,14 @@ class TestEphysSignatures(base.IntegrationTest):
             input_status, _ = task.assert_expected_inputs(raise_error=False)
             with open(session_path.joinpath('result.json'), 'r') as f:
                 result = json.load(f)
-            assert output_status == result['outputs']
-            assert input_status == result['inputs']
+            test_ok = True
+            if output_status != result['outputs']:
+                test_ok = False
+                _logger.critical(f"test failed outputs {EphysTask}, {session_path}")
+            if input_status != result['inputs']:
+                test_ok = False
+                _logger.critical(f"test failed inputs {EphysTask}, {session_path}")
+        assert test_ok
 
     def test_EphysAudio_signatures(self):
         EphysTask = ephys_tasks.EphysAudio
@@ -189,13 +209,13 @@ class TestEphysPipeline(base.IntegrationTest):
                              ('_iblqc_ephysTimeRms.timestamps', 4, 4),
                              ('_iblqc_ephysChannels.rawSpikeRates', 2, 2),
                              ('_iblqc_ephysChannels.RMS', 2, 2),
+                             ('_iblqc_ephysChannels.labels', 2, 2),
 
                              ('_iblrig_Camera.frame_counter', 3, 3),
                              ('_iblrig_Camera.GPIO', 3, 3),
                              ('_iblrig_Camera.raw', 3, 3),
                              ('_iblrig_Camera.timestamps', 3, 3),
                              ('_iblrig_micData.raw', 1, 1),
-
 
                              ('_spikeglx_sync.channels', 2, 3),
                              ('_spikeglx_sync.polarities', 2, 3),
