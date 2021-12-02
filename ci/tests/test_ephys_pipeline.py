@@ -144,18 +144,14 @@ class TestEphysPipeline(base.IntegrationTest):
         self.session_path.joinpath('raw_session.flag').touch()
 
     @mock.patch('ibllib.qc.camera.CameraQC')
-    @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
-    def test_pipeline_with_alyx(self, mock_vc, _):
+    def test_pipeline_with_alyx(self, _):
         """
         Test the ephys pipeline exactly as it is supposed to run on the local servers
         We stub the QC as it requires a video file and loading frames takes a while.
-        We mock the OpenCV video capture class as the camera timestamp extractor inspects the
-        video length.
-        :param mock_vc: A mock OpenCV VideoCapture class for returning the video length
         :param _: A stub CameraQC object
         :return:
         """
-        mock_vc().get.return_value = 40000  # Need a value for number of frames in video
+
         one = self.one
         # first step is to remove the session and create it anew
         one.alyx.clear_rest_cache()
