@@ -1,18 +1,15 @@
-file_mp4 =
-overwrite =
+import argparse
+from pathlib import Path
+from iblvideo import download_weights, dlc, __version__
 
-def _format_timer(timer):
-    """Formats timing information for the DLC pipeline"""
-    logstr = ''
-    for item in timer.items():
-        logstr += f'\nTiming {item[0]}Camera [sec]\n'
-        for subitem in item[1].items():
-            logstr += f'{subitem[0]}: {int(np.round(subitem[1]))}\n'
-    return logstr
 
-timer = OrderedDict()
-timer[f'{cam}'] = OrderedDict()
-path_dlc = download_weights(version=version, one=self.one)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Run DLC for mp4 file')
+    parser.add_argument('file_mp4', help='mp4 file to run DLC on')
+    parser.add_argument('overwrite', help='whether to force overwrite existing intermediate outputs')
+    args = parser.parse_args()
 
-dlc_result, timer[f'{cam}'] = dlc(file_mp4, path_dlc=path_dlc, force=overwrite,
-                                                          dlc_timer=timer[f'{cam}'])
+    file_mp4 = Path(args.file_mp4)
+    path_dlc = download_weights(version=__version__)
+
+    dlc_result, _ = dlc(file_mp4, path_dlc=path_dlc, force=args.overwrite)
