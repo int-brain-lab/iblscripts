@@ -2,7 +2,10 @@
 Folders used:
     - camera/
     - ephys/ephys_choice_world_task/ibl_witten_27/2021-01-21/001/
+    - ephys/choice_world_init/KS022/2019-12-10/001
     - Subjects_init/ZM_1098/2019-01-25/001/
+    - training/CSHL_003/2019-04-05/001/
+
 
 NB: These tests hit the main Alyx database.  This is required for full coverage of the QC (in
 particular the CameraQC._ensure_required_data method and MotionAlign using eid2ref).
@@ -32,7 +35,7 @@ from ibllib.qc.camera import CameraQC
 from ibllib.qc.base import CRITERIA
 import ibllib.io.video as vidio
 from ibllib.pipes.training_preprocessing import TrainingVideoCompress
-from ibllib.pipes.ephys_preprocessing import EphysVideoCompress
+from ibllib.pipes.ephys_preprocessing import EphysVideoCompress, EphysVideoSyncQc
 
 from ci.tests import base
 
@@ -484,9 +487,9 @@ class TestVideoQC(base.IntegrationTest):
     def test_video_checks(self, display=False):
         # A tuple of QC checks and the expected outcome for each 10 second video
         video_checks = (
-            (self.qc.check_position, (1, 2, 3, 3, 3, 3, 3, 1, 1, 3, 1, 3, 3, 3, 3, 3, 1, 3)),
-            (self.qc.check_focus, (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 3, 1, 1)),
-            (self.qc.check_brightness, (1, 1, 1, 1, 1, 3, 3, 3, 1, 3, 3, 3, 1, 1, 1, 3, 1, 1)),
+            (self.qc.check_position, (1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1)),
+            (self.qc.check_focus, (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)),
+            (self.qc.check_brightness, (1, 1, 1, 2, 1, 2, 2, 1, 1, 2, 1, 3, 1, 1, 1, 2, 1, 2)),
             (self.qc.check_file_headers, [1] * 18),
             (self.qc.check_resolution, (1, 1, 1, 1, 1, 3, 3, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 3))
         )
@@ -494,7 +497,7 @@ class TestVideoQC(base.IntegrationTest):
         # For each check get the outcome and determine whether it matches our expected outcome
         # for each video
         for (check, expected) in video_checks:
-            check_name = check.__name__
+            name = check.__name__
             outcomes = []
             frame_samples = []
             for path, data in self.data.items():
@@ -509,12 +512,12 @@ class TestVideoQC(base.IntegrationTest):
                 fig, axes = plt.subplots(int(len(self.data) / 4), 4)
                 [self.qc.imshow(frm, ax=ax, title=o)
                  for frm, ax, o in zip(frame_samples, axes.flatten(), outcomes)]
-                fig.suptitle(check_name)
+                fig.suptitle(name)
                 plt.show()
 
             # Verify the outcome for each video matches what we expect
-            [self.assertTrue(x == CRITERIA[y], f'Unexpected outcome for {check_name} video {i}')
-             for i, (x, y) in enumerate(zip(expected, outcomes))]
+            actual = [CRITERIA[x] for x in outcomes]
+            self.assertCountEqual(expected, actual, f'Unexpected outcome(s) for {name} video')
 
 
 class TestCameraQC(base.IntegrationTest):
@@ -584,7 +587,7 @@ class TestCameraQC(base.IntegrationTest):
             '_videoLeft_focus': 'PASS',
             '_videoLeft_framerate': ('PASS', 59.767),
             '_videoLeft_pin_state': ('WARNING', 2, 1),
-            '_videoLeft_position': 'FAIL',
+            '_videoLeft_position': 'PASS',
             '_videoLeft_resolution': 'PASS',
             '_videoLeft_timestamps': 'PASS',
             '_videoLeft_wheel_alignment': ('PASS', 0)
@@ -618,14 +621,14 @@ class TestCameraQC(base.IntegrationTest):
         outcome, extended = qc.run(update=False)
         self.assertEqual('FAIL', outcome)
         expected = {
-            '_videoLeft_brightness': 'FAIL',
+            '_videoLeft_brightness': 'PASS',
             '_videoLeft_camera_times': ('PASS', 0),
             '_videoLeft_dropped_frames': ('PASS', 1, 0),
             '_videoLeft_file_headers': 'PASS',
             '_videoLeft_focus': 'FAIL',
             '_videoLeft_framerate': ('FAIL', 32.895),
             '_videoLeft_pin_state': ('WARNING', 1151, 0),
-            '_videoLeft_position': 'FAIL',
+            '_videoLeft_position': 'PASS',
             '_videoLeft_resolution': 'PASS',
             '_videoLeft_timestamps': 'PASS',
             '_videoLeft_wheel_alignment': ('FAIL', -95)
@@ -686,10 +689,12 @@ class TestCameraPipeline(base.IntegrationTest):
     def test_ephys(self, mock_qc):
         # task running part
         job = EphysVideoCompress(self.ephys_folder, one=self.one)
+        jobqc = EphysVideoSyncQc(self.ephys_folder, one=self.one)
         with mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture') as mock_vc:
             length = 68453
             mock_vc().get.return_value = length
             job.run()
+            jobqc.run()
 
         self.assertEqual(job.status, 0)
         self.assertEqual(len(mock_qc.call_args_list), 3)  # Once per camera
@@ -698,7 +703,10 @@ class TestCameraPipeline(base.IntegrationTest):
 
         [self.assertEqual(call[0][0], self.ephys_folder) for call in mock_qc.call_args_list]
         mock_qc().run.assert_called_with(update=True)
-        self.assertEqual(len(job.outputs), 6)
+        # Three datasets for video compress job
+        self.assertEqual(len(job.outputs), 3)
+        # Three datasets for video sync qc job
+        self.assertEqual(len(jobqc.outputs), 3)
 
         # check the file objects
         for label in labels:

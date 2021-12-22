@@ -2,14 +2,122 @@ import logging
 import shutil
 import numpy as np
 from unittest import mock
+import json
 
 import one.alf.io as alfio
 from ibllib.pipes import local_server
+import ibllib.pipes.ephys_preprocessing as ephys_tasks
 from one.api import ONE
 
 from ci.tests import base
 
 _logger = logging.getLogger('ibllib')
+
+
+class TestEphysSignatures(base.IntegrationTest):
+    def setUp(self):
+        self.folder_path = self.data_path.joinpath('ephys', 'ephys_signatures')
+
+    def make_new_dataset(self):
+        """helper function to use to create a new dataset"""
+        from iblscripts.ci.tests.base import IntegrationTest
+        import json
+        data_path = IntegrationTest.default_data_root()
+        folder_path = data_path.joinpath('ephys', 'ephys_signatures', 'RawEphysQC')
+        for json_file in folder_path.rglob('result.json'):
+            with open(json_file) as fid:
+                result = json.load(fid)
+            if result['outputs'] == True:
+                for bin_file in json_file.parent.rglob('*ap.meta'):
+                    bin_file.parent.joinpath("_iblqc_ephysChannels.labels.npy").touch()
+                    print(bin_file)
+
+    def assert_task_inputs_outputs(self, session_paths, EphysTask):
+        for session_path in session_paths.iterdir():
+            task = EphysTask(session_path)
+            if EphysTask.__name__ == 'SpikeSorting':
+                task.signature['input_files'], task.signature['output_files'] = task.spike_sorting_signature()
+            task.get_signatures()
+            output_status, _ = task.assert_expected(task.output_files)
+            input_status, _ = task.assert_expected_inputs(raise_error=False)
+            with open(session_path.joinpath('result.json'), 'r') as f:
+                result = json.load(f)
+            test_ok = True
+            if output_status != result['outputs']:
+                test_ok = False
+                _logger.critical(f"test failed outputs {EphysTask}, {session_path}")
+            if input_status != result['inputs']:
+                test_ok = False
+                _logger.critical(f"test failed inputs {EphysTask}, {session_path}")
+        assert test_ok
+
+    def test_EphysAudio_signatures(self):
+        EphysTask = ephys_tasks.EphysAudio
+        session_paths = self.folder_path.joinpath('EphysAudio')
+        self.assert_task_inputs_outputs(session_paths, EphysTask)
+
+    def test_EphysCellQC_signatures(self):
+        EphysTask = ephys_tasks.EphysCellsQc
+        session_paths = self.folder_path.joinpath('EphysCellsQc')
+        self.assert_task_inputs_outputs(session_paths, EphysTask)
+
+    def test_EphysMtscomp_signatures(self):
+        EphysTask = ephys_tasks.EphysMtscomp
+        session_paths = self.folder_path.joinpath('EphysMtscomp', '3A')
+        self.assert_task_inputs_outputs(session_paths, EphysTask)
+
+        session_paths = self.folder_path.joinpath('EphysMtscomp', '3B')
+        self.assert_task_inputs_outputs(session_paths, EphysTask)
+
+    def test_EphysPassive_signatures(self):
+        EphysTask = ephys_tasks.EphysPassive
+        session_paths = self.folder_path.joinpath('EphysPassive', '3A')
+        self.assert_task_inputs_outputs(session_paths, EphysTask)
+
+        session_paths = self.folder_path.joinpath('EphysPassive', '3B')
+        self.assert_task_inputs_outputs(session_paths, EphysTask)
+
+    def test_EphysPulses_signatures(self):
+        EphysTask = ephys_tasks.EphysPulses
+        session_paths = self.folder_path.joinpath('EphysPulses', '3A')
+        self.assert_task_inputs_outputs(session_paths, EphysTask)
+
+        session_paths = self.folder_path.joinpath('EphysPulses', '3B')
+        self.assert_task_inputs_outputs(session_paths, EphysTask)
+
+    def test_EphysTrials_signatures(self):
+        EphysTask = ephys_tasks.EphysTrials
+        session_paths = self.folder_path.joinpath('EphysTrials', '3A')
+        self.assert_task_inputs_outputs(session_paths, EphysTask)
+
+        session_paths = self.folder_path.joinpath('EphysTrials', '3B')
+        self.assert_task_inputs_outputs(session_paths, EphysTask)
+
+    def test_EphysVideoCompress_signatures(self):
+        EphysTask = ephys_tasks.EphysVideoCompress
+        session_paths = self.folder_path.joinpath('EphysVideoCompress')
+        self.assert_task_inputs_outputs(session_paths, EphysTask)
+
+    def test_EphysVideoSyncQC_signatures(self):
+        EphysTask = ephys_tasks.EphysVideoSyncQc
+        session_paths = self.folder_path.joinpath('EphysVideoSyncQc', '3A')
+        self.assert_task_inputs_outputs(session_paths, EphysTask)
+
+        session_paths = self.folder_path.joinpath('EphysVideoSyncQc', '3B')
+        self.assert_task_inputs_outputs(session_paths, EphysTask)
+
+    def test_RawEphysQC_signatures(self):
+        EphysTask = ephys_tasks.RawEphysQC
+        session_paths = self.folder_path.joinpath('RawEphysQC')
+        self.assert_task_inputs_outputs(session_paths, EphysTask)
+
+    def test_SpikeSorting_signatures(self):
+        EphysTask = ephys_tasks.SpikeSorting
+        session_paths = self.folder_path.joinpath('SpikeSorting', '3A')
+        self.assert_task_inputs_outputs(session_paths, EphysTask)
+
+        session_paths = self.folder_path.joinpath('SpikeSorting', '3B')
+        self.assert_task_inputs_outputs(session_paths, EphysTask)
 
 
 class TestEphysPipeline(base.IntegrationTest):
@@ -27,24 +135,23 @@ class TestEphysPipeline(base.IntegrationTest):
         for ff in self.init_folder.rglob('*.*'):
             link = self.main_folder.joinpath(ff.relative_to(self.init_folder))
             if 'alf' in link.parts:
+                if 'dlc' in link.name:
+                    link.parent.mkdir(exist_ok=True, parents=True)
+                    link.symlink_to(ff)
                 continue
             link.parent.mkdir(exist_ok=True, parents=True)
             link.symlink_to(ff)
         self.session_path.joinpath('raw_session.flag').touch()
 
     @mock.patch('ibllib.qc.camera.CameraQC')
-    @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
-    def test_pipeline_with_alyx(self, mock_vc, _):
+    def test_pipeline_with_alyx(self, _):
         """
         Test the ephys pipeline exactly as it is supposed to run on the local servers
         We stub the QC as it requires a video file and loading frames takes a while.
-        We mock the OpenCV video capture class as the camera timestamp extractor inspects the
-        video length.
-        :param mock_vc: A mock OpenCV VideoCapture class for returning the video length
         :param _: A stub CameraQC object
         :return:
         """
-        mock_vc().get.return_value = 40000  # Need a value for number of frames in video
+
         one = self.one
         # first step is to remove the session and create it anew
         one.alyx.clear_rest_cache()
@@ -63,6 +170,11 @@ class TestEphysPipeline(base.IntegrationTest):
 
         subject_path = self.session_path.parents[2]
         tasks_dict = one.alyx.rest('tasks', 'list', session=eid, status='Waiting', no_cache=True)
+        # Hack for PostDLC to ignore DLC status for now, until DLC is actually in the pipeline
+        idx = tasks_dict.index([t for t in tasks_dict if t['name'] == 'EphysPostDLC'][0])
+        id_compress = [t['id'] for t in tasks_dict if t['name'] == 'EphysVideoCompress'][0]
+        tasks_dict[idx]['parents'] = [id_compress]
+        # Hack end, to be removed later
         for td in tasks_dict:
             print(td['name'])
         all_datasets = local_server.tasks_runner(
@@ -91,6 +203,9 @@ class TestEphysPipeline(base.IntegrationTest):
                              ('_iblqc_ephysSpectralDensity.power', 4, 4),
                              ('_iblqc_ephysTimeRms.rms', 4, 4),
                              ('_iblqc_ephysTimeRms.timestamps', 4, 4),
+                             ('_iblqc_ephysChannels.rawSpikeRates', 2, 2),
+                             ('_iblqc_ephysChannels.RMS', 2, 2),
+                             ('_iblqc_ephysChannels.labels', 2, 2),
 
                              ('_iblrig_Camera.frame_counter', 3, 3),
                              ('_iblrig_Camera.GPIO', 3, 3),
@@ -98,12 +213,13 @@ class TestEphysPipeline(base.IntegrationTest):
                              ('_iblrig_Camera.timestamps', 3, 3),
                              ('_iblrig_micData.raw', 1, 1),
 
-
                              ('_spikeglx_sync.channels', 2, 3),
                              ('_spikeglx_sync.polarities', 2, 3),
                              ('_spikeglx_sync.times', 2, 3),
 
                              ('camera.times', 3, 3),
+                             ('camera.features', 2, 2),
+                             ('licks.times', 1, 1),
 
                              ('kilosort.whitening_matrix', nss, nss),
                              ('_kilosort_raw.output', nss, nss),
@@ -193,6 +309,9 @@ class TestEphysPipeline(base.IntegrationTest):
         self.assertTrue(any(k.startswith('_task_') for k in extended.keys()))
         # also check that the behaviour criterion was set
         self.assertTrue('behavior' in extended)
+        # check that new DLC qc is added properly
+        self.assertEqual(extended['_dlcLeft_pupil_diameter_snr'], [True, 12.066])
+        self.assertEqual(extended['_dlcRight_pupil_diameter_snr'], [True, 6.53])
         # check that the probes insertions have the json field labeled properly
         pis = one.alyx.rest('insertions', 'list', session=eid, no_cache=True)
         for pi in pis:
