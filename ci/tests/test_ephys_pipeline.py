@@ -170,11 +170,11 @@ class TestEphysPipeline(base.IntegrationTest):
 
         subject_path = self.session_path.parents[2]
         tasks_dict = one.alyx.rest('tasks', 'list', session=eid, status='Waiting', no_cache=True)
-        # Hack for PostDLC to ignore DLC status for now, until DLC is actually in the pipeline
-        idx = tasks_dict.index([t for t in tasks_dict if t['name'] == 'EphysPostDLC'][0])
-        id_compress = [t['id'] for t in tasks_dict if t['name'] == 'EphysVideoCompress'][0]
-        tasks_dict[idx]['parents'] = [id_compress]
-        # Hack end, to be removed later
+        # # Hack for PostDLC to ignore DLC status for now, until DLC is actually in the pipeline
+        # idx = tasks_dict.index([t for t in tasks_dict if t['name'] == 'EphysPostDLC'][0])
+        # id_compress = [t['id'] for t in tasks_dict if t['name'] == 'EphysVideoCompress'][0]
+        # tasks_dict[idx]['parents'] = [id_compress]
+        # # Hack end, to be removed later
         for td in tasks_dict:
             print(td['name'])
         all_datasets = local_server.tasks_runner(
@@ -217,6 +217,9 @@ class TestEphysPipeline(base.IntegrationTest):
                              ('_spikeglx_sync.polarities', 2, 3),
                              ('_spikeglx_sync.times', 2, 3),
 
+                             ('camera.dlc', 3, 3),
+                             ('camera.ROIMotionEnergy', 3, 3),
+                             ('ROIMotionEnergy.position', 3, 3),
                              ('camera.times', 3, 3),
                              ('camera.features', 2, 2),
                              ('licks.times', 1, 1),
@@ -319,7 +322,7 @@ class TestEphysPipeline(base.IntegrationTest):
         # check that tasks ran with proper status
         tasks_end = one.alyx.rest('tasks', 'list', session=eid, no_cache=True)
         for t in tasks_end:
-            if t['name'] in ['EphysPassive', 'EphysDLC']:
+            if t['name'] in ['EphysPassive']:
                 continue
             assert t['status'] == 'Complete', f"{t['name']} FAILED and shouldn't have for this test"
 
