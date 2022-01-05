@@ -135,7 +135,7 @@ class TestEphysPipeline(base.IntegrationTest):
         for ff in self.init_folder.rglob('*.*'):
             link = self.main_folder.joinpath(ff.relative_to(self.init_folder))
             if 'alf' in link.parts:
-                if 'dlc' in link.name:
+                if 'dlc' in link.name or 'ROIMotionEnergy' in link.name:
                     link.parent.mkdir(exist_ok=True, parents=True)
                     link.symlink_to(ff)
                 continue

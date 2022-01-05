@@ -11,7 +11,7 @@ class TestEphysPostDLC(base.IntegrationTest):
 	
 	@classmethod
 	def setUpClass(cls) -> None:
-		cls.root_folder = cls.default_data_root().joinpath('dlc', 'test_data')
+		cls.root_folder = cls.default_data_root().joinpath('dlc')
 		if not cls.root_folder.exists():
 			return
 		# Run the task, without qc as we don't use a real session here and qc requires the database
