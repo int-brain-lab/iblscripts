@@ -25,7 +25,9 @@ python jobs.py run_large /mnt/s0/Data/Subjects &
 python jobs.py kill report
 python jobs.py report &
 
+echo "Updating Spike Sorting environment"
 ../kilosort2/update_pykilosort.sh
+echo "Updating DLC environment"
 ../dlc/update_dlcenv.sh
 
 # Search for aberrant data (misplaced data, sessions with wrong flags) and correct them
