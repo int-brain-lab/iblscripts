@@ -19,7 +19,7 @@ br = BrainRegions()
 
 def _check(times, spike_sorter='pykilosort'):
     if spike_sorter == 'pykilosort':
-        hash = '973e6ecc820dd18cae3098ff12e45bddf47e4c08'
+        hash = 'f66c53aec01333245acc2fd658339ee9fceda5b9'
     elif spike_sorter == 'ks2_preproc_tests':
         hash = 'e833cd9df46aa791fcec48b52ddff7f96f98a6ab'
     elif spike_sorter == '':

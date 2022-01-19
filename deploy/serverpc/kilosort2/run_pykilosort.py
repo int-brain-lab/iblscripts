@@ -1,17 +1,58 @@
 from pathlib import Path
 import argparse
 import datetime
+import json
 import logging
 import shutil
 
 import numpy as np
+
 from ibllib.io import spikeglx
 from ibllib.ephys import spikes, neuropixel
+from one.alf.files import get_session_path
 from pykilosort import add_default_handler, run, Bunch, __version__
 from pykilosort.params import KilosortParams
 
 
 _logger = logging.getLogger("pykilosort")
+
+
+def _get_multi_parts_records(bin_file):
+    """ Looks for the multiple parts of the recording using sequence files from ibllib"""
+    # if multiple files are already provided, do not look for sequence files
+    if isinstance(bin_file, list) or isinstance(bin_file, tuple):
+        for bf in bin_file:
+            if not Path(bf).exists():
+                raise FileNotFoundError(bf)
+        return bin_file
+    # if there is no sequence file attached to the binary file, return just the bin file
+    bin_file = Path(bin_file)
+    sequence_file = bin_file.parent.joinpath(f"{bin_file.stem.replace('.ap', '.sequence.json')}")
+    if not sequence_file.exists():
+        if not Path(bin_file).exists():
+            raise FileNotFoundError(bin_file)
+        else:
+            return bin_file
+    # if there is a sequence file, return all files if they're all present and this is the first index
+    with sequence_file.open() as fid:
+        seq = json.load(fid)
+    if seq['index'] > 0:
+        _logger.warning(f"Multi-part raw ephys: returns empty as this is not the first "
+                        f"index in the sequence. Check: {sequence_file}")
+        return
+    # the common anchor path to look for other meta files is the subject path
+    subject_folder = get_session_path(bin_file)
+    subject_folder_seq = get_session_path(Path(seq['files'][0])).parents[1]
+    # reconstruct path of each binary file, exit with None if one is not found
+    cbin_files = []
+    for f in seq['files']:
+        meta_file = subject_folder.joinpath(Path(f).relative_to(subject_folder_seq))
+        cbin_file = next(meta_file.parent.glob(meta_file.stem + '.*bin'), None)
+        if cbin_file is None:
+            _logger.error(f"Multi-part raw ephys error: missing bin file in folder {meta_file.parent}")
+            return
+        cbin_files.append(cbin_file)
+    return cbin_files
 
 
 def _sample2v(ap_file):
@@ -38,7 +79,7 @@ def run_spike_sorting_ibl(bin_file, scratch_dir=None, delete=True, neuropixel_ve
     START_TIME = datetime.datetime.now()
     # handles all the paths infrastructure
     assert scratch_dir is not None
-    bin_file = Path(bin_file)
+    bin_file = _get_multi_parts_records(bin_file)
     scratch_dir.mkdir(exist_ok=True, parents=True)
     ks_output_dir = Path(ks_output_dir) if ks_output_dir is not None else scratch_dir.joinpath('output')
     log_file = scratch_dir.joinpath(f"_{START_TIME.isoformat()}_kilosort.log")
