@@ -8,6 +8,6 @@ git pull
 # update the environment
 source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 pip uninstall -y ibllib
-pip install git+https://github.com/int-brain-lab/ibllib.git@dlc_task
+pip install git+https://github.com/int-brain-lab/ibllib.git@master
 pip install -U tensorflow
 pip install -U deeplabcut
