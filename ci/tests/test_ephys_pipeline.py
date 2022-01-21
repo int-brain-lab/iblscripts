@@ -184,7 +184,7 @@ class TestEphysPipeline(base.IntegrationTest):
         self.assertTrue(len(one.alyx.rest('insertions', 'list', session=eid, no_cache=True)) == 2)
         traj = one.alyx.rest('trajectories', 'list',
                              session=eid, provenance='Micro-manipulator', no_cache=True)
-        self.assertTrue(len(traj) == 2)
+        self.assertEqual(len(traj) == 2)
 
         # check the spike sorting output on disk
         self.check_spike_sorting_output(self.session_path)
