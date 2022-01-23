@@ -65,38 +65,29 @@ class TestReadSpikeSorting(IntegrationTest):
         one = self.one
         eid = one.path2eid(self.session_path)
 
-        spikes, clusters, channels = bbone.load_spike_sorting_fast(
-            eid, one=one, probe=pname, spike_sorter=None, revision=None)
-        _check(spikes[pname]['times'])
-        assert channels[pname]['acronym'] is None
-        spikes, clusters, channels = bbone.load_spike_sorting_fast(
-            eid, one=one, probe=pname, spike_sorter=None, revision=None, brain_regions=br)
-        _check(spikes[pname]['times'])
-        assert len(channels[pname]['acronym']) == 384
-        assert 'acronym' in clusters[pname].keys()
+        from brainbox.io.one import SpikeSortingLoader
 
-        # try loading data that doesn't exist
-        spikes, clusters, channels = bbone.load_spike_sorting_fast(
-            eid, one=one, probe=pname, spike_sorter='not_on_list', revision=None)
-        assert spikes == {}
-        spikes, clusters, channels = bbone.load_spike_sorting_fast(
-            eid, one=one, probe='not_on_list', spike_sorter=None, revision=None)
-        assert spikes == {}
+        sl = SpikeSortingLoader(eid=eid, pname=pname, one=one)
+        _logger.setLevel(0)
+        spikes, clusters, channels = sl.load_spike_sorting(spike_sorter='')
+        _check(spikes['times'], spike_sorter='')
+        clusters = sl.merge_clusters(spikes, clusters, channels)
+        assert 'acronym' in clusters.keys()
+
+        # load spike sorting for a non default sorter
+        spikes, clusters, channels = sl.load_spike_sorting(spike_sorter='ks2_preproc_tests')
+        _check(spikes['times'], spike_sorter='ks2_preproc_tests')
+
+        # # try loading data that doesn't exist
+        # spikes, clusters, channels = sl.load_spike_sorting(spike_sorter='i_dont_exist')
+        # assert spikes == {}
 
         # makes sure this is the pykilosort that is returned by default1
         spikes, clusters, channels = bbone._load_spike_sorting(
             eid=eid, one=one, collection=f'alf/*{pname}/*', return_channels=True)
         _check(spikes[pname]['times'])
 
-        # load spike sorting for a non default sorter
-        spikes, clusters, channels = bbone.load_spike_sorting_fast(
-            eid, one=one, probe=pname, spike_sorter='ks2_preproc_tests', revision=None)
-        _check(spikes[pname]['times'], spike_sorter='ks2_preproc_tests')
 
-        # load spike sorting for a non default sorter at the folder root
-        spikes, clusters, channels = bbone.load_spike_sorting_fast(
-            eid, one=one, probe=pname, spike_sorter='', revision=None)
-        _check(spikes[pname]['times'], spike_sorter='')
 
 
 class TestLoadTrials(IntegrationTest):
