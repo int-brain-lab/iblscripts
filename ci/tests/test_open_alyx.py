@@ -15,11 +15,11 @@ one = ONE(base_url='https://openalyx.internationalbrainlab.org')
 class TestReadSpikeSorting(unittest.TestCase):
 
     def test_spike_sorting_loader(self):
-        insertions = one.alyx.rest('insertions', 'list')
+        # insertions = one.alyx.rest('insertions', 'list')
         pid = 'da8dfec1-d265-44e8-84ce-6ae9c109b8bd'
-        self = SpikeSortingLoader(pid, one=one, atlas=ba)
+        self = SpikeSortingLoader(pid=pid, one=one, atlas=ba)
         spikes, clusters, channels = self.load_spike_sorting()
-        clusters_bis = SpikeSortingLoader.merge_clusters(spikes, clusters, channels)
+        SpikeSortingLoader.merge_clusters(spikes, clusters, channels)
 
         assert set(['depths', 'clusters', 'amps', 'times']) == set(spikes.keys())
         assert str(self.spike_sorting_path.relative_to(self.session_path)) == self.collection
