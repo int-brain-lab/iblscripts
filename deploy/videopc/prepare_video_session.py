@@ -13,7 +13,7 @@ from ibllib.pipes.misc import load_videopc_params
 from one.alf.io import next_num_folder
 from packaging.version import parse
 
-# import config_cameras as cams
+import config_cameras as cams
 from video_lengths import main as len_files
 
 
