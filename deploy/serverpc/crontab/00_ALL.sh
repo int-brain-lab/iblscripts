@@ -4,6 +4,9 @@ source ~/Documents/PYTHON/envs/iblenv/bin/activate
 
 # Update ibllib, iblscripts, etc. and use canary branch if canary_branch file present
 ./update_ibllib.sh
+# Update DLC environment also now as it can otherwise lead to running DLC on partially installed env
+echo "Updating DLC environment"
+../dlc/update_dlcenv.sh
 
 # Kill any currently running session create jobs
 python jobs.py kill create
@@ -27,8 +30,6 @@ python jobs.py report &
 
 echo "Updating Spike Sorting environment"
 ../kilosort2/update_pykilosort.sh
-echo "Updating DLC environment"
-../dlc/update_dlcenv.sh
 
 # Search for aberrant data (misplaced data, sessions with wrong flags) and correct them
 python maintenance.py
