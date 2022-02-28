@@ -17,9 +17,21 @@ import config_cameras as cams
 from video_lengths import main as len_files
 
 
-def check_ibllib_version(env="iblenv", ignore=False):
+def get_activated_environment(ignore=False):
+    envs = subprocess.run(
+        "conda env list",
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ).stdout.decode("utf-8").strip().split()
+    current_env = envs[envs.index('*') - 1]
+
+    return current_env
+
+
+def check_ibllib_version(ignore=False):
     bla = subprocess.run(
-        f'bash -c "conda activate {env}; pip install ibllib==ver"',
+        "pip install ibllib==ver",
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -176,6 +188,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     # print(args)
     # print(type(args.mouse), type(args.training))
-    check_ibllib_version(env="iblenv", ignore=args.ignore_checks)
+    check_ibllib_version(ignore=args.ignore_checks)
     check_iblscripts_version(ignore=args.ignore_checks)
     main(args.mouse, training_session=args.training)
