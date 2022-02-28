@@ -1,6 +1,5 @@
 import numpy as np
-
-from ibllib.atlas import AllenAtlas
+from ibllib.atlas import AllenAtlas, FlatMap
 
 
 def test_simple():
@@ -23,3 +22,14 @@ def test_simple():
     # one sample below, it's all zeros
     inds = self._lookup_inds(np.stack((ix, iy, np.maximum(izb + 1, 0)), axis=-1))
     assert np.all(self.label.flat[inds][~np.isnan(self.bottom)] == 0)
+
+
+def test_flatmaps():
+    fm = FlatMap(flatmap='dorsal_cortex')
+    fm.plot_flatmap(depth=0)
+
+    fm = FlatMap(flatmap='circles')
+    fm.plot_flatmap()
+
+    fm = FlatMap(flatmap='pyramid')
+    fm.plot_flatmap(volume='image')
