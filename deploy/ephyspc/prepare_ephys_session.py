@@ -13,9 +13,9 @@ from one.alf.io import next_num_folder
 from packaging.version import parse
 
 
-def check_ibllib_version(env="iblenv", ignore=False):
+def check_ibllib_version(ignore=False):
     bla = subprocess.run(
-        f'bash -c "conda activate {env}; pip install ibllib==ver"',
+        "pip install ibllib==ver",
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -80,6 +80,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    check_ibllib_version(env="iblenv", ignore=args.ignore_checks)
+    check_ibllib_version(ignore=args.ignore_checks)
     check_iblscripts_version(ignore=args.ignore_checks)
     main(args.mouse)

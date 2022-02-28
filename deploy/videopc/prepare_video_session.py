@@ -18,13 +18,18 @@ from video_lengths import main as len_files
 
 
 def get_activated_environment(ignore=False):
-    envs = subprocess.run(
-        "conda env list",
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    ).stdout.decode("utf-8").strip().split()
-    current_env = envs[envs.index('*') - 1]
+    envs = (
+        subprocess.run(
+            "conda env list",
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        .stdout.decode("utf-8")
+        .strip()
+        .split()
+    )
+    current_env = envs[envs.index("*") - 1]
 
     return current_env
 
