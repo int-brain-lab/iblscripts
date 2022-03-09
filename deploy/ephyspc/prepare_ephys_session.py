@@ -35,18 +35,29 @@ def check_ibllib_version(ignore=False):
 
 
 def check_iblscripts_version(ignore=False):
-    bla = subprocess.run(
+    ps = subprocess.run(
         "git fetch; git status", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
-    msg = ""
-    if b"On branch master" not in bla.stdout:
-        msg = msg + "You are not on the master branch. Please switch to the master branch"
-    if b"Your branch is up to date" not in bla.stdout:
-        msg = msg + "Your branch is not up to date. Please update your branch"
+    cmd = subprocess.run(
+        "git fetch && git status", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    psmsg = ""
+    cmdmsg = ""
+    if b"On branch master" not in ps.stdout:
+        psmsg = psmsg + " You are not on the master branch. Please switch to the master branch"
+    if b"On branch master" not in cmd.stdout:
+        cmdmsg = cmdmsg + " You are not on the master branch. Please switch to the master branch"
+    if b"Your branch is up to date" not in ps.stdout:
+        psmsg = psmsg + " Your branch is not up to date. Please update your branch"
+    if b"Your branch is up to date" not in cmd.stdout:
+        cmdmsg = cmdmsg + " Your branch is not up to date. Please update your branch"
+
     if ignore:
         return
-    if msg != "":
-        raise Exception(msg)
+    if (psmsg == cmdmsg) and psmsg != "":
+        raise Exception(psmsg)
+    elif (psmsg != cmdmsg) and (psmsg == "" or cmdmsg == ""):
+        return
 
 
 def main(mouse):
