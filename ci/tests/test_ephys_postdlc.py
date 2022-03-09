@@ -16,6 +16,7 @@ class TestEphysPostDLC(base.IntegrationTest):
 			return
 		# Run the task, without qc as we don't use a real session here and qc requires the database
 		cls.task = EphysPostDLC(cls.root_folder)
+		cls.task.signature['input_files'] = []  # To prevent task from trying to load inputs
 		cls.task.run(overwrite=True, run_qc=False, plot_qc=False)
 	
 	@classmethod
