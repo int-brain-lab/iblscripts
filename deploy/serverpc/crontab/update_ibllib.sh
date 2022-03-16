@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 # first step is to update iblscripts
-cd ~/Documents/PYTHON/iblscripts
+cd /home/ubuntu/Documents/PYTHON/iblscripts
 git fetch --all
 git checkout -f master
 git reset --hard
@@ -24,7 +24,7 @@ else
     one_branch="ibl_prod"
 fi
 
-source ~/Documents/PYTHON/envs/iblenv/bin/activate
+source /home/ubuntu/Documents/PYTHON/envs/iblenv/bin/activate
 # pip install --upgrade ibllib
 # pip install -U mtscomp
 pip install --upgrade pip

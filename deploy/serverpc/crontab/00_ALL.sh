@@ -1,6 +1,7 @@
 #!/bin/bash
-cd ~/Documents/PYTHON/iblscripts/deploy/serverpc/crontab
-source ~/Documents/PYTHON/envs/iblenv/bin/activate
+# Change dir the working dir or exit if it does not exist
+cd /home/ubuntu/Documents/PYTHON/iblscripts/deploy/serverpc/crontab || exit 1
+source /home/ubuntu/Documents/PYTHON/envs/iblenv/bin/activate
 
 # Update ibllib, iblscripts, etc. and use canary branch if canary_branch file present
 ./update_ibllib.sh
@@ -10,17 +11,19 @@ echo "Updating DLC environment"
 
 # Kill any currently running session create jobs
 python jobs.py kill create
-# Find the extract_me flags, create sessio on Alyx (if not present), register raw data and
-# create task pipeline on Alyx
+
+# Find the extract_me flags, create session on Alyx (if not present), register raw data and create task pipeline on Alyx
 python jobs.py create /mnt/s0/Data/Subjects &
 
 # Kill any small tasks that are still running
 python jobs.py kill run_small
+
 # Run small jobs (e.g. task extraction) that are set to Waiting in Alyx
 python jobs.py run_small /mnt/s0/Data/Subjects &
 
 # Kill any large tasks that are still running
 python jobs.py kill run_large
+
 # Run large jobs (e.g. spike sorting, DLC) that are set to Waiting in Alyx
 python jobs.py run_large /mnt/s0/Data/Subjects &
 

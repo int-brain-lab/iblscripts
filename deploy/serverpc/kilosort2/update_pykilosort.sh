@@ -1,12 +1,13 @@
+#!/bin/bash
 # auto-update pykilosort
-cd ~/Documents/PYTHON/SPIKE_SORTING/pykilosort
+cd /home/ubuntu/Documents/PYTHON/SPIKE_SORTING/pykilosort || exit 1
 git fetch --all
 git checkout -f ibl_prod
 git reset --hard origin/ibl_prod
 git pull
 
 # auto-update the environment
-source ~/anaconda3/etc/profile.d/conda.sh
+source /home/ubuntu/anaconda3/etc/profile.d/conda.sh
 conda deactivate
 conda activate pyks2
 pip uninstall -y ibllib
