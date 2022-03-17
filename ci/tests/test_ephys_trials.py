@@ -11,22 +11,9 @@ from ci.tests import base
 _logger = logging.getLogger('ibllib')
 
 BPOD_FILES = [
-    '_ibl_trials.choice.npy',
-    '_ibl_trials.contrastLeft.npy',
-    '_ibl_trials.contrastRight.npy',
-    '_ibl_trials.feedbackType.npy',
+    '_ibl_trials.table.pqt',
     '_ibl_trials.goCueTrigger_times.npy',
     '_ibl_trials.intervals_bpod.npy',
-    '_ibl_trials.probabilityLeft.npy',
-    '_ibl_trials.response_times.npy',
-    '_ibl_trials.rewardVolume.npy'
-]
-
-FPGA_FILES = [
-    '_ibl_trials.goCue_times.npy',
-    '_ibl_trials.stimOn_times.npy',
-    '_ibl_trials.intervals.npy',
-    '_ibl_trials.feedback_times.npy',
 ]
 
 ALIGN_BPOD_FPGA_FILES = [
@@ -43,7 +30,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
             return
 
     def test_task_extraction_output(self):
-        init_folder = self.root_folder.joinpath("choice_world_init")
+        init_folder = self.root_folder.joinpath('choice_world_init')
         self.sessions = [f.parent for f in init_folder.rglob('raw_ephys_data')]
         for session_path in self.sessions:
             self._task_extraction_assertions(session_path)
@@ -69,9 +56,6 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         ephys_fpga.extract_all(session_path, save=True, bin_exists=False)
         # check that the output is complete
         for f in BPOD_FILES:
-            self.assertTrue(alf_path.joinpath(f).exists())
-        # check that the output is complete
-        for f in FPGA_FILES:
             self.assertTrue(alf_path.joinpath(f).exists())
         # check dimensions after alf load
         alf_trials = alfio.load_object(alf_path, 'trials')
