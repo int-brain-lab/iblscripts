@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 import socket
 import time
+import os
 
 from one.api import ONE
 from ibllib.pipes.local_server import job_creator, job_runner, report_health
@@ -104,6 +105,11 @@ def run_tasks_large(subjects_path, dry=False, lab=None, count=20):
     :param dry:
     :return:
     """
+    stream = os.popen('ps -ef | grep "jobs.py run_large" | grep -v grep')
+    output = stream.read()
+    if len(output):
+        _logger.info('run_large already running, skipping')
+        return
     job_runner(subjects_path, mode='large', lab=lab, dry=dry, count=count)
 
 
