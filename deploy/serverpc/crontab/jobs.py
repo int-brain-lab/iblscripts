@@ -3,21 +3,15 @@ import logging
 from pathlib import Path
 import socket
 import time
-import os
 
 from one.api import ONE
-from ibllib.pipes.local_server import job_creator, job_runner, report_health
-from ibllib.pipes.remote_server import job_transfer_ks2, job_run_ks2
-
+from ibllib.pipes.local_server import job_creator, task_queue, tasks_runner, report_health
 
 DEFINED_PORTS = {
     'run': 54320,
     'run_small': 54320,
     'create': 54321,
     'report': 54322,
-    'transfer_ks': 54323,
-    'run_ks': 54324,
-    'run_large': 54324,
 }
 
 _logger = logging.getLogger('ibllib')
@@ -83,7 +77,9 @@ def run_tasks(subjects_path, dry=False, lab=None, count=20):
     :param dry:
     :return:
     """
-    job_runner(subjects_path, lab=lab, dry=dry, count=count)
+    one = ONE(cache_rest=None)
+    waiting_tasks = task_queue(mode='all', lab=lab, one=one)
+    tasks_runner(subjects_path, waiting_tasks, one=one, count=count, time_out=3600, dry=dry)
 
 
 @forever(DEFINED_PORTS['run_small'], 600)
@@ -94,23 +90,9 @@ def run_tasks_small(subjects_path, dry=False, lab=None, count=20):
     :param dry:
     :return:
     """
-    job_runner(subjects_path, mode='small', lab=lab, dry=dry, count=count)
-
-
-@forever(DEFINED_PORTS['run_large'], 600)
-def run_tasks_large(subjects_path, dry=False, lab=None, count=20):
-    """
-    Runs backlog of video compression, spike sorting and dlc tasks from task records in Alyx for this server
-    :param subjects_path: "/mnt/s0/Data/Subjects"
-    :param dry:
-    :return:
-    """
-    stream = os.popen('ps -ef | grep "jobs.py run_large" | grep -v grep')
-    output = stream.read()
-    if len(output):
-        _logger.info('run_large already running, skipping')
-        return
-    job_runner(subjects_path, mode='large', lab=lab, dry=dry, count=count)
+    one = ONE(cache_rest=None)
+    waiting_tasks = task_queue(mode='small', lab=lab, one=one)
+    tasks_runner(subjects_path, waiting_tasks, one=one, count=count, time_out=3600, dry=dry)
 
 
 @forever(DEFINED_PORTS['report'], 3600 * 2)
@@ -135,28 +117,6 @@ def create_sessions(root_path, dry=False):
 @forever(DEFINED_PORTS['create'], 4)
 def test_fcn():
     print('Toto')
-
-
-@forever(DEFINED_PORTS['transfer_ks'], 15)
-def transfer_ks():
-    """
-    Create sessions: for this server, finds the extract_me flags, identify the session type,
-    create the session on Alyx if it doesn't already exist, register the raw data and create
-    the tasks backloh
-    """
-    #job_transfer_ks2(probe)
-    print('in transfer_ks2 job')
-
-
-@forever(DEFINED_PORTS['run_ks'], 15)
-def run_ks2(session, dry=False):
-    """
-    Create sessions: for this server, finds the extract_me flags, identify the session type,
-    create the session on Alyx if it doesn't already exist, register the raw data and create
-    the tasks backloh
-    """
-    print('in run_ks2 job')
-    #job_run_ks2()
 
 
 def _send2job(name, bmessage):
@@ -191,7 +151,7 @@ if __name__ == "__main__":
         python jobs.py kill run
         python jobs.py kill report
     """
-    JOBS = ['create', 'run', 'run_small', 'run_large', 'test', 'report', 'transfer_ks', 'run_ks']
+    JOBS = ['create', 'run', 'run_small', 'test', 'report']
     ALLOWED_ACTIONS = ['kill', 'status'] + JOBS
 
     parser = argparse.ArgumentParser(description='Creates jobs for new sessions')
@@ -217,11 +177,6 @@ if __name__ == "__main__":
         if args.restart:
             _send2job('run_small', b"STOP")
         run_tasks_small(args.folder, args.dry)
-    elif args.action == 'run_large':
-        assert (Path(args.folder).exists())
-        if args.restart:
-            _send2job('run_large', b"STOP")
-        run_tasks_large(args.folder, args.dry)
     elif args.action == 'report':
         if args.restart:
             _send2job('report', b"STOP")
@@ -236,13 +191,6 @@ if __name__ == "__main__":
     elif args.action == 'status':
         if _send2job(args.folder, b"CHECK") == 0:
             print('Job seems to be alright')
-    elif args.action == 'transfer_ks':
-        if args.restart:
-            _send2job('transfer_ks', b"STOP")
-    elif args.action == 'run_ks':
-        if args.restart:
-            _send2job('run_ks', b"STOP")
-        run_ks2()
     else:
         _logger.error(f'Action "{args.action}" not valid. Allowed actions are: '
                       f'{"., ".join(ALLOWED_ACTIONS)}')
