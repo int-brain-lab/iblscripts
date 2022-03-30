@@ -97,7 +97,6 @@ def run_tasks_small(subjects_path, dry=False, lab=None, count=20):
     job_runner(subjects_path, mode='small', lab=lab, dry=dry, count=count)
 
 
-@forever(DEFINED_PORTS['run_large'], 600)
 def run_tasks_large(subjects_path, dry=False, lab=None, count=20):
     """
     Runs backlog of video compression, spike sorting and dlc tasks from task records in Alyx for this server
@@ -105,9 +104,9 @@ def run_tasks_large(subjects_path, dry=False, lab=None, count=20):
     :param dry:
     :return:
     """
-    stream = os.popen('ps -ef | grep "jobs.py run_large" | grep -v grep')
-    output = stream.read()
-    if len(output):
+    stream = os.popen('ps -ef | grep "jobs.py run_large" | grep -v grep | wc -l')
+    output = int(stream.read())
+    if output > 1:
         _logger.info('run_large already running, skipping')
         return
     job_runner(subjects_path, mode='large', lab=lab, dry=dry, count=count)
