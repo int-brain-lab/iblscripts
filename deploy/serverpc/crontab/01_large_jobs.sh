@@ -2,6 +2,8 @@
 
 # Go to crontab dir
 cd ~/Documents/PYTHON/iblscripts/deploy/serverpc/crontab
+# Source iblenv (the tasks themselves will run in their own envs)
+source ~/Documents/PYTHON/envs/iblenv/bin/activate
 
 last_update=$SECONDS
 while true; do
