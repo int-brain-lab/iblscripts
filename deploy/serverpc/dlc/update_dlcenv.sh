@@ -15,10 +15,10 @@ fi
 source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 
 outdated=$(pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1)
-for lib in "ibllib" "tensorflow" "deeplabcut"
+for lib in "ibllib==" "tensorflow==" "deeplabcut=="
 do
   update=$(echo $outdated | grep $lib | cut -d = -f 1)
-  if test "$update" ; then pip install -U $lib ; else echo "$lib is up-to-date" ; fi
+  if test "$update" ; then pip install -U $lib ; else echo "${lib::-2} is up-to-date" ; fi
 done
 
 deactivate
