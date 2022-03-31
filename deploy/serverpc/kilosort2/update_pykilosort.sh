@@ -7,7 +7,7 @@ git reset --hard origin/ibl_prod -q
 LOCAL=$(git rev-parse @)
 REMOTE=$(git rev-parse "@{u}")
 if [ $LOCAL != $REMOTE ]; then
-  print("Updating pykilosort")
+  echo "Updating pykilosort"
   git pull
 fi
 

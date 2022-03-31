@@ -7,7 +7,7 @@ git reset --hard -q
 LOCAL=$(git rev-parse @)
 REMOTE=$(git rev-parse "@{u}")
 if [ $LOCAL != $REMOTE ]; then
-  print("Updating iblvideo")
+  echo "Updating iblvideo"
   git pull
 fi
 
