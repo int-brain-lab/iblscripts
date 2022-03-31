@@ -1,4 +1,5 @@
 import traceback
+import time
 
 from one.api import ONE
 from ibllib.pipes.local_server import task_queue
@@ -11,7 +12,8 @@ try:
     if len(waiting_tasks) == 0:
         # TODO: proper logging
         print("No large tasks in the queue")
-        # sleep?
+        # Query again only in 10 min if queue is empty
+        time.sleep(600)
     else:
         tdict = waiting_tasks[0]
         session_path = one.eid2path(tdict['session'])
