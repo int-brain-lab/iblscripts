@@ -21,4 +21,4 @@ do
   if test "$update" ; then pip install -U $lib ; else echo "$lib is up-to-date" ; fi
 done
 
-deactive
+deactivate
