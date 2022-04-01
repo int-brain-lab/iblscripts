@@ -20,10 +20,11 @@ try:
         time.sleep(3600)
     else:
         tdict = waiting_tasks[0]
-	# TODO: proper logging
-	print(f"Running task {tdict['name']} for session {tdict['session']}")
+        # TODO: proper logging
+        print(f"Running task {tdict['name']} for session {tdict['session']}")
         ses = one.alyx.rest('sessions', 'list', django=f"pk,{tdict['session']}")[0]
-        session_path = Path(subjects_path).joinpath(Path(ses['subject'], ses['start_time'][:10], str(ses['number']).zfill(3)))
+        session_path = Path(subjects_path).joinpath(
+            Path(ses['subject'], ses['start_time'][:10], str(ses['number']).zfill(3)))
         run_alyx_task(tdict=tdict, session_path=session_path, one=one)
 except BaseException:
     # TODO: proper logging
