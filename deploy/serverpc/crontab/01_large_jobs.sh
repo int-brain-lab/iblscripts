@@ -2,8 +2,11 @@
 
 # Go to crontab dir
 cd ~/Documents/PYTHON/iblscripts/deploy/serverpc/crontab
-# Source iblenv (the tasks themselves will run in their own envs)
-source ~/Documents/PYTHON/envs/iblenv/bin/activate
+# Source dlcenv here. While the dlc and spike sorting tasks have their own environments, the compression jobs dont
+# We avoid using iblenv here, as we don't want to interfere with the small jobs etc. dlcenv has everything needed
+# for the video compression
+
+source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 
 last_update=$SECONDS
 elapsed=22000
