@@ -7,8 +7,7 @@ from one.api import ONE
 from ibllib.pipes.local_server import task_queue
 from ibllib.pipes.tasks import run_alyx_task
 
-_logger = logging.getLogger(__name__)
-_logger.setLevel(logging.INFO)
+_logger = logging.getLogger('ibllib')
 subjects_path = Path('/mnt/s0/Data/Subjects/')
 sleep_time = 3600
 
