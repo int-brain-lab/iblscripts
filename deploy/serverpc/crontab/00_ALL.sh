@@ -19,9 +19,8 @@ python jobs.py kill run_small
 # Run small jobs (e.g. task extraction) that are set to Waiting in Alyx
 python jobs.py run_small /mnt/s0/Data/Subjects &
 
-# Kill any large tasks that are still running
-python jobs.py kill run_large
 # Run large jobs (e.g. spike sorting, DLC) that are set to Waiting in Alyx
+# this doesn't require killing as existence of the process is checked in the python code
 python jobs.py run_large /mnt/s0/Data/Subjects &
 
 # Restart the report process (updates Alyx with diagnostic info every 2 hours)
