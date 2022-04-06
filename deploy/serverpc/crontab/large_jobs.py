@@ -28,3 +28,4 @@ try:
         run_alyx_task(tdict=tdict, session_path=session_path, one=one)
 except BaseException:
     _logger.error(f"Error running large task queue \n {traceback.format_exc()}")
+    time.sleep(int(sleep_time / 2))
