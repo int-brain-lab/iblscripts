@@ -24,4 +24,4 @@ class TestReadSpikeSorting(unittest.TestCase):
         assert set(['depths', 'clusters', 'amps', 'times']) == set(spikes.keys())
         assert str(self.spike_sorting_path.relative_to(self.session_path)) == self.collection
         assert self.histology == 'alf'
-        assert len(self.collections) == 1
+        assert len(self.collections) == 2
