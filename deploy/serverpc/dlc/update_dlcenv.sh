@@ -17,10 +17,10 @@ fi
 source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 
 outdated=$(pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1)
-for lib in "ibllib==" "tensorflow==" "deeplabcut=="
+for lib in "ibllib" "tensorflow" "deeplabcut"
 do
-  update=$(echo $outdated | grep $lib | cut -d = -f 1)
-  if test "$update" ; then echo "Updating ${lib::-2}" ; pip install -U "${lib::-2}" ; else echo "${lib::-2} is up-to-date" ; fi
+  update=$(echo $outdated | grep -o $lib | cut -d = -f 1)
+  if test "$update" ; then echo "Updating $lib" ; pip install -U "$lib" ; else echo "$lib is up-to-date" ; fi
 done
 
 # This is a crutch until the globus backend is merged into ONE main

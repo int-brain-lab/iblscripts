@@ -21,7 +21,7 @@ conda activate pyks2
 outdated=$(pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1)
 for lib in "ibllib" "phylib"
 do
-  update=$(echo $outdated | grep $lib | cut -d = -f 1)
+  update=$(echo $outdated | grep -o $lib | cut -d = -f 1)
   if test "$update" ; then echo "Updating $lib" ; pip install -U $lib ; else echo "$lib is up-to-date" ; fi
 done
 conda deactivate
