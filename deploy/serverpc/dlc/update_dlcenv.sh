@@ -23,4 +23,7 @@ do
   if test "$update" ; then echo "Updating ${lib::-2}" ; pip install -U "${lib::-2}" ; else echo "${lib::-2} is up-to-date" ; fi
 done
 
+# This is a crutch until the globus backend is merged into ONE main
+pip install -U git+https://github.com/int-brain-lab/ONE.git@ibl_prod -q
+
 deactivate
