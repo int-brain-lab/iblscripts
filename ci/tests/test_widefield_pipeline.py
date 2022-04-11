@@ -42,6 +42,7 @@ class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
         for exp_files in wf.signature['output_files']:
             file = self.session_path.joinpath(exp_files[1], exp_files[0])
             assert file.exists()
+            assert file in wf.outputs
 
         # Test content of files
         # U
@@ -67,6 +68,7 @@ class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
         for exp_files in wf.signature['output_files']:
             file = self.session_path.joinpath(exp_files[1], exp_files[0])
             assert file.exists()
+            assert file in wf.outputs
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -102,6 +104,7 @@ class TestWidefieldSync(base.IntegrationTest):
         for exp_files in wf.signature['output_files']:
             file = self.session_path.joinpath(exp_files[1], exp_files[0])
             assert file.exists()
+            assert file in wf.outputs
 
     @unittest.mock.patch('ibllib.io.extractors.widefield.get_video_meta')
     def test_sync_not_enough(self, mock_meta):
