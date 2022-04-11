@@ -1,14 +1,42 @@
-# auto-update pykilosort
-cd ~/Documents/PYTHON/SPIKE_SORTING/pykilosort
-git fetch --all
-git checkout -f ibl_prod
-git reset --hard origin/ibl_prod
-git pull
+#!/bin/bash
 
-# auto-update the environment
+# Make sure local pykilosort repository is up to date
+cd ~/Documents/PYTHON/SPIKE_SORTING/pykilosort
+git checkout -f ibl_prod -q
+git reset --hard -q
+LOCAL=$(git rev-parse @)
+REMOTE=$(git rev-parse "@{u}")
+if [ $LOCAL != $REMOTE ]; then
+  echo "Updating pykilosort"
+  git pull
+else
+  echo "pykilosort is up-to-date"
+fi
+
+# Check that all libraries in the env are up to date
 source ~/anaconda3/etc/profile.d/conda.sh
 conda deactivate
 conda activate pyks2
-pip uninstall -y ibllib
-pip install git+https://github.com/int-brain-lab/ibllib.git@master
-pip install -U phylib
+
+outdated=$(pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1)
+
+# Libraries that have to be updated in order
+update=$(echo $outdated | grep -o "phylib" | cut -d = -f 1)
+if test "$update" ; then
+  echo "Updating phylib and ibllib" ;
+  pip uninstall -y ibllib phylib ;
+  pip install phylib ;
+  pip install ibllib ;
+else
+  echo "phylib is up-to-date" ;
+  update=$(echo $outdated | grep -o "ibllib" | cut -d = -f 1)
+  if test "$update" ; then
+    echo "Updating ibllib" ;
+    pip uninstall -y ibllib ;
+    pip install ibllib ;
+  else
+  echo "ibllib is up-to-date" ;
+  fi
+fi
+
+conda deactivate
