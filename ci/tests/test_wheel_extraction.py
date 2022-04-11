@@ -22,7 +22,7 @@ def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
     fpga_t, fpga_pos = ephys_fpga.extract_wheel_sync(sync, chmap=chmap)
     bpod_t, bpod_pos = training_wheel.get_wheel_position(session_path, display=display)
     data, _ = ephys_fpga.extract_all(session_path)
-    bpod2fpga = scipy.interpolate.interp1d(data['intervals_bpod'][:, 0], data['intervals'][:, 0],
+    bpod2fpga = scipy.interpolate.interp1d(data['intervals_bpod'][:, 0], data['table']['intervals_0'],
                                            fill_value="extrapolate")
     # resample both traces to the same rate and compute correlation coeff
     bpod_t = bpod2fpga(bpod_t)
