@@ -19,9 +19,24 @@ conda deactivate
 conda activate pyks2
 
 outdated=$(pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1)
-for lib in "ibllib" "phylib"
-do
-  update=$(echo $outdated | grep -o $lib | cut -d = -f 1)
-  if test "$update" ; then echo "Updating $lib" ; pip install -U $lib ; else echo "$lib is up-to-date" ; fi
-done
+
+# Libraries that have to be updated in order
+update=$(echo $outdated | grep -o "phylib" | cut -d = -f 1)
+if test "$update" ; then
+  echo "Updating phylib and ibllib" ;
+  pip uninstall -y ibllib phylib ;
+  pip install phylib ;
+  pip install ibllib ;
+else
+  echo "phylib is up-to-date" ;
+  update=$(echo $outdated | grep -o "ibllib" | cut -d = -f 1)
+  if test "$update" ; then
+    echo "Updating ibllib" ;
+    pip uninstall -y ibllib ;
+    pip install ibllib ;
+  else
+  echo "ibllib is up-to-date" ;
+  fi
+fi
+
 conda deactivate
