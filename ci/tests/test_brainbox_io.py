@@ -2,15 +2,15 @@ import logging
 import hashlib
 
 import numpy as np
+from iblutil.util import flatten
 
-from one.api import One
+from one.api import One, OneAlyx
 from one.alf.io import load_object
 import brainbox.io.one as bbone
 from ibllib.atlas.regions import BrainRegions
 from ibllib.ephys.neuropixel import trace_header
 
-
-from ci.tests.base import IntegrationTest
+from ci.tests.base import IntegrationTest, TEST_DB
 
 _logger = logging.getLogger('ibllib')
 _logger.setLevel(10)
@@ -65,31 +65,49 @@ class TestReadSpikeSorting(IntegrationTest):
         one = self.one
         eid = one.path2eid(self.session_path)
 
-        from brainbox.io.one import SpikeSortingLoader
+        # Turn on dataset recording tracking
+        one.record_loaded = True
 
-        sl = SpikeSortingLoader(eid=eid, pname=pname, one=one)
+        sl = bbone.SpikeSortingLoader(eid=eid, pname=pname, one=one)
         _logger.setLevel(0)
         spikes, clusters, channels = sl.load_spike_sorting(spike_sorter='')
         _check(spikes['times'], spike_sorter='')
         clusters = sl.merge_clusters(spikes, clusters, channels)
         assert 'acronym' in clusters.keys()
 
+        # Check all loaded datasets were recorded in ONE (because this class uses alf.io to load)
+        files = set(flatten(x for x in sl.files.values()))
+        self.assertEqual(len(files), len(one._cache['_loaded_datasets']))
+
         # load spike sorting for a non default sorter
         spikes, clusters, channels = sl.load_spike_sorting(spike_sorter='ks2_preproc_tests')
         _check(spikes['times'], spike_sorter='ks2_preproc_tests')
+        files.update(flatten(x for x in sl.files.values()))
 
         # load spike sorting using collection
         spikes, clusters, channels = sl.load_spike_sorting(
             collection=f'alf/{pname}/ks2_preproc_tests')
         _check(spikes['times'], spike_sorter='ks2_preproc_tests')
+        files.update(flatten(x for x in sl.files.values()))
 
+        self.assertEqual(len(files), len(one._cache.pop('_loaded_datasets')))
 
-        # makes sure this is the pykilosort that is returned by default1
+        # makes sure this is the pykilosort that is returned by default
         spikes, clusters, channels = bbone._load_spike_sorting(
             eid=eid, one=one, collection=f'alf/*{pname}/*', return_channels=True)
         _check(spikes[pname]['times'])
 
+        loaded = one._cache.datasets.loc[(slice(None), one._cache['_loaded_datasets']), 'rel_path']
+        self.assertCountEqual(loaded.index.levels[0], [eid])
+        self.assertEqual(len(loaded), 11)
 
+    def test_url(self):
+        sl = bbone.SpikeSortingLoader(session_path=self.session_path, pname='probe01', one=self.one)
+        self.assertIsNone(sl.url)
+        sl = bbone.SpikeSortingLoader(session_path=self.session_path, pname='probe01', one=OneAlyx(**TEST_DB))
+        url = sl.url
+        expected = 'https://ibl.flatironinstitute.org/SWC_054/2020-10-05/001'
+        self.assertEqual(expected, url)
 
 
 class TestLoadTrials(IntegrationTest):
