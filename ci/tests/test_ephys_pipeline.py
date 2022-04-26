@@ -343,7 +343,7 @@ class TestEphysPipeline(base.IntegrationTest):
             """Check the channels object"""
             channels = alfio.load_object(probe_folder, 'channels')
             channels_attributes = ['rawInd', 'localCoordinates']
-            self.assertTrue(set(channels.keys()) == set(channels_attributes))
+            self.assertEqual(set(channels.keys()), set(channels_attributes))
 
             """Check the template object"""
             templates = alfio.load_object(probe_folder, 'templates')
