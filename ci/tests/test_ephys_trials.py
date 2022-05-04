@@ -49,10 +49,11 @@ class TestEphysTaskExtraction(base.IntegrationTest):
 
     def _task_extraction_assertions(self, session_path):
         alf_path = session_path.joinpath('alf')
+        bk_path = alf_path.parent / 'alf.bk'
         if alf_path.exists():
             # Back-up alf files and restore on teardown
-            shutil.move(alf_path, alf_path.parent / 'alf.bk')
-            self.addCleanup(lambda: shutil.move(alf_path.parent / 'alf.bk', alf_path))
+            shutil.move(alf_path, bk_path)
+            self.addCleanup(shutil.move, str(bk_path), alf_path)
         # this gets the full output
         ephys_fpga.extract_all(session_path, save=True, bin_exists=False)
         # check that the output is complete
@@ -63,9 +64,10 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         self.assertTrue(alfio.check_dimensions(alf_trials) == 0)
         # check new trials table the same as old individual datasets
         # in the future if extraction changes this test can be removed
-        alf_trials_old = alfio.load_object(alf_path.parent / 'alf.bk', 'trials')
-        for k, v in alf_trials.items():
-            numpy.testing.assert_array_equal(v, alf_trials_old[k])
+        if any(bk_path.glob('*trials*')):
+            alf_trials_old = alfio.load_object(alf_path.parent / 'alf.bk', 'trials')
+            for k, v in alf_trials.items():
+                numpy.testing.assert_array_almost_equal(v, alf_trials_old[k])
         # go deeper and check the internal fpga trials structure consistency
         sync, chmap = ephys_fpga.get_main_probe_sync(session_path, bin_exists=False)
         fpga_trials = ephys_fpga.extract_behaviour_sync(sync, chmap)
