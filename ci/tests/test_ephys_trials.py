@@ -1,7 +1,8 @@
 import logging
-import numpy as np
 import shutil
 
+import numpy as np
+import numpy.testing
 import one.alf.io as alfio
 from one.api import ONE
 from ibllib.io.extractors import ephys_fpga
@@ -60,6 +61,11 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         # check dimensions after alf load
         alf_trials = alfio.load_object(alf_path, 'trials')
         self.assertTrue(alfio.check_dimensions(alf_trials) == 0)
+        # check new trials table the same as old individual datasets
+        # in the future if extraction changes this test can be removed
+        alf_trials_old = alfio.load_object(alf_path.parent / 'alf.bk', 'trials')
+        for k, v in alf_trials.items():
+            numpy.testing.assert_array_equal(v, alf_trials_old[k])
         # go deeper and check the internal fpga trials structure consistency
         sync, chmap = ephys_fpga.get_main_probe_sync(session_path, bin_exists=False)
         fpga_trials = ephys_fpga.extract_behaviour_sync(sync, chmap)
