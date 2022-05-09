@@ -1,24 +1,32 @@
-#!/usr/bin/env python
-# -*- coding:utf-8 -*-
-# @Author: Niccolò Bonacchi
-# @Date: Tuesday, August 13th 2019, 12:10:34 pm
 import argparse
+import logging
+from pathlib import Path
 
-from ibllib.pipes.misc import confirm_video_remote_folder
-
+from ibllib.pipes.misc import rsync_video_folders
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='Transfer files to IBL local server')
+    # parse user input
+    parser = argparse.ArgumentParser(description="Transfer video files to IBL local server")
     parser.add_argument(
-        '-l', '--local', default=False, required=False,
-        help='Local iblrig_data/Subjects folder')
+        "-l", "--local", default=False, required=False,
+        help="Local iblrig_data/Subjects folder")
     parser.add_argument(
-        '-r', '--remote', default=False, required=False,
-        help='Remote iblrig_data/Subjects folder')
-    parser.add_argument(
-        '-f', '--force', default=False, required=False, action='store_true',
-        help='Overwrite existing video files in dst/remote folder')
+        "-r", "--remote", default=False, required=False,
+        help="Remote iblrig_data/Subjects folder")
     args = parser.parse_args()
-    # print(args)
-    confirm_video_remote_folder(local_folder=args.local, remote_folder=args.remote, force=args.force)
+
+    # logging configuration
+    ibllib_log_dir = Path.home() / '.ibl_logs'
+    ibllib_log_dir.mkdir() if ibllib_log_dir.exists() is False else None
+    log = logging.getLogger("transfer_video_session")
+    log.setLevel(logging.INFO)
+    format_str = '%(asctime)s.%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s'
+    date_format = '%Y-%m-%d %H:%M:%S'
+    file_handler = logging.FileHandler(ibllib_log_dir / 'transfer_video_session.log')
+    file_format = logging.Formatter(format_str, date_format)
+    file_handler.setFormatter(file_format)
+    log.addHandler(file_handler)
+    log.info("Logging initiated")
+
+    # call rsync_video_folders function in ibllib
+    rsync_video_folders(local_folder=args.local, remote_folder=args.remote)
