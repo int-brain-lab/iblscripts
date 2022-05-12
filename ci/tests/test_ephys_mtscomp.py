@@ -2,7 +2,7 @@ import unittest
 import shutil
 import logging
 
-from ibllib.io import spikeglx
+import spikeglx
 from ibllib.pipes.ephys_preprocessing import EphysMtscomp
 
 from ci.tests import base
