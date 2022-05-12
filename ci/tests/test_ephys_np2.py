@@ -3,7 +3,7 @@ import random
 import shutil
 
 from ibllib.ephys.np2_converter import NP2Converter
-from ibllib.io import spikeglx
+import spikeglx
 
 from ci.tests import base
 

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import one.alf.io as alfio
-from ibllib.io import spikeglx
+import spikeglx
 import ibllib.ephys.sync_probes as sync_probes
 
 from ci.tests import base
