@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from ibllib.atlas import AllenAtlas, FlatMap, BrainRegions
-from ibllib.atlas.flatmaps import plot_swanson
+from ibllib.atlas.flatmaps import plot_swanson, annotate_swanson
 
 
 def test_simple():
@@ -63,5 +63,7 @@ def test_swanson():
     plot_swanson(acronyms, values, cmap='Blues', hemisphere='both')
     fig, ax = plt.subplots()
     plot_swanson(regions_rl, values_rl, hemisphere='both', cmap='magma', br=br)
-
+    annotate_swanson(ax, acronyms=acronyms)
+    fig, ax = plt.subplots()
+    plot_swanson(br=br, annotate=True)
     plt.close('all')
