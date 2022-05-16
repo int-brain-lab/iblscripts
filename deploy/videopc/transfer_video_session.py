@@ -18,7 +18,7 @@ if __name__ == "__main__":
     # logging configuration
     ibllib_log_dir = Path.home() / '.ibl_logs'
     ibllib_log_dir.mkdir() if ibllib_log_dir.exists() is False else None
-    log = logging.getLogger("transfer_video_session")
+    log = logging.getLogger("ibllib.pipes.misc")
     log.setLevel(logging.INFO)
     format_str = '%(asctime)s.%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s'
     date_format = '%Y-%m-%d %H:%M:%S'
