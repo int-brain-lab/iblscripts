@@ -34,7 +34,7 @@ class TestTrainingStatus(base.IntegrationTest):
             shutil.rmtree(self.new_session2.parent)
 
         if training_status.save_path(self.subj_path).exists():
-            shutil.rmtree(training_status.save_path(self.subj_path).parent)
+            training_status.save_path(self.subj_path).unlink()
 
     def test_missing_dates(self):
         # When no dataframe present
