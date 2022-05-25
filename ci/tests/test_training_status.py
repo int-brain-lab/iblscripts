@@ -12,7 +12,7 @@ class TestTrainingStatus(base.IntegrationTest):
     """
     @classmethod
     def setUpClass(cls) -> None:
-        cls.subj_path = cls.default_data_root().joinpath('training', 'PL023')
+        cls.subj_path = cls.default_data_root().joinpath('training_status', 'PL023')
         print('Building ONE cache from filesystem...')
         cls.one = One.setup(cls.subj_path, silent=True)
 
