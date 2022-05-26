@@ -46,7 +46,7 @@ class TestPipeline(base.IntegrationTest):
             training_jobs = one.alyx.rest(
                 'tasks', 'list', status='Waiting',
                 graph='TrainingExtractionPipeline', no_cache=True)
-            self.assertEqual(nses * 5, len(training_jobs))
+            self.assertEqual(nses * 6, len(training_jobs))
             # one.alyx.rest('jobs', 'read', id='32c83da4-8a2f-465e-8227-c3b540e61142')
 
             local_server.tasks_runner(subjects_path, training_jobs, one=one, dry=True,
@@ -75,4 +75,4 @@ def create_pipeline(session_path, one):
     assert eid
     alyx_tasks = one.alyx.rest('tasks', 'list',
                                session=eid, graph='TrainingExtractionPipeline', no_cache=True)
-    assert(len(alyx_tasks) == 5)
+    assert(len(alyx_tasks) == 6)
