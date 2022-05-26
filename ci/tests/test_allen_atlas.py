@@ -3,11 +3,10 @@ import matplotlib.pyplot as plt
 from ibllib.atlas import AllenAtlas, FlatMap, BrainRegions
 from ibllib.atlas.flatmaps import plot_swanson, annotate_swanson
 
-from ci.tests import base
 import unittest
 
 
-class TestAtlas(base.IntegrationTest):
+class TestAtlas(unittest.TestCase):
 
     def test_simple(self):
         ba = AllenAtlas(25)
@@ -31,6 +30,9 @@ class TestAtlas(base.IntegrationTest):
         inds = ba._lookup_inds(np.stack((ix, iy, np.maximum(izb + 1, 0)), axis=-1))
         assert np.all(ba.label.flat[inds][~np.isnan(ba.bottom)] == 0)
 
+
+class TestFlatmaps(unittest.TestCase):
+
     def test_flatmaps(self):
         fm = FlatMap(flatmap='dorsal_cortex')
         fm.plot_flatmap(depth=0)
@@ -40,6 +42,9 @@ class TestAtlas(base.IntegrationTest):
 
         fm = FlatMap(flatmap='pyramid')
         fm.plot_flatmap(volume='image')
+
+
+class TestSwanson(unittest.TestCase):
 
     def test_swanson(self):
         br = BrainRegions()
@@ -74,4 +79,4 @@ class TestAtlas(base.IntegrationTest):
 
 
 if __name__ == "__main__":
-	unittest.main(exit=False)
+    unittest.main(exit=False)
