@@ -2,7 +2,7 @@ import numpy as np
 import random
 import shutil
 
-from ibllib.ephys.np2_converter import NP2Converter
+from neuropixel import NP2Converter
 import spikeglx
 
 from ci.tests import base
