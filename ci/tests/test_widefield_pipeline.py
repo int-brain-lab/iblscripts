@@ -22,6 +22,7 @@ class TestWidefieldRename(base.IntegrationTest):
         cls.data_folder = cls.session_path.joinpath('orig')
         cls.widefield_folder = cls.session_path.joinpath('raw_widefield_data')
         cls.widefield_folder.mkdir(parents=True, exist_ok=True)
+        cls.alf_folder = cls.session_path.joinpath('alf')
 
         # Symlink data from original folder to the new folder
         orig_cam_file = next(cls.data_folder.glob('*.camlog'))
@@ -47,6 +48,7 @@ class TestWidefieldRename(base.IntegrationTest):
     @classmethod
     def tearDownClass(cls) -> None:
         shutil.rmtree(cls.widefield_folder)
+        shutil.rmtree(cls.alf_folder)
 
 
 class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
