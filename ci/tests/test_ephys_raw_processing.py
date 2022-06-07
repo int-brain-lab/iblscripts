@@ -5,7 +5,7 @@ import shutil
 
 from ibllib.ephys.neuropixel import trace_header
 from ibllib.io import spikeglx
-from ibllib.dsp import voltage, rms
+from neurodsp import voltage, utils
 
 from ci.tests import base
 
@@ -33,8 +33,8 @@ class TestEphysSpikeSortingPreProc(base.IntegrationTest):
         ncv = h['x'].size  # number of channels
         expected = voltage.destripe(sr[sel_comp, :ncv].T, fs=sr.fs, channel_labels=True).T
         diff = expected - sr_out[sel_comp, :ncv]
-        assert np.min(20 * np.log10(rms(diff[10000:-10000, :], axis=0)
-                                    / rms(sr_out[sel_comp, :ncv], axis=0))) < 35
+        assert np.min(20 * np.log10(utils.rms(diff[10000:-10000, :], axis=0)
+                                    / utils.rms(sr_out[sel_comp, :ncv], axis=0))) < 35
         sr_out.close()
         bin_file.unlink()
 
