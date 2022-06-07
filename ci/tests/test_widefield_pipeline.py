@@ -135,6 +135,8 @@ class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
 
 
 class TestWidefieldSync(base.IntegrationTest):
+    patch = None  # A mock of get_video_meta
+    video_meta = Bunch()
 
     def setUp(self):
         self.session_path = self.default_data_root().joinpath(
@@ -142,14 +144,12 @@ class TestWidefieldSync(base.IntegrationTest):
         if not self.session_path.exists():
             return
         self.alf_folder = self.session_path.joinpath('alf')
+        self.video_meta.length = 183340
+        self.patch = unittest.mock.patch('ibllib.io.extractors.widefield.get_video_meta',
+                                         return_value=self.video_meta)
+        self.patch.start()
 
-    @unittest.mock.patch('ibllib.io.extractors.widefield.get_video_meta')
-    def test_sync(self, mock_meta):
-
-        video_meta = Bunch()
-        video_meta.length = 183340
-        mock_meta.return_value = video_meta
-
+    def test_sync(self):
         wf = WidefieldSync(self.session_path)
         status = wf.run()
         assert status == 0
@@ -161,46 +161,35 @@ class TestWidefieldSync(base.IntegrationTest):
 
         # Check integrity of outputs
         times = np.load(self.alf_folder.joinpath('widefield.times.npy'))
-        assert len(times) == video_meta.length
+        assert len(times) == self.video_meta['length']
         assert np.all(np.diff(times) > 0)
         leds = np.load(self.alf_folder.joinpath('widefield.widefieldLightSource.npy'))
         assert leds[0] == 2
         assert np.array_equal(np.unique(leds), np.array([1, 2]))
 
-    @unittest.mock.patch('ibllib.io.extractors.widefield.get_video_meta')
-    def test_sync_not_enough(self, mock_meta):
-
+    def test_sync_not_enough(self):
         # Mock video file with more frames than led timestamps
-        video_meta = Bunch()
-        video_meta.length = 183345
-        mock_meta.return_value = video_meta
-
+        self.video_meta.length = 183345
         wf = WidefieldSync(self.session_path)
         status = wf.run()
         assert status == -1
         assert 'ValueError: More frames than timestamps detected' in wf.log
 
-    @unittest.mock.patch('ibllib.io.extractors.widefield.get_video_meta')
-    def test_sync_too_many(self, mock_meta):
-
+    def test_sync_too_many(self):
         # Mock video file with more that two extra led timestamps
-        video_meta = Bunch()
-        video_meta.length = 183338
-        mock_meta.return_value = video_meta
+        self.video_meta.length = 183338
 
         wf = WidefieldSync(self.session_path)
         status = wf.run()
         assert status == -1
         assert 'ValueError: Timestamps and frames differ by more than 2' in wf.log
 
-    @unittest.mock.patch('ibllib.io.extractors.widefield.get_video_meta')
-    def test_wrong_wiring(self, mock_meta):
-
-        self.wiring_file.unlink()
-        # Mock video file with more that two extra led timestamps
-        video_meta = Bunch()
-        video_meta.length = 183340
-        mock_meta.return_value = video_meta
+    def test_wrong_wiring(self):
+        wiring_file = self.session_path.joinpath(
+            'raw_widefield_data', 'widefieldChannels.wiring.csv')
+        bk_wiring_file = wiring_file.parent.joinpath(wiring_file.name + '.bk')
+        wiring_file.rename(bk_wiring_file)
+        self.addCleanup(bk_wiring_file.rename, wiring_file)
 
         wf = WidefieldSync(self.session_path)
         status = wf.run()
@@ -210,5 +199,4 @@ class TestWidefieldSync(base.IntegrationTest):
     def tearDown(self):
         if self.alf_folder.exists():
             shutil.rmtree(self.alf_folder)
-        if self.wiring_file.exists():
-            self.wiring_file.unlink()
+        self.patch.stop()
