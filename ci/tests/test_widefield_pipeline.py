@@ -1,8 +1,9 @@
 import logging
 import shutil
-import numpy as np
-import unittest
+import unittest.mock
 
+import numpy as np
+from numpy.testing import assert_array_almost_equal
 from iblutil.util import Bunch
 from ibllib.pipes.widefield import WidefieldPreprocess, WidefieldCompress, WidefieldSync
 
@@ -12,11 +13,15 @@ _logger = logging.getLogger('ibllib')
 
 
 class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
+    session_path = None
+    widefield_folder = None
+    data_folder = None
+    alf_folder = None
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.session_path = cls.default_data_root().joinpath('widefield', 'widefieldChoiceWorld', 'CSK-im-011',
-                                                            '2021-07-21', '001')
+        cls.session_path = cls.default_data_root().joinpath(
+            'widefield', 'widefieldChoiceWorld', 'CSK-im-011', '2021-07-21', '001')
         if not cls.session_path.exists():
             return
         # Move the data into the correct folder
@@ -45,19 +50,28 @@ class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
             assert file in wf.outputs
 
         # Test content of files
+        PRECISION = 4  # Desired decimal precision
         # U
-        assert np.array_equal(np.load(self.data_folder.joinpath('U.npy')),
-                              np.load(self.alf_folder.joinpath('widefieldU.images.npy')))
+        assert_array_almost_equal(np.load(self.data_folder.joinpath('U.npy')),
+                                  np.load(self.alf_folder.joinpath('widefieldU.images.npy')),
+                                  decimal=PRECISION)
         # SVT
-        assert np.array_equal(np.load(self.data_folder.joinpath('SVT.npy')),
-                              np.load(self.alf_folder.joinpath('widefieldSVT.uncorrected.npy')))
+        assert_array_almost_equal(
+            np.load(self.data_folder.joinpath('SVT.npy')),
+            np.load(self.alf_folder.joinpath('widefieldSVT.uncorrected.npy')),
+            decimal=PRECISION)
 
         # Haemo corrected SVT
-        assert np.array_equal(np.load(self.data_folder.joinpath('SVTcorr.npy')),
-                              np.load(self.alf_folder.joinpath('widefieldSVT.haemoCorrected.npy')))
+        assert_array_almost_equal(
+            np.load(self.data_folder.joinpath('SVTcorr.npy')),
+            np.load(self.alf_folder.joinpath('widefieldSVT.haemoCorrected.npy')),
+            decimal=PRECISION)
+
         # Frame average
-        assert np.array_equal(np.load(self.data_folder.joinpath('frames_average.npy')),
-                              np.load(self.alf_folder.joinpath('widefieldChannels.frameAverage.npy')))
+        assert_array_almost_equal(
+            np.load(self.data_folder.joinpath('frames_average.npy')),
+            np.load(self.alf_folder.joinpath('widefieldChannels.frameAverage.npy')),
+            decimal=PRECISION)
 
     def test_compress(self):
         wf = WidefieldCompress(self.session_path)
@@ -79,16 +93,11 @@ class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
 class TestWidefieldSync(base.IntegrationTest):
 
     def setUp(self):
-        self.session_path = self.default_data_root().joinpath('widefield', 'widefieldChoiceWorld', 'CSK-im-011',
-                                                              '2021-07-29', '001')
+        self.session_path = self.default_data_root().joinpath(
+            'widefield', 'widefieldChoiceWorld', 'CSK-im-011', '2021-07-29', '001')
         if not self.session_path.exists():
             return
-        # Move the data into the correct folder
-        self.widefield_folder = self.session_path.joinpath('raw_widefield_data')
-        self.widefield_folder.mkdir(parents=True, exist_ok=True)
         self.alf_folder = self.session_path.joinpath('alf')
-
-        self.widefield_folder.joinpath('widefield.raw.mov').touch()
 
     @unittest.mock.patch('ibllib.io.extractors.widefield.get_video_meta')
     def test_sync(self, mock_meta):
