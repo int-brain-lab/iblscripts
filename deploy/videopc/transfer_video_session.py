@@ -2,7 +2,7 @@ import argparse
 import logging
 from pathlib import Path
 
-from ibllib.pipes.misc import rsync_video_folders
+from ibllib.pipes.misc import transfer_video_folders
 
 if __name__ == "__main__":
     # parse user input
@@ -29,4 +29,4 @@ if __name__ == "__main__":
     log.info("Logging initiated")
 
     # call rsync_video_folders function in ibllib
-    rsync_video_folders(local_folder=args.local, remote_folder=args.remote)
+    transfer_video_folders(local_folder=args.local, remote_folder=args.remote)
