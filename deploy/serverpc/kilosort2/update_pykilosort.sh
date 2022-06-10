@@ -17,7 +17,7 @@ fi
 source ~/anaconda3/etc/profile.d/conda.sh
 conda deactivate
 conda activate pyks2
-pip uninstall ibllib  # pykilosort 1.3.0 does not rely on ibllib anymore, just ibl-neuropixel
+pip uninstall -y ibllib  # pykilosort 1.3.0 does not rely on ibllib anymore, just ibl-neuropixel
 pip install ibl-neuropixel  # this is a one off and can be removed from June 2022 onwards. It is probably inocuous as fast anyway
 outdated=$(pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1)
 
