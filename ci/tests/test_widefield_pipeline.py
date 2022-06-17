@@ -5,7 +5,7 @@ import unittest.mock
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 from iblutil.util import Bunch
-from ibllib.pipes.widefield import WidefieldPreprocess, WidefieldCompress, WidefieldSync, WidefieldRegisterRaw
+from ibllib.pipes.widefield_tasks import WidefieldPreprocess, WidefieldCompress, WidefieldSync, WidefieldRegisterRaw
 
 from ci.tests import base
 
@@ -23,7 +23,7 @@ class TestWidefieldRename(base.IntegrationTest):
         cls.data_folder = cls.session_path.joinpath('orig')
         cls.widefield_folder = cls.session_path.joinpath('raw_widefield_data')
         cls.widefield_folder.mkdir(parents=True, exist_ok=True)
-        cls.alf_folder = cls.session_path.joinpath('alf')
+        cls.alf_folder = cls.session_path.joinpath('alf', 'widefield')
 
         # Symlink data from original folder to the new folder
         orig_cam_file = next(cls.data_folder.glob('*.camlog'))
@@ -34,7 +34,11 @@ class TestWidefieldRename(base.IntegrationTest):
         new_data_file = cls.widefield_folder.joinpath(orig_data_file.name)
         new_data_file.symlink_to(orig_data_file)
 
-        orig_wiring_file = next(cls.data_folder.glob('*wiring*'))
+        orig_led_wiring_file = next(cls.data_folder.glob('*widefield_wiring*'))
+        new_led_wiring_file = cls.widefield_folder.joinpath(orig_led_wiring_file.name)
+        new_led_wiring_file.symlink_to(orig_led_wiring_file)
+
+        orig_wiring_file = next(cls.data_folder.glob('*configuration.json'))  # note this might change
         new_wiring_file = cls.widefield_folder.joinpath(orig_wiring_file.name)
         new_wiring_file.symlink_to(orig_wiring_file)
 
@@ -49,7 +53,7 @@ class TestWidefieldRename(base.IntegrationTest):
     @classmethod
     def tearDownClass(cls) -> None:
         shutil.rmtree(cls.widefield_folder)
-        shutil.rmtree(cls.alf_folder)
+        shutil.rmtree(cls.alf_folder.parent)
 
 
 class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
@@ -68,7 +72,7 @@ class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
         cls.data_folder = cls.session_path.joinpath('orig')
         cls.widefield_folder = cls.session_path.joinpath('raw_widefield_data')
         cls.widefield_folder.mkdir(parents=True, exist_ok=True)
-        cls.alf_folder = cls.session_path.joinpath('alf')
+        cls.alf_folder = cls.session_path.joinpath('alf', 'widefield')
 
         # Symlink data from original folder to the new folder
         orig_cam_file = next(cls.data_folder.glob('*.camlog'))
@@ -131,7 +135,7 @@ class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
     @classmethod
     def tearDownClass(cls) -> None:
         shutil.rmtree(cls.widefield_folder)
-        shutil.rmtree(cls.alf_folder)
+        shutil.rmtree(cls.alf_folder.parent)
 
 
 class TestWidefieldSync(base.IntegrationTest):
@@ -140,11 +144,13 @@ class TestWidefieldSync(base.IntegrationTest):
 
     def setUp(self):
         self.session_path = self.default_data_root().joinpath(
-            'widefield', 'widefieldChoiceWorld', 'CSK-im-011', '2021-07-29', '001')
+            'widefield', 'widefieldChoiceWorld', 'JC076', '2022-02-04', '002')
         if not self.session_path.exists():
             return
-        self.alf_folder = self.session_path.joinpath('alf')
-        self.video_meta.length = 183340
+        self.alf_folder = self.session_path.joinpath('alf', 'widefield')
+        self.video_file = self.session_path.joinpath('raw_widefield_data', 'widefield.raw.mov')
+        self.video_file.touch()
+        self.video_meta.length = 2032
         self.patch = unittest.mock.patch('ibllib.io.extractors.widefield.get_video_meta',
                                          return_value=self.video_meta)
         self.patch.start()
@@ -167,36 +173,25 @@ class TestWidefieldSync(base.IntegrationTest):
         assert leds[0] == 2
         assert np.array_equal(np.unique(leds), np.array([1, 2]))
 
-    def test_sync_not_enough(self):
+    def test_video_led_sync_not_enough(self):
         # Mock video file with more frames than led timestamps
-        self.video_meta.length = 183345
+        self.video_meta.length = 2035
         wf = WidefieldSync(self.session_path)
         status = wf.run()
         assert status == -1
-        assert 'ValueError: More frames than timestamps detected' in wf.log
+        assert 'ValueError: More video frames than led frames detected' in wf.log
 
-    def test_sync_too_many(self):
+    def test_video_led_sync_too_many(self):
         # Mock video file with more that two extra led timestamps
-        self.video_meta.length = 183338
+        self.video_meta.length = 2029
 
         wf = WidefieldSync(self.session_path)
         status = wf.run()
         assert status == -1
-        assert 'ValueError: Timestamps and frames differ by more than 2' in wf.log
-
-    def test_wrong_wiring(self):
-        wiring_file = self.session_path.joinpath(
-            'raw_widefield_data', 'widefieldChannels.wiring.csv')
-        bk_wiring_file = wiring_file.parent.joinpath(wiring_file.name + '.bk')
-        wiring_file.rename(bk_wiring_file)
-        self.addCleanup(bk_wiring_file.rename, wiring_file)
-
-        wf = WidefieldSync(self.session_path)
-        status = wf.run()
-        assert status == -1
-        assert "WidefieldWiringException" in wf.log
+        assert 'ValueError: Led frames and video frames differ by more than 2' in wf.log
 
     def tearDown(self):
+        self.video_file.unlink()
         if self.alf_folder.exists():
-            shutil.rmtree(self.alf_folder)
+            shutil.rmtree(self.alf_folder.parent)
         self.patch.stop()
