@@ -55,7 +55,7 @@ def main(local=None, remote=None):
         except FileNotFoundError as e:
             log.warning("An error occurred when attempting to remove the flag file.\n", e)
         create_video_transfer_done_flag(str(entry[1]))
-        check_create_raw_session_flag(str(entry[1]))  # TODO: figure out why tests are failing here, mock not catching?
+        check_create_raw_session_flag(str(entry[1]))
 
 
 if __name__ == "__main__":
