@@ -12,7 +12,7 @@ from ci.tests import base
 _logger = logging.getLogger('ibllib')
 
 
-class TestWidefieldRename(base.IntegrationTest):
+class TestWidefieldRegisterRaw(base.IntegrationTest):
     @classmethod
     def setUpClass(cls) -> None:
         cls.session_path = cls.default_data_root().joinpath('widefield', 'widefieldChoiceWorld', 'CSK-im-011',

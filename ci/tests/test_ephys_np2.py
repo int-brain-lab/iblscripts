@@ -2,7 +2,7 @@ import numpy as np
 import random
 import shutil
 
-from ibllib.ephys.np2_converter import NP2Converter
+from neuropixel import NP2Converter
 import spikeglx
 
 from ci.tests import base
@@ -137,8 +137,7 @@ class TestNeuropixel2ConverterNP24(base.IntegrationTest):
         np_conv.sr.close()
 
         # test that original has been deleted
-
-        self.assertFalse(self.file_path.parent.exists())
+        self.assertFalse(self.file_path.exists())
 
         # Finally test that we cannot process a file that has already been split
         shank_n = random.randint(0, 3)
