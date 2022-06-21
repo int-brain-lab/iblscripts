@@ -1,7 +1,8 @@
 import logging
-import numpy as np
 import shutil
 
+import numpy as np
+import numpy.testing
 import one.alf.io as alfio
 from one.api import ONE
 from ibllib.io.extractors import ephys_fpga
@@ -11,22 +12,9 @@ from ci.tests import base
 _logger = logging.getLogger('ibllib')
 
 BPOD_FILES = [
-    '_ibl_trials.choice.npy',
-    '_ibl_trials.contrastLeft.npy',
-    '_ibl_trials.contrastRight.npy',
-    '_ibl_trials.feedbackType.npy',
+    '_ibl_trials.table.pqt',
     '_ibl_trials.goCueTrigger_times.npy',
     '_ibl_trials.intervals_bpod.npy',
-    '_ibl_trials.probabilityLeft.npy',
-    '_ibl_trials.response_times.npy',
-    '_ibl_trials.rewardVolume.npy'
-]
-
-FPGA_FILES = [
-    '_ibl_trials.goCue_times.npy',
-    '_ibl_trials.stimOn_times.npy',
-    '_ibl_trials.intervals.npy',
-    '_ibl_trials.feedback_times.npy',
 ]
 
 ALIGN_BPOD_FPGA_FILES = [
@@ -43,7 +31,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
             return
 
     def test_task_extraction_output(self):
-        init_folder = self.root_folder.joinpath("choice_world_init")
+        init_folder = self.root_folder.joinpath('choice_world_init')
         self.sessions = [f.parent for f in init_folder.rglob('raw_ephys_data')]
         for session_path in self.sessions:
             self._task_extraction_assertions(session_path)
@@ -61,21 +49,25 @@ class TestEphysTaskExtraction(base.IntegrationTest):
 
     def _task_extraction_assertions(self, session_path):
         alf_path = session_path.joinpath('alf')
+        bk_path = alf_path.parent / 'alf.bk'
         if alf_path.exists():
             # Back-up alf files and restore on teardown
-            shutil.move(alf_path, alf_path.parent / 'alf.bk')
-            self.addCleanup(lambda: shutil.move(alf_path.parent / 'alf.bk', alf_path))
+            shutil.move(alf_path, bk_path)
+            self.addCleanup(shutil.move, str(bk_path), alf_path)
         # this gets the full output
         ephys_fpga.extract_all(session_path, save=True, bin_exists=False)
         # check that the output is complete
         for f in BPOD_FILES:
             self.assertTrue(alf_path.joinpath(f).exists())
-        # check that the output is complete
-        for f in FPGA_FILES:
-            self.assertTrue(alf_path.joinpath(f).exists())
         # check dimensions after alf load
         alf_trials = alfio.load_object(alf_path, 'trials')
         self.assertTrue(alfio.check_dimensions(alf_trials) == 0)
+        # check new trials table the same as old individual datasets
+        # in the future if extraction changes this test can be removed
+        if any(bk_path.glob('*trials*')):
+            alf_trials_old = alfio.load_object(alf_path.parent / 'alf.bk', 'trials')
+            for k, v in alf_trials.items():
+                numpy.testing.assert_array_almost_equal(v, alf_trials_old[k])
         # go deeper and check the internal fpga trials structure consistency
         sync, chmap = ephys_fpga.get_main_probe_sync(session_path, bin_exists=False)
         fpga_trials = ephys_fpga.extract_behaviour_sync(sync, chmap)

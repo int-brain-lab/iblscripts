@@ -4,6 +4,7 @@
 cd ~/Documents/PYTHON/iblvideo
 git checkout -f master -q
 git reset --hard -q
+git fetch
 LOCAL=$(git rev-parse @)
 REMOTE=$(git rev-parse "@{u}")
 if [ $LOCAL != $REMOTE ]; then

@@ -4,6 +4,7 @@
 cd ~/Documents/PYTHON/SPIKE_SORTING/pykilosort
 git checkout -f ibl_prod -q
 git reset --hard -q
+git fetch
 LOCAL=$(git rev-parse @)
 REMOTE=$(git rev-parse "@{u}")
 if [ $LOCAL != $REMOTE ]; then
@@ -17,7 +18,6 @@ fi
 source ~/anaconda3/etc/profile.d/conda.sh
 conda deactivate
 conda activate pyks2
-
 outdated=$(pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1)
 
 # Libraries that have to be updated in order
