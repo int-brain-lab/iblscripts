@@ -274,7 +274,7 @@ class TestNeuropixel2ConverterNP1(base.IntegrationTest):
         """
         np_conv = NP2Converter(self.file_path)
         status = np_conv.process()
-        self.assertFalse(status)
+        self.assertEqual(status, -1)
 
 
 if __name__ == "__main__":
