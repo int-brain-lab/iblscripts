@@ -1,1 +1,2 @@
-coverage==5.3
+coverage
+ibllib

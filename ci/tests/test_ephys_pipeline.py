@@ -265,20 +265,10 @@ class TestEphysPipeline(base.IntegrationTest):
                              ('templates.amps', nss, nss),
                              ('_ibl_log.info', nss, nss),
 
-                             ('trials.choice', 1, 1),
-                             ('trials.contrastLeft', 1, 1),
-                             ('trials.contrastRight', 1, 1),
-                             ('trials.feedback_times', 1, 1),
-                             ('trials.feedbackType', 1, 1),
-                             ('trials.firstMovement_times', 1, 1),
-                             ('trials.goCue_times', 1, 1),
+                             ('trials.table', 1, 1),
                              ('trials.goCueTrigger_times', 1, 1),
-                             ('trials.intervals', 2, 2),
-                             ('trials.probabilityLeft', 1, 1),
-                             ('trials.response_times', 1, 1),
-                             ('trials.rewardVolume', 1, 1),
+                             ('trials.intervals', 1, 1),  # intervals_bpod
                              ('trials.stimOff_times', 1, 1),
-                             ('trials.stimOn_times', 1, 1),
                              ('wheel.position', 1, 1),
                              ('wheel.timestamps', 1, 1),
                              ('wheelMoves.intervals', 1, 1),
@@ -353,7 +343,7 @@ class TestEphysPipeline(base.IntegrationTest):
             """Check the channels object"""
             channels = alfio.load_object(probe_folder, 'channels')
             channels_attributes = ['rawInd', 'localCoordinates']
-            self.assertTrue(set(channels.keys()) == set(channels_attributes))
+            self.assertEqual(set(channels.keys()), set(channels_attributes))
 
             """Check the template object"""
             templates = alfio.load_object(probe_folder, 'templates')

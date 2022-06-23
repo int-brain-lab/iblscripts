@@ -6,8 +6,8 @@ import numpy as np
 from one.api import One
 from one.alf.io import load_object
 import brainbox.io.one as bbone
+from neuropixel import trace_header
 from ibllib.atlas.regions import BrainRegions
-from ibllib.ephys.neuropixel import trace_header
 
 
 from ci.tests.base import IntegrationTest
@@ -78,9 +78,11 @@ class TestReadSpikeSorting(IntegrationTest):
         spikes, clusters, channels = sl.load_spike_sorting(spike_sorter='ks2_preproc_tests')
         _check(spikes['times'], spike_sorter='ks2_preproc_tests')
 
-        # # try loading data that doesn't exist
-        # spikes, clusters, channels = sl.load_spike_sorting(spike_sorter='i_dont_exist')
-        # assert spikes == {}
+        # load spike sorting using collection
+        spikes, clusters, channels = sl.load_spike_sorting(
+            collection=f'alf/{pname}/ks2_preproc_tests')
+        _check(spikes['times'], spike_sorter='ks2_preproc_tests')
+
 
         # makes sure this is the pykilosort that is returned by default1
         spikes, clusters, channels = bbone._load_spike_sorting(
