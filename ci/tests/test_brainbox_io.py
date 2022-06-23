@@ -6,8 +6,8 @@ import numpy as np
 from one.api import One
 from one.alf.io import load_object
 import brainbox.io.one as bbone
+from neuropixel import trace_header
 from ibllib.atlas.regions import BrainRegions
-from ibllib.ephys.neuropixel import trace_header
 
 
 from ci.tests.base import IntegrationTest

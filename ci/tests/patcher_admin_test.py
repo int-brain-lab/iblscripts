@@ -7,8 +7,8 @@ import numpy as np
 import globus_sdk
 
 from ibllib.misc import version
-from ibllib.io import hashfile, params
-from oneibl.one import ONE
+from iblutil.io import hashfile, params
+from one.api import ONE
 from oneibl.patcher import SSHPatcher, GlobusPatcher, FTPPatcher
 
 

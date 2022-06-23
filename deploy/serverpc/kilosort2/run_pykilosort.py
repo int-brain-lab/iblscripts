@@ -7,8 +7,9 @@ import shutil
 
 import numpy as np
 
-from ibllib.io import spikeglx
-from ibllib.ephys import spikes, neuropixel
+import spikeglx
+import neuropixel
+from ibllib.ephys import spikes
 from one.alf.files import get_session_path
 from pykilosort import add_default_handler, run, Bunch, __version__
 from pykilosort.params import KilosortParams
@@ -95,9 +96,12 @@ def run_spike_sorting_ibl(bin_file, scratch_dir=None, delete=True, neuropixel_ve
     except Exception as e:
         _logger.exception("Error in the main loop")
         raise e
-
     [_logger.removeHandler(h) for h in _logger.handlers]
+
+    # moves logfiles to output dir and store qc with raw data
     shutil.move(log_file, ks_output_dir.joinpath('spike_sorting_pykilosort.log'))
+    for qcfile in scratch_dir.glob('_iblqc_*AP*'):
+        shutil.move(qcfile, bin_file.parent.joinpath(qcfile.name))
 
     # convert the pykilosort output to ALF IBL format
     if alf_path is not None:
