@@ -4,6 +4,7 @@ from pathlib import Path
 from functools import wraps
 import logging
 import json
+import tempfile
 
 from iblutil.io import params
 from one.alf.files import get_session_path
@@ -93,6 +94,30 @@ def _get_test_db():
             'password': 'TapetesBloc18',
             'silent': True
         }
+
+
+def make_sym_links(raw_session_path, extraction_path=None):
+    """
+    This creates symlinks to a scratch directory to start an extraction while leaving the
+    raw data untouched.
+    :param raw_session_path: location containing the extraction fixture, complying with alf convention
+    :param extraction_path: (None) scratch location where the symlinks will end up,
+    omitting the session parts example: "/tmp". If set to None, it will create a temporary
+    directory using tempdir.
+    :return:
+    """
+    if extraction_path is None:
+        extraction_path = Path(tempfile.TemporaryDirectory().name)
+
+    session_path = Path(extraction_path).joinpath(*raw_session_path.parts[-5:])
+
+    for f in raw_session_path.rglob('*.*'):
+        new_file = session_path.joinpath(f.relative_to(raw_session_path))
+        if new_file.exists():
+            continue
+        new_file.parent.mkdir(exist_ok=True, parents=True)
+        new_file.symlink_to(f)
+    return session_path, extraction_path
 
 
 TEST_DB = _get_test_db()

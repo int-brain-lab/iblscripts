@@ -9,43 +9,6 @@ from ci.tests import base
 _logger = logging.getLogger('ibllib')
 
 
-def make_sym_links(raw_session_path, extraction_path):
-    """
-    This creates symlinks to a scratch directory to start an extraction while leaving the
-    raw data untouched
-    :param raw_session_path: location containing the extraction fixture
-    :param extraction_path: scratch location where the symlinks will end up,
-    omitting the session parts like "/tmp"
-    :return:
-    """
-    session_path = Path(extraction_path).joinpath(*raw_session_path.parts[-5:])
-
-    for f in raw_session_path.rglob('*.*'):
-        new_file = session_path.joinpath(f.relative_to(raw_session_path))
-        if new_file.exists():
-            continue
-        new_file.parent.mkdir(exist_ok=True, parents=True)
-        new_file.symlink_to(f)
-    return session_path
-
-
-class TestHabituationRegisterRaw(base.IntegrationTest):
-
-    def setUp(self) -> None:
-        self.raw_session_path = Path("/datadisk/scratch/raw_sessions/steinmetzlab/Subjects/NR_0020/2022-01-27/001")  # FIXME
-        self.extraction_path = Path(tempfile.TemporaryDirectory().name)
-        self.session_path = make_sym_links(self.raw_session_path, self.extraction_path)
-
-    def tearDown(self):
-        shutil.rmtree(self.extraction_path)
-
-    def test_task(self):
-        wf = btasks.HabituationRegisterRaw(self.session_path, collection='raw_behavior_data')
-        status = wf.run()
-        assert status == 0
-        wf.assert_expected_outputs()
-
-
 class TestTrialsRegisterRaw(base.IntegrationTest):
 
     def setUp(self) -> None:
