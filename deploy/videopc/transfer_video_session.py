@@ -1,24 +1,13 @@
 import argparse
-import logging
-from pathlib import Path
 
+from ibllib.misc import log_to_file
 from ibllib.pipes.misc import check_create_raw_session_flag, create_video_transfer_done_flag, load_videopc_params, \
     subjects_data_folder, transfer_session_folders
 
 
 def main(local=None, remote=None):
     # logging configuration
-    ibllib_log_dir = Path.home() / '.ibl_logs'
-    ibllib_log_dir.mkdir() if ibllib_log_dir.exists() is False else None
-    log = logging.getLogger("ibllib.pipes.misc")
-    log.setLevel(logging.INFO)
-    format_str = '%(asctime)s.%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s'
-    date_format = '%Y-%m-%d %H:%M:%S'
-    file_handler = logging.FileHandler(ibllib_log_dir / 'transfer_video_session.log')
-    file_format = logging.Formatter(format_str, date_format)
-    file_handler.setFormatter(file_format)
-    log.addHandler(file_handler)
-    log.info("Logging initiated")
+    log = log_to_file('transfer_video_session.log', log='ibllib.pipes.misc')
 
     # Determine if user passed in arg for local/remote subject folder locations or pull in from local param file
     local_folder = local if local else load_videopc_params()["DATA_FOLDER_PATH"]
@@ -44,18 +33,18 @@ def main(local=None, remote=None):
         local_sessions, remote_subject_folder, subfolder_to_transfer="raw_video_data")
 
     # Create and remove video flag files
-    for (entry, ok) in zip(transfer_list, success):
-        log.info(f"{entry[0]} -> {entry[1]} - Video file transfer success")
+    for src, dst in (x for x, ok in zip(transfer_list, success) if ok):
+        log.info(f"{src} -> {dst} - Video file transfer success")
 
         # Remove local transfer_me flag file
-        flag_file = Path(entry[0]) / "transfer_me.flag"
+        flag_file = src / "transfer_me.flag"
         log.info("Removing local transfer_me flag file - " + str(flag_file))
         try:
             flag_file.unlink()
         except FileNotFoundError as e:
             log.warning("An error occurred when attempting to remove the flag file.\n", e)
-        create_video_transfer_done_flag(str(entry[1]))
-        check_create_raw_session_flag(str(entry[1]))
+        create_video_transfer_done_flag(str(dst))
+        check_create_raw_session_flag(str(dst))
 
 
 if __name__ == "__main__":
