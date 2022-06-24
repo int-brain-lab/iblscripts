@@ -35,7 +35,7 @@ def main(local=None, remote=None, rename_files=False):
         [log.info(i) for i in local_sessions]
     else:
         log.info('No outstanding local sessions to transfer.')
-        exit(0)
+        return
 
     # Call ibllib function to perform generalized user interaction and kick off transfer
     transfer_list, success = transfer_session_folders(
@@ -47,7 +47,7 @@ def main(local=None, remote=None, rename_files=False):
 
         # Create flag
         flag_file = src.joinpath(DATA_FOLDER, 'transferred.flag')
-        file_list = filter(Path.is_file, flag_file.parent.rglob('*'))
+        file_list = map(str, filter(Path.is_file, flag_file.parent.rglob('*')))
         flags.write_flag_file(flag_file, file_list=list(file_list))
 
         if rename_files:
