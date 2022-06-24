@@ -668,13 +668,16 @@ class TestCameraPipeline(base.IntegrationTest):
             video_path = session_path.joinpath('raw_video_data')
             video_path.mkdir(parents=True)
             video_path.joinpath('_iblrig_leftCamera.raw.mp4').touch()
+
             with mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture') as mock_vc, \
+                    mock.patch('ibllib.io.ffmpeg.get_video_meta') as mock_meta, \
                     mock.patch('ibllib.pipes.training_preprocessing.CameraQC') as mock_qc:
                 def side_effect():
                     return True, np.random.randint(0, 255, size=(1024, 1280, 3))
                 mock_vc().read.side_effect = side_effect
                 length = 68453
                 mock_vc().get.return_value = length
+                mock_meta.return_value = Bunch(length=length, size=1024)
                 job.run()
                 self.assertEqual(job.status, 0)
                 self.assertEqual(mock_qc.call_args.args, (session_path, 'left'))
