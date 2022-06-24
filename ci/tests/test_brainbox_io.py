@@ -8,7 +8,7 @@ from one.alf.io import load_object
 import brainbox.io.one as bbone
 from neuropixel import trace_header
 from ibllib.atlas.regions import BrainRegions
-
+from brainbox.io.one import SpikeSortingLoader
 
 from ci.tests.base import IntegrationTest
 
@@ -65,8 +65,6 @@ class TestReadSpikeSorting(IntegrationTest):
         one = self.one
         eid = one.path2eid(self.session_path)
 
-        from brainbox.io.one import SpikeSortingLoader
-
         sl = SpikeSortingLoader(eid=eid, pname=pname, one=one)
         _logger.setLevel(0)
         spikes, clusters, channels = sl.load_spike_sorting(spike_sorter='')
@@ -83,13 +81,20 @@ class TestReadSpikeSorting(IntegrationTest):
             collection=f'alf/{pname}/ks2_preproc_tests')
         _check(spikes['times'], spike_sorter='ks2_preproc_tests')
 
-
         # makes sure this is the pykilosort that is returned by default1
         spikes, clusters, channels = bbone._load_spike_sorting(
             eid=eid, one=one, collection=f'alf/*{pname}/*', return_channels=True)
         _check(spikes[pname]['times'])
 
-
+    def test_samples2times(self):
+        pname = 'probe01'
+        one = self.one
+        eid = one.path2eid(self.session_path)
+        sl = SpikeSortingLoader(eid=eid, pname=pname, one=one)
+        _logger.setLevel(0)
+        spikes, _, _ = sl.load_spike_sorting(spike_sorter='', dataset_types=['spikes.samples'])
+        # TODO: add the sync files
+        assert(np.all(np.abs(sl.samples2times(spikes.samples) - spikes.times) < 1e11))
 
 
 class TestLoadTrials(IntegrationTest):
