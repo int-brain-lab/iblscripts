@@ -117,5 +117,3 @@ class TestSyncPulses(base.IntegrationTest):
 
     def tearDown(self) -> None:
         shutil.rmtree(self.widefield_path)
-
-
