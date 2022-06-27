@@ -8,6 +8,26 @@ from ci.tests import base
 _logger = logging.getLogger('ibllib')
 
 
+class SyncTemplate(base.IntegrationTest):
+    def setUp(self) -> None:
+        self.session_path = self.default_data_root().joinpath('widefield', 'widefieldChoiceWorld', 'JC076',
+                                                              '2022-02-04', '001')
+        self.widefield_path = self.session_path.joinpath('raw_widefield_data')
+
+    def copy_folder(self, folder):
+        shutil.copytree(self.session_path.joinpath(folder), self.widefield_path)
+
+    def check_files(self, task, ignore_ext='blablabla'):
+        for exp_files in task.signature['output_files']:
+            if ignore_ext not in exp_files[0]:
+                file = next(self.session_path.joinpath(exp_files[1]).glob(exp_files[0]), None)
+                assert file.exists()
+                assert file in task.outputs
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.widefield_path)
+
+
 class TestSyncRegisterRaw(base.IntegrationTest):
 
     def setUp(self) -> None:
@@ -39,81 +59,53 @@ class TestSyncRegisterRaw(base.IntegrationTest):
         shutil.rmtree(self.session_path)
 
 
-class TestSyncMtscomp(base.IntegrationTest):
-
-    def setUp(self) -> None:
-        self.session_path = self.default_data_root().joinpath('widefield', 'widefieldChoiceWorld', 'JC076',
-                                                              '2022-02-04', '001')
-        self.widefield_path = self.session_path.joinpath('raw_widefield_data')
+class TestSyncMtscomp(SyncTemplate):
 
     def test_rename_and_compress(self):
-        shutil.copytree(self.session_path.joinpath('rename_compress'), self.widefield_path)
+        self.copy_folder('rename_compress')
         task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq')
         status = task.run()
         assert status == 0
         self.check_files(task)
 
     def test_rename(self):
-        shutil.copytree(self.session_path.joinpath('rename'), self.widefield_path)
+        self.copy_folder('rename')
         task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq')
         status = task.run()
         assert status == 0
         self.check_files(task)
 
     def test_compress(self):
-        shutil.copytree(self.session_path.joinpath('compress'), self.widefield_path)
+        self.copy_folder('compress')
         task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq')
         status = task.run()
         assert status == 0
         self.check_files(task)
 
     def test_register(self):
-        shutil.copytree(self.session_path.joinpath('register'), self.widefield_path)
+        self.copy_folder('register')
         task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq')
         status = task.run()
         assert status == 0
         # Here we don't expect the .cbin file
         self.check_files(task, ignore_ext='.cbin')
 
-    def check_files(self, task, ignore_ext=None):
-        for exp_files in task.signature['output_files']:
-            if ignore_ext not in exp_files[0]:
-                file = next(self.session_path.joinpath(exp_files[1]).glob(exp_files[0]), None)
-                assert file.exists()
-                assert file in task.outputs
 
-    def tearDown(self) -> None:
-        shutil.rmtree(self.widefield_path)
-
-
-class TestSyncPulses(base.IntegrationTest):
-
-    def setUp(self) -> None:
-        self.session_path = self.default_data_root().joinpath('widefield', 'widefieldChoiceWorld', 'JC076',
-                                                              '2022-02-04', '001')
-        self.widefield_path = self.session_path.joinpath('raw_widefield_data')
-        shutil.copytree(self.session_path.joinpath('compress'), self.widefield_path)
+class TestSyncPulses(SyncTemplate):
 
     def test_extract_pulses_bin(self):
+        self.copy_folder('compress')
         task = SyncPulses(self.session_path, sync_collection='raw_widefield_data', sync='nidq')
         status = task.run()
         assert status == 0
-        for exp_files in task.signature['output_files']:
-            file = self.session_path.joinpath(exp_files[1], exp_files[0])
-            assert file.exists()
-            assert file in task.outputs
+        self.check_files(task)
 
     def test_extract_pulses_cbin(self):
+        self.copy_folder('compress')
         task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq')
         task.run()
 
         task = SyncPulses(self.session_path, sync_collection='raw_widefield_data', sync='nidq')
         status = task.run()
         assert status == 0
-        for exp_files in task.signature['output_files']:
-            file = self.session_path.joinpath(exp_files[1], exp_files[0])
-            assert file.exists()
-            assert file in task.outputs
-
-    def tearDown(self) -> None:
-        shutil.rmtree(self.widefield_path)
+        self.check_files(task)

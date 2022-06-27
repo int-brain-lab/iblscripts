@@ -17,7 +17,6 @@ class TestVideoRegisterRaw(base.IntegrationTest):
         pass
 
     def test_register(self):
-        task = VideoRegisterRaw(self.session_path, cameras=['left', 'right', 'body'])
         pass
 
 

@@ -43,10 +43,11 @@ class TestWidefieldRegisterRaw(base.IntegrationTest):
         new_wiring_file.symlink_to(orig_wiring_file)
 
     def test_rename(self):
-        wf = WidefieldRegisterRaw(self.session_path)
-        wf.get_signatures()
-        wf.rename_files(symlink_old=False)
-        for exp_files in wf.signature['output_files']:
+        task = WidefieldRegisterRaw(self.session_path)
+        status = task.run()
+        assert status == 0
+
+        for exp_files in task.signature['output_files']:
             file = self.session_path.joinpath(exp_files[1], exp_files[0])
             assert file.exists()
 
@@ -84,14 +85,14 @@ class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
         new_data_file.symlink_to(orig_data_file)
 
     def test_preprocess(self):
-        wf = WidefieldPreprocess(self.session_path)
-        status = wf.run()
+        task = WidefieldPreprocess(self.session_path)
+        status = task.run()
         assert status == 0
 
-        for exp_files in wf.signature['output_files']:
+        for exp_files in task.signature['output_files']:
             file = self.session_path.joinpath(exp_files[1], exp_files[0])
             assert file.exists()
-            assert file in wf.outputs
+            assert file in task.outputs
 
         # Test content of files
         PRECISION = 4  # Desired decimal precision
@@ -117,20 +118,20 @@ class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
             np.load(self.alf_folder.joinpath('widefieldChannels.frameAverage.npy')),
             decimal=PRECISION)
 
-        wf.wf.remove_files()
+        task.wf.remove_files()
 
         assert len(list(self.widefield_folder.glob('motion*'))) == 0
 
     def test_compress(self):
-        wf = WidefieldCompress(self.session_path)
-        status = wf.run()
+        task = WidefieldCompress(self.session_path)
+        status = task.run()
 
         assert status == 0
 
-        for exp_files in wf.signature['output_files']:
+        for exp_files in task.signature['output_files']:
             file = self.session_path.joinpath(exp_files[1], exp_files[0])
             assert file.exists()
-            assert file in wf.outputs
+            assert file in task.outputs
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -156,14 +157,14 @@ class TestWidefieldSync(base.IntegrationTest):
         self.patch.start()
 
     def test_sync(self):
-        wf = WidefieldSync(self.session_path)
-        status = wf.run()
+        task = WidefieldSync(self.session_path, sync_collection='raw_widefield_data')
+        status = task.run()
         assert status == 0
 
-        for exp_files in wf.signature['output_files']:
+        for exp_files in task.signature['output_files']:
             file = self.session_path.joinpath(exp_files[1], exp_files[0])
             assert file.exists()
-            assert file in wf.outputs
+            assert file in task.outputs
 
         # Check integrity of outputs
         times = np.load(self.alf_folder.joinpath('widefield.times.npy'))
@@ -176,19 +177,19 @@ class TestWidefieldSync(base.IntegrationTest):
     def test_video_led_sync_not_enough(self):
         # Mock video file with more frames than led timestamps
         self.video_meta.length = 2035
-        wf = WidefieldSync(self.session_path)
-        status = wf.run()
+        task = WidefieldSync(self.session_path, sync_collection='raw_widefield_data')
+        status = task.run()
         assert status == -1
-        assert 'ValueError: More video frames than led frames detected' in wf.log
+        assert 'ValueError: More video frames than led frames detected' in task.log
 
     def test_video_led_sync_too_many(self):
         # Mock video file with more that two extra led timestamps
         self.video_meta.length = 2029
 
-        wf = WidefieldSync(self.session_path)
-        status = wf.run()
+        task = WidefieldSync(self.session_path, sync_collection='raw_widefield_data')
+        status = task.run()
         assert status == -1
-        assert 'ValueError: Led frames and video frames differ by more than 2' in wf.log
+        assert 'ValueError: Led frames and video frames differ by more than 2' in task.log
 
     def tearDown(self):
         self.video_file.unlink()
