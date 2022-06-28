@@ -20,7 +20,7 @@ fi
 FILE=/mnt/s0/Data/Subjects/.canary_branch
 if [ -f "$FILE" ]; then
     ibllib_branch="$(<$FILE)"
-    echo "$FILE exists. Setting ibllib to branch $ibllib_branch"
+    printf "\n$FILE exists. Setting ibllib to branch $ibllib_branch\n"
 else
     ibllib_branch="master"
 fi
@@ -28,37 +28,33 @@ fi
 FILE=/mnt/s0/Data/Subjects/.one_canary_branch
 if [ -f "$FILE" ]; then
     one_branch="$(<$FILE)"
-    echo "$FILE exists. Setting ONE-api to branch $one_branch"
+    printf "\n$FILE exists. Setting ONE-api to branch $one_branch\n"
 else
     one_branch="ibl_prod"
 fi
 
 # Make sure we are in ibllib env
 source ~/Documents/PYTHON/envs/iblenv/bin/activate
-# Check if simple installed pip libraries are out of date, if yes, update
+
+# Collect outdated pip packages
 outdated=$(pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1)
-# Check if pip needs update
-update=$(echo $outdated | grep -o "pip" | cut -d = -f 1)
-if test "$update" ; then
-  echo "Updating pip" ;
-  pip install --upgrade pip
-fi
 
-# Check if phylib needs update, if yes, update all
-update=$(echo $outdated | grep -o "phylib" | cut -d = -f 1)
-if test "$update" ; then
-  echo "Updating phylib, ONE and ibllib" ;
-  pip uninstall -y phylib ONE-api ibllib;
-  pip install phylib ;
-  pip install git+https://github.com/int-brain-lab/ONE.git@$one_branch ;
-  pip install git+https://github.com/int-brain-lab/ibllib.git@$ibllib_branch --upgrade-strategy eager
-else
-  echo "phylib is up-to-date" ;
-  #update=$(echo $outdated | grep -o "deeplabcut" | cut -d = -f 1)
-fi
+# Check if pip or phylib needs update
+for lib in "pip" "phylib"
+do
+  update=$(echo $outdated | grep -o $lib | cut -d = -f 1)
+  if test "$update" ; then
+    printf "\nUpdating $lib\n" ;
+    pip install --upgrade $lib ;
+  else
+    printf "\n$lib is up-to-date\n" ;
+  fi
+done
 
-
-pip install phylib
-pip install git+https://github.com/int-brain-lab/ONE.git@$one_branch
-pip install git+https://github.com/int-brain-lab/ibllib.git@$ibllib_branch --upgrade-strategy eager
-pip install -U git+https://github.com/int-brain-lab/project_extraction.git
+# Uninstall and clean reinstall ibl libraries. This is necessary in case of canary branches and to keep servers
+# up to date with latest versions
+printf "\nUninstalling and reinstalling ONE-api, ibllib and project_extraction.\n"
+pip uninstall -y ONE-api ibllib project_extraction ;
+pip install git+https://github.com/int-brain-lab/ONE.git@$one_branch ;
+pip install git+https://github.com/int-brain-lab/ibllib.git@$ibllib_branch --upgrade-strategy eager ;
+pip install git+https://github.com/int-brain-lab/project_extraction.git ;
