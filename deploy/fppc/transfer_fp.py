@@ -3,6 +3,7 @@
 # @Author: Miles
 import argparse
 from pathlib import Path
+import shutil
 
 import ibllib.io.flags as flags
 from ibllib.misc import log_to_file
@@ -10,9 +11,9 @@ from ibllib.pipes.misc import create_basic_transfer_params, subjects_data_folder
 
 
 def main(local=None, remote=None, rename_files=False):
-    DATA_FOLDER = 'raw_widefield_data'
+    DATA_FOLDER = 'raw_fp_data'
     # logging configuration
-    log = log_to_file('transfer_widefield_sessions.log', log='ibllib.pipes.misc')
+    log = log_to_file('transfer_fp_sessions.log', log='ibllib.pipes.misc')
 
     # Determine if user passed in arg for local/remote subject folder locations or pull in from
     # local param file or prompt user if missing
@@ -37,13 +38,23 @@ def main(local=None, remote=None, rename_files=False):
         log.info('No outstanding local sessions to transfer.')
         return
 
+    # Ensure each session contains a channels file: copy file over if not present
+    log.info('Copying missing channels files')
+    filename = '_neurophotometrics_fpData.channels.csv'
+    default_channels = Path(__file__).parent.joinpath(filename)
+    missing_channels = filter(lambda x: not any(x.glob(f'{DATA_FOLDER}/*fpData.channels*')), local_sessions)
+    for session_path in missing_channels:
+        destination = session_path.joinpath(DATA_FOLDER, filename)
+        log.debug(f'{default_channels} -> {destination}')
+        shutil.copy(default_channels, destination)
+
     # Call ibllib function to perform generalized user interaction and kick off transfer
     transfer_list, success = transfer_session_folders(
         local_sessions, remote_subject_folder, subfolder_to_transfer=DATA_FOLDER)
 
     # Create transferred flag files and rename files
     for src, dst in (x for x, ok in zip(transfer_list, success) if ok):
-        log.info(f"{src} -> {dst} - widefield transfer success")
+        log.info(f"{src} -> {dst} - photometry transfer success")
 
         # Create flag
         flag_file = src.joinpath(DATA_FOLDER, 'transferred.flag')
@@ -51,12 +62,14 @@ def main(local=None, remote=None, rename_files=False):
         flags.write_flag_file(flag_file, file_list=list(file_list))
 
         if rename_files:
-            log.info('Renaming remote widefield data files')
+            log.info('Renaming remote photometry data files')
             raise NotImplementedError
+
+        # TODO compress raw fp
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Transfer widefield files to IBL local server')
+    parser = argparse.ArgumentParser(description='Transfer fibrephotometry files to IBL local server')
     parser.add_argument('-l', '--local', default=False, required=False, help='Local iblrig_data/Subjects folder')
     parser.add_argument('-r', '--remote', default=False, required=False, help='Remote iblrig_data/Subjects folder')
     args = parser.parse_args()

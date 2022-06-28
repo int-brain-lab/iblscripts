@@ -8,7 +8,7 @@ import subprocess
 from pathlib import Path
 
 import ibllib
-from ibllib.pipes.misc import load_fppc_params
+from ibllib.pipes.misc import create_basic_transfer_params
 from one.alf.io import next_num_folder
 from packaging.version import parse
 
@@ -62,7 +62,7 @@ def check_iblscripts_version(ignore=False):
 
 def main(mouse):
     SUBJECT_NAME = mouse
-    PARAMS = load_fppc_params()
+    PARAMS = create_basic_transfer_params()
     DATA_FOLDER = Path(PARAMS["DATA_FOLDER_PATH"])
 
     DATE = datetime.datetime.now().date().isoformat()
