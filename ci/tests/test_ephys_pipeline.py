@@ -20,10 +20,7 @@ class TestEphysSignatures(base.IntegrationTest):
 
     def make_new_dataset(self):
         """helper function to use to create a new dataset"""
-        from iblscripts.ci.tests.base import IntegrationTest
-        import json
-        data_path = IntegrationTest.default_data_root()
-        folder_path = data_path.joinpath('ephys', 'ephys_signatures', 'RawEphysQC')
+        folder_path = self.data_path.joinpath('ephys', 'ephys_signatures', 'RawEphysQC')
         for json_file in folder_path.rglob('result.json'):
             with open(json_file) as fid:
                 result = json.load(fid)
@@ -32,24 +29,23 @@ class TestEphysSignatures(base.IntegrationTest):
                     bin_file.parent.joinpath("_iblqc_ephysChannels.labels.npy").touch()
                     print(bin_file)
 
+    @base.disable_log(level=logging.ERROR, quiet=True)
     def assert_task_inputs_outputs(self, session_paths, EphysTask):
         for session_path in session_paths.iterdir():
-            task = EphysTask(session_path)
-            if EphysTask.__name__ == 'SpikeSorting':
-                task.signature['input_files'], task.signature['output_files'] = task.spike_sorting_signature()
-            task.get_signatures()
-            output_status, _ = task.assert_expected(task.output_files)
-            input_status, _ = task.assert_expected_inputs(raise_error=False)
-            with open(session_path.joinpath('result.json'), 'r') as f:
-                result = json.load(f)
-            test_ok = True
-            if output_status != result['outputs']:
-                test_ok = False
-                _logger.critical(f"test failed outputs {EphysTask}, {session_path}")
-            if input_status != result['inputs']:
-                test_ok = False
-                _logger.critical(f"test failed inputs {EphysTask}, {session_path}")
-        assert test_ok
+            with self.subTest(session=session_path):
+                task = EphysTask(session_path)
+                if EphysTask.__name__ == 'SpikeSorting':
+                    task.signature['input_files'], task.signature['output_files'] = \
+                        task.spike_sorting_signature()
+                task.get_signatures()
+                output_status, _ = task.assert_expected(task.output_files)
+                input_status, _ = task.assert_expected_inputs(raise_error=False)
+                with open(session_path.joinpath('result.json'), 'r') as f:
+                    result = json.load(f)
+                self.assertEqual(output_status, result['outputs'],
+                                 f"test failed outputs {EphysTask}, {session_path}")
+                self.assertEqual(input_status, result['inputs'],
+                                 f"test failed inputs {EphysTask}, {session_path}")
 
     def test_EphysAudio_signatures(self):
         EphysTask = ephys_tasks.EphysAudio
