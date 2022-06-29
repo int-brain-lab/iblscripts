@@ -19,6 +19,10 @@ while true; do
   fi
   # Python: query for waiting jobs and run first job in the queue
   printf "\nGrabbing next small job from the queue\n"
-  python small_jobs.py
+  python small_jobs.py > /var/log/ibl/small_jobs.log 2>&1
   # Repeat
 done
+
+# add create
+# add report
+# add maintenance
