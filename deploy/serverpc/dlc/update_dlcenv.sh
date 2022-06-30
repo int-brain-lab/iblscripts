@@ -49,14 +49,18 @@ else
       echo "Updating ibllib" ;
       pip uninstall -y ibllib ;
       pip install ibllib ;
-    else echo "ibllib is up-to-date" ;
+    else
+      echo "ibllib is up-to-date" ;
+      update=$(echo $outdated | grep -o "ONE-api" | cut -d = -f 1)
+      if test "$update" ; then
+        echo "Updating ONE-api" ;
+        pip uninstall -y ONE-api ;
+        pip install ONE-api ;
+      else
+        echo "ONE-api is up-to-date" ;
+      fi
     fi
   fi
 fi
-
-
-# This is a crutch until the globus backend is merged into ONE main
-echo "Updating ONE ibl_prod"
-pip install -U git+https://github.com/int-brain-lab/ONE.git@ibl_prod -q
 
 deactivate
