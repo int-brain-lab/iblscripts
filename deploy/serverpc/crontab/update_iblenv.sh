@@ -30,7 +30,7 @@ if [ -f "$FILE" ]; then
     one_branch="$(<$FILE)"
     printf "\n$FILE exists. Setting ONE-api to branch $one_branch\n"
 else
-    one_branch="ibl_prod"
+    one_branch="main"
 fi
 
 # Make sure we are in ibllib env
@@ -44,10 +44,10 @@ for lib in "pip" "phylib"
 do
   update=$(echo $outdated | grep -o $lib | cut -d = -f 1)
   if test "$update" ; then
-    printf "\nUpdating $lib\n" ;
+    printf "\nUpdating $lib" ;
     pip install --upgrade $lib ;
   else
-    printf "\n$lib is up-to-date\n" ;
+    printf "\n$lib is up-to-date" ;
   fi
 done
 

@@ -8,8 +8,7 @@ source ~/Documents/PYTHON/envs/iblenv/bin/activate
 env_update_in=0 # this is to make sure the environments get updated upon service restart
 env_last_update=$SECONDS  # $SECONDS indicates seconds since shell was opened, which we use a zero point
 
-report_create_elapsed=7200  # this is to make sure report and create run upon service restart
-report_create_last=$SECONDS  # $SECONDS indicates seconds since shell was opened, which we use a zero point
+report_create_last=-7200  # this is to make sure report and create run upon service restart
 
 while true; do
   # Every night at midnight, run environment update and maintenance script
@@ -17,12 +16,12 @@ while true; do
     printf "\n$(date)\n" ;
     printf "Checking iblenv for updates\n" ;
     printf "Logging to /var/log/ibl/update_iblenv.log\n" ;
-    ./update_iblenv.sh >> /var/log/ibl/update_iblenv.log 2>&1 ;
+    ./update_iblenv.sh > /var/log/ibl/update_iblenv.log 2>&1 ;
 
     printf "\n$(date)\n" ;
     printf "Running maintenance script\n" ;
     printf "Logging to /var/log/ibl/maintenance_jobs.log\n" ;
-    python maintenance_jobs.py >> /var/log/ibl/maintenance_jobs.log 2>&1 ;
+    python maintenance_jobs.py > /var/log/ibl/maintenance_jobs.log 2>&1 ;
 
     # Reset time to next update to time until next midnight (in seconds) and restart counting elapsed seconds
     env_update_in=$(expr `date -d "tomorrow 0" +%s` - `date -d "now" +%s`) ;
