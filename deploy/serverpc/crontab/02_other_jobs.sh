@@ -21,8 +21,8 @@ while true; do
 
     printf "\n$(date)\n" ;
     printf "Running maintenance script\n" ;
-    printf "Logging to /var/log/ibl/maintenance.log\n" ;
-    python maintenance.py >> /var/log/ibl/maintenance.log 2>&1 ;
+    printf "Logging to /var/log/ibl/maintenance_jobs.log\n" ;
+    python maintenance_jobs.py >> /var/log/ibl/maintenance_jobs.log 2>&1 ;
 
     # Reset time to next update to time until next midnight (in seconds) and restart counting elapsed seconds
     env_update_in=$(expr `date -d "tomorrow 0" +%s` - `date -d "now" +%s`) ;
@@ -33,8 +33,8 @@ while true; do
   if  (( SECONDS - report_create_last >= 7200 )); then
     printf "\n$(date)\n" ;
     printf "Running health report and creating jobs\n" ;
-    printf "Logging to /var/log/ibl/report_create.log\n" ;
-    python report_create.py >>/ var/log/ibl/report_create.log 2>&1 ;
+    printf "Logging to /var/log/ibl/report_create_jobs.log\n" ;
+    python report_create_jobs.py >> /var/log/ibl/report_create_jobs.log 2>&1 ;
     report_create_last=$SECONDS  # reset the timer
   fi
 
