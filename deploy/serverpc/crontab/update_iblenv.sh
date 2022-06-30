@@ -7,7 +7,7 @@ git reset --hard -q
 git fetch
 LOCAL=$(git rev-parse @)
 REMOTE=$(git rev-parse "@{u}")
-if [ $LOCAL != $REMOTE ]; then
+if [ "$LOCAL" != "$REMOTE" ]; then
   echo "Updating iblscripts"
   git pull
 else
