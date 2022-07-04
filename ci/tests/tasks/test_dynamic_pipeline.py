@@ -18,7 +18,7 @@ class TestDynamicPipeline(base.IntegrationTest):
         self.one = ONE(**base.TEST_DB)
         path, self.eid = RegistrationClient(self.one).create_new_session('ZM_1743')
         # need to create a session here
-        session_path = Path(r'C:\Users\Mayo\Downloads\FlatIron\mrsicflogellab\Subjects\dynamic_ephys_SWC\2022-06-28\001')
+        session_path = self.data_path.joinpath('dynamic_pipeline', 'ephys_NP3B')
         self.pipeline = dynamic.make_pipeline(session_path, one=self.one, eid=str(self.eid))
         self.expected_pipeline = dynamic.load_pipeline_dict(session_path)
 
@@ -110,14 +110,7 @@ class TestStandardPipelines(base.IntegrationTest):
 
 class TestDynamicPipelineWithAlyx(base.IntegrationTest):
     def setUp(self) -> None:
-
-        DB = {
-            'base_url': 'https://dev.alyx.internationalbrainlab.org',
-            'username': 'test_user',
-            'password': 'TapetesBloc18',
-            'silent': True
-        }
-        self.one = ONE(**DB)
+        self.one = ONE(**base.TEST_DB)
         self.folder_path = self.data_path.joinpath('Subjects_init', 'ZM_1085', '2019-02-12', '002')
 
         self.temp_dir = Path(tempfile.TemporaryDirectory().name)
