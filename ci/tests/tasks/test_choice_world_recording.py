@@ -21,7 +21,7 @@ class RecordingTemplate(base.IntegrationTest):
 class TestTrainingTrialsRecording(RecordingTemplate):
 
     def test_task(self):
-        wf = btasks.ChoiceWorldTrialsFPGA(self.session_path, collection='raw_behavior_data')
+        wf = btasks.ChoiceWorldTrialsNidq(self.session_path, collection='raw_behavior_data')
         status = wf.run()
         assert status == 0
         wf.assert_expected_outputs()

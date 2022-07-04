@@ -119,7 +119,6 @@ class TestEphysRegisterRaw(base.IntegrationTest):
         # make a random session path and move the meta files into random probe names
         self.session_path = Path(tempfile.TemporaryDirectory().name).joinpath(path.relative_to(self.one.cache_dir))
         # make random probe names and the directories
-
         self.probe_NP1, self.probe_NP21, self.probe_NP24 = [''.join(random.choices(string.ascii_letters, k=5)) for i in range(3)]
 
         self.expected_probes = [self.probe_NP24 + ext for ext in ['a', 'b', 'c', 'd']] + [self.probe_NP21, self.probe_NP1]

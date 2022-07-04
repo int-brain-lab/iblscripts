@@ -2,7 +2,9 @@ import logging
 import shutil
 import tempfile
 from pathlib import Path
+from one.registration import RegistrationClient
 from one.api import ONE
+from ibllib.pipes.local_server import job_creator, tasks_runner
 import ibllib.pipes.dynamic_pipeline as dynamic
 
 from ci.tests import base
@@ -10,11 +12,10 @@ from ci.tests import base
 _logger = logging.getLogger('ibllib')
 
 
-class TestDynamicPipeline():
+class TestDynamicPipeline(base.IntegrationTest):
 
     def setUp(self) -> None:
         self.one = ONE(**base.TEST_DB)
-        from one.registration import RegistrationClient
         path, self.eid = RegistrationClient(self.one).create_new_session('ZM_1743')
         # need to create a session here
         session_path = Path(r'C:\Users\Mayo\Downloads\FlatIron\mrsicflogellab\Subjects\dynamic_ephys_SWC\2022-06-28\001')
@@ -51,7 +52,7 @@ class TestDynamicPipeline():
             assert d1['level'] == d2['level']
             assert d1['name'] == d2['name']
             assert d1['graph'] == d2['graph']
-            # assert d1['arguments'] == d1['arguments'] # comment out until alyx updated
+            assert d1['arguments'] == d1['arguments'] # comment out until alyx updated
 
     def tearDown(self) -> None:
         self.one.alyx.rest('sessions', 'delete', id=self.eid)
@@ -81,6 +82,10 @@ class TestStandardPipelines(base.IntegrationTest):
         shutil.copytree(self.folder_path.joinpath('training'), self.session_path)
         self.check_pipeline()
 
+    def test_habituation(self):
+        shutil.copytree(self.folder_path.joinpath('habituation'), self.session_path)
+        self.check_pipeline()
+
     def test_widefield(self):
         shutil.copytree(self.folder_path.joinpath('widefield'), self.session_path)
         self.check_pipeline()
@@ -101,3 +106,50 @@ class TestStandardPipelines(base.IntegrationTest):
 
     def tearDown(self) -> None:
         shutil.rmtree(self.temp_dir)
+
+
+class TestDynamicPipelineWithAlyx(base.IntegrationTest):
+    def setUp(self) -> None:
+
+        DB = {
+            'base_url': 'https://dev.alyx.internationalbrainlab.org',
+            'username': 'test_user',
+            'password': 'TapetesBloc18',
+            'silent': True
+        }
+        self.one = ONE(**DB)
+        self.folder_path = self.data_path.joinpath('Subjects_init', 'ZM_1085', '2019-02-12', '002')
+
+        self.temp_dir = Path(tempfile.TemporaryDirectory().name)
+        path, self.eid = RegistrationClient(self.one).create_new_session('ZM_1085')
+        self.session_path = self.temp_dir.joinpath(path.relative_to(self.one.cache_dir))
+        self.session_path.mkdir(exist_ok=True, parents=True)
+
+        for ff in self.folder_path.rglob('*.*'):
+            link = self.session_path.joinpath(ff.relative_to(self.folder_path))
+            if 'alf' in link.parts:
+                continue
+            link.parent.mkdir(exist_ok=True, parents=True)
+            link.symlink_to(ff)
+
+        self.session_path.joinpath('raw_session.flag').touch()
+        shutil.copy(self.data_path.joinpath('dynamic_pipeline', 'training', 'experiment_description.yaml'),
+                    self.session_path.joinpath('experiment_description.yaml'))
+        # also need to make an experiment description file
+
+    def test_job_creator(self):
+        dsets = job_creator(self.session_path, one=self.one)
+        assert len(dsets) == 0
+
+        tasks = self.one.alyx.rest('tasks', 'list', session=self.eid, no_cache=True)
+        assert len(tasks) == 7
+
+        all_dsets = tasks_runner(self.temp_dir, tasks, one=self.one, count=10, max_md5_size=1024 * 1024 * 20)
+        print(len(all_dsets))
+
+        complete_tasks = self.one.alyx.rest('tasks', 'list', status='Complete', session=self.eid, no_cache=True)
+        assert len(complete_tasks) == 7
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.temp_dir)
+        self.one.alyx.rest('sessions', 'delete', id=self.eid)
