@@ -149,7 +149,7 @@ class TestWidefieldSync(base.IntegrationTest):
         if not self.session_path.exists():
             return
         self.alf_folder = self.session_path.joinpath('alf', 'widefield')
-        self.video_file = self.session_path.joinpath('raw_widefield_data', 'widefield.raw.mov')
+        self.video_file = self.session_path.joinpath('raw_widefield_data', 'imaging.frames.mov')
         self.video_file.touch()
         self.video_meta.length = 2032
         self.patch = unittest.mock.patch('ibllib.io.extractors.widefield.get_video_meta',
@@ -157,7 +157,7 @@ class TestWidefieldSync(base.IntegrationTest):
         self.patch.start()
 
     def test_sync(self):
-        task = WidefieldSync(self.session_path, sync_collection='raw_widefield_data')
+        task = WidefieldSync(self.session_path, sync_collection='raw_widefield_data', sync_namespace='spikeglx')
         status = task.run()
         assert status == 0
 
@@ -167,17 +167,17 @@ class TestWidefieldSync(base.IntegrationTest):
             assert file in task.outputs
 
         # Check integrity of outputs
-        times = np.load(self.alf_folder.joinpath('widefield.times.npy'))
+        times = np.load(self.alf_folder.joinpath('imaging.times.npy'))
         assert len(times) == self.video_meta['length']
         assert np.all(np.diff(times) > 0)
-        leds = np.load(self.alf_folder.joinpath('widefield.widefieldLightSource.npy'))
+        leds = np.load(self.alf_folder.joinpath('imaging.imagingLightSource.npy'))
         assert leds[0] == 2
         assert np.array_equal(np.unique(leds), np.array([1, 2]))
 
     def test_video_led_sync_not_enough(self):
         # Mock video file with more frames than led timestamps
         self.video_meta.length = 2035
-        task = WidefieldSync(self.session_path, sync_collection='raw_widefield_data')
+        task = WidefieldSync(self.session_path, sync_collection='raw_widefield_data', sync_namespace='spikeglx')
         status = task.run()
         assert status == -1
         assert 'ValueError: More video frames than led frames detected' in task.log
@@ -186,7 +186,7 @@ class TestWidefieldSync(base.IntegrationTest):
         # Mock video file with more that two extra led timestamps
         self.video_meta.length = 2029
 
-        task = WidefieldSync(self.session_path, sync_collection='raw_widefield_data')
+        task = WidefieldSync(self.session_path, sync_collection='raw_widefield_data', sync_namespace='spikeglx')
         status = task.run()
         assert status == -1
         assert 'ValueError: Led frames and video frames differ by more than 2' in task.log

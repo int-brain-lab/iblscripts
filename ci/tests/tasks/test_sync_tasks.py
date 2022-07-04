@@ -36,55 +36,57 @@ class TestSyncRegisterRaw(base.IntegrationTest):
         self.sync_collection = 'raw_device_collection'
         self.sync = 'random'
         self.sync_ext = 'tdms'
+        self.sync_namespace = 'pluto'
 
         self.sync_path = self.session_path.joinpath(self.sync_collection)
         self.sync_path.mkdir(exist_ok=True, parents=True)
-        self.daq_file = self.sync_path.joinpath(f'daq.raw.{self.sync}.{self.sync_ext}')
-        self.wiring_file = self.sync_path.joinpath(f'daq.raw.{self.sync}.wiring.json')
+        self.daq_file = self.sync_path.joinpath(f'_{self.sync_namespace}_DAQdata.raw.{self.sync_ext}')
+        self.wiring_file = self.sync_path.joinpath(f'_{self.sync_namespace}_DAQdata.wiring.json')
         self.daq_file.touch()
         self.wiring_file.touch()
 
     def test_register(self):
-        task = SyncRegisterRaw(self.session_path, sync_collection=self.sync_collection, sync=self.sync, sync_ext=self.sync_ext)
+        task = SyncRegisterRaw(self.session_path, sync_collection=self.sync_collection, sync=self.sync, sync_ext=self.sync_ext,
+                               sync_namespace=self.sync_namespace)
         status = task.run()
 
         assert status == 0
 
         for exp_files in task.signature['output_files']:
-            file = self.session_path.joinpath(exp_files[1], exp_files[0])
+            file = next(self.session_path.joinpath(exp_files[1]).glob(exp_files[0]), None)
             assert file.exists()
             assert file in task.outputs
 
     def tearDown(self) -> None:
-        shutil.rmtree(self.session_path)
+        shutil.rmtree(self.session_path.parent)
 
 
 class TestSyncMtscomp(SyncTemplate):
 
     def test_rename_and_compress(self):
         self.copy_folder('rename_compress')
-        task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq')
+        task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq', sync_namespace='spikeglx')
         status = task.run()
         assert status == 0
         self.check_files(task)
 
     def test_rename(self):
         self.copy_folder('rename')
-        task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq')
+        task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq', sync_namespace='spikeglx')
         status = task.run()
         assert status == 0
         self.check_files(task)
 
     def test_compress(self):
         self.copy_folder('compress')
-        task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq')
+        task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq', sync_namespace='spikeglx')
         status = task.run()
         assert status == 0
         self.check_files(task)
 
     def test_register(self):
         self.copy_folder('register')
-        task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq')
+        task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq', sync_namespace='spikeglx')
         status = task.run()
         assert status == 0
         # Here we don't expect the .cbin file
@@ -95,17 +97,17 @@ class TestSyncPulses(SyncTemplate):
 
     def test_extract_pulses_bin(self):
         self.copy_folder('compress')
-        task = SyncPulses(self.session_path, sync_collection='raw_widefield_data', sync='nidq')
+        task = SyncPulses(self.session_path, sync_collection='raw_widefield_data', sync='nidq', sync_namespace='spikeglx')
         status = task.run()
         assert status == 0
         self.check_files(task)
 
     def test_extract_pulses_cbin(self):
         self.copy_folder('compress')
-        task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq')
+        task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq', sync_namespace='spikeglx')
         task.run()
 
-        task = SyncPulses(self.session_path, sync_collection='raw_widefield_data', sync='nidq')
+        task = SyncPulses(self.session_path, sync_collection='raw_widefield_data', sync='nidq', sync_namespace='spikeglx')
         status = task.run()
         assert status == 0
         self.check_files(task)
