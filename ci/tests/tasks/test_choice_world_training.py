@@ -21,7 +21,7 @@ class TrainingTemplate(base.IntegrationTest):
 class TestTrainingTrialsBpod(TrainingTemplate):
 
     def test_task(self):
-        wf = btasks.TrainingTrialsBpod(self.session_path, collection='raw_behavior_data')
+        wf = btasks.ChoiceWorldTrialsBpod(self.session_path, collection='raw_behavior_data')
         status = wf.run()
         assert status == 0
         wf.assert_expected_outputs()
