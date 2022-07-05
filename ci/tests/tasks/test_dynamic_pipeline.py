@@ -127,8 +127,8 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
             link.symlink_to(ff)
 
         self.session_path.joinpath('raw_session.flag').touch()
-        shutil.copy(self.data_path.joinpath('dynamic_pipeline', 'training', 'experiment_description.yaml'),
-                    self.session_path.joinpath('experiment_description.yaml'))
+        shutil.copy(self.data_path.joinpath('dynamic_pipeline', 'training', 'experiment.description.yaml'),
+                    self.session_path.joinpath('experiment.description.yaml'))
         # also need to make an experiment description file
 
     def test_job_creator(self):
@@ -151,7 +151,7 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
 
 class TestExperimentDescription(base.IntegrationTest):
     def setUp(self) -> None:
-        file = self.data_path.joinpath('dynamic_pipeline', 'ephys_NP3B', 'experiment_description.yaml')
+        file = self.data_path.joinpath('dynamic_pipeline', 'ephys_NP3B', 'experiment.description.yaml')
         self.experiment_description = sess_params.read_params(file)
 
     def test_params_reading(self):
