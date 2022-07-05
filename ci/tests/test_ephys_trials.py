@@ -55,7 +55,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
             shutil.move(alf_path, bk_path)
             self.addCleanup(shutil.move, str(bk_path), alf_path)
         # this gets the full output
-        ephys_fpga.extract_all(session_path, save=True, bin_exists=False)
+        ephys_fpga.extract_all(session_path, save=True)
         # check that the output is complete
         for f in BPOD_FILES:
             self.assertTrue(alf_path.joinpath(f).exists())
@@ -69,7 +69,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
             for k, v in alf_trials.items():
                 numpy.testing.assert_array_almost_equal(v, alf_trials_old[k])
         # go deeper and check the internal fpga trials structure consistency
-        sync, chmap = ephys_fpga.get_main_probe_sync(session_path, bin_exists=False)
+        sync, chmap = ephys_fpga.get_main_probe_sync(session_path)
         fpga_trials = ephys_fpga.extract_behaviour_sync(sync, chmap)
         # check dimensions
         self.assertEqual(alfio.check_dimensions(fpga_trials), 0)
