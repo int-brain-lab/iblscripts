@@ -44,11 +44,12 @@ class TestAudioSync(base.IntegrationTest):
 
         self.assertIsNone(next(self.session_path.rglob('*.wav'), None))
 
-    def test_audiosync_fpag(self):
+    def test_audiosync_fpga(self):
         task = AudioSync(self.session_path, device_collection='raw_behavior_data', collection='raw_behavior_data', sync='fpga')
         status = task.run()
         assert status == 0
         assert task.outputs is None
+        print(task.log)
         assert 'Audio Syncing not yet implemented for FPGA' in task.log
 
     def check_files(self, task):

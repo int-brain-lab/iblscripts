@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 import unittest.mock
 
-from ibllib.pipes.video_tasks import VideoRegisterRaw, VideoCompress, VideoSyncQc
+from ibllib.pipes.video_tasks import VideoRegisterRaw, VideoCompress, VideoSyncQcBpod, VideoSyncQcNidq
 
 from ci.tests import base
 
@@ -70,8 +70,8 @@ class TestVideoSyncQCBpod(base.IntegrationTest):
 
     @unittest.mock.patch('ibllib.qc.camera.CameraQC')
     def test_videosync(self, mock_qc):
-        task = VideoSyncQc(self.session_path, device_collection='raw_video_data', cameras=['left'], sync='bpod',
-                           main_collection='raw_behavior_data')
+        task = VideoSyncQcBpod(self.session_path, device_collection='raw_video_data', cameras=['left'], sync='bpod',
+                                   collection='raw_behavior_data')
         status = task.run()
         self.assertEqual(mock_qc.call_count, 1)
         assert status == 0
@@ -98,8 +98,8 @@ class TestVideoSyncQCNidq(base.IntegrationTest):
 
     @unittest.mock.patch('ibllib.qc.camera.CameraQC')
     def test_videosync(self, mock_qc):
-        task = VideoSyncQc(self.session_path, device_collection='raw_video_data', sync='nidq', cameras=['left', 'right', 'body'],
-                           main_collection='raw_behavior_data')
+        task = VideoSyncQcNidq(self.session_path, device_collection='raw_video_data', sync='nidq', sync_namespace='spikeglx',
+                               sync_collection='raw_ephys_data', cameras=['left', 'right', 'body'])
         status = task.run()
         self.assertEqual(mock_qc.call_count, 3)
         assert status == 0
