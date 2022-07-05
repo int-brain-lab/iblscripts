@@ -32,6 +32,6 @@ class TestHabituationTrialsBpod(HabituationTemplate):
 
     def test_task(self):
         wf = btasks.HabituationTrialsBpod(self.session_path, collection='raw_behavior_data')
-        status = wf.run()
+        status = wf.run(update=False)
         assert status == 0
         wf.assert_expected_outputs()

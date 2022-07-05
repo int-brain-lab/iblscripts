@@ -21,8 +21,9 @@ class RecordingTemplate(base.IntegrationTest):
 class TestTrainingTrialsRecording(RecordingTemplate):
 
     def test_task(self):
-        wf = btasks.ChoiceWorldTrialsNidq(self.session_path, collection='raw_behavior_data')
-        status = wf.run()
+        wf = btasks.ChoiceWorldTrialsNidq(self.session_path, collection='raw_behavior_data', sync_namespace='spikeglx',
+                                          sync_collection='raw_ephys_data')
+        status = wf.run(update=False, plot_qc=False)
         assert status == 0
         wf.assert_expected_outputs()
         wf.assert_expected_inputs()

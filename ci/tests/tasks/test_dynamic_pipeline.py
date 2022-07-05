@@ -6,6 +6,7 @@ from one.registration import RegistrationClient
 from one.api import ONE
 from ibllib.pipes.local_server import job_creator, tasks_runner
 import ibllib.pipes.dynamic_pipeline as dynamic
+import ibllib.io.session_params as sess_params
 
 from ci.tests import base
 
@@ -135,14 +136,37 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
         assert len(dsets) == 0
 
         tasks = self.one.alyx.rest('tasks', 'list', session=self.eid, no_cache=True)
-        assert len(tasks) == 7
+        assert len(tasks) == 8
 
         all_dsets = tasks_runner(self.temp_dir, tasks, one=self.one, count=10, max_md5_size=1024 * 1024 * 20)
         print(len(all_dsets))
 
         complete_tasks = self.one.alyx.rest('tasks', 'list', status='Complete', session=self.eid, no_cache=True)
-        assert len(complete_tasks) == 7
+        assert len(complete_tasks) == 8
 
     def tearDown(self) -> None:
         shutil.rmtree(self.temp_dir)
         self.one.alyx.rest('sessions', 'delete', id=self.eid)
+
+
+class TestExperimentDescription(base.IntegrationTest):
+    def setUp(self) -> None:
+        file = self.data_path.joinpath('dynamic_pipeline', 'ephys_NP3B', 'experiment_description.yaml')
+        self.experiment_description = sess_params.read_params(file)
+
+    def test_params_reading(self):
+        assert sess_params.get_sync(self.experiment_description) == 'nidq'
+
+        assert sess_params.get_sync_extension(self.experiment_description) == 'bin'
+
+        assert sess_params.get_sync_namespace(self.experiment_description) == 'spikeglx'
+
+        assert sess_params.get_sync_collection(self.experiment_description) == 'raw_ephys_data'
+
+        assert sess_params.get_cameras(self.experiment_description) == ['body', 'left', 'right']
+
+        assert sess_params.get_task_collection(self.experiment_description) == "raw_behavior_data"
+
+        assert sess_params.get_task_protocol(self.experiment_description, 'raw_behavior_data') == "ephysChoiceWorld"
+
+        assert sess_params.get_task_protocol(self.experiment_description, 'raw_passive_data') == "passiveChoiceWorld"
