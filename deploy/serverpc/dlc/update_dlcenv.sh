@@ -23,33 +23,40 @@ update=$(echo $outdated | grep -o "tensorflow " | cut -d = -f 1)
 # Note that the space after tensorflow is crucial as the tensorflow-estimator otherwise keeps tensorflow being updated
 if test "$update" ; then
   echo "Updating tensorflow, deeplabcut and ibllib" ;
-  pip uninstall -y ibllib deeplabcut tensorflow ;
+  pip uninstall -y ONE-api ibllib deeplabcut tensorflow ;
   pip install tensorflow ;
   pip install deeplabcut ;
   pip install ibllib ;
+  pip install ONE-api ;
 else
   echo "tensorflow is up-to-date" ;
   update=$(echo $outdated | grep -o "deeplabcut" | cut -d = -f 1)
   if test "$update" ; then
     echo "Updating deeplabcut and ibllib" ;
-  pip uninstall -y ibllib deeplabcut ;
+  pip uninstall -y ONE-api ibllib deeplabcut ;
   pip install deeplabcut ;
   pip install ibllib ;
+  pip install ONE-api ;
   else
     echo "deeplabcut is up-to-date" ;
     update=$(echo $outdated | grep -o "ibllib" | cut -d = -f 1)
     if test "$update" ; then
       echo "Updating ibllib" ;
-      pip uninstall -y ibllib ;
+      pip uninstall -y ONE-api ibllib ;
       pip install ibllib ;
-    else echo "ibllib is up-to-date" ;
+      pip install ONE-api ;
+    else
+      echo "ibllib is up-to-date" ;
+      update=$(echo $outdated | grep -o "ONE-api" | cut -d = -f 1)
+      if test "$update" ; then
+        echo "Updating ONE-api" ;
+        pip uninstall -y ONE-api ;
+        pip install ONE-api ;
+      else
+        echo "ONE-api is up-to-date" ;
+      fi
     fi
   fi
 fi
-
-
-# This is a crutch until the globus backend is merged into ONE main
-echo "Updating ONE ibl_prod"
-pip install -U git+https://github.com/int-brain-lab/ONE.git@ibl_prod -q
 
 deactivate

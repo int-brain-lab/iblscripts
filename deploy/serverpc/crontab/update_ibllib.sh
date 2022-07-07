@@ -21,7 +21,7 @@ if [ -f "$FILE" ]; then
     echo "$FILE exists."
     one_branch="$(<$FILE)"
 else
-    one_branch="ibl_prod"
+    one_branch="main"
 fi
 
 source ~/Documents/PYTHON/envs/iblenv/bin/activate
