@@ -2,7 +2,7 @@ import numpy as np
 import random
 import shutil
 
-from neuropixel import NP2Converter
+from neuropixel import NP2Converter, NP2Reconstructor
 import spikeglx
 
 from ci.tests import base
@@ -223,7 +223,7 @@ class TestNeuropixel2ConverterNP21(base.IntegrationTest):
         self.assertTrue(status)
 
         # test the meta file
-        sr_ap = spikeglx.Reader(np_conv.shank_info[f'shank0']['lf_file'])
+        sr_ap = spikeglx.Reader(np_conv.shank_info['shank0']['lf_file'])
         assert np.array_equal(sr_ap.meta['acqApLfSy'], [0, 384, 1])
         assert np.array_equal(sr_ap.meta['snsApLfSy'], [0, 384, 1])
         assert np.equal(sr_ap.meta['nSavedChans'], 385)
@@ -275,6 +275,61 @@ class TestNeuropixel2ConverterNP1(base.IntegrationTest):
         np_conv = NP2Converter(self.file_path)
         status = np_conv.process()
         self.assertEqual(status, -1)
+
+
+class TestNeuropixelReconstructor(base.IntegrationTest):
+    def setUp(self) -> None:
+
+        self.orig_file = self.data_path.joinpath('ephys', 'ephys_np2', 'raw_ephys_data', 'probe00',
+                                                 '_spikeglx_ephysData_g0_t0.imec0.ap.bin')
+        self.file_path = self.orig_file.parent.parent.joinpath('probe00_temp', self.orig_file.name)
+        self.file_path.parent.mkdir(exist_ok=True, parents=True)
+        self.orig_meta_file = self.orig_file.parent.joinpath('NP24_meta', '_spikeglx_ephysData_g0_t0.imec0.ap.meta')
+        self.meta_file = self.file_path.parent.joinpath('_spikeglx_ephysData_g0_t0.imec0.ap.meta')
+        shutil.copy(self.orig_file, self.file_path)
+        shutil.copy(self.orig_meta_file, self.meta_file)
+        self.sglx_instances = []
+
+    def tearDown(self):
+        _ = [sglx.close() for sglx in self.sglx_instances]
+        # here should look for any directories with test in it and delete
+        test_dir = list(self.file_path.parent.parent.glob('*test*'))
+        _ = [shutil.rmtree(test) for test in test_dir]
+        # For case where we have deleted already as part of test
+        if self.file_path.parent.exists():
+            shutil.rmtree(self.file_path.parent)
+
+    def test_reconstruction(self):
+
+        # First split the probes
+        np_conv = NP2Converter(self.file_path)
+        np_conv.init_params(extra='_test')
+        _ = np_conv.process()
+        np_conv.sr.close()
+
+        # Delete the original file
+        self.file_path.unlink()
+        self.meta_file.unlink()
+
+        # Now reconstruct
+        np_recon = NP2Reconstructor(self.file_path.parent.parent, pname='probe00_temp', compress=True)
+        status = np_recon.process()
+
+        assert status == 1
+
+        recon_file = self.file_path.with_suffix('.cbin')
+        sr_recon = spikeglx.Reader(recon_file)
+        self.sglx_instances.append(sr_recon)
+        sr_orig = spikeglx.Reader(self.orig_file)
+        self.sglx_instances.append(sr_orig)
+
+        assert np.array_equal(sr_recon._raw[:, :], sr_orig._raw[:, :])
+
+        orig_meta = spikeglx.read_meta_data(self.orig_meta_file)
+        recon_meta = spikeglx.read_meta_data(recon_file.with_suffix('.meta'))
+        recon_meta.pop('original_meta')
+
+        self.assertEqual(orig_meta, recon_meta)
 
 
 if __name__ == "__main__":
