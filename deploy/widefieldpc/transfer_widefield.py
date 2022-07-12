@@ -3,6 +3,7 @@
 # @Author: Miles
 import argparse
 from pathlib import Path
+import shutil
 
 import ibllib.io.flags as flags
 from ibllib.misc import log_to_file
@@ -21,8 +22,8 @@ def main(local=None, remote=None, rename_files=False):
     # Check for Subjects folder
     local_subject_folder = subjects_data_folder(params['DATA_FOLDER_PATH'], rglob=True)
     remote_subject_folder = subjects_data_folder(params['REMOTE_DATA_FOLDER_PATH'], rglob=True)
-    log.info(f"Local subjects folder: {local_subject_folder}")
-    log.info(f"Remote subjects folder: {remote_subject_folder}")
+    log.info(f'Local subjects folder: {local_subject_folder}')
+    log.info(f'Remote subjects folder: {remote_subject_folder}')
 
     # Find all local folders that have 'raw_widefield_data'
     local_sessions = local_subject_folder.rglob(DATA_FOLDER)
@@ -36,6 +37,16 @@ def main(local=None, remote=None, rename_files=False):
     else:
         log.info('No outstanding local sessions to transfer.')
         return
+
+    # Ensure each session contains a channels file: copy file over if not present
+    log.info('Copying missing wiring files')
+    filename = 'widefield_wiring.htsv'
+    default_channels = Path(__file__).parent.joinpath('wirings', filename)
+    missing_channels = filter(lambda x: not any(x.glob(f'{DATA_FOLDER}/*widefield_wiring*')), local_sessions)
+    for session_path in missing_channels:
+        destination = session_path.joinpath(DATA_FOLDER, filename)
+        log.debug(f'{default_channels} -> {destination}')
+        shutil.copy(default_channels, destination)
 
     # Call ibllib function to perform generalized user interaction and kick off transfer
     transfer_list, success = transfer_session_folders(
