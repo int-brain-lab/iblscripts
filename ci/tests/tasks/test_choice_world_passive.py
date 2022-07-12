@@ -6,6 +6,7 @@ from ci.tests import base
 
 _logger = logging.getLogger('ibllib')
 
+
 class TestPassiveRegisterRaw(base.IntegrationTest):
 
     def setUp(self) -> None:
@@ -39,6 +40,3 @@ class TestPassiveTrials(base.IntegrationTest):
 
     def tearDown(self) -> None:
         shutil.rmtree(self.alf_path)
-
-
-

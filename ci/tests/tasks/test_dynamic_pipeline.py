@@ -53,7 +53,7 @@ class TestDynamicPipeline(base.IntegrationTest):
             assert d1['level'] == d2['level']
             assert d1['name'] == d2['name']
             assert d1['graph'] == d2['graph']
-            assert d1['arguments'] == d1['arguments'] # comment out until alyx updated
+            assert d1['arguments'] == d1['arguments']
 
     def tearDown(self) -> None:
         self.one.alyx.rest('sessions', 'delete', id=self.eid)
@@ -65,7 +65,6 @@ class TestStandardPipelines(base.IntegrationTest):
         self.folder_path = self.data_path.joinpath('dynamic_pipeline')
         self.temp_dir = Path(tempfile.TemporaryDirectory().name)
         self.session_path = self.temp_dir.joinpath('mars', '2054-07-13', '001')
-        # self.session_path.mkdir(parents=True)
 
     def test_ephys_3B(self):
         shutil.copytree(self.folder_path.joinpath('ephys_NP3B'), self.session_path)

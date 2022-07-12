@@ -71,7 +71,7 @@ class TestVideoSyncQCBpod(base.IntegrationTest):
     @unittest.mock.patch('ibllib.qc.camera.CameraQC')
     def test_videosync(self, mock_qc):
         task = VideoSyncQcBpod(self.session_path, device_collection='raw_video_data', cameras=['left'], sync='bpod',
-                                   collection='raw_behavior_data')
+                               collection='raw_behavior_data')
         status = task.run()
         self.assertEqual(mock_qc.call_count, 1)
         assert status == 0
