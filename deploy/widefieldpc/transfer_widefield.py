@@ -38,15 +38,17 @@ def main(local=None, remote=None, rename_files=False):
         log.info('No outstanding local sessions to transfer.')
         return
 
+    def copy_wiring(wiring_file, filter_pattern):
+        default_file = Path(__file__).parent.joinpath('wirings', wiring_file)
+        for session_path in filter(lambda x: not any(x.glob(f'{DATA_FOLDER}/{filter_pattern}')), local_sessions):
+            destination = session_path.joinpath(DATA_FOLDER, wiring_file)
+            log.debug(f'{default_file} -> {destination}')
+            shutil.copy(default_file, destination)
+
     # Ensure each session contains a channels file: copy file over if not present
     log.info('Copying missing wiring files')
-    filename = 'widefield_wiring.htsv'
-    default_channels = Path(__file__).parent.joinpath('wirings', filename)
-    missing_channels = filter(lambda x: not any(x.glob(f'{DATA_FOLDER}/*widefield_wiring*')), local_sessions)
-    for session_path in missing_channels:
-        destination = session_path.joinpath(DATA_FOLDER, filename)
-        log.debug(f'{default_channels} -> {destination}')
-        shutil.copy(default_channels, destination)
+    copy_wiring('widefield_wiring.htsv', '*widefield_wiring*')
+    copy_wiring('_spikeglx_DAQdata.wiring.json', '*DAQdata.wiring*')
 
     # Call ibllib function to perform generalized user interaction and kick off transfer
     transfer_list, success = transfer_session_folders(
