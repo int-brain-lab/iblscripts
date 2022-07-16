@@ -8,6 +8,12 @@ import pandas as pd
 from PyQt5 import QtWidgets, QtCore, uic
 
 """
+TODO:
+- Configure date_edit field to be in YYYY-mm-dd format
+- Use QSettings to store widget data
+- parse up csv file when adding item to queue
+- call ibllib when initiating the transfer
+
 settings values:
     path_fiber_photometry: str - last path of fiber photometry csv file
     path_server_sessions: str - destination path for local lab server, i.e. Y:\Subjects\something
@@ -32,38 +38,83 @@ class FiberPhotometryForm(QtWidgets.QMainWindow):
         uic.loadUi("fiber_photometry_form.ui", self)
         self.action_load_csv.triggered.connect(self.load_csv)
         self.action_add_item_to_queue.triggered.connect(self.add_item_to_queue)
-        self.action_subject_added.triggered.connect(self.subject_added)
+        self.action_transfer_items_to_server.triggered.connect(self.transfer_items_to_server)
 
         # Set status bar message prior to csv file being loaded
         self.status_bar_message = QtWidgets.QLabel(self)
         self.status_bar_message.setText("No CSV file loaded")
         self.statusBar().addWidget(self.status_bar_message)
 
-        # Populate subject_combo_box with dummy data
-        dummy_data = ["mouse1", "mouse2", "mouse3"]
-        self.settings.setValue("subjects", dummy_data)
-        for value in self.settings.value("subjects"):
-            self.subject_combo_box.addItem(value)
+        # Populate widgets
+        self.populate_widgets_with_dummy_data()  # using dummy data for now
 
         # Disable actionable widgets until CSV is loaded
-        # self.enable_actionable_widgets(enable=False)  # Re-enable prior to full deployment
+        # self.enable_actionable_widgets(enable=False)  # Disabled for ease of testing different features
 
         self.show()
 
-    def subject_added(self):
-        """
-        Subject was added to the subject_combo_box, store additional subject in QSettings
-        """
-        self.settings.setValue("subjects", self.subject_combo_box.currentText())
-        print(self.subject_combo_box.currentText())
+    def populate_widgets_with_dummy_data(self):
+        # subject_combo_box
+        subject_dummy_data = ["mouse1", "mouse2", "mouse3"]
+        self.settings.setValue("subjects", subject_dummy_data)
+        for value in self.settings.value("subjects"):
+            self.subject_combo_box.addItem(value)
+
+        # date_edit, get current date
+
+        # session_number
+        self.session_number.setText("001")
+
+        # server_path
+        self.server_path.addItem("\\\\mainen_lab_server\\Subjects")
+
+
+    def transfer_items_to_server(self):
+        print("button press")
 
     def add_item_to_queue(self):
-        item = QtWidgets.QListWidgetItem("item to be transferred to server")
-        self.item_list_queue.addItem(item)
+        """
+        Verifies that all entered values are present...# TODO: clean up nonsense
+        """
+        # Pull data
+        checked_rois = []
+        checked_rois.append("Region0r") if self.cb_region0r.isChecked() else None
+        checked_rois.append("Region1G") if self.cb_region1g.isChecked() else None
+        checked_rois.append("Region2R") if self.cb_region2r.isChecked() else None
+        checked_rois.append("Region3R") if self.cb_region3r.isChecked() else None
+        checked_rois.append("Region4R") if self.cb_region4r.isChecked() else None
+        checked_rois.append("Region5G") if self.cb_region5g.isChecked() else None
+        checked_rois.append("Region6G") if self.cb_region6g.isChecked() else None
+        checked_rois.append("Region7R") if self.cb_region7r.isChecked() else None
+        checked_rois.append("Region8G") if self.cb_region8g.isChecked() else None
+
+        checked_patches = []
+        checked_patches.append("Patch1") if self.cb_patch1.isChecked() else None
+        checked_patches.append("Patch2") if self.cb_patch2.isChecked() else None
+        checked_patches.append("Patch3") if self.cb_patch3.isChecked() else None
+
+        self.items_to_transfer = {
+            "subject": self.subject_combo_box.currentText(),
+            "date": self.date_edit.text(),
+            "session_number": self.session_number.text(),
+            "rois": checked_rois,
+            "patches": checked_patches,
+            "server_path": self.server_path.currentText()
+        }
+
+        stringified_items_to_transfer = self.items_to_transfer["subject"] + " - " + self.items_to_transfer["date"] + " - " +\
+                                        self.items_to_transfer["session_number"] + " - "
+        for values in self.items_to_transfer["rois"]:
+            stringified_items_to_transfer += values + " "
+        for values in self.items_to_transfer["patches"]:
+            stringified_items_to_transfer += values + " "
+        stringified_items_to_transfer += "-> " + self.items_to_transfer["server_path"]
+
+        # Display data that will be added to the queue
+        self.item_list_queue.addItem(stringified_items_to_transfer)
 
     def enable_actionable_widgets(self, enable: bool = True):
         """
-        TODO: Add remaining widgets
         Enables or disables various widgets to prevent user interaction
 
         Parameters
@@ -74,6 +125,21 @@ class FiberPhotometryForm(QtWidgets.QMainWindow):
         self.subject_combo_box.setEnabled(enable)
         self.button_add_item_to_queue.setEnabled(enable)
         self.item_list_queue.setEnabled(enable)
+        self.session_number.setEnabled(enable)
+        self.cb_region0r.setEnabled(enable)
+        self.cb_region1g.setEnabled(enable)
+        self.cb_region2r.setEnabled(enable)
+        self.cb_region3r.setEnabled(enable)
+        self.cb_region4r.setEnabled(enable)
+        self.cb_region5g.setEnabled(enable)
+        self.cb_region6g.setEnabled(enable)
+        self.cb_region7r.setEnabled(enable)
+        self.cb_region8g.setEnabled(enable)
+        self.cb_patch1.setEnabled(enable)
+        self.cb_patch2.setEnabled(enable)
+        self.cb_patch3.setEnabled(enable)
+        self.server_path.setEnabled(enable)
+        self.button_transfer_items_to_server.setEnabled(enable)
 
     def load_csv(self, file=None):
         """

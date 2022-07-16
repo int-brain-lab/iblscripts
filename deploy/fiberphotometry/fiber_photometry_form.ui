@@ -29,9 +29,9 @@
    <widget class="QWidget" name="horizontalLayoutWidget">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>130</x>
       <y>0</y>
-      <width>781</width>
+      <width>511</width>
       <height>51</height>
      </rect>
     </property>
@@ -68,7 +68,17 @@
       </widget>
      </item>
      <item>
-      <widget class="QDateEdit" name="dateEdit"/>
+      <widget class="QDateEdit" name="date_edit">
+       <property name="layoutDirection">
+        <enum>Qt::RightToLeft</enum>
+       </property>
+       <property name="displayFormat">
+        <string/>
+       </property>
+       <property name="calendarPopup">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="Line" name="line_2">
@@ -85,52 +95,12 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="lineEdit"/>
-     </item>
-    </layout>
-   </widget>
-   <widget class="QWidget" name="horizontalLayoutWidget_2">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>60</y>
-      <width>781</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <item>
-      <widget class="QLabel" name="label_5">
-       <property name="text">
-        <string>Regions of Interest (ROI):</string>
+      <widget class="QLineEdit" name="session_number">
+       <property name="maxLength">
+        <number>30</number>
        </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="comboBox_2">
-       <property name="editable">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="Line" name="line_5">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="label_7">
-       <property name="text">
-        <string>Patch Cord:</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="comboBox_3">
-       <property name="editable">
-        <bool>true</bool>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
        </property>
       </widget>
      </item>
@@ -140,9 +110,9 @@
     <property name="geometry">
      <rect>
       <x>9</x>
-      <y>199</y>
+      <y>329</y>
       <width>671</width>
-      <height>351</height>
+      <height>221</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout">
@@ -168,9 +138,9 @@
     <property name="geometry">
      <rect>
       <x>690</x>
-      <y>200</y>
+      <y>330</y>
       <width>101</width>
-      <height>351</height>
+      <height>221</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -186,7 +156,7 @@ to Server</string>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="transfer_items_to_server">
+      <widget class="QPushButton" name="button_transfer_items_to_server">
        <property name="text">
         <string>Transfer</string>
        </property>
@@ -207,7 +177,7 @@ to Server</string>
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>120</y>
+      <y>260</y>
       <width>781</width>
       <height>51</height>
      </rect>
@@ -216,12 +186,15 @@ to Server</string>
      <item>
       <widget class="QLabel" name="label_6">
        <property name="text">
-        <string>Server Path:</string>
+        <string>Server Path: </string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="comboBox_4">
+      <widget class="QComboBox" name="server_path">
        <property name="editable">
         <bool>true</bool>
        </property>
@@ -278,7 +251,7 @@ to Server</string>
     <property name="geometry">
      <rect>
       <x>7</x>
-      <y>110</y>
+      <y>250</y>
       <width>781</width>
       <height>16</height>
      </rect>
@@ -291,13 +264,169 @@ to Server</string>
     <property name="geometry">
      <rect>
       <x>7</x>
-      <y>170</y>
+      <y>310</y>
       <width>781</width>
       <height>16</height>
      </rect>
     </property>
     <property name="orientation">
      <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="QWidget" name="verticalLayoutWidget_4">
+    <property name="geometry">
+     <rect>
+      <x>380</x>
+      <y>90</y>
+      <width>81</width>
+      <height>83</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout_4">
+     <item>
+      <widget class="QCheckBox" name="cb_patch1">
+       <property name="text">
+        <string>Patch 1</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="cb_patch2">
+       <property name="text">
+        <string>Patch 2</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="cb_patch3">
+       <property name="text">
+        <string>Patch 3</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="Line" name="line_5">
+    <property name="geometry">
+     <rect>
+      <x>360</x>
+      <y>60</y>
+      <width>20</width>
+      <height>191</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Vertical</enum>
+    </property>
+   </widget>
+   <widget class="QWidget" name="gridLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>150</x>
+      <y>90</y>
+      <width>191</width>
+      <height>170</height>
+     </rect>
+    </property>
+    <layout class="QGridLayout" name="gridLayout">
+     <property name="sizeConstraint">
+      <enum>QLayout::SetFixedSize</enum>
+     </property>
+     <item row="3" column="1">
+      <widget class="QCheckBox" name="cb_region8g">
+       <property name="text">
+        <string>Region8G</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QCheckBox" name="cb_region5g">
+       <property name="text">
+        <string>Region5G</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QCheckBox" name="cb_region6g">
+       <property name="text">
+        <string>Region6G</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QCheckBox" name="cb_region7r">
+       <property name="text">
+        <string>Region7R</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QCheckBox" name="cb_region3r">
+       <property name="text">
+        <string>Region3R</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QCheckBox" name="cb_region0r">
+       <property name="text">
+        <string>Region0R</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QCheckBox" name="cb_region1g">
+       <property name="text">
+        <string>Region1G</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QCheckBox" name="cb_region2r">
+       <property name="text">
+        <string>Region2R</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QCheckBox" name="cb_region4r">
+       <property name="text">
+        <string>Region4R</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>160</x>
+      <y>70</y>
+      <width>167</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Regions of Interest (ROIs)</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignHCenter|Qt::AlignTop</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_5">
+    <property name="geometry">
+     <rect>
+      <x>380</x>
+      <y>70</y>
+      <width>81</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Patch Cord</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
     </property>
    </widget>
   </widget>
@@ -336,9 +465,9 @@ to Server</string>
     <string>action_add_item_to_queue</string>
    </property>
   </action>
-  <action name="action_subject_added">
+  <action name="action_transfer_items_to_server">
    <property name="text">
-    <string>action_subject_added</string>
+    <string>action_transfer_items_to_server</string>
    </property>
   </action>
  </widget>
@@ -355,24 +484,24 @@ to Server</string>
      <y>167</y>
     </hint>
     <hint type="destinationlabel">
-     <x>37</x>
-     <y>47</y>
+     <x>-1</x>
+     <y>-1</y>
     </hint>
    </hints>
   </connection>
   <connection>
-   <sender>subject_combo_box</sender>
-   <signal>editTextChanged(QString)</signal>
-   <receiver>action_subject_added</receiver>
+   <sender>button_transfer_items_to_server</sender>
+   <signal>clicked()</signal>
+   <receiver>action_transfer_items_to_server</receiver>
    <slot>trigger()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>112</x>
-     <y>47</y>
+     <x>740</x>
+     <y>559</y>
     </hint>
     <hint type="destinationlabel">
-     <x>112</x>
-     <y>47</y>
+     <x>-1</x>
+     <y>-1</y>
     </hint>
    </hints>
   </connection>
