@@ -31,7 +31,7 @@
      <rect>
       <x>130</x>
       <y>0</y>
-      <width>511</width>
+      <width>541</width>
       <height>51</height>
      </rect>
     </property>
@@ -70,10 +70,10 @@
      <item>
       <widget class="QDateEdit" name="date_edit">
        <property name="layoutDirection">
-        <enum>Qt::RightToLeft</enum>
+        <enum>Qt::LeftToRight</enum>
        </property>
        <property name="displayFormat">
-        <string/>
+        <string>yyyy-MM-dd</string>
        </property>
        <property name="calendarPopup">
         <bool>true</bool>

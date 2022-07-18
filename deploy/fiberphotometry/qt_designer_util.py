@@ -1,6 +1,7 @@
 """
 Utility functions for make working with QT Designer easier
 """
+import logging
 import subprocess
 from pathlib import Path
 
@@ -25,6 +26,7 @@ def convert_ui_file_to_py(file_location: str, output_file_name: str) -> str:
         raise f"{file_location} - File does not exist"
     sp_cmd = ["pyuic5", f"--output={output_file_name}", file_location]
     try:
+        logging.info(f".ui file converted to .py file named: {output_file_name}")
         subprocess.run(sp_cmd)
     except subprocess.SubprocessError:
         raise
