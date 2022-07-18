@@ -14,7 +14,7 @@ TODO:
 - parse up csv file when adding item to queue
 - call ibllib when initiating the transfer
 
-settings values:
+QtSettings values:
     path_fiber_photometry: str - last path of fiber photometry csv file
     path_server_sessions: str - destination path for local lab server, i.e. Y:\Subjects\something
     subjects: list[str] = field(default_factory=list) - list of subjects should carry over between sessions

@@ -18,7 +18,7 @@ def convert_ui_file_to_py(file_location: str, output_file_name: str) -> str:
 
     Returns
     -------
-    Path
+    str
         location of the resulting py file
     """
     if not Path(file_location).exists():
@@ -34,3 +34,4 @@ def convert_ui_file_to_py(file_location: str, output_file_name: str) -> str:
 def test_convert_ui_file_to_py():
     test_file = "fiber_photometry_form.ui"
     ui_to_py_file = convert_ui_file_to_py(test_file, "some_output.py")
+    print(f".ui file converted to .py file named: {ui_to_py_file}")
