@@ -9,11 +9,11 @@ import argparse
 import sys
 from pathlib import Path
 from dataclasses import dataclass, field
+import datetime
 
 import pandas as pd
 
 from PyQt5 import QtWidgets, QtCore, uic
-
 """
 settings values:
     path_fiber_photometry: str - last path of fiber photometry csv file
@@ -36,6 +36,11 @@ class FiberCopy(QtWidgets.QMainWindow):
         self.settings = QtCore.QSettings('int-brain-lab', 'FiberCopy')
         uic.loadUi(Path(__file__).parent.joinpath('FiberCopy.ui'), self)
         self.actionload_photometry_csv.triggered.connect(self.open_photometry_csv)
+        self.dateEdit.setDate(datetime.datetime.now())
+        self.pushButton_add_session.clicked.connect(self.add_session)
+        self.pushButton_rm_session.clicked.connect(self.remove_session)
+        self.pushButton_export.clicked.connect(self.export_file)
+        self.comboBox_subjects.addItems(self.settings.value("subjects", []))
         self.show()
 
     def open_photometry_csv(self, *args, file=None):
@@ -53,7 +58,30 @@ class FiberCopy(QtWidgets.QMainWindow):
         file = Path(file)
         self.settings.setValue("path_fiber_photometry", str(file.parent))
         self.model = Model(pd.read_csv(file))
+        # TODO reset table view
+        self.listWidget_rois.clear()
+        self.listWidget_rois.addItems(self.model.regions)
 
+    def add_session(self):
+        str_subject = self.comboBox_subjects.currentText()
+        str_date = self.dateEdit.date().toString(QtCore.Qt.ISODate)
+        str_number = str(self.spinBox_number.value()).zfill(3)
+        list_rois = [i.text() for i in self.listWidget_rois.selectedItems()]
+        if str_subject == '' or len(list_rois) == 0:
+            return
+        else:
+            self.settings.setValue("subjects", list(set(self.settings.value("subjects", []) + [str_subject])))
+        items = [f"{str_subject}/{str_number}/{str_number}: {roi}" for roi in list_rois]
+        items_in_list = [str(self.listWidget_sessions.item(i).text()) for i in range(self.listWidget_sessions.count())]
+        self.listWidget_sessions.clear()
+        self.listWidget_sessions.addItems(list(set(items + items_in_list)))
+
+    def remove_session(self):
+        for i in self.listWidget_sessions.selectedItems():
+            self.listWidget_sessions.takeItem(self.listWidget_sessions.row(i))
+
+    def export_file(self):
+        pass
 
 @dataclass
 class Model:
@@ -98,13 +126,3 @@ if __name__ == "__main__":
         print('controller tests pass !!')
     else:
         sys.exit(app.exec_())
-
-# TODO: talk to Kcenia to determine if multiple regions/fibers will be used for a single session
-# {'photometry': {
-#     'fiber00': {'collection': 'raw_photometry_data', 'column_name': combobox_selected_region},
-# }}
-#
-# {'photometry': {
-#     'fiber00': {'collection': 'raw_photometry_data', 'column_name': combobox_selected_region},
-#     'fiber01': {'collection': 'raw_photometry_data', 'column_name': combobox_selected_region},
-# }}
