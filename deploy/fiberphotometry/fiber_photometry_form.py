@@ -2,8 +2,8 @@
 Application to perform Fiber Photometry related tasks
 
 TODO:
-- parse up csv file when adding item to queue
-    - create additional pd file for each 'item'
+- parse up csv file when adding item to queue, clean up and add try/except
+- specify local dir based on OS for subject_data_file.csv creation, mirror server directory structure
 - call ibllib when initiating the transfer
 
 QtSettings values:
@@ -12,6 +12,7 @@ QtSettings values:
     subjects: list[str] = field(default_factory=list) - list of subjects should carry over between sessions
 """
 import argparse
+import os
 import sys
 from dataclasses import dataclass
 from datetime import date
@@ -22,12 +23,27 @@ from PyQt5 import QtWidgets, QtCore
 
 from qt_designer_util import convert_ui_file_to_py
 
-try:
+try:  # specify ui file output by Qt Designer, call function to convert to py for efficiency and ease of imports
     UI_FILE = "fiber_photometry_form.ui"
     convert_ui_file_to_py(UI_FILE, UI_FILE[:-3] + "_ui.py")
     from fiber_photometry_form_ui import Ui_MainWindow
 except ImportError:
     raise
+
+# Ensure data folders exist for local storage of fiber photometry data
+if os.name == "nt":  # check on OS platform
+    FIBER_PHOTOMETRY_DATA_FOLDER = "C:\\ibl_fiber_photometry_data\\Subjects"
+    try:  # to create local data folder
+        os.makedirs(FIBER_PHOTOMETRY_DATA_FOLDER, exist_ok=True)
+    except OSError:
+        raise
+else:
+    import tempfile  # cleaner implementation desired
+    FIBER_PHOTOMETRY_DATA_FOLDER = tempfile.TemporaryDirectory()
+    FIBER_PHOTOMETRY_DATA_FOLDER = FIBER_PHOTOMETRY_DATA_FOLDER.name
+    Path(FIBER_PHOTOMETRY_DATA_FOLDER).joinpath("Subjects").mkdir(parents=True)
+    print(f"Not a Windows OS, will only create temp files for data output in dir: {FIBER_PHOTOMETRY_DATA_FOLDER}")
+    FIBER_PHOTOMETRY_DATA_FOLDER += "/Subjects"
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
@@ -64,7 +80,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.date_edit.setDate(QtCore.QDate(date.today().year, date.today().month, date.today().day))
         # subject
         if self.settings.value("subjects") is not None:
-            for value in self.settings.value("subjects"):  # TODO: reverse loop to get last entry as default?
+            for value in reversed(self.settings.value("subjects")):  # list the most recent entries first
                 self.subject_combo_box.addItem(value)
         else:
             self.settings.setValue("subjects", ["mouse1"])  # dummy data
@@ -108,6 +124,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         checked_rois.append("Region7R") if self.cb_region7r.isChecked() else None
         checked_rois.append("Region8G") if self.cb_region8g.isChecked() else None
 
+        # Create directory structure for Subject/Date/SessionNumber/raw_fiber_photometry_data/subject_data_file.csv
+        data_path = Path(
+            Path(FIBER_PHOTOMETRY_DATA_FOLDER) /
+            self.subject_combo_box.currentText() /
+            self.date_edit.text() /
+            self.session_number.text() /
+            "raw_fiber_photometry_data")
+        os.makedirs(data_path)  # TODO: add try/except for OS operations
+        # Build data_file.csv file for selected regions
+        data_file = Path(data_path / f"{self.subject_combo_box.currentText()}_data_file.csv")
+        self.model.dataframe[checked_rois].to_csv(data_file, encoding='utf-8')
+
         # Pull data for patch cord
         checked_patches = []
         checked_patches.append("Patch1") if self.cb_patch1.isChecked() else None
@@ -121,12 +149,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             "session_number": self.session_number.text(),
             "rois": checked_rois,
             "patches": checked_patches,
-            "server_path": self.server_path.text()
+            "server_path": self.server_path.text(),
+            "data_file_loc": data_file
         })
 
-        stringified_item_to_transfer = self.stringify_items_to_transfer(self.items_to_transfer[-1])
-
         # Display data that will be added to the queue
+        stringified_item_to_transfer = self.stringify_items_to_transfer(self.items_to_transfer[-1])
         self.item_list_queue.addItem(stringified_item_to_transfer)
 
     def stringify_items_to_transfer(self, item_to_transfer: dict) -> str:
@@ -136,7 +164,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         Parameters
         ----------
         item_to_transfer: dict
-            The following keys are exected: subject, date, session_number, rois, patches, server_path
+            The following keys are extracted: subject, date, session_number, rois, patches, server_path
         Returns
         -------
         str
@@ -160,7 +188,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         ----------
         file
             specify file location when performing tests, otherwise a QtWidget.QFileDialog is launched
-
         """
         if file is None or file is False:
             file, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -170,6 +197,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             return
         file = Path(file)
         self.settings.setValue("last_loaded_csv_path", str(file.parent))
+
+        # read csv file into Model's panda dataframe
         self.model = Model(pd.read_csv(file))
 
         # Change status bar text
@@ -215,7 +244,7 @@ class Model:
 
     @property
     def regions(self):
-        regions = list(set(self.dataframe.keys()).difference(set(['FrameCounter', 'Timestamp', 'Flags'])))
+        regions = list(set(self.dataframe.keys()).difference({'FrameCounter', 'Timestamp', 'Flags'}))
         regions.sort()
         return regions
 
@@ -238,17 +267,22 @@ def test_controller(fiber_form_test, file_test):
 
 
 if __name__ == "__main__":
+    # arg parsing
     parser = argparse.ArgumentParser(description="Fiber Photometry Form")
     parser.add_argument("-t", "--test", default=False, required=False, action="store_true", help="Run tests")
     args = parser.parse_args()
+
+    # Create application and main window
     app = QtWidgets.QApplication(sys.argv)
     fiber_form = MainWindow()
+
+    # determine test situation or production
     if args.test:
         csv_file = Path("fiber_copy_test_fixture.csv")
         test_model(csv_file)
         test_controller(fiber_form, csv_file)
     else:
         # Disable actionable widgets until CSV is loaded
-        # fiber_form.enable_actionable_widgets(False)
+        fiber_form.enable_actionable_widgets(False)
         fiber_form.show()
         sys.exit(app.exec_())
