@@ -15,6 +15,7 @@ one = ONE(cache_rest=None)
 try:
     one = ONE(cache_rest=None)
     report_health(one=one)
+    _logger.info("Reported health of local server")
 except BaseException:
     _logger.error(f"Error in report_health\n {traceback.format_exc()}")
 
@@ -23,5 +24,6 @@ except BaseException:
 #  the tasks backlog
 try:
     job_creator(subjects_path, one=one, dry=False)
+    _logger.info("Ran job creator.")
 except BaseException:
     _logger.error(f"Error in job_creator\n {traceback.format_exc()}")
