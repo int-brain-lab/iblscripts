@@ -30,25 +30,28 @@ update=$(echo $outdated | grep -o "tensorflow " | cut -d = -f 1)
 # Note that the space after tensorflow is crucial as the tensorflow-estimator otherwise keeps tensorflow being updated
 if test "$update" ; then
   echo "Updating tensorflow, deeplabcut and ibllib" ;
-  pip uninstall -y ibllib deeplabcut tensorflow ;
+  pip uninstall -y ONE-api ibllib deeplabcut tensorflow ;
   pip install tensorflow ;
   pip install deeplabcut ;
   pip install ibllib ;
+  pip install ONE-api ;
 else
   echo "tensorflow is up-to-date" ;
   update=$(echo $outdated | grep -o "deeplabcut" | cut -d = -f 1)
   if test "$update" ; then
     echo "Updating deeplabcut and ibllib" ;
-  pip uninstall -y ibllib deeplabcut ;
+  pip uninstall -y ONE-api ibllib deeplabcut ;
   pip install deeplabcut ;
   pip install ibllib ;
+  pip install ONE-api ;
   else
     echo "deeplabcut is up-to-date" ;
     update=$(echo $outdated | grep -o "ibllib" | cut -d = -f 1)
     if test "$update" ; then
       echo "Updating ibllib" ;
-      pip uninstall -y ibllib ;
+      pip uninstall -y ONE-api ibllib ;
       pip install ibllib ;
+      pip install ONE-api ;
     else
       echo "ibllib is up-to-date" ;
       update=$(echo $outdated | grep -o "ONE-api" | cut -d = -f 1)
