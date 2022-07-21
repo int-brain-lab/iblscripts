@@ -52,8 +52,10 @@ def correct_flags_biased_in_ephys_rig():
         ses_date = datetime.strptime(session_path.parts[-2], "%Y-%M-%d")
         if (datetime.now() - ses_date).days > N_DAYS:
             settings = raw.load_settings(session_path)
-            if 'ephys' in settings['PYBPOD_BOARD'] and settings['PYBPOD_PROTOCOL']\
-                    == '_iblrig_tasks_biasedChoiceWorld':
+            if settings is None:
+                pass
+            if ('ephys' in settings['PYBPOD_BOARD'] and
+                    settings['PYBPOD_PROTOCOL'] == '_iblrig_tasks_biasedChoiceWorld'):
                 _logger.info(session_path)
                 flag.unlink()
                 session_path.joinpath('raw_session.flag').touch()
