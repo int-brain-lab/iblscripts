@@ -40,10 +40,10 @@ else
   update=$(echo $outdated | grep -o "deeplabcut" | cut -d = -f 1)
   if test "$update" ; then
     echo "Updating deeplabcut and ibllib" ;
-  pip uninstall -y ONE-api ibllib deeplabcut ;
-  pip install deeplabcut ;
-  pip install ibllib ;
-  pip install ONE-api ;
+    pip uninstall -y ONE-api ibllib deeplabcut ;
+    pip install deeplabcut ;
+    pip install ibllib ;
+    pip install ONE-api ;
   else
     echo "deeplabcut is up-to-date" ;
     update=$(echo $outdated | grep -o "ibllib" | cut -d = -f 1)

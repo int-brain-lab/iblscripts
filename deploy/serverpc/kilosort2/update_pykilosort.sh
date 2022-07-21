@@ -30,7 +30,7 @@ fi
 # Libraries that have to be updated in order
 update=$(echo $outdated | grep -o "phylib" | cut -d = -f 1)
 if test "$update" ; then
-  echo "Updating phylib and ibllib" ;
+  echo "Updating phylib, ibllib and ibl-neuropixel" ;
   pip uninstall -y ibllib phylib ibl-neuropixel;
   pip install phylib ;
   pip install ibllib ;
@@ -40,7 +40,7 @@ else
   # If phylib is up to date check if ibllib needs updating still
   update=$(echo $outdated | grep -o "ibllib" | cut -d = -f 1)
   if test "$update" ; then
-    echo "Updating ibllib" ;
+    echo "Updating ibllib and ibl-neuropixel" ;
     pip uninstall -y ibllib ibl-neuropixel;
     pip install ibllib ;
     pip install ibl-neuropixel ;
