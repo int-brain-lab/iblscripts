@@ -2,9 +2,12 @@
 Application to perform Fiber Photometry related tasks
 
 TODO:
-- parse up csv file when adding item to queue, clean up and add try/except
-- specify local dir based on OS for subject_data_file.csv creation, mirror server directory structure
 - call ibllib when initiating the transfer
+- Display dialog box with summary of transfers
+- Disable regions and patch cords that have already been selected
+  - Create reset button/function in case mistakes were made
+- Create settings.json for each transfer; include subject name, selected patch cords, regions selected, date, session, server path
+- Stub for including bonsai workflow in transfer
 
 QtSettings values:
     last_loaded_csv_path: str - path to the parent dir of the last loaded csv
@@ -96,7 +99,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def transfer_items_to_server(self):
         # if subject value in items_to_transfer list dict is not in self.settings.value("subject"), then add it to the settings
         print("transfer button press, call ibllib rsync transfer")
-        transfer_success = True
+
+        # Determine if transfer was successful
+        transfer_success = True  # TODO: replace with logic for determining successful transfer
 
         if transfer_success:
             # Add subject to QSettings if it is not already present
@@ -105,15 +110,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 subject_list.append(self.subject_combo_box.currentText())
                 self.settings.setValue("subjects", subject_list)
 
-            # Set server path to QSettings
-            self.settings.setValue("server_path", self.server_path.text())
+            # Display dialog box with summary of transfers
+            # TODO
+
+            # Disable regions and patch cords that have already been selected
+            # TODO
+
+            # Set server path to QSettings as the new default if it has changed
+            if self.server_path.text() is not self.settings.value("server_path"):
+                self.settings.setValue("server_path", self.server_path.text())
 
     def add_item_to_queue(self):
         """
         Verifies that all entered values are present. A cleaner implementation is desirable for this function.
         """
-        # Pull data for ROIs
-        checked_rois = []
+        checked_rois = []  # Pull data for ROI check box selection
         checked_rois.append("Region0R") if self.cb_region0r.isChecked() else None
         checked_rois.append("Region1G") if self.cb_region1g.isChecked() else None
         checked_rois.append("Region2R") if self.cb_region2r.isChecked() else None
@@ -124,23 +135,30 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         checked_rois.append("Region7R") if self.cb_region7r.isChecked() else None
         checked_rois.append("Region8G") if self.cb_region8g.isChecked() else None
 
-        # Create directory structure for Subject/Date/SessionNumber/raw_fiber_photometry_data/subject_data_file.csv
+        checked_patches = []  # Pull data for patch cord check box selection
+        checked_patches.append("Patch1") if self.cb_patch1.isChecked() else None
+        checked_patches.append("Patch2") if self.cb_patch2.isChecked() else None
+        checked_patches.append("Patch3") if self.cb_patch3.isChecked() else None
+
+        # Ensure at least one ROI and one Patch Cord is selected
+        if not checked_rois or not checked_patches:
+            print("No ROI or no Patch Cord selected, returning")  # TODO: create dialog box for no ROIs selected
+            return
+
+        # Create local directory structure for Subject/Date/SessionNumber/raw_fiber_photometry_data/{subject}_data_file.csv
         data_path = Path(
             Path(FIBER_PHOTOMETRY_DATA_FOLDER) /
             self.subject_combo_box.currentText() /
             self.date_edit.text() /
             self.session_number.text() /
             "raw_fiber_photometry_data")
-        os.makedirs(data_path)  # TODO: add try/except for OS operations
         # Build data_file.csv file for selected regions
         data_file = Path(data_path / f"{self.subject_combo_box.currentText()}_data_file.csv")
-        self.model.dataframe[checked_rois].to_csv(data_file, encoding='utf-8')
-
-        # Pull data for patch cord
-        checked_patches = []
-        checked_patches.append("Patch1") if self.cb_patch1.isChecked() else None
-        checked_patches.append("Patch2") if self.cb_patch2.isChecked() else None
-        checked_patches.append("Patch3") if self.cb_patch3.isChecked() else None
+        try:
+            os.makedirs(data_path, exist_ok=True)
+            self.model.dataframe[checked_rois].to_csv(data_file, encoding='utf-8')
+        except OSError:
+            raise
 
         # Build out items to transfer list
         self.items_to_transfer.append({
@@ -170,13 +188,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         str
             representation for the item we are preparing to transfer
         """
-        return_string = item_to_transfer["subject"] + " - " + item_to_transfer["date"] + " - " + \
-                        item_to_transfer["session_number"] + " - "
+        return_string = "Subject: " + item_to_transfer["subject"] + "\n" +\
+                        "Date: " + item_to_transfer["date"] + "\n" +\
+                        "Session Number: " + item_to_transfer["session_number"] + "\n"
+        return_string += "ROIs: "
         for values in item_to_transfer["rois"]:
             return_string += values + " "
+        return_string += "\nPatch Cord: "
         for values in item_to_transfer["patches"]:
             return_string += values + " "
-        return_string += "-> " + item_to_transfer["server_path"]
+        return_string += "\nServer Path: " + item_to_transfer["server_path"] +\
+            "\n------------------------------------------------------------"
         return return_string
 
     def load_csv(self, file=None):
