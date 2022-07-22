@@ -15,6 +15,7 @@ QtSettings values:
 import argparse
 import json
 import os
+import shutil
 import sys
 from dataclasses import dataclass
 from datetime import date
@@ -25,10 +26,16 @@ from PyQt5 import QtWidgets, QtCore
 
 from qt_designer_util import convert_ui_file_to_py
 
-try:  # specify ui file output by Qt Designer, call function to convert to py for efficiency and ease of imports
-    UI_FILE = "fiber_photometry_form.ui"
-    convert_ui_file_to_py(UI_FILE, UI_FILE[:-3] + "_ui.py")
+try:  # specify ui file(s) output by Qt Designer, call function to convert to py for efficiency and ease of imports
+    # main ui file
+    main_ui_file = "fiber_photometry_form.ui"
+    convert_ui_file_to_py(main_ui_file, main_ui_file[:-3] + "_ui.py")
+
+    # dialog box ui file
+    dialog_box_ui_file = "fiber_photometry_dialog_box.ui"
+    convert_ui_file_to_py(dialog_box_ui_file, dialog_box_ui_file[:-3] + "_ui.py")
     from fiber_photometry_form_ui import Ui_MainWindow
+    from fiber_photometry_dialog_box_ui import Ui_Dialog
 except ImportError:
     raise
 
@@ -46,6 +53,12 @@ else:
     Path(FIBER_PHOTOMETRY_DATA_FOLDER).joinpath("Subjects").mkdir(parents=True)
     print(f"Not a Windows OS, will only create temp files for data output in dir: {FIBER_PHOTOMETRY_DATA_FOLDER}")
     FIBER_PHOTOMETRY_DATA_FOLDER += "/Subjects"
+
+
+class Dialog(QtWidgets.QDialog, Ui_Dialog):
+    def __init__(self, parent=None):
+        super(Dialog, self).__init__(parent=parent)
+        self.setupUi(self)
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
@@ -82,6 +95,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Populate widgets
         self.populate_widgets()
 
+        # Disable actionable widgets until CSV is loaded
+        self.enable_actionable_widgets(False)
+
     def populate_widgets(self):
         """
         Pulls from stored QSettings values where appropriate, and sets reasonable defaults to others
@@ -114,7 +130,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.settings.setValue("subjects", subject_list)
 
             # Display dialog box with summary of transfers
-            # TODO
+            dialog_box = Dialog()
+            dialog_box.label.setText("The transfer has completed.")
+            dialog_box.exec_()
 
             # Set server path to QSettings as the new default if it has changed
             if self.server_path.text() is not self.settings.value("server_path"):
@@ -295,7 +313,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Clear item_list_queue
         self.item_list_queue.clear()
 
-        # Cleanup of local files TODO: delete all directories as well
+        # Cleanup of local files
         if self.data_file_path:
             os.unlink(self.data_file_path)
             self.data_file_path = None
@@ -306,8 +324,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             os.unlink(self.bonsai_file_path)
             self.bonsai_file_path = None
         if self.data_path:
-            os.rmdir(self.data_path)
+            shutil.rmtree(self.data_path.parent)  # delete directory tree from session path on down
             self.data_path = None
+
+        # Dialog box for reset notification
+        dialog_box = Dialog()
+        dialog_box.label.setText("Form has been reset. CSV file is still loaded.")
+        dialog_box.exec_()
 
     def populate_default_subjects_and_server_path(self):
         """Populate QSettings with default values, typically for a first run"""
@@ -398,7 +421,5 @@ if __name__ == "__main__":
     elif args.clear_qsettings:
         fiber_form.settings.clear()
     else:
-        # Disable actionable widgets until CSV is loaded
-        fiber_form.enable_actionable_widgets(False)
         fiber_form.show()
         sys.exit(app.exec_())
