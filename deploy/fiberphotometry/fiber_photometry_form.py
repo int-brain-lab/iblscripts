@@ -6,8 +6,6 @@ TODO:
 - Display dialog box with summary of transfers
 - Disable regions and patch cords that have already been selected
   - Create reset button/function in case mistakes were made
-- Create settings.json for each transfer; include subject name, selected patch cords, regions selected, date, session, server path
-- Stub for including bonsai workflow in transfer
 
 QtSettings values:
     last_loaded_csv_path: str - path to the parent dir of the last loaded csv
@@ -15,6 +13,7 @@ QtSettings values:
     subjects: list[str] = field(default_factory=list) - list of subjects should carry over between sessions
 """
 import argparse
+import json
 import os
 import sys
 from dataclasses import dataclass
@@ -55,8 +54,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     """
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent=parent)
-        self.setupUi(self)
+        self.data_path = None
+        self.data_file_path = None
+        self.settings_file_path = None
+        self.bonsai_file_path = None
         self.model = None
+        self.setupUi(self)
         self.items_to_transfer = []
 
         # init QSettings
@@ -66,11 +69,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.action_load_csv.triggered.connect(self.load_csv)
         self.action_add_item_to_queue.triggered.connect(self.add_item_to_queue)
         self.action_transfer_items_to_server.triggered.connect(self.transfer_items_to_server)
+        self.action_reset_form.triggered.connect(self.reset_form)
 
         # Set status bar message prior to csv file being loaded
         self.status_bar_message = QtWidgets.QLabel(self)
         self.status_bar_message.setText("No CSV file loaded")
         self.statusBar().addWidget(self.status_bar_message)
+
+        # Populate default qsetting values for subjects and server_path
+        self.populate_default_subjects_and_server_path()
 
         # Populate widgets
         self.populate_widgets()
@@ -81,24 +88,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         """
         # date
         self.date_edit.setDate(QtCore.QDate(date.today().year, date.today().month, date.today().day))
+
         # subject
-        if self.settings.value("subjects") is not None:
-            for value in reversed(self.settings.value("subjects")):  # list the most recent entries first
-                self.subject_combo_box.addItem(value)
-        else:
-            self.settings.setValue("subjects", ["mouse1"])  # dummy data
+        for value in reversed(self.settings.value("subjects")):  # list the most recent entries first
+            self.subject_combo_box.addItem(value)
+
         # server_path
-        if self.settings.value("path_server_session") is not None:
-            self.server_path.setText(self.settings.value("server_path"))
-        else:
-            self.server_path.setText("\\\\path_to_server\\Subjects")  # dummy data
+        self.server_path.setText(self.settings.value("server_path"))
 
         # session_number
         self.session_number.setText("001")
 
     def transfer_items_to_server(self):
         # if subject value in items_to_transfer list dict is not in self.settings.value("subject"), then add it to the settings
-        print("transfer button press, call ibllib rsync transfer")
+        print("transfer button press, call ibllib rsync transfer")  # TODO: ibllib rsync transfer call
 
         # Determine if transfer was successful
         transfer_success = True  # TODO: replace with logic for determining successful transfer
@@ -113,69 +116,66 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             # Display dialog box with summary of transfers
             # TODO
 
-            # Disable regions and patch cords that have already been selected
-            # TODO
-
             # Set server path to QSettings as the new default if it has changed
             if self.server_path.text() is not self.settings.value("server_path"):
                 self.settings.setValue("server_path", self.server_path.text())
 
     def add_item_to_queue(self):
-        """
-        Verifies that all entered values are present. A cleaner implementation is desirable for this function.
-        """
-        checked_rois = []  # Pull data for ROI check box selection
-        checked_rois.append("Region0R") if self.cb_region0r.isChecked() else None
-        checked_rois.append("Region1G") if self.cb_region1g.isChecked() else None
-        checked_rois.append("Region2R") if self.cb_region2r.isChecked() else None
-        checked_rois.append("Region3R") if self.cb_region3r.isChecked() else None
-        checked_rois.append("Region4R") if self.cb_region4r.isChecked() else None
-        checked_rois.append("Region5G") if self.cb_region5g.isChecked() else None
-        checked_rois.append("Region6G") if self.cb_region6g.isChecked() else None
-        checked_rois.append("Region7R") if self.cb_region7r.isChecked() else None
-        checked_rois.append("Region8G") if self.cb_region8g.isChecked() else None
-
-        checked_patches = []  # Pull data for patch cord check box selection
-        checked_patches.append("Patch1") if self.cb_patch1.isChecked() else None
-        checked_patches.append("Patch2") if self.cb_patch2.isChecked() else None
-        checked_patches.append("Patch3") if self.cb_patch3.isChecked() else None
+        """Verifies that all entered values are present. A cleaner implementation is desired."""
+        checked_rois = self.get_selected_rois()
+        checked_patch_cords = self.get_selected_patch_cords()
 
         # Ensure at least one ROI and one Patch Cord is selected
-        if not checked_rois or not checked_patches:
-            print("No ROI or no Patch Cord selected, returning")  # TODO: create dialog box for no ROIs selected
+        if not checked_rois or not checked_patch_cords:
+            print("No ROI or no Patch Cord selected, returning")  # TODO: create dialog box for no ROIs or Patch Cord selection
             return
 
         # Create local directory structure for Subject/Date/SessionNumber/raw_fiber_photometry_data/{subject}_data_file.csv
-        data_path = Path(
+        self.data_path = Path(
             Path(FIBER_PHOTOMETRY_DATA_FOLDER) /
             self.subject_combo_box.currentText() /
             self.date_edit.text() /
             self.session_number.text() /
             "raw_fiber_photometry_data")
-        # Build data_file.csv file for selected regions
-        data_file = Path(data_path / f"{self.subject_combo_box.currentText()}_data_file.csv")
-        try:
-            os.makedirs(data_path, exist_ok=True)
-            self.model.dataframe[checked_rois].to_csv(data_file, encoding='utf-8')
-        except OSError:
-            raise
 
-        # Build out items to transfer list
-        self.items_to_transfer.append({
+        # dst Path for data_file.csv file for selected regions
+        self.data_file_path = Path(self.data_path / f"{self.subject_combo_box.currentText()}_data_file.csv")
+
+        # Build out item to transfer
+        item = {
             "subject": self.subject_combo_box.currentText(),
             "date": self.date_edit.text(),
             "session_number": self.session_number.text(),
             "rois": checked_rois,
-            "patches": checked_patches,
+            "patches": checked_patch_cords,
             "server_path": self.server_path.text(),
-            "data_file_loc": data_file
-        })
+            "data_file_loc": self.data_file_path.name
+        }
+        self.items_to_transfer.append(item)
 
-        # Display data that will be added to the queue
-        stringified_item_to_transfer = self.stringify_items_to_transfer(self.items_to_transfer[-1])
+        # dst Path for settings.json file
+        self.settings_file_path = Path(self.data_path / "settings.json")
+
+        # dst Path for bonsai.workflow file
+        self.bonsai_file_path = Path(self.data_path / "bonsai.workflow")
+
+        try:  # to perform OS write operations
+            os.makedirs(self.data_path, exist_ok=True)
+            self.model.dataframe[checked_rois].to_csv(self.data_file_path, encoding='utf-8', index=False)
+            self.settings_file_path.write_text(json.dumps(item))
+            Path(self.bonsai_file_path).touch()  # TODO: modify to shutil.copyfile(src, self.bonsai_file_path)
+        except (OSError, TypeError):
+            raise
+
+        # Display data that has been added to the queue
+        stringified_item_to_transfer = self.stringify_item_to_transfer(self.items_to_transfer[-1])
         self.item_list_queue.addItem(stringified_item_to_transfer)
 
-    def stringify_items_to_transfer(self, item_to_transfer: dict) -> str:
+        # Disable check boxes
+        self.disable_selected_check_boxes()
+        self.uncheck_check_boxes()
+
+    def stringify_item_to_transfer(self, item_to_transfer: dict) -> str:
         """
         Method to build out a string representation for the item that we are preparing to transfer
 
@@ -259,6 +259,96 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.server_path.setEnabled(enable)
         self.button_transfer_items_to_server.setEnabled(enable)
 
+    def get_selected_rois(self) -> list:
+        """Pull data for ROI check box selection"""
+        checked_rois = []
+        checked_rois.append("Region0R") if self.cb_region0r.isChecked() else None
+        checked_rois.append("Region1G") if self.cb_region1g.isChecked() else None
+        checked_rois.append("Region2R") if self.cb_region2r.isChecked() else None
+        checked_rois.append("Region3R") if self.cb_region3r.isChecked() else None
+        checked_rois.append("Region4R") if self.cb_region4r.isChecked() else None
+        checked_rois.append("Region5G") if self.cb_region5g.isChecked() else None
+        checked_rois.append("Region6G") if self.cb_region6g.isChecked() else None
+        checked_rois.append("Region7R") if self.cb_region7r.isChecked() else None
+        checked_rois.append("Region8G") if self.cb_region8g.isChecked() else None
+        return checked_rois
+
+    def get_selected_patch_cords(self) -> list:
+        """Pull data for patch cord check box selection"""
+        checked_patch_cords = []
+        checked_patch_cords.append("Patch1") if self.cb_patch1.isChecked() else None
+        checked_patch_cords.append("Patch2") if self.cb_patch2.isChecked() else None
+        checked_patch_cords.append("Patch3") if self.cb_patch3.isChecked() else None
+        return checked_patch_cords
+
+    def reset_form(self):
+        """Resets the form in case mistakes were made"""
+        # Populates widgets with default values
+        self.populate_widgets()
+
+        # Uncheck all check boxes
+        self.uncheck_check_boxes()
+
+        # Re-enable all check boxes
+        self.enable_actionable_widgets()
+
+        # Clear item_list_queue
+        self.item_list_queue.clear()
+
+        # Cleanup of local files TODO: delete all directories as well
+        if self.data_file_path:
+            os.unlink(self.data_file_path)
+            self.data_file_path = None
+        if self.settings_file_path:
+            os.unlink(self.settings_file_path)
+            self.settings_file_path = None
+        if self.bonsai_file_path:
+            os.unlink(self.bonsai_file_path)
+            self.bonsai_file_path = None
+        if self.data_path:
+            os.rmdir(self.data_path)
+            self.data_path = None
+
+    def populate_default_subjects_and_server_path(self):
+        """Populate QSettings with default values, typically for a first run"""
+        if not self.settings.value("subjects"):
+            self.settings.setValue("subjects", ["mouse1"])
+
+        if not self.settings.value("server_path"):
+            self.settings.setValue("server_path", "\\\\path_to_server\\Subjects")
+
+    def disable_selected_check_boxes(self):
+        """Disable the selected checkboxes, useful after adding an item to the queue as more than one subject can not have the
+        same ROIs or Patch Cords"""
+        self.cb_region0r.setDisabled(True) if self.cb_region0r.isChecked() else None
+        self.cb_region1g.setDisabled(True) if self.cb_region1g.isChecked() else None
+        self.cb_region2r.setDisabled(True) if self.cb_region2r.isChecked() else None
+        self.cb_region3r.setDisabled(True) if self.cb_region3r.isChecked() else None
+        self.cb_region4r.setDisabled(True) if self.cb_region4r.isChecked() else None
+        self.cb_region5g.setDisabled(True) if self.cb_region5g.isChecked() else None
+        self.cb_region6g.setDisabled(True) if self.cb_region6g.isChecked() else None
+        self.cb_region7r.setDisabled(True) if self.cb_region7r.isChecked() else None
+        self.cb_region8g.setDisabled(True) if self.cb_region8g.isChecked() else None
+        self.cb_patch1.setDisabled(True) if self.cb_patch1.isChecked() else None
+        self.cb_patch2.setDisabled(True) if self.cb_patch2.isChecked() else None
+        self.cb_patch3.setDisabled(True) if self.cb_patch3.isChecked() else None
+        self.uncheck_check_boxes()
+
+    def uncheck_check_boxes(self):
+        """Unchecks all the checkboxes"""
+        self.cb_region0r.setChecked(False)
+        self.cb_region1g.setChecked(False)
+        self.cb_region2r.setChecked(False)
+        self.cb_region3r.setChecked(False)
+        self.cb_region4r.setChecked(False)
+        self.cb_region5g.setChecked(False)
+        self.cb_region6g.setChecked(False)
+        self.cb_region7r.setChecked(False)
+        self.cb_region8g.setChecked(False)
+        self.cb_patch1.setChecked(False)
+        self.cb_patch2.setChecked(False)
+        self.cb_patch3.setChecked(False)
+
 @dataclass
 class Model:
     """Class to store the necessary data"""
@@ -292,6 +382,8 @@ if __name__ == "__main__":
     # arg parsing
     parser = argparse.ArgumentParser(description="Fiber Photometry Form")
     parser.add_argument("-t", "--test", default=False, required=False, action="store_true", help="Run tests")
+    clear_qsettings_help = "Resets the Qt QSetting values; useful for when there are many unused values in the subject combo box."
+    parser.add_argument("-c", "--clear-qsettings", default=False, required=False, action="store_true", help=clear_qsettings_help)
     args = parser.parse_args()
 
     # Create application and main window
@@ -303,6 +395,8 @@ if __name__ == "__main__":
         csv_file = Path("fiber_copy_test_fixture.csv")
         test_model(csv_file)
         test_controller(fiber_form, csv_file)
+    elif args.clear_qsettings:
+        fiber_form.settings.clear()
     else:
         # Disable actionable widgets until CSV is loaded
         fiber_form.enable_actionable_widgets(False)
