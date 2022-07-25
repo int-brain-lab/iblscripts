@@ -1,11 +1,15 @@
 """
 Application to perform Fiber Photometry related tasks
 
+Development machine details:
+- Ubuntu 22.04
+- Anaconda 4.13.0
+- opencv-python 4.3.0.36  #
+- PyQt5 5.15.7
+
 TODO:
-- call ibllib when initiating the transfer
-- Display dialog box with summary of transfers
-- Disable regions and patch cords that have already been selected
-  - Create reset button/function in case mistakes were made
+- create temp dir structure to test file transfer call
+- dialog box with summary of transfers may need to be resized
 
 QtSettings values:
     last_loaded_csv_path: str - path to the parent dir of the last loaded csv
@@ -14,6 +18,7 @@ QtSettings values:
 """
 import argparse
 import json
+import logging
 import os
 import shutil
 import sys
@@ -23,6 +28,7 @@ from pathlib import Path
 
 import pandas as pd
 from PyQt5 import QtWidgets, QtCore
+from ibllib.pipes.misc import transfer_session_folders
 
 from qt_designer_util import convert_ui_file_to_py
 
@@ -67,12 +73,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     """
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent=parent)
-        self.data_path = None
-        self.data_file_path = None
-        self.settings_file_path = None
-        self.bonsai_file_path = None
         self.model = None
         self.setupUi(self)
+        self.dialog_box = Dialog()
         self.items_to_transfer = []
 
         # init QSettings
@@ -97,6 +100,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Disable actionable widgets until CSV is loaded
         self.enable_actionable_widgets(False)
+        # Disable transfer button widget until items in are in the queue
+        self.button_transfer_items_to_server.setEnabled(False)
 
     def populate_widgets(self):
         """
@@ -116,11 +121,29 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.session_number.setText("001")
 
     def transfer_items_to_server(self):
-        # if subject value in items_to_transfer list dict is not in self.settings.value("subject"), then add it to the settings
-        print("transfer button press, call ibllib rsync transfer")  # TODO: ibllib rsync transfer call
+        """Transfer queued items to server using ibllib transfer session function"""
+        # remote_folder = self.server_path.text()
+        # remote_subject_folder = subjects_data_folder(remote_folder, rglob=True)
+        remote_subject_folder = Path(self.server_path.text())
+        local_sessions = [Path(item["data_path"]).parent for item in self.items_to_transfer]
+        transfer_list, success = transfer_session_folders(
+            local_sessions, remote_subject_folder, subfolder_to_transfer="raw_fiber_photometry_data")
 
-        # Determine if transfer was successful
-        transfer_success = True  # TODO: replace with logic for determining successful transfer
+        if success:
+            transfer_success = True if False not in success else False
+        else:
+            transfer_success = False
+
+        # for src, dst in (x for x, ok in zip(transfer_list, success) if ok):
+        #     logging.info(f"{src} -> {dst} - fiber photometry transfer success")
+        #
+        # # Determine if transfer was successful
+        # for transfer, entry in transfer_list, success:
+        #     if entry is False:
+        #         self.dialog_box.label.setText(f"Transfer failed for: {transfer}")  # May need to resize the dialog box
+        #         self.dialog_box.exec_()
+        #
+        # transfer_success = True  # TODO: replace with logic for determining successful transfer
 
         if transfer_success:
             # Add subject to QSettings if it is not already present
@@ -130,9 +153,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.settings.setValue("subjects", subject_list)
 
             # Display dialog box with summary of transfers
-            dialog_box = Dialog()
-            dialog_box.label.setText("The transfer has completed.")
-            dialog_box.exec_()
+            self.dialog_box.label.setText("The transfer has completed.")
+            self.dialog_box.exec_()
 
             # Set server path to QSettings as the new default if it has changed
             if self.server_path.text() is not self.settings.value("server_path"):
@@ -145,11 +167,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Ensure at least one ROI and one Patch Cord is selected
         if not checked_rois or not checked_patch_cords:
-            print("No ROI or no Patch Cord selected, returning")  # TODO: create dialog box for no ROIs or Patch Cord selection
+            self.dialog_box.label.setText("No ROI or no Patch Cord selected. No item will be added to queue.")
+            self.dialog_box.exec_()
             return
 
-        # Create local directory structure for Subject/Date/SessionNumber/raw_fiber_photometry_data/{subject}_data_file.csv
-        self.data_path = Path(
+        # Create local directory structure .../Subject/Date/SessionNumber/raw_fiber_photometry_data
+        data_path = Path(
             Path(FIBER_PHOTOMETRY_DATA_FOLDER) /
             self.subject_combo_box.currentText() /
             self.date_edit.text() /
@@ -157,7 +180,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             "raw_fiber_photometry_data")
 
         # dst Path for data_file.csv file for selected regions
-        self.data_file_path = Path(self.data_path / f"{self.subject_combo_box.currentText()}_data_file.csv")
+        data_file = Path(data_path / f"{self.subject_combo_box.currentText()}_data_file.csv")
+
+        # dst Path for settings.json file
+        settings_file = Path(data_path / "settings.json")
+
+        # dst Path for bonsai.workflow file
+        bonsai_file = Path(data_path / "bonsai.workflow")
 
         # Build out item to transfer
         item = {
@@ -167,21 +196,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             "rois": checked_rois,
             "patches": checked_patch_cords,
             "server_path": self.server_path.text(),
-            "data_file_loc": self.data_file_path.name
+            "data_path": str(data_path),
+            "data_file": data_file.name,
+            "settings_file": settings_file.name,
+            "bonsai_file": bonsai_file.name
         }
         self.items_to_transfer.append(item)
 
-        # dst Path for settings.json file
-        self.settings_file_path = Path(self.data_path / "settings.json")
-
-        # dst Path for bonsai.workflow file
-        self.bonsai_file_path = Path(self.data_path / "bonsai.workflow")
-
         try:  # to perform OS write operations
-            os.makedirs(self.data_path, exist_ok=True)
-            self.model.dataframe[checked_rois].to_csv(self.data_file_path, encoding='utf-8', index=False)
-            self.settings_file_path.write_text(json.dumps(item))
-            Path(self.bonsai_file_path).touch()  # TODO: modify to shutil.copyfile(src, self.bonsai_file_path)
+            os.makedirs(data_path, exist_ok=True)
+            self.model.dataframe[checked_rois].to_csv(data_file, encoding='utf-8', index=False)
+            settings_file.write_text(json.dumps(item))
+            Path(bonsai_file).touch()  # TODO: modify to shutil.copyfile(src, bonsai_file)
         except (OSError, TypeError):
             raise
 
@@ -192,6 +218,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Disable check boxes
         self.disable_selected_check_boxes()
         self.uncheck_check_boxes()
+
+        # Enable the transfer button
+        self.button_transfer_items_to_server.setEnabled(True)
 
     def stringify_item_to_transfer(self, item_to_transfer: dict) -> str:
         """
@@ -275,7 +304,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.cb_patch2.setEnabled(enable)
         self.cb_patch3.setEnabled(enable)
         self.server_path.setEnabled(enable)
-        self.button_transfer_items_to_server.setEnabled(enable)
+        self.button_reset_form.setEnabled(enable)
 
     def get_selected_rois(self) -> list:
         """Pull data for ROI check box selection"""
@@ -313,24 +342,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Clear item_list_queue
         self.item_list_queue.clear()
 
-        # Cleanup of local files
-        if self.data_file_path:
-            os.unlink(self.data_file_path)
-            self.data_file_path = None
-        if self.settings_file_path:
-            os.unlink(self.settings_file_path)
-            self.settings_file_path = None
-        if self.bonsai_file_path:
-            os.unlink(self.bonsai_file_path)
-            self.bonsai_file_path = None
-        if self.data_path:
-            shutil.rmtree(self.data_path.parent)  # delete directory tree from session path on down
-            self.data_path = None
+        # Cleanup local files and empty self.items_to_transfer list
+        for item in self.items_to_transfer:
+            if item["data_path"]:
+                logging.info(f"Deleting {Path(item['data_path']).parent}")
+                shutil.rmtree(Path(item["data_path"]).parent)
+        self.items_to_transfer = []
+
+        # Disable transfer button
+        self.button_transfer_items_to_server.setEnabled(False)
 
         # Dialog box for reset notification
-        dialog_box = Dialog()
-        dialog_box.label.setText("Form has been reset. CSV file is still loaded.")
-        dialog_box.exec_()
+        self.dialog_box.label.setText("Form has been reset. CSV file is still loaded.")
+        self.dialog_box.exec_()
 
     def populate_default_subjects_and_server_path(self):
         """Populate QSettings with default values, typically for a first run"""
