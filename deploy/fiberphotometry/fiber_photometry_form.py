@@ -4,12 +4,13 @@ Application to perform Fiber Photometry related tasks
 Development machine details:
 - Ubuntu 22.04
 - Anaconda 4.13.0
-- opencv-python 4.3.0.36  #
+- opencv-python 4.3.0.36
 - PyQt5 5.15.7
 
 TODO:
-- create temp dir structure to test file transfer call
-- dialog box with summary of transfers may need to be resized
+- 'queue' the local files in a temp dir
+    - only place files into appropriate local dir structure prior to server transfer
+    - modify form reset method to only remove the 'queued' files
 
 QtSettings values:
     last_loaded_csv_path: str - path to the parent dir of the last loaded csv
@@ -18,7 +19,6 @@ QtSettings values:
 """
 import argparse
 import json
-import logging
 import os
 import shutil
 import sys
@@ -28,7 +28,7 @@ from pathlib import Path
 
 import pandas as pd
 from PyQt5 import QtWidgets, QtCore
-from ibllib.pipes.misc import transfer_session_folders
+from ibllib.pipes.misc import rsync_paths
 
 from qt_designer_util import convert_ui_file_to_py
 
@@ -46,6 +46,7 @@ except ImportError:
     raise
 
 # Ensure data folders exist for local storage of fiber photometry data
+FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE = None  # used for testing transfer function
 if os.name == "nt":  # check on OS platform
     FIBER_PHOTOMETRY_DATA_FOLDER = "C:\\ibl_fiber_photometry_data\\Subjects"
     try:  # to create local data folder
@@ -54,11 +55,18 @@ if os.name == "nt":  # check on OS platform
         raise
 else:
     import tempfile  # cleaner implementation desired
+    # Create temp local dir structure
     FIBER_PHOTOMETRY_DATA_FOLDER = tempfile.TemporaryDirectory()
     FIBER_PHOTOMETRY_DATA_FOLDER = FIBER_PHOTOMETRY_DATA_FOLDER.name
     Path(FIBER_PHOTOMETRY_DATA_FOLDER).joinpath("Subjects").mkdir(parents=True)
-    print(f"Not a Windows OS, will only create temp files for data output in dir: {FIBER_PHOTOMETRY_DATA_FOLDER}")
     FIBER_PHOTOMETRY_DATA_FOLDER += "/Subjects"
+    # Create temp 'remote' dir structure
+    FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE = tempfile.TemporaryDirectory()
+    FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE = FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE.name
+    Path(FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE).joinpath("Subjects").mkdir(parents=True)
+    FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE += "/Subjects"
+    print(f"Not a Windows OS, will only create temp files\nlocal data dir: {FIBER_PHOTOMETRY_DATA_FOLDER}\nremote data dir: "
+          f"{FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE}")
 
 
 class Dialog(QtWidgets.QDialog, Ui_Dialog):
@@ -121,29 +129,36 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.session_number.setText("001")
 
     def transfer_items_to_server(self):
-        """Transfer queued items to server using ibllib transfer session function"""
-        # remote_folder = self.server_path.text()
-        # remote_subject_folder = subjects_data_folder(remote_folder, rglob=True)
-        remote_subject_folder = Path(self.server_path.text())
-        local_sessions = [Path(item["data_path"]).parent for item in self.items_to_transfer]
-        transfer_list, success = transfer_session_folders(
-            local_sessions, remote_subject_folder, subfolder_to_transfer="raw_fiber_photometry_data")
+        """Transfer queued items to server using ibllib rsync_paths function"""
+        # Disable transfer button to keep from accidental user interaction
+        print("Transfer button pressed, please wait...")
 
-        if success:
-            transfer_success = True if False not in success else False
+        if FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE:  # if var is set, we should be in testing mode
+            remote_folder = Path(FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE)
         else:
-            transfer_success = False
+            remote_folder = Path(self.server_path.text())
 
-        # for src, dst in (x for x, ok in zip(transfer_list, success) if ok):
-        #     logging.info(f"{src} -> {dst} - fiber photometry transfer success")
-        #
-        # # Determine if transfer was successful
-        # for transfer, entry in transfer_list, success:
-        #     if entry is False:
-        #         self.dialog_box.label.setText(f"Transfer failed for: {transfer}")  # May need to resize the dialog box
-        #         self.dialog_box.exec_()
-        #
-        # transfer_success = True  # TODO: replace with logic for determining successful transfer
+        # Iterate over the queued items to transfer
+        transfer_success = False
+        for item in self.items_to_transfer:
+            # create remote directory structure .../Subject/Date/SessionNumber
+            remote_data_path = Path(
+                Path(remote_folder) /
+                Path(item["subject"]) /
+                Path(item["date"]) /
+                Path(item["session_number"]) /
+                "raw_fiber_photometry_data")
+            try:
+                os.makedirs(remote_data_path, exist_ok=True)
+            except OSError:
+                raise
+
+            # Call rsync from ibllib
+            transfer_success = rsync_paths(item["data_path"], remote_data_path)
+            if not transfer_success:
+                self.dialog_box.label.setText("Something went wrong during the transfer, please carefully review log messages in "
+                                              "the terminal.")
+                self.dialog_box.exec_()
 
         if transfer_success:
             # Add subject to QSettings if it is not already present
@@ -152,13 +167,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 subject_list.append(self.subject_combo_box.currentText())
                 self.settings.setValue("subjects", subject_list)
 
-            # Display dialog box with summary of transfers
-            self.dialog_box.label.setText("The transfer has completed.")
-            self.dialog_box.exec_()
-
             # Set server path to QSettings as the new default if it has changed
             if self.server_path.text() is not self.settings.value("server_path"):
                 self.settings.setValue("server_path", self.server_path.text())
+
+            # Display dialog box with success message
+            self.dialog_box.label.setText("The transfer has completed. Please review the log messages in the terminal for "
+                                          "details. Pressing OK will reset the application, but keep the current CSV loaded.")
+            self.dialog_box.exec_()
+
 
     def add_item_to_queue(self):
         """Verifies that all entered values are present. A cleaner implementation is desired."""
@@ -171,7 +188,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.dialog_box.exec_()
             return
 
-        # Create local directory structure .../Subject/Date/SessionNumber/raw_fiber_photometry_data
+        # local directory structure .../Subject/Date/SessionNumber/raw_fiber_photometry_data
         data_path = Path(
             Path(FIBER_PHOTOMETRY_DATA_FOLDER) /
             self.subject_combo_box.currentText() /
@@ -345,12 +362,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Cleanup local files and empty self.items_to_transfer list
         for item in self.items_to_transfer:
             if item["data_path"]:
-                logging.info(f"Deleting {Path(item['data_path']).parent}")
+                print(f"Deleting {Path(item['data_path']).parent}")
                 shutil.rmtree(Path(item["data_path"]).parent)
         self.items_to_transfer = []
 
         # Disable transfer button
-        self.button_transfer_items_to_server.setEnabled(False)
+        self.button_transfer_items_to_server.setDisabled(True)
 
         # Dialog box for reset notification
         self.dialog_box.label.setText("Form has been reset. CSV file is still loaded.")
