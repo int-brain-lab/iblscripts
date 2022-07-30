@@ -1,16 +1,36 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from ibllib.atlas import AllenAtlas, FlatMap, BrainRegions
-from ibllib.atlas.flatmaps import plot_swanson, annotate_swanson
+import unittest
+from ibllib.atlas import AllenAtlas, FlatMap
+from ibllib.atlas.flatmaps import plot_swanson
 
 import unittest
 
+class TestAtlasSlicesConversion(unittest.TestCase):
 
-class TestAtlas(unittest.TestCase):
+    @classmethod
+    def setUpClass(self):
+        self.ba = AllenAtlas(25)
+        self.ba.compute_surface()
 
     def test_simple(self):
-        ba = AllenAtlas(25)
-        ba.compute_surface()
+        ba = self.ba
+        # extracts the top surface from the volume and make sure it's all populated
+        ix, iy = np.meshgrid(np.arange(ba.bc.nx), np.arange(ba.bc.ny))
+        iz = ba.bc.z2i(ba.top)
+        inds = ba._lookup_inds(np.stack((ix, iy, iz), axis=-1))
+        assert np.all(ba.label.flat[inds][~np.isnan(ba.top)] != 0)
+        # one sample above, it's all zeros
+        inds = ba._lookup_inds(np.stack((ix, iy, np.maximum(iz - 1, 0)), axis=-1))
+        assert np.all(ba.label.flat[inds][~np.isnan(ba.top)] == 0)
+        # plt.imshow(self._label2rgb(self.label.flat[inds]))  # show the surface
+        # do the same for the bottom surface
+        izb = ba.bc.z2i(ba.bottom)
+        inds = ba._lookup_inds(np.stack((ix, iy, izb), axis=-1))
+        assert np.all(ba.label.flat[inds][~np.isnan(ba.top)] != 0)
+        # one sample below, it's all zeros
+        inds = ba._lookup_inds(np.stack((ix, iy, np.maximum(izb + 1, 0)), axis=-1))
+        assert np.all(ba.label.flat[inds][~np.isnan(ba.bottom)] == 0)
 
         # extracts the top surface from the volume and make sure it's all populated
         ix, iy = np.meshgrid(np.arange(ba.bc.nx), np.arange(ba.bc.ny))
@@ -22,13 +42,27 @@ class TestAtlas(unittest.TestCase):
         assert np.all(ba.label.flat[inds][~np.isnan(ba.top)] == 0)
         # plt.imshow(self._label2rgb(self.label.flat[inds]))  # show the surface
 
-        # do the same for the bottom surface
-        izb = ba.bc.z2i(ba.bottom)
-        inds = ba._lookup_inds(np.stack((ix, iy, izb), axis=-1))
-        assert np.all(ba.label.flat[inds][~np.isnan(ba.top)] != 0)
-        # one sample below, it's all zeros
-        inds = ba._lookup_inds(np.stack((ix, iy, np.maximum(izb + 1, 0)), axis=-1))
-        assert np.all(ba.label.flat[inds][~np.isnan(ba.bottom)] == 0)
+    def test_lookups(self):
+        ba = self.ba
+        # test the probabilistic indices lookup
+        radius_um = 200
+        mapping = 'Beryl'
+        xyz = np.array([0, -.0058, -.0038])
+
+        # from atlasview import atlasview  # mouais il va falloir changer ça
+        # av = atlasview.view()  #
+
+        aid = ba.get_labels(xyz, mapping='Beryl')
+        aids, proportions = ba.get_labels(xyz, mapping='Beryl', radius_um=250)
+
+        assert (aid == 912)
+        assert (np.all(aids == np.array([997, 912, 976, 968])))
+        assert np.all(np.isclose(proportions, np.array([0.40709028, 0.35887036, 0.22757999, 0.00645937])))
+
+
+def test_flatmaps():
+    fm = FlatMap(flatmap='dorsal_cortex')
+    fm.plot_flatmap(depth=0)
 
 
 class TestFlatmaps(unittest.TestCase):
@@ -37,8 +71,8 @@ class TestFlatmaps(unittest.TestCase):
         fm = FlatMap(flatmap='dorsal_cortex')
         fm.plot_flatmap(depth=0)
 
-        fm = FlatMap(flatmap='circles')
-        fm.plot_flatmap()
+def test_swanson():
+    br = ba.regions
 
         fm = FlatMap(flatmap='pyramid')
         fm.plot_flatmap(volume='image')
