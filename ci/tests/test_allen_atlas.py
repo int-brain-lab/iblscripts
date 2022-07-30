@@ -1,10 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import unittest
-from ibllib.atlas import AllenAtlas, FlatMap
+from ibllib.atlas import AllenAtlas, FlatMap, BrainRegions
 from ibllib.atlas.flatmaps import plot_swanson
 
-import unittest
 
 class TestAtlasSlicesConversion(unittest.TestCase):
 
@@ -32,15 +31,6 @@ class TestAtlasSlicesConversion(unittest.TestCase):
         inds = ba._lookup_inds(np.stack((ix, iy, np.maximum(izb + 1, 0)), axis=-1))
         assert np.all(ba.label.flat[inds][~np.isnan(ba.bottom)] == 0)
 
-        # extracts the top surface from the volume and make sure it's all populated
-        ix, iy = np.meshgrid(np.arange(ba.bc.nx), np.arange(ba.bc.ny))
-        iz = ba.bc.z2i(ba.top)
-        inds = ba._lookup_inds(np.stack((ix, iy, iz), axis=-1))
-        assert np.all(ba.label.flat[inds][~np.isnan(ba.top)] != 0)
-        # one sample above, it's all zeros
-        inds = ba._lookup_inds(np.stack((ix, iy, np.maximum(iz - 1, 0)), axis=-1))
-        assert np.all(ba.label.flat[inds][~np.isnan(ba.top)] == 0)
-        # plt.imshow(self._label2rgb(self.label.flat[inds]))  # show the surface
 
     def test_lookups(self):
         ba = self.ba
@@ -60,19 +50,14 @@ class TestAtlasSlicesConversion(unittest.TestCase):
         assert np.all(np.isclose(proportions, np.array([0.40709028, 0.35887036, 0.22757999, 0.00645937])))
 
 
-def test_flatmaps():
-    fm = FlatMap(flatmap='dorsal_cortex')
-    fm.plot_flatmap(depth=0)
-
-
-class TestFlatmaps(unittest.TestCase):
+class TestFlatMaps(unittest.TestCase):
 
     def test_flatmaps(self):
         fm = FlatMap(flatmap='dorsal_cortex')
         fm.plot_flatmap(depth=0)
 
-def test_swanson():
-    br = ba.regions
+        fm = FlatMap(flatmap='circles')
+        fm.plot_flatmap()
 
         fm = FlatMap(flatmap='pyramid')
         fm.plot_flatmap(volume='image')
@@ -80,8 +65,12 @@ def test_swanson():
 
 class TestSwanson(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(self):
+        self.regions = BrainRegions()
+
     def test_swanson(self):
-        br = BrainRegions()
+        br = self.regions
 
         # prepare array of acronyms
         acronyms = ['ACAd1', 'ACAv1', 'AId1', 'AIp1', 'AIv1', 'AUDd1', 'AUDp1', 'AUDpo1', 'AUDv1',
@@ -106,11 +95,5 @@ class TestSwanson(unittest.TestCase):
         plot_swanson(acronyms, values, cmap='Blues', hemisphere='both')
         fig, ax = plt.subplots()
         plot_swanson(regions_rl, values_rl, hemisphere='both', cmap='magma', br=br)
-        annotate_swanson(ax, acronyms=acronyms)
-        fig, ax = plt.subplots()
-        plot_swanson(br=br, annotate=True)
+
         plt.close('all')
-
-
-if __name__ == "__main__":
-    unittest.main(exit=False)
