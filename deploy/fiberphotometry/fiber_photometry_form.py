@@ -6,11 +6,10 @@ Development machine details:
 - Anaconda 4.13.0
 - opencv-python 4.3.0.36
 - PyQt5 5.15.7
+- ibllib widefield2 branch
 
 TODO:
-- 'queue' the local files in a temp dir
-    - only place files into appropriate local dir structure prior to server transfer
-    - modify form reset method to only remove the 'queued' files
+- use shutil.copyfile(src, bonsai_file) to get workflow file into appropriate location
 
 QtSettings values:
     last_loaded_csv_path: str - path to the parent dir of the last loaded csv
@@ -49,24 +48,27 @@ except ImportError:
 FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE = None  # used for testing transfer function
 if os.name == "nt":  # check on OS platform
     FIBER_PHOTOMETRY_DATA_FOLDER = "C:\\ibl_fiber_photometry_data\\Subjects"
+    FIBER_PHOTOMETRY_DATA_FOLDER_QUEUED = "C:\\Temp\\ibl_fiber_photometry_data_queued"
     try:  # to create local data folder
         os.makedirs(FIBER_PHOTOMETRY_DATA_FOLDER, exist_ok=True)
+        os.makedirs(FIBER_PHOTOMETRY_DATA_FOLDER_QUEUED, exist_ok=True)
     except OSError:
         raise
 else:
     import tempfile  # cleaner implementation desired
-    # Create temp local dir structure
-    FIBER_PHOTOMETRY_DATA_FOLDER = tempfile.TemporaryDirectory()
-    FIBER_PHOTOMETRY_DATA_FOLDER = FIBER_PHOTOMETRY_DATA_FOLDER.name
-    Path(FIBER_PHOTOMETRY_DATA_FOLDER).joinpath("Subjects").mkdir(parents=True)
-    FIBER_PHOTOMETRY_DATA_FOLDER += "/Subjects"
-    # Create temp 'remote' dir structure
-    FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE = tempfile.TemporaryDirectory()
-    FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE = FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE.name
-    Path(FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE).joinpath("Subjects").mkdir(parents=True)
-    FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE += "/Subjects"
+    # Create temp dir structure
+    TEMP_DIR = tempfile.TemporaryDirectory()
+    FIBER_PHOTOMETRY_DATA_FOLDER = TEMP_DIR.name + "/local/Subjects"
+    FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE = TEMP_DIR.name + "/remote/Subjects"
+    FIBER_PHOTOMETRY_DATA_FOLDER_QUEUED = TEMP_DIR.name + "/queued/Subjects"
+    try:
+        os.makedirs(FIBER_PHOTOMETRY_DATA_FOLDER, exist_ok=True)
+        os.makedirs(FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE, exist_ok=True)
+        os.makedirs(FIBER_PHOTOMETRY_DATA_FOLDER_QUEUED, exist_ok=True)
+    except OSError:
+        raise
     print(f"Not a Windows OS, will only create temp files\nlocal data dir: {FIBER_PHOTOMETRY_DATA_FOLDER}\nremote data dir: "
-          f"{FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE}")
+          f"{FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE}\nqueued dir: {FIBER_PHOTOMETRY_DATA_FOLDER_QUEUED}")
 
 
 class Dialog(QtWidgets.QDialog, Ui_Dialog):
@@ -130,13 +132,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def transfer_items_to_server(self):
         """Transfer queued items to server using ibllib rsync_paths function"""
-        # Disable transfer button to keep from accidental user interaction
         print("Transfer button pressed, please wait...")
 
         if FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE:  # if var is set, we should be in testing mode
             remote_folder = Path(FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE)
         else:
             remote_folder = Path(self.server_path.text())
+
+        try:  # Copy items from queue_path to data_path for every item in queue
+            [shutil.copytree(item["queue_path"], item["data_path"], dirs_exist_ok=True) for item in self.items_to_transfer]
+        except shutil.Error:
+            raise
 
         # Iterate over the queued items to transfer
         transfer_success = False
@@ -176,6 +182,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                                           "details. Pressing OK will reset the application, but keep the current CSV loaded.")
             self.dialog_box.exec_()
 
+            self.reset_form()
 
     def add_item_to_queue(self):
         """Verifies that all entered values are present. A cleaner implementation is desired."""
@@ -195,15 +202,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.date_edit.text() /
             self.session_number.text() /
             "raw_fiber_photometry_data")
+        queue_path = Path(
+            Path(FIBER_PHOTOMETRY_DATA_FOLDER_QUEUED) /
+            self.subject_combo_box.currentText() /
+            self.date_edit.text() /
+            self.session_number.text() /
+            "raw_fiber_photometry_data")
 
         # dst Path for data_file.csv file for selected regions
-        data_file = Path(data_path / f"{self.subject_combo_box.currentText()}_data_file.csv")
+        data_file = Path(queue_path / f"{self.subject_combo_box.currentText()}_data_file.csv")
 
         # dst Path for settings.json file
-        settings_file = Path(data_path / "settings.json")
+        settings_file = Path(queue_path / "settings.json")
 
         # dst Path for bonsai.workflow file
-        bonsai_file = Path(data_path / "bonsai.workflow")
+        bonsai_file = Path(queue_path / "bonsai.workflow")
 
         # Build out item to transfer
         item = {
@@ -213,6 +226,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             "rois": checked_rois,
             "patches": checked_patch_cords,
             "server_path": self.server_path.text(),
+            "queue_path": str(queue_path),
             "data_path": str(data_path),
             "data_file": data_file.name,
             "settings_file": settings_file.name,
@@ -221,7 +235,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.items_to_transfer.append(item)
 
         try:  # to perform OS write operations
-            os.makedirs(data_path, exist_ok=True)
+            os.makedirs(queue_path, exist_ok=True)
             self.model.dataframe[checked_rois].to_csv(data_file, encoding='utf-8', index=False)
             settings_file.write_text(json.dumps(item))
             Path(bonsai_file).touch()  # TODO: modify to shutil.copyfile(src, bonsai_file)
@@ -347,6 +361,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def reset_form(self):
         """Resets the form in case mistakes were made"""
+        # Clear subject combo box
+        self.subject_combo_box.clear()
+
         # Populates widgets with default values
         self.populate_widgets()
 
@@ -359,11 +376,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Clear item_list_queue
         self.item_list_queue.clear()
 
-        # Cleanup local files and empty self.items_to_transfer list
+        # Cleanup local queue_path files and empty self.items_to_transfer list
         for item in self.items_to_transfer:
-            if item["data_path"]:
-                print(f"Deleting {Path(item['data_path']).parent}")
-                shutil.rmtree(Path(item["data_path"]).parent)
+            if item["queue_path"]:
+                print(f"Deleting {Path(item['queue_path']).parent}")
+                shutil.rmtree(Path(item["queue_path"]).parent)
         self.items_to_transfer = []
 
         # Disable transfer button
