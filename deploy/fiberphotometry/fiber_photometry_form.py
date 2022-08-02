@@ -10,6 +10,8 @@ Development machine details:
 
 TODO:
 - use shutil.copyfile(src, bonsai_file) to get workflow file into appropriate location
+- add error checking for patch cord link/ROI selection between items selected for transfer?
+    - verify that this would not be a hindrance
 
 QtSettings values:
     last_loaded_csv_path: str - path to the parent dir of the last loaded csv
@@ -31,7 +33,7 @@ from ibllib.pipes.misc import rsync_paths
 
 from qt_designer_util import convert_ui_file_to_py
 
-try:  # specify ui file(s) output by Qt Designer, call function to convert to py for efficiency and ease of imports
+try:  # specify ui file(s) output by Qt Designer, call function to convert to py for runtime efficiency and ease of imports
     # main ui file
     main_ui_file = "fiber_photometry_form.ui"
     convert_ui_file_to_py(main_ui_file, main_ui_file[:-3] + "_ui.py")
@@ -39,6 +41,7 @@ try:  # specify ui file(s) output by Qt Designer, call function to convert to py
     # dialog box ui file
     dialog_box_ui_file = "fiber_photometry_dialog_box.ui"
     convert_ui_file_to_py(dialog_box_ui_file, dialog_box_ui_file[:-3] + "_ui.py")
+
     from fiber_photometry_form_ui import Ui_MainWindow
     from fiber_photometry_dialog_box_ui import Ui_Dialog
 except ImportError:
@@ -105,6 +108,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Populate default qsetting values for subjects and server_path
         self.populate_default_subjects_and_server_path()
 
+        # List of the default ROIs to display in the combo boxes
+        self.roi_defaults = [
+            "", "Region0R", "Region1G", "Region2R", "Region3R", "Region4R", "Region5G", "Region6G", "Region7R", "Region8G"]
+
         # Populate widgets
         self.populate_widgets()
 
@@ -129,6 +136,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # session_number
         self.session_number.setText("001")
+
+        # patch cord link to ROI combo boxes
+        self.link_a_combo_box.addItems(self.roi_defaults)
+        self.link_b_combo_box.addItems(self.roi_defaults)
+        self.link_c_combo_box.addItems(self.roi_defaults)
 
     def transfer_items_to_server(self):
         """Transfer queued items to server using ibllib rsync_paths function"""
@@ -185,14 +197,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.reset_form()
 
     def add_item_to_queue(self):
-        """Verifies that all entered values are present. A cleaner implementation is desired."""
-        checked_rois = self.get_selected_rois()
-        checked_patch_cords = self.get_selected_patch_cords()
+        """Verifies that all entered values are present."""
 
-        # Ensure at least one ROI and one Patch Cord is selected
-        if not checked_rois or not checked_patch_cords:
-            self.dialog_box.label.setText("No ROI or no Patch Cord selected. No item will be added to queue.")
-            self.dialog_box.exec_()
+        if not self.validate_rois():  # Check for at least a single ROI has been selected; no duplicate ROIs
             return
 
         # local directory structure .../Subject/Date/SessionNumber/raw_fiber_photometry_data
@@ -223,8 +230,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             "subject": self.subject_combo_box.currentText(),
             "date": self.date_edit.text(),
             "session_number": self.session_number.text(),
-            "rois": checked_rois,
-            "patches": checked_patch_cords,
+            "link_a_roi": self.link_a_combo_box.currentText(),
+            "link_b_roi": self.link_b_combo_box.currentText(),
+            "link_c_roi": self.link_c_combo_box.currentText(),
             "server_path": self.server_path.text(),
             "queue_path": str(queue_path),
             "data_path": str(data_path),
@@ -236,19 +244,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         try:  # to perform OS write operations
             os.makedirs(queue_path, exist_ok=True)
-            self.model.dataframe[checked_rois].to_csv(data_file, encoding='utf-8', index=False)
+            self.model.dataframe[self.get_selected_rois()].to_csv(data_file, encoding='utf-8', index=False)
             settings_file.write_text(json.dumps(item))
-            Path(bonsai_file).touch()  # TODO: modify to shutil.copyfile(src, bonsai_file)
+            Path(bonsai_file).touch()  # TODO: modify to shutil.copyfile(src, bonsai_file) once we have confirmation on src
         except (OSError, TypeError):
             raise
 
         # Display data that has been added to the queue
         stringified_item_to_transfer = self.stringify_item_to_transfer(self.items_to_transfer[-1])
         self.item_list_queue.addItem(stringified_item_to_transfer)
-
-        # Disable check boxes
-        self.disable_selected_check_boxes()
-        self.uncheck_check_boxes()
 
         # Enable the transfer button
         self.button_transfer_items_to_server.setEnabled(True)
@@ -268,14 +272,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         """
         return_string = "Subject: " + item_to_transfer["subject"] + "\n" +\
                         "Date: " + item_to_transfer["date"] + "\n" +\
-                        "Session Number: " + item_to_transfer["session_number"] + "\n"
-        return_string += "ROIs: "
-        for values in item_to_transfer["rois"]:
-            return_string += values + " "
-        return_string += "\nPatch Cord: "
-        for values in item_to_transfer["patches"]:
-            return_string += values + " "
-        return_string += "\nServer Path: " + item_to_transfer["server_path"] +\
+                        "Session Number: " + item_to_transfer["session_number"] + "\n" +\
+                        "Patch Cord:\n"
+        if item_to_transfer["link_a_roi"] != "":
+            return_string += "- Link A: " + item_to_transfer["link_a_roi"] + "\n"
+        if item_to_transfer["link_b_roi"] != "":
+            return_string += "- Link B: " + item_to_transfer["link_b_roi"] + "\n"
+        if item_to_transfer["link_c_roi"] != "":
+            return_string += "- Link C: " + item_to_transfer["link_c_roi"] + "\n"
+        return_string += "Server Path: " + item_to_transfer["server_path"] +\
             "\n------------------------------------------------------------"
         return return_string
 
@@ -305,7 +310,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.status_bar_message.setText(f"CSV file loaded: {file}")
         self.statusBar().addWidget(self.status_bar_message)
 
-        # # Enable actionable widgets now that CSV is loaded
+        # Enable actionable widgets now that CSV is loaded
         self.enable_actionable_widgets()
 
     def enable_actionable_widgets(self, enable: bool = True):
@@ -322,56 +327,41 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.button_add_item_to_queue.setEnabled(enable)
         self.item_list_queue.setEnabled(enable)
         self.session_number.setEnabled(enable)
-        self.cb_region0r.setEnabled(enable)
-        self.cb_region1g.setEnabled(enable)
-        self.cb_region2r.setEnabled(enable)
-        self.cb_region3r.setEnabled(enable)
-        self.cb_region4r.setEnabled(enable)
-        self.cb_region5g.setEnabled(enable)
-        self.cb_region6g.setEnabled(enable)
-        self.cb_region7r.setEnabled(enable)
-        self.cb_region8g.setEnabled(enable)
-        self.cb_patch1.setEnabled(enable)
-        self.cb_patch2.setEnabled(enable)
-        self.cb_patch3.setEnabled(enable)
+        self.link_a_combo_box.setEnabled(enable)
+        self.link_b_combo_box.setEnabled(enable)
+        self.link_c_combo_box.setEnabled(enable)
         self.server_path.setEnabled(enable)
         self.button_reset_form.setEnabled(enable)
 
     def get_selected_rois(self) -> list:
-        """Pull data for ROI check box selection"""
-        checked_rois = []
-        checked_rois.append("Region0R") if self.cb_region0r.isChecked() else None
-        checked_rois.append("Region1G") if self.cb_region1g.isChecked() else None
-        checked_rois.append("Region2R") if self.cb_region2r.isChecked() else None
-        checked_rois.append("Region3R") if self.cb_region3r.isChecked() else None
-        checked_rois.append("Region4R") if self.cb_region4r.isChecked() else None
-        checked_rois.append("Region5G") if self.cb_region5g.isChecked() else None
-        checked_rois.append("Region6G") if self.cb_region6g.isChecked() else None
-        checked_rois.append("Region7R") if self.cb_region7r.isChecked() else None
-        checked_rois.append("Region8G") if self.cb_region8g.isChecked() else None
-        return checked_rois
+        """
+        Pull data for ROI check box selection
 
-    def get_selected_patch_cords(self) -> list:
-        """Pull data for patch cord check box selection"""
-        checked_patch_cords = []
-        checked_patch_cords.append("Patch1") if self.cb_patch1.isChecked() else None
-        checked_patch_cords.append("Patch2") if self.cb_patch2.isChecked() else None
-        checked_patch_cords.append("Patch3") if self.cb_patch3.isChecked() else None
-        return checked_patch_cords
+        Returns
+        -------
+        list
+            ROIs that have been selected for the current session
+
+        """
+        selected_rois = []
+        if self.link_a_combo_box.currentText() != "":
+            selected_rois.append(self.link_a_combo_box.currentText())
+        if self.link_b_combo_box.currentText() != "":
+            selected_rois.append(self.link_b_combo_box.currentText())
+        if self.link_c_combo_box.currentText() != "":
+            selected_rois.append(self.link_c_combo_box.currentText())
+        return selected_rois
 
     def reset_form(self):
         """Resets the form in case mistakes were made"""
-        # Clear subject combo box
+        # Clear combo boxes
         self.subject_combo_box.clear()
+        self.link_a_combo_box.clear()
+        self.link_b_combo_box.clear()
+        self.link_c_combo_box.clear()
 
         # Populates widgets with default values
         self.populate_widgets()
-
-        # Uncheck all check boxes
-        self.uncheck_check_boxes()
-
-        # Re-enable all check boxes
-        self.enable_actionable_widgets()
 
         # Clear item_list_queue
         self.item_list_queue.clear()
@@ -398,37 +388,49 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if not self.settings.value("server_path"):
             self.settings.setValue("server_path", "\\\\path_to_server\\Subjects")
 
-    def disable_selected_check_boxes(self):
-        """Disable the selected checkboxes, useful after adding an item to the queue as more than one subject can not have the
-        same ROIs or Patch Cords"""
-        self.cb_region0r.setDisabled(True) if self.cb_region0r.isChecked() else None
-        self.cb_region1g.setDisabled(True) if self.cb_region1g.isChecked() else None
-        self.cb_region2r.setDisabled(True) if self.cb_region2r.isChecked() else None
-        self.cb_region3r.setDisabled(True) if self.cb_region3r.isChecked() else None
-        self.cb_region4r.setDisabled(True) if self.cb_region4r.isChecked() else None
-        self.cb_region5g.setDisabled(True) if self.cb_region5g.isChecked() else None
-        self.cb_region6g.setDisabled(True) if self.cb_region6g.isChecked() else None
-        self.cb_region7r.setDisabled(True) if self.cb_region7r.isChecked() else None
-        self.cb_region8g.setDisabled(True) if self.cb_region8g.isChecked() else None
-        self.cb_patch1.setDisabled(True) if self.cb_patch1.isChecked() else None
-        self.cb_patch2.setDisabled(True) if self.cb_patch2.isChecked() else None
-        self.cb_patch3.setDisabled(True) if self.cb_patch3.isChecked() else None
-        self.uncheck_check_boxes()
+    def validate_rois(self) -> bool:
+        """
+        Ensure at least a single ROI has been selected and that there are no duplicate ROIs selected. Will cause a dialog box to
+        appear if we hit an error state.
 
-    def uncheck_check_boxes(self):
-        """Unchecks all the checkboxes"""
-        self.cb_region0r.setChecked(False)
-        self.cb_region1g.setChecked(False)
-        self.cb_region2r.setChecked(False)
-        self.cb_region3r.setChecked(False)
-        self.cb_region4r.setChecked(False)
-        self.cb_region5g.setChecked(False)
-        self.cb_region6g.setChecked(False)
-        self.cb_region7r.setChecked(False)
-        self.cb_region8g.setChecked(False)
-        self.cb_patch1.setChecked(False)
-        self.cb_patch2.setChecked(False)
-        self.cb_patch3.setChecked(False)
+        Returns
+        -------
+        bool
+            True if all validations pass, False if any validations fail
+
+        """
+        # Ensure at least a single ROI has been selected
+        if (self.link_a_combo_box.currentText() == "") \
+                and (self.link_b_combo_box.currentText() == "") \
+                and (self.link_c_combo_box.currentText() == ""):
+            # Display dialog box to end user regarding no ROI selected
+            self.dialog_box.label.setText("No ROIs selected. Please select at least one ROI.")
+            self.dialog_box.exec_()
+            return False
+
+        # Ensure there are no duplicate ROIs selected
+        duplicates = False
+        if self.link_a_combo_box.currentText() != "":
+            if (self.link_a_combo_box.currentText() == self.link_b_combo_box.currentText()) \
+                    or (self.link_a_combo_box.currentText() == self.link_c_combo_box.currentText()):
+                duplicates = True
+        if self.link_b_combo_box.currentText() != "":
+            if (self.link_b_combo_box.currentText() == self.link_a_combo_box.currentText()) \
+                    or (self.link_b_combo_box.currentText() == self.link_c_combo_box.currentText()):
+                duplicates = True
+        if self.link_c_combo_box.currentText() != "":
+            if (self.link_c_combo_box.currentText() == self.link_a_combo_box.currentText()) \
+                    or (self.link_c_combo_box.currentText() == self.link_b_combo_box.currentText()):
+                duplicates = True
+
+        # Disply dialog box to end user about duplicate ROIs
+        if duplicates:
+            self.dialog_box.label.setText("The same ROI has been selected multiple times. Please select only one ROI per patch "
+                                          "cord link.")
+            self.dialog_box.exec_()
+            return False
+        return True
+
 
 @dataclass
 class Model:
