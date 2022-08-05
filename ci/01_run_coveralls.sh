@@ -47,5 +47,5 @@ coverage json -o "$3/reports/$1/CoverageResults.json"
 coverage lcov -o "$3/reports/$1/CoverageResults.lcov"
 
 # Post lcov to coveralls then delete file
-coveralls=$("$2/../node_modules/coveralls/bin/coveralls.js")
+coveralls=$("$2/../matlab-ci/node_modules/coveralls/bin/coveralls.js")
 coveralls -v < "$3/reports/$1/CoverageResults.lcov" && rm "$3/reports/$1/CoverageResults.lcov"
