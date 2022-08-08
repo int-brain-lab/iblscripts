@@ -14,16 +14,14 @@ conda activate ci
 mkdir -p "$3"
 pushd "$2"
 flake8 . --tee --output-file="$3/flake_output.txt"
-popd
 
-coverage erase  # Be extra careful and erase previous coverage
 # Should run the tests in the source directory as the coverage paths are relative to the cwd.
 # As we install via pip this will be in anaconda3 env packages
 #
 # NB: If we ever need to change to a different directory we can call renameHTML and pass the
 # filepath arg to node-coveralls, specifying the location relative to our working directory.
 source=$(pip show ibllib | awk -F':' '$1 == "Location" { print $2 }' | xargs)
-cd "$source"
+pushd "$source"
 
 # Build up sources
 pkgs=''
@@ -33,6 +31,8 @@ do
    pkgs+="${pkg},"
 done
 pkgs=${pkgs%?} # remove last comma
+
+coverage erase  # Be extra careful and erase previous coverage
 
 # Run tests
 coverage run --source="$pkgs" --rcfile "$2/../iblscripts/.coveragerc" \
@@ -47,5 +47,9 @@ coverage json -o "$3/reports/$1/CoverageResults.json"
 coverage lcov -o "$3/reports/$1/CoverageResults.lcov"
 
 # Post lcov to coveralls then delete file
-coveralls=$("$2/../matlab-ci/node_modules/coveralls/bin/coveralls.js")
-coveralls -v < "$3/reports/$1/CoverageResults.lcov" && rm "$3/reports/$1/CoverageResults.lcov"
+echo Posting to coveralls.io
+coveralls="$2/../matlab-ci/node_modules/coveralls/bin/coveralls.js"
+$coveralls < "$3/reports/$1/CoverageResults.lcov" && rm "$3/reports/$1/CoverageResults.lcov"
+popd > /dev/null
+popd > /dev/null
+echo "Done"
