@@ -40,8 +40,8 @@ class TestReadSpikeSorting(IntegrationTest):
             file.unlink()
 
     def test_channel_conversion_interpolation(self):
-        BUNCH_KEYS = set(['x', 'y', 'z', 'acronym', 'atlas_id', 'axial_um', 'lateral_um'])
-        ALF_KEYS = set(['localCoordinates', 'mlapdv', 'brainLocationIds_ccf_2017'])
+        BUNCH_KEYS = {'x', 'y', 'z', 'acronym', 'atlas_id', 'axial_um', 'lateral_um'}
+        ALF_KEYS = {'localCoordinates', 'mlapdv', 'brainLocationIds_ccf_2017'}
         pname = 'probe01'
         alf_channels = load_object(self.session_path.joinpath('alf', pname), 'channels')
         channels = bbone._channels_alf2bunch(alf_channels)
