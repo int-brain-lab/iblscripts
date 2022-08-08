@@ -12,8 +12,8 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import List, Union
 
+import ibllib
 from iblutil.util import flatten
-from ibllib.misc.version import ibllib as ver
 import projects
 
 logger = logging.getLogger('ibllib')
@@ -104,9 +104,8 @@ if __name__ == "__main__":
     # Defaults
     root = Path(__file__).parent.absolute()  # Default root folder
     repo_dir = Path(ibllib.__file__).parent  # Default repository source for coverage
-    version = ver()
-    if not version or version == 'unversioned':
-        getattr(ibllib, '__version__', timestamp)
+
+    version = getattr(ibllib, '__version__', timestamp)
 
     # Parse parameters
     parser = argparse.ArgumentParser(description='Integration tests for ibllib.')

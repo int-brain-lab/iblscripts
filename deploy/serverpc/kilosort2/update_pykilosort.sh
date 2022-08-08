@@ -28,15 +28,25 @@ if test "$update" ; then
   pip install phylib ;
   pip install ibllib ;
 else
-  echo "phylib is up-to-date" ;
-  update=$(echo $outdated | grep -o "ibllib" | cut -d = -f 1)
-  if test "$update" ; then
-    echo "Updating ibllib" ;
-    pip uninstall -y ibllib ;
-    pip install ibllib ;
-  else
+echo "phylib is up-to-date" ;
+fi
+
+update=$(echo $outdated | grep -o "ibllib" | cut -d = -f 1)
+if test "$update" ; then
+  echo "Updating ibllib" ;
+  pip uninstall -y ibllib ;
+  pip install ibllib ;
+else
   echo "ibllib is up-to-date" ;
-  fi
+fi
+
+update=$(echo $outdated | grep -o "ibl-neuropixel" | cut -d = -f 1)
+if test "$update" ; then
+  echo "Updating ibl-neuropixel" ;
+  pip uninstall -y ibl-neuropixel ;
+  pip install ibl-neuropixel ;
+else
+  echo "ibl-neuropixel is up-to-date" ;
 fi
 
 conda deactivate
