@@ -1,5 +1,6 @@
 import tempfile
 import logging
+import unittest
 from unittest import mock
 from pathlib import Path
 import json
@@ -11,6 +12,7 @@ from ibllib.pipes import transfer_rig_data
 
 from deploy.videopc.transfer_video_session import main as transfer_video_session
 from deploy.widefieldpc.transfer_widefield import main as transfer_widefield
+from deploy.transfer_data_folder import main as transfer_data_folder
 
 from .base import IntegrationTest
 
@@ -299,6 +301,7 @@ class TestTransferWidefieldSession(IntegrationTest):
             self.assertIn('No outstanding local sessions', log.records[-1].message)
 
 
+@unittest.skip('TODO Finish test')
 class TestTransferMesoscopeSession(IntegrationTest):
     """Tests for the iblscripts/deploy/mesoscope/transfer_mesoscope.py script"""
     def setUp(self):
@@ -318,7 +321,7 @@ class TestTransferMesoscopeSession(IntegrationTest):
         shutil.copytree(test_data, self.local_session_path.joinpath('raw_widefield_data'))
 
     @mock.patch('ibllib.pipes.misc.create_basic_transfer_params')
-    def test_transfer_widefield(self, mock_params):
+    def test_transfer_mesoscope(self, mock_params):
         paths = {'DATA_FOLDER_PATH': str(self.local_repo), 'REMOTE_DATA_FOLDER_PATH': str(self.remote_repo)}
         mock_params.return_value = paths
 
@@ -343,4 +346,53 @@ class TestTransferMesoscopeSession(IntegrationTest):
         # Check ignores sessions with flag file
         with self.assertLogs('ibllib.pipes.misc', logging.INFO) as log:
             transfer_widefield(self.local_repo, self.remote_repo)
+            self.assertIn('No outstanding local sessions', log.records[-1].message)
+
+
+class TestTransferRawDataSession(IntegrationTest):
+    """Tests for the iblscripts/deploy/transfer_data_folder.py script"""
+    def setUp(self):
+        # Data emulating local rig data
+        self.root_test_folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.root_test_folder.cleanup)
+
+        self.remote_repo = Path(self.root_test_folder.name).joinpath("remote_repo")
+        self.remote_repo.joinpath("fakelab/Subjects").mkdir(parents=True)
+
+        self.local_repo = Path(self.root_test_folder.name).joinpath("local_repo")
+        self.local_repo.mkdir()
+
+        self.local_session_path = fu.create_fake_session_folder(self.local_repo)
+
+    @mock.patch('ibllib.pipes.misc.create_basic_transfer_params')
+    def test_transfer_sync(self, mock_params):
+        data_folder = 'raw_sync_data'
+        local_data_folder = self.local_session_path.joinpath(data_folder)
+        local_data_folder.mkdir()
+        local_data_folder.joinpath('foo.bar').touch()
+
+        paths = {'DATA_FOLDER_PATH': str(self.local_repo), 'REMOTE_DATA_FOLDER_PATH': str(self.remote_repo)}
+        mock_params.return_value = paths
+
+        # Create 'remote' behaviour folder
+        remote_session = fu.create_fake_session_folder(self.remote_repo)
+        fu.create_fake_raw_behavior_data_folder(remote_session)
+        with mock.patch('builtins.input') as mock_in:
+            transfer_data_folder(data_folder, self.local_repo, self.remote_repo)
+            mock_in.assert_not_called()  # Expect no need for user input
+
+        remote_data = remote_session.joinpath(data_folder)
+        self.assertTrue(remote_data.exists() and any(remote_data.glob('*.*')))
+        local_flag = local_data_folder.joinpath('transferred.flag')
+        self.assertTrue(local_flag.exists())
+
+        # Check whether all files in the transferred flag file are present in the remote location
+        local_exists_remote = map(
+            lambda x: remote_data.joinpath(Path(x).relative_to(local_flag.parent)).exists(),
+            flags.read_flag_file(local_flag))
+        self.assertTrue(all(local_exists_remote))
+
+        # Check ignores sessions with flag file
+        with self.assertLogs('ibllib.pipes.misc', logging.INFO) as log:
+            transfer_data_folder(data_folder, self.local_repo, self.remote_repo)
             self.assertIn('No outstanding local sessions', log.records[-1].message)
