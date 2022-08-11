@@ -5,7 +5,7 @@ import tempfile
 
 import numpy as np
 
-from ibllib.misc import version
+from pkg_resources import parse_version
 from ibllib.pipes.training_preprocessing import TrainingTrials
 import ibllib.io.raw_data_loaders as rawio
 from one.api import One
@@ -56,7 +56,7 @@ class TestSessions(base.IntegrationTest):
                 trials = alfio.load_object(session_path / 'alf', 'trials')
                 self.assertTrue(alfio.check_dimensions(trials) == 0)
                 settings = rawio.load_settings(session_path)
-                if version.ge(settings['IBLRIG_VERSION_TAG'], '5.0.0'):
+                if parse_version(settings['IBLRIG_VERSION_TAG']) >= parse_version('5.0.0'):
                     tkeys = TRIAL_KEYS_ge5
                 else:
                     tkeys = TRIAL_KEYS_lt5
