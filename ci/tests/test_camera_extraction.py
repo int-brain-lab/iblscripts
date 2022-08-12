@@ -198,7 +198,7 @@ class TestTrainingCameraExtractor(base.IntegrationTest):
         for i in range(5):
             trials[i]['behavior_data']['Events timestamps']['Port1In'] = None
         # Should fall back on the basic extraction
-        with self.assertLogs(logging.getLogger('ibllib'), logging.CRITICAL):
+        with self.assertLogs(logging.getLogger('ibllib.io.extractors.camera'), logging.CRITICAL):
             ts, _ = ext.extract(save=False, bpod_trials=trials)
         expected = np.array([25.0232, 25.0536, 25.0839, 25.1143, 25.1447])
         np.testing.assert_array_almost_equal(ts[:5], expected)
@@ -433,7 +433,7 @@ class TestEphysCameraExtractor(base.IntegrationTest):
         gpio = {'indices': np.sort(np.random.choice(np.arange(self.n_frames[side]), n)),
                 'polarities': np.insert(np.random.choice([-1, 1], n - 1), 0, -1)}
         mock_aux.return_value = (np.arange(self.n_frames[side]), [None, None, None, gpio])
-        with self.assertLogs(logging.getLogger('ibllib'), logging.CRITICAL):
+        with self.assertLogs(logging.getLogger('ibllib.io.extractors.camera'), logging.CRITICAL):
             ts, _ = ext.extract(save=False, sync=sync, chmap=chmap)
         # Should fallback to basic extraction
         np.testing.assert_array_almost_equal(ts[:5], expected)

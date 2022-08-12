@@ -1,4 +1,3 @@
-import logging
 import shutil
 
 import numpy as np
@@ -10,8 +9,6 @@ from ibllib.pipes.training_preprocessing import TrainingTrials
 
 from ci.tests import base
 
-
-_logger = logging.getLogger('ibllib')
 
 TRAINING_TRIALS_SIGNATURE = ('_ibl_trials.goCueTrigger_times.npy',
                              '_ibl_trials.included.npy',
@@ -43,7 +40,6 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         """Guido's task"""
         desired_output = list(EPHYS_TRIALS_SIGNATURE) + ['_ibl_trials.laserProbability.npy', '_ibl_trials.laserStimulation.npy']
         shutil.move(self.session_path.joinpath('alf'), self.session_path.joinpath('alf.bk'))
-        _logger.info(f"{self.session_path}")
         task = EphysTrials(self.session_path, one=self.one_offline)
         task.run()
         self.assertEqual(0, task.status)
