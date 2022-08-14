@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>800</width>
-    <height>600</height>
+    <height>1000</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -19,115 +19,20 @@
   <property name="maximumSize">
    <size>
     <width>800</width>
-    <height>600</height>
+    <height>1000</height>
    </size>
   </property>
   <property name="windowTitle">
    <string>Fiber Photometry Form</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QWidget" name="verticalLayoutWidget">
-    <property name="geometry">
-     <rect>
-      <x>9</x>
-      <y>219</y>
-      <width>621</width>
-      <height>331</height>
-     </rect>
-    </property>
-    <layout class="QVBoxLayout" name="verticalLayout">
-     <property name="spacing">
-      <number>6</number>
-     </property>
-     <item>
-      <widget class="QLabel" name="label_4">
-       <property name="text">
-        <string>Items to be transfered to server</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QListWidget" name="item_list_queue"/>
-     </item>
-    </layout>
-   </widget>
-   <widget class="QWidget" name="verticalLayoutWidget_2">
-    <property name="geometry">
-     <rect>
-      <x>640</x>
-      <y>220</y>
-      <width>151</width>
-      <height>331</height>
-     </rect>
-    </property>
-    <layout class="QVBoxLayout" name="verticalLayout_2">
-     <item>
-      <widget class="QPushButton" name="button_transfer_items_to_server">
-       <property name="enabled">
-        <bool>true</bool>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>30</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>Transfer Items
-to Server</string>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>16</width>
-         <height>16</height>
-        </size>
-       </property>
-       <property name="flat">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </widget>
-   <widget class="Line" name="line_7">
-    <property name="geometry">
-     <rect>
-      <x>17</x>
-      <y>200</y>
-      <width>761</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="button_add_item_to_queue">
-    <property name="geometry">
-     <rect>
-      <x>620</x>
-      <y>170</y>
-      <width>151</width>
-      <height>30</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Add Item to Queue</string>
-    </property>
-    <property name="autoDefault">
-     <bool>false</bool>
-    </property>
-   </widget>
    <widget class="QWidget" name="horizontalLayoutWidget">
     <property name="geometry">
      <rect>
       <x>20</x>
       <y>7</y>
       <width>751</width>
-      <height>151</height>
+      <height>146</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
@@ -139,16 +44,6 @@ to Server</string>
        <property name="formAlignment">
         <set>Qt::AlignRight|Qt::AlignTop|Qt::AlignTrailing</set>
        </property>
-       <item row="0" column="0" colspan="2">
-        <widget class="QLabel" name="label_7">
-         <property name="text">
-          <string>Please verify every field</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
        <item row="1" column="0">
         <widget class="QLabel" name="subject_label">
          <property name="text">
@@ -223,20 +118,17 @@ to Server</string>
          </property>
         </widget>
        </item>
+       <item row="0" column="0" colspan="2">
+        <widget class="QLabel" name="label_7">
+         <property name="text">
+          <string>Please verify every field</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
       </layout>
-     </item>
-     <item>
-      <spacer name="verticalSpacer_2">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>20</width>
-         <height>40</height>
-        </size>
-       </property>
-      </spacer>
      </item>
      <item>
       <widget class="Line" name="line">
@@ -246,126 +138,108 @@ to Server</string>
       </widget>
      </item>
      <item>
-      <spacer name="verticalSpacer_4">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>20</width>
-         <height>40</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
-      <layout class="QFormLayout" name="formLayout_2">
-       <property name="labelAlignment">
-        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-       </property>
-       <property name="formAlignment">
-        <set>Qt::AlignRight|Qt::AlignTop|Qt::AlignTrailing</set>
-       </property>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label_10">
-         <property name="text">
-          <string>Patch Cord</string>
-         </property>
-        </widget>
+      <layout class="QGridLayout" name="gridLayout">
+       <item row="1" column="3">
+        <widget class="QLineEdit" name="brain_area_01"/>
        </item>
-       <item row="0" column="1">
-        <widget class="QLabel" name="label">
+       <item row="0" column="3">
+        <widget class="QLabel" name="label_11">
          <property name="text">
-          <string>| Regions of Interest (ROIs)</string>
+          <string>Brain Area</string>
          </property>
          <property name="alignment">
-          <set>Qt::AlignHCenter|Qt::AlignTop</set>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_5">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>25</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>25</height>
-          </size>
-         </property>
-         <property name="layoutDirection">
-          <enum>Qt::LeftToRight</enum>
-         </property>
-         <property name="text">
-          <string>Link A</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignHCenter|Qt::AlignTop</set>
+          <set>Qt::AlignBottom|Qt::AlignHCenter</set>
          </property>
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QComboBox" name="link_a_combo_box">
+        <widget class="QComboBox" name="patch_cord_selector_01"/>
+       </item>
+       <item row="1" column="2">
+        <widget class="QComboBox" name="roi_selector_01">
          <property name="placeholderText">
           <string/>
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="label_8">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>25</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>25</height>
-          </size>
-         </property>
+       <item row="3" column="1">
+        <widget class="QComboBox" name="patch_cord_selector_03"/>
+       </item>
+       <item row="0" column="2">
+        <widget class="QLabel" name="label">
          <property name="text">
-          <string>Link B</string>
+          <string>Regions of Interest (ROIs)</string>
          </property>
          <property name="alignment">
-          <set>Qt::AlignHCenter|Qt::AlignTop</set>
+          <set>Qt::AlignBottom|Qt::AlignHCenter</set>
          </property>
         </widget>
        </item>
        <item row="2" column="1">
-        <widget class="QComboBox" name="link_b_combo_box"/>
+        <widget class="QComboBox" name="patch_cord_selector_02"/>
        </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="label_9">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>25</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>25</height>
-          </size>
-         </property>
+       <item row="0" column="1">
+        <widget class="QLabel" name="label_10">
          <property name="text">
-          <string>Link C</string>
+          <string>Patch Cord</string>
          </property>
          <property name="alignment">
-          <set>Qt::AlignHCenter|Qt::AlignTop</set>
+          <set>Qt::AlignBottom|Qt::AlignHCenter</set>
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
-        <widget class="QComboBox" name="link_c_combo_box"/>
+       <item row="3" column="2">
+        <widget class="QComboBox" name="roi_selector_03"/>
+       </item>
+       <item row="3" column="3">
+        <widget class="QLineEdit" name="brain_area_03"/>
+       </item>
+       <item row="2" column="3">
+        <widget class="QLineEdit" name="brain_area_02"/>
+       </item>
+       <item row="2" column="2">
+        <widget class="QComboBox" name="roi_selector_02"/>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_19">
+         <property name="text">
+          <string>01</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_20">
+         <property name="text">
+          <string>02</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_21">
+         <property name="text">
+          <string>03</string>
+         </property>
+        </widget>
        </item>
       </layout>
+     </item>
+     <item>
+      <widget class="Line" name="line_4">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+      </widget>
+     </item>
+     <item alignment="Qt::AlignBottom">
+      <widget class="QPushButton" name="button_add_item_to_queue">
+       <property name="text">
+        <string>Add Item
+to Queue</string>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+      </widget>
      </item>
     </layout>
    </widget>
@@ -382,21 +256,428 @@ to Server</string>
      <enum>Qt::Horizontal</enum>
     </property>
    </widget>
-   <widget class="QPushButton" name="button_reset_form">
+   <widget class="QLabel" name="label_4">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>170</y>
-      <width>151</width>
-      <height>30</height>
+      <x>190</x>
+      <y>160</y>
+      <width>209</width>
+      <height>29</height>
      </rect>
     </property>
     <property name="text">
-     <string>Reset Form</string>
+     <string>Items to be transfered to server</string>
     </property>
-    <property name="autoDefault">
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="Line" name="line_2">
+    <property name="geometry">
+     <rect>
+      <x>650</x>
+      <y>190</y>
+      <width>21</width>
+      <height>761</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Vertical</enum>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="button_transfer_items_to_server">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>670</x>
+      <y>910</y>
+      <width>109</width>
+      <height>40</height>
+     </rect>
+    </property>
+    <property name="minimumSize">
+     <size>
+      <width>0</width>
+      <height>30</height>
+     </size>
+    </property>
+    <property name="text">
+     <string>Transfer Items
+to Server</string>
+    </property>
+    <property name="iconSize">
+     <size>
+      <width>16</width>
+      <height>16</height>
+     </size>
+    </property>
+    <property name="flat">
      <bool>false</bool>
     </property>
+   </widget>
+   <widget class="QWidget" name="formLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>190</y>
+      <width>631</width>
+      <height>761</height>
+     </rect>
+    </property>
+    <layout class="QGridLayout" name="gridLayout_2">
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_8">
+       <property name="text">
+        <string>02</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QTextEdit" name="item_queue_05">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="2">
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item alignment="Qt::AlignBottom">
+        <widget class="QPushButton" name="button_attach_csv_10">
+         <property name="text">
+          <string>Attach CSV</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="attach_csv_label_10">
+         <property name="text">
+          <string>No CSV Loaded</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item row="8" column="1">
+      <widget class="QTextEdit" name="item_queue_09">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="1">
+      <widget class="QTextEdit" name="item_queue_10">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QTextEdit" name="item_queue_03">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="0">
+      <widget class="QLabel" name="label_18">
+       <property name="text">
+        <string>10</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="label_15">
+       <property name="text">
+        <string>07</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QTextEdit" name="item_queue_04">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>01</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QTextEdit" name="item_queue_02">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="0">
+      <widget class="QLabel" name="label_17">
+       <property name="text">
+        <string>09</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="2">
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item alignment="Qt::AlignBottom">
+        <widget class="QPushButton" name="button_attach_csv_09">
+         <property name="text">
+          <string>Attach CSV</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="attach_csv_label_09">
+         <property name="text">
+          <string>No CSV Loaded</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item row="5" column="1">
+      <widget class="QTextEdit" name="item_queue_06">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="0">
+      <widget class="QLabel" name="label_16">
+       <property name="text">
+        <string>08</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="label_13">
+       <property name="text">
+        <string>05</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_9">
+       <property name="text">
+        <string>03</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QTextEdit" name="item_queue_08">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QTextEdit" name="item_queue_07">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_12">
+       <property name="text">
+        <string>04</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QTextEdit" name="item_queue_01">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="label_14">
+       <property name="text">
+        <string>06</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="2">
+      <layout class="QVBoxLayout" name="verticalLayout_4">
+       <item alignment="Qt::AlignBottom">
+        <widget class="QPushButton" name="button_attach_csv_08">
+         <property name="text">
+          <string>Attach CSV</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="attach_csv_label_08">
+         <property name="text">
+          <string>No CSV Loaded</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item row="6" column="2">
+      <layout class="QVBoxLayout" name="verticalLayout_5">
+       <item alignment="Qt::AlignBottom">
+        <widget class="QPushButton" name="button_attach_csv_07">
+         <property name="text">
+          <string>Attach CSV</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="attach_csv_label_07">
+         <property name="text">
+          <string>No CSV Loaded</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item row="5" column="2">
+      <layout class="QVBoxLayout" name="verticalLayout_6">
+       <item alignment="Qt::AlignBottom">
+        <widget class="QPushButton" name="button_attach_csv_06">
+         <property name="text">
+          <string>Attach CSV</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="attach_csv_label_06">
+         <property name="text">
+          <string>No CSV Loaded</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item row="4" column="2">
+      <layout class="QVBoxLayout" name="verticalLayout_7">
+       <item alignment="Qt::AlignBottom">
+        <widget class="QPushButton" name="button_attach_csv_05">
+         <property name="text">
+          <string>Attach CSV</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="attach_csv_label_05">
+         <property name="text">
+          <string>No CSV Loaded</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item row="3" column="2">
+      <layout class="QVBoxLayout" name="verticalLayout_8">
+       <item alignment="Qt::AlignBottom">
+        <widget class="QPushButton" name="button_attach_csv_04">
+         <property name="text">
+          <string>Attach CSV</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="attach_csv_label_04">
+         <property name="text">
+          <string>No CSV Loaded</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item row="2" column="2">
+      <layout class="QVBoxLayout" name="verticalLayout_9">
+       <item alignment="Qt::AlignBottom">
+        <widget class="QPushButton" name="button_attach_csv_03">
+         <property name="text">
+          <string>Attach CSV</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="attach_csv_label_03">
+         <property name="text">
+          <string>No CSV Loaded</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item row="1" column="2">
+      <layout class="QVBoxLayout" name="verticalLayout_10">
+       <item alignment="Qt::AlignBottom">
+        <widget class="QPushButton" name="button_attach_csv_02">
+         <property name="text">
+          <string>Attach CSV</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="attach_csv_label_02">
+         <property name="text">
+          <string>No CSV Loaded</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item row="0" column="2">
+      <layout class="QVBoxLayout" name="verticalLayout_11">
+       <item alignment="Qt::AlignBottom">
+        <widget class="QPushButton" name="button_attach_csv_01">
+         <property name="text">
+          <string>Attach CSV</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="attach_csv_label_01">
+         <property name="text">
+          <string>No CSV Loaded</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -412,7 +693,9 @@ to Server</string>
     <property name="title">
      <string>File</string>
     </property>
-    <addaction name="action_load_csv"/>
+    <addaction name="action_clear_qsetting_values"/>
+    <addaction name="action_remove_old_sessions"/>
+    <addaction name="action_reset_form"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -421,14 +704,6 @@ to Server</string>
     <string/>
    </property>
   </widget>
-  <action name="action_load_csv">
-   <property name="text">
-    <string>load csv</string>
-   </property>
-   <property name="toolTip">
-    <string>load csv</string>
-   </property>
-  </action>
   <action name="action_add_item_to_queue">
    <property name="text">
     <string>action_add_item_to_queue</string>
@@ -439,9 +714,75 @@ to Server</string>
     <string>action_transfer_items_to_server</string>
    </property>
   </action>
+  <action name="action_clear_qsetting_values">
+   <property name="text">
+    <string>Clear QSetting Values</string>
+   </property>
+  </action>
+  <action name="action_remove_old_sessions">
+   <property name="text">
+    <string>Remove Old Sessions</string>
+   </property>
+  </action>
+  <action name="action_attach_csv_01">
+   <property name="text">
+    <string>action_attach_csv_01</string>
+   </property>
+   <property name="toolTip">
+    <string>action_attach_csv_01</string>
+   </property>
+  </action>
   <action name="action_reset_form">
    <property name="text">
-    <string>action_reset_form</string>
+    <string>Reset Form</string>
+   </property>
+  </action>
+  <action name="action_attach_csv_02">
+   <property name="text">
+    <string>action_attach_csv_02</string>
+   </property>
+   <property name="toolTip">
+    <string>action_attach_csv_02</string>
+   </property>
+  </action>
+  <action name="action_attach_csv_03">
+   <property name="text">
+    <string>action_attach_csv_03</string>
+   </property>
+  </action>
+  <action name="action_attach_csv_04">
+   <property name="text">
+    <string>action_attach_csv_04</string>
+   </property>
+  </action>
+  <action name="action_attach_csv_05">
+   <property name="text">
+    <string>action_attach_csv_05</string>
+   </property>
+  </action>
+  <action name="action_attach_csv_06">
+   <property name="text">
+    <string>action_attach_csv_06</string>
+   </property>
+  </action>
+  <action name="action_attach_csv_07">
+   <property name="text">
+    <string>action_attach_csv_07</string>
+   </property>
+  </action>
+  <action name="action_attach_csv_08">
+   <property name="text">
+    <string>action_attach_csv_08</string>
+   </property>
+  </action>
+  <action name="action_attach_csv_09">
+   <property name="text">
+    <string>action_attach_csv_09</string>
+   </property>
+  </action>
+  <action name="action_attach_csv_10">
+   <property name="text">
+    <string>action_attach_csv_10</string>
    </property>
   </action>
  </widget>
@@ -480,14 +821,158 @@ to Server</string>
    </hints>
   </connection>
   <connection>
-   <sender>button_reset_form</sender>
+   <sender>button_attach_csv_01</sender>
    <signal>clicked()</signal>
-   <receiver>action_reset_form</receiver>
+   <receiver>action_attach_csv_01</receiver>
    <slot>trigger()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>120</x>
-     <y>267</y>
+     <x>609</x>
+     <y>299</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>button_attach_csv_02</sender>
+   <signal>clicked()</signal>
+   <receiver>action_attach_csv_02</receiver>
+   <slot>trigger()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>598</x>
+     <y>302</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>button_attach_csv_03</sender>
+   <signal>clicked()</signal>
+   <receiver>action_attach_csv_03</receiver>
+   <slot>trigger()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>598</x>
+     <y>379</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>button_attach_csv_04</sender>
+   <signal>clicked()</signal>
+   <receiver>action_attach_csv_04</receiver>
+   <slot>trigger()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>598</x>
+     <y>455</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>button_attach_csv_05</sender>
+   <signal>clicked()</signal>
+   <receiver>action_attach_csv_05</receiver>
+   <slot>trigger()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>598</x>
+     <y>532</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>button_attach_csv_06</sender>
+   <signal>clicked()</signal>
+   <receiver>action_attach_csv_06</receiver>
+   <slot>trigger()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>598</x>
+     <y>608</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>button_attach_csv_07</sender>
+   <signal>clicked()</signal>
+   <receiver>action_attach_csv_07</receiver>
+   <slot>trigger()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>598</x>
+     <y>685</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>button_attach_csv_08</sender>
+   <signal>clicked()</signal>
+   <receiver>action_attach_csv_08</receiver>
+   <slot>trigger()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>598</x>
+     <y>761</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>button_attach_csv_09</sender>
+   <signal>clicked()</signal>
+   <receiver>action_attach_csv_09</receiver>
+   <slot>trigger()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>598</x>
+     <y>838</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>button_attach_csv_10</sender>
+   <signal>clicked()</signal>
+   <receiver>action_attach_csv_10</receiver>
+   <slot>trigger()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>598</x>
+     <y>914</y>
     </hint>
     <hint type="destinationlabel">
      <x>-1</x>

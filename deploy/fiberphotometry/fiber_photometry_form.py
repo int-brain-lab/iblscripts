@@ -4,14 +4,14 @@ Application to perform Fiber Photometry related tasks
 Development machine details:
 - Ubuntu 22.04
 - Anaconda 4.13.0
+- Python 3.8
 - opencv-python 4.3.0.36
 - PyQt5 5.15.7
 - ibllib widefield2 branch
 
 TODO:
 - use shutil.copyfile(src, bonsai_file) to get workflow file into appropriate location
-- add error checking for patch cord link/ROI selection between items selected for transfer?
-    - verify that this would not be a hindrance
+- create clean up script to remove local sessions older than some given time period
 
 QtSettings values:
     last_loaded_csv_path: str - path to the parent dir of the last loaded csv
@@ -86,7 +86,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     """
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent=parent)
-        self.model = None
         self.setupUi(self)
         self.dialog_box = Dialog()
         self.items_to_transfer = []
@@ -94,31 +93,76 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # init QSettings
         self.settings = QtCore.QSettings("int-brain-lab", "fiber_photometry_form")
 
-        # connect methods to triggers
-        self.action_load_csv.triggered.connect(self.load_csv)
+        # connect triggers to methods
+        self.action_attach_csv_01.triggered.connect(self.attach_csv_01)
+        self.action_attach_csv_02.triggered.connect(self.attach_csv_02)
+        self.action_attach_csv_03.triggered.connect(self.attach_csv_03)
+        self.action_attach_csv_04.triggered.connect(self.attach_csv_04)
+        self.action_attach_csv_05.triggered.connect(self.attach_csv_05)
+        self.action_attach_csv_06.triggered.connect(self.attach_csv_06)
+        self.action_attach_csv_07.triggered.connect(self.attach_csv_07)
+        self.action_attach_csv_08.triggered.connect(self.attach_csv_08)
+        self.action_attach_csv_09.triggered.connect(self.attach_csv_09)
+        self.action_attach_csv_10.triggered.connect(self.attach_csv_10)
+        self.action_clear_qsetting_values.triggered.connect(self.clear_qsetting_values)
+        self.action_remove_old_sessions.triggered.connect(self.remove_old_sessions)
         self.action_add_item_to_queue.triggered.connect(self.add_item_to_queue)
         self.action_transfer_items_to_server.triggered.connect(self.transfer_items_to_server)
         self.action_reset_form.triggered.connect(self.reset_form)
 
-        # Set status bar message prior to csv file being loaded
-        self.status_bar_message = QtWidgets.QLabel(self)
-        self.status_bar_message.setText("No CSV file loaded")
-        self.statusBar().addWidget(self.status_bar_message)
-
         # Populate default qsetting values for subjects and server_path
         self.populate_default_subjects_and_server_path()
 
-        # List of the default ROIs to display in the combo boxes
+        # List of the default Patch Cords and ROIs to display in combo boxes
+        self.patch_cord_defaults = ["", "Patch Cord A", "Patch Cord B", "Patch Cord C"]
         self.roi_defaults = [
             "", "Region0R", "Region1G", "Region2R", "Region3R", "Region4R", "Region5G", "Region6G", "Region7R", "Region8G"]
 
         # Populate widgets
         self.populate_widgets()
 
-        # Disable actionable widgets until CSV is loaded
-        self.enable_actionable_widgets(False)
-        # Disable transfer button widget until items in are in the queue
+        # Disable widgets until needed
+        self.disable_all_attach_csv_buttons()
         self.button_transfer_items_to_server.setEnabled(False)
+
+    def disable_all_attach_csv_buttons(self):
+        """Disables all the attach csv buttons, buttons are enabled once an item is added to queue"""
+        self.button_attach_csv_01.setDisabled(True)
+        self.button_attach_csv_02.setDisabled(True)
+        self.button_attach_csv_03.setDisabled(True)
+        self.button_attach_csv_04.setDisabled(True)
+        self.button_attach_csv_05.setDisabled(True)
+        self.button_attach_csv_06.setDisabled(True)
+        self.button_attach_csv_07.setDisabled(True)
+        self.button_attach_csv_08.setDisabled(True)
+        self.button_attach_csv_09.setDisabled(True)
+        self.button_attach_csv_10.setDisabled(True)
+
+    def remove_old_sessions(self):
+        # TODO:
+        #  - Identify local sessions older than 3 months ago  .../Subject/Date/SessionNumber
+        #  - Call up confirmation dialog box to verify removal action
+        #  - Remove sessions
+        # import os
+        # from pathlib import Path
+        # from datetime import datetime
+        # date_string = '2021-12-31'
+        # datetime = datetime.strptime(date_string, '%Y-%m-%d')
+        # print(datetime)
+        #
+        # test_dir = "/tmp/test_dir/Subjects/"
+        # dir_list = os.listdir(Path(test_dir))
+        # for entry in dir_list:
+        #     date_formatted_str = datetime.strptime(entry, "%Y-%m-%d")
+        #     # if entry
+        # print(dir_list)
+        self.dialog_box.label.setText("Feature not yet implemented.")
+        self.dialog_box.exec_()
+
+    def clear_qsetting_values(self):
+        self.settings.clear()
+        self.dialog_box.label.setText("QSettings cleared, please restart the application to see changes.")
+        self.dialog_box.exec_()
 
     def populate_widgets(self):
         """
@@ -137,10 +181,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # session_number
         self.session_number.setText("001")
 
-        # patch cord link to ROI combo boxes
-        self.link_a_combo_box.addItems(self.roi_defaults)
-        self.link_b_combo_box.addItems(self.roi_defaults)
-        self.link_c_combo_box.addItems(self.roi_defaults)
+        # patch cord and ROI combo boxes
+        self.patch_cord_selector_01.addItems(self.patch_cord_defaults)
+        self.patch_cord_selector_02.addItems(self.patch_cord_defaults)
+        self.patch_cord_selector_03.addItems(self.patch_cord_defaults)
+        self.roi_selector_01.addItems(self.roi_defaults)
+        self.roi_selector_02.addItems(self.roi_defaults)
+        self.roi_selector_03.addItems(self.roi_defaults)
 
     def transfer_items_to_server(self):
         """Transfer queued items to server using ibllib rsync_paths function"""
@@ -191,7 +238,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             # Display dialog box with success message
             self.dialog_box.label.setText("The transfer has completed. Please review the log messages in the terminal for "
-                                          "details. Pressing OK will reset the application, but keep the current CSV loaded.")
+                                          "details. Pressing OK will reset the application.")
             self.dialog_box.exec_()
 
             self.reset_form()
@@ -199,7 +246,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def add_item_to_queue(self):
         """Verifies that all entered values are present."""
 
-        if not self.validate_rois():  # Check for at least a single ROI has been selected; no duplicate ROIs
+        if not self.validate_patch_cord_and_roi():  # Check for at least a single ROI has been selected; no duplicate ROIs
             return
 
         # local directory structure .../Subject/Date/SessionNumber/raw_fiber_photometry_data
@@ -216,13 +263,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.session_number.text() /
             "raw_fiber_photometry_data")
 
-        # dst Path for data_file.csv file for selected regions
-        data_file = Path(queue_path / f"{self.subject_combo_box.currentText()}_data_file.csv")
+        # set data file name
+        data_file = f"{self.subject_combo_box.currentText()}_data_file.parquet"
 
-        # dst Path for settings.json file
+        # dst Path for settings.json and bonsai.workflow file
         settings_file = Path(queue_path / "settings.json")
-
-        # dst Path for bonsai.workflow file
         bonsai_file = Path(queue_path / "bonsai.workflow")
 
         # Build out item to transfer
@@ -230,21 +275,26 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             "subject": self.subject_combo_box.currentText(),
             "date": self.date_edit.text(),
             "session_number": self.session_number.text(),
-            "link_a_roi": self.link_a_combo_box.currentText(),
-            "link_b_roi": self.link_b_combo_box.currentText(),
-            "link_c_roi": self.link_c_combo_box.currentText(),
+            "patch_cord_selection_01": self.patch_cord_selector_01.currentText(),
+            "patch_cord_selection_02": self.patch_cord_selector_02.currentText(),
+            "patch_cord_selection_03": self.patch_cord_selector_03.currentText(),
+            "roi_selection_01": self.roi_selector_01.currentText(),
+            "roi_selection_02": self.roi_selector_02.currentText(),
+            "roi_selection_03": self.roi_selector_03.currentText(),
+            "brain_area_01": self.brain_area_01.text(),
+            "brain_area_02": self.brain_area_02.text(),
+            "brain_area_03": self.brain_area_03.text(),
             "server_path": self.server_path.text(),
             "queue_path": str(queue_path),
             "data_path": str(data_path),
-            "data_file": data_file.name,
+            "data_file": data_file,
             "settings_file": settings_file.name,
             "bonsai_file": bonsai_file.name
         }
         self.items_to_transfer.append(item)
 
-        try:  # to perform OS write operations
+        try:  # to perform OS write operations for dir structure and settings file
             os.makedirs(queue_path, exist_ok=True)
-            self.model.dataframe[self.get_selected_rois()].to_csv(data_file, encoding='utf-8', index=False)
             settings_file.write_text(json.dumps(item))
             Path(bonsai_file).touch()  # TODO: modify to shutil.copyfile(src, bonsai_file) once we have confirmation on src
         except (OSError, TypeError):
@@ -252,10 +302,72 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Display data that has been added to the queue
         stringified_item_to_transfer = self.stringify_item_to_transfer(self.items_to_transfer[-1])
-        self.item_list_queue.addItem(stringified_item_to_transfer)
+        self.prepare_item_for_transfer(stringified_item_to_transfer)
 
-        # Enable the transfer button
-        self.button_transfer_items_to_server.setEnabled(True)
+        # Reset patch cord link ROI selectors
+        self.reset_patch_cord_roi_combo_boxes_and_brain_area()
+
+    def prepare_item_for_transfer(self, text: str):
+        """
+        Adds the stringified text to the next available text box for a queued item and enables relevant attach_csv button
+
+        Parameters
+        ----------
+        text
+            to be displayed in the form
+        """
+        if self.item_queue_01.toPlainText() == "":
+            self.item_queue_01.setText(text)
+            self.button_attach_csv_01.setEnabled(True)
+        elif self.item_queue_02.toPlainText() == "":
+            self.item_queue_02.setText(text)
+            self.button_attach_csv_02.setEnabled(True)
+        elif self.item_queue_03.toPlainText() == "":
+            self.item_queue_03.setText(text)
+            self.button_attach_csv_03.setEnabled(True)
+        elif self.item_queue_04.toPlainText() == "":
+            self.item_queue_04.setText(text)
+            self.button_attach_csv_04.setEnabled(True)
+        elif self.item_queue_05.toPlainText() == "":
+            self.item_queue_05.setText(text)
+            self.button_attach_csv_05.setEnabled(True)
+        elif self.item_queue_06.toPlainText() == "":
+            self.item_queue_06.setText(text)
+            self.button_attach_csv_06.setEnabled(True)
+        elif self.item_queue_07.toPlainText() == "":
+            self.item_queue_07.setText(text)
+            self.button_attach_csv_07.setEnabled(True)
+        elif self.item_queue_08.toPlainText() == "":
+            self.item_queue_08.setText(text)
+            self.button_attach_csv_08.setEnabled(True)
+        elif self.item_queue_09.toPlainText() == "":
+            self.item_queue_09.setText(text)
+            self.button_attach_csv_09.setEnabled(True)
+        elif self.item_queue_10.toPlainText() == "":
+            self.item_queue_10.setText(text)
+            self.button_attach_csv_10.setEnabled(True)
+            self.button_add_item_to_queue.setDisabled(True)
+
+    def reset_patch_cord_roi_combo_boxes_and_brain_area(self):
+        """Sets the default values to the patch cord and roi selector combo boxes"""
+        # Patch Cords
+        self.patch_cord_selector_01.clear()
+        self.patch_cord_selector_01.addItems(self.patch_cord_defaults)
+        self.patch_cord_selector_02.clear()
+        self.patch_cord_selector_02.addItems(self.patch_cord_defaults)
+        self.patch_cord_selector_03.clear()
+        self.patch_cord_selector_03.addItems(self.patch_cord_defaults)
+        # ROI
+        self.roi_selector_01.clear()
+        self.roi_selector_01.addItems(self.roi_defaults)
+        self.roi_selector_02.clear()
+        self.roi_selector_02.addItems(self.roi_defaults)
+        self.roi_selector_03.clear()
+        self.roi_selector_03.addItems(self.roi_defaults)
+        # Brain Area
+        self.brain_area_01.clear()
+        self.brain_area_02.clear()
+        self.brain_area_03.clear()
 
     def stringify_item_to_transfer(self, item_to_transfer: dict) -> str:
         """
@@ -270,68 +382,124 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         str
             representation for the item we are preparing to transfer
         """
-        return_string = "Subject: " + item_to_transfer["subject"] + "\n" +\
-                        "Date: " + item_to_transfer["date"] + "\n" +\
-                        "Session Number: " + item_to_transfer["session_number"] + "\n" +\
-                        "Patch Cord:\n"
-        if item_to_transfer["link_a_roi"] != "":
-            return_string += "- Link A: " + item_to_transfer["link_a_roi"] + "\n"
-        if item_to_transfer["link_b_roi"] != "":
-            return_string += "- Link B: " + item_to_transfer["link_b_roi"] + "\n"
-        if item_to_transfer["link_c_roi"] != "":
-            return_string += "- Link C: " + item_to_transfer["link_c_roi"] + "\n"
-        return_string += "Server Path: " + item_to_transfer["server_path"] +\
-            "\n------------------------------------------------------------"
+        return_string = "Subject: " + item_to_transfer["subject"] + " | " + \
+                        "Date: " + item_to_transfer["date"] + " | " + \
+                        "Session Number: " + item_to_transfer["session_number"] + "\n"
+        # Patch Cord Selectors
+        if item_to_transfer["patch_cord_selection_01"] != "":
+            return_string += "Patch Cord Selection 01: " + item_to_transfer["patch_cord_selection_01"] + "\n"
+        if item_to_transfer["patch_cord_selection_02"] != "":
+            return_string += "Patch Cord Selection 02: " + item_to_transfer["patch_cord_selection_02"] + "\n"
+        if item_to_transfer["patch_cord_selection_03"] != "":
+            return_string += "Patch Cord Selection 03: " + item_to_transfer["patch_cord_selection_03"] + "\n"
+        # ROI Selectors
+        if item_to_transfer["roi_selection_01"] != "":
+            return_string += "ROI Selection 01: " + item_to_transfer["roi_selection_01"] + "\n"
+        if item_to_transfer["roi_selection_02"] != "":
+            return_string += "ROI Selection 02: " + item_to_transfer["roi_selection_02"] + "\n"
+        if item_to_transfer["roi_selection_03"] != "":
+            return_string += "ROI Selection 03: " + item_to_transfer["roi_selection_03"] + "\n"
+        # Brain Areas
+        if item_to_transfer["brain_area_01"] != "":
+            return_string += "Brain Area 01: " + item_to_transfer["brain_area_01"] + "\n"
+        if item_to_transfer["brain_area_02"] != "":
+            return_string += "Brain Area 02: " + item_to_transfer["brain_area_02"] + "\n"
+        if item_to_transfer["brain_area_03"] != "":
+            return_string += "Brain Area 03: " + item_to_transfer["brain_area_03"] + "\n"
+        return_string += "Server Path: " + item_to_transfer["server_path"]
         return return_string
 
-    def load_csv(self, file=None):
+    def enable_transfers(self):
+        """Validates every queued item has a csv file attached before enabling transfer button"""
+        transfer_ready = True
+        for item in self.items_to_transfer:
+            data_file_loc = Path(item["queue_path"]) / Path(item["data_file"])
+            if not data_file_loc.exists():
+                transfer_ready = False
+                break
+        if transfer_ready:
+            self.button_transfer_items_to_server.setEnabled(True)
+
+    def attach_csv_01(self):
+        """Attach CSV file to queued item"""
+        attach_csv_label_text = self.attach_csv(1)
+        self.attach_csv_label_01.setText(attach_csv_label_text)
+
+    def attach_csv_02(self):
+        """Attach CSV file to queued item"""
+        attach_csv_label_text = self.attach_csv(2)
+        self.attach_csv_label_02.setText(attach_csv_label_text)
+
+    def attach_csv_03(self):
+        """Attach CSV file to queued item"""
+        attach_csv_label_text = self.attach_csv(3)
+        self.attach_csv_label_03.setText(attach_csv_label_text)
+
+    def attach_csv_04(self):
+        """Attach CSV file to queued item"""
+        attach_csv_label_text = self.attach_csv(4)
+        self.attach_csv_label_04.setText(attach_csv_label_text)
+
+    def attach_csv_05(self):
+        """Attach CSV file to queued item"""
+        attach_csv_label_text = self.attach_csv(5)
+        self.attach_csv_label_05.setText(attach_csv_label_text)
+
+    def attach_csv_06(self):
+        """Attach CSV file to queued item"""
+        attach_csv_label_text = self.attach_csv(6)
+        self.attach_csv_label_06.setText(attach_csv_label_text)
+
+    def attach_csv_07(self):
+        """Attach CSV file to queued item"""
+        attach_csv_label_text = self.attach_csv(7)
+        self.attach_csv_label_07.setText(attach_csv_label_text)
+
+    def attach_csv_08(self):
+        """Attach CSV file to queued item"""
+        attach_csv_label_text = self.attach_csv(8)
+        self.attach_csv_label_08.setText(attach_csv_label_text)
+
+    def attach_csv_09(self):
+        """Attach CSV file to queued item"""
+        attach_csv_label_text = self.attach_csv(9)
+        self.attach_csv_label_09.setText(attach_csv_label_text)
+
+    def attach_csv_10(self):
+        """Attach CSV file to queued item"""
+        attach_csv_label_text = self.attach_csv(10)
+        self.attach_csv_label_10.setText(attach_csv_label_text)
+
+    def attach_csv(self, queue_item_num: int) -> str:
         """
-        Called from file menu of the application, launches a QtWidget.QFileDialog, defaulting to the last known file location
-        directory; this information is stored by QtCore.QSettings.
+        Attaches CSV file to given queued item value
 
         Parameters
         ----------
-        file
-            specify file location when performing tests, otherwise a QtWidget.QFileDialog is launched
+        queue_item_num
+            number of queue item slot
+
+        Returns
+        -------
+        str
+            file name that is attached to the queued item
         """
-        if file is None or file is False:
-            file, _ = QtWidgets.QFileDialog.getOpenFileName(
-                parent=self, caption="Select Raw Fiber Photometry Recording",
-                directory=self.settings.value("last_loaded_csv_path"), filter="*.csv")
+        file, _ = QtWidgets.QFileDialog.getOpenFileName(
+            parent=self, caption="Select Raw Fiber Photometry Recording",
+            directory=self.settings.value("last_loaded_csv_path"), filter="*.csv")
         if file == "":
-            return
+            return "No CSV Loaded"
         file = Path(file)
         self.settings.setValue("last_loaded_csv_path", str(file.parent))
 
-        # read csv file into Model's panda dataframe
-        self.model = Model(pd.read_csv(file))
+        # read csv file into Model's panda dataframe and output to parquet
+        item = self.items_to_transfer[queue_item_num - 1]
+        Model(pd.read_csv(file)).dataframe.to_parquet(Path(item["queue_path"]) / Path(item["data_file"]))
 
-        # Change status bar text
-        self.status_bar_message.setText(f"CSV file loaded: {file}")
-        self.statusBar().addWidget(self.status_bar_message)
+        # Attempt to enable transfer button
+        self.enable_transfers()
 
-        # Enable actionable widgets now that CSV is loaded
-        self.enable_actionable_widgets()
-
-    def enable_actionable_widgets(self, enable: bool = True):
-        """
-        Enables or disables various widgets to prevent user interaction
-
-        Parameters
-        ----------
-        enable : bool
-            used to determine if we are enabling or disabling the widgets
-        """
-        self.subject_combo_box.setEnabled(enable)
-        self.date_edit.setEnabled(enable)
-        self.button_add_item_to_queue.setEnabled(enable)
-        self.item_list_queue.setEnabled(enable)
-        self.session_number.setEnabled(enable)
-        self.link_a_combo_box.setEnabled(enable)
-        self.link_b_combo_box.setEnabled(enable)
-        self.link_c_combo_box.setEnabled(enable)
-        self.server_path.setEnabled(enable)
-        self.button_reset_form.setEnabled(enable)
+        return f"Attached:\n{file.name}"
 
     def get_selected_rois(self) -> list:
         """
@@ -344,27 +512,39 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         """
         selected_rois = []
-        if self.link_a_combo_box.currentText() != "":
-            selected_rois.append(self.link_a_combo_box.currentText())
-        if self.link_b_combo_box.currentText() != "":
-            selected_rois.append(self.link_b_combo_box.currentText())
-        if self.link_c_combo_box.currentText() != "":
-            selected_rois.append(self.link_c_combo_box.currentText())
+        if self.roi_selector_01.currentText() != "":
+            selected_rois.append(self.roi_selector_01.currentText())
+        if self.roi_selector_02.currentText() != "":
+            selected_rois.append(self.roi_selector_02.currentText())
+        if self.roi_selector_03.currentText() != "":
+            selected_rois.append(self.roi_selector_03.currentText())
         return selected_rois
 
     def reset_form(self):
         """Resets the form in case mistakes were made"""
         # Clear combo boxes
         self.subject_combo_box.clear()
-        self.link_a_combo_box.clear()
-        self.link_b_combo_box.clear()
-        self.link_c_combo_box.clear()
+        self.patch_cord_selector_01.clear()
+        self.patch_cord_selector_02.clear()
+        self.patch_cord_selector_03.clear()
+        self.roi_selector_01.clear()
+        self.roi_selector_02.clear()
+        self.roi_selector_03.clear()
 
         # Populates widgets with default values
         self.populate_widgets()
 
-        # Clear item_list_queue
-        self.item_list_queue.clear()
+        # Clear item_queues
+        self.item_queue_01.clear()
+        self.item_queue_02.clear()
+        self.item_queue_03.clear()
+        self.item_queue_04.clear()
+        self.item_queue_05.clear()
+        self.item_queue_06.clear()
+        self.item_queue_07.clear()
+        self.item_queue_08.clear()
+        self.item_queue_09.clear()
+        self.item_queue_10.clear()
 
         # Cleanup local queue_path files and empty self.items_to_transfer list
         for item in self.items_to_transfer:
@@ -372,6 +552,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 print(f"Deleting {Path(item['queue_path']).parent}")
                 shutil.rmtree(Path(item["queue_path"]).parent)
         self.items_to_transfer = []
+
+        # Disable attach CSV buttons
+        self.disable_all_attach_csv_buttons()
 
         # Disable transfer button
         self.button_transfer_items_to_server.setDisabled(True)
@@ -388,7 +571,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if not self.settings.value("server_path"):
             self.settings.setValue("server_path", "\\\\path_to_server\\Subjects")
 
-    def validate_rois(self) -> bool:
+    def validate_patch_cord_and_roi(self) -> bool:
         """
         Ensure at least a single ROI has been selected and that there are no duplicate ROIs selected. Will cause a dialog box to
         appear if we hit an error state.
@@ -399,31 +582,32 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             True if all validations pass, False if any validations fail
 
         """
-        # Ensure at least a single ROI has been selected
-        if (self.link_a_combo_box.currentText() == "") \
-                and (self.link_b_combo_box.currentText() == "") \
-                and (self.link_c_combo_box.currentText() == ""):
-            # Display dialog box to end user regarding no ROI selected
-            self.dialog_box.label.setText("No ROIs selected. Please select at least one ROI.")
+        # Ensure at least a single patch cord and a single ROI has been selected
+        if ((self.patch_cord_selector_01.currentText() == "") and (self.roi_selector_02.currentText() == "") and
+            (self.roi_selector_03.currentText() == "")) or \
+                ((self.roi_selector_01.currentText() == "") and (self.roi_selector_02.currentText() == "")
+                 and (self.roi_selector_03.currentText() == "")):
+            self.dialog_box.label.setText("Patch Cord or ROI selection is missing. Please select at least one Patch Cord and one"
+                                          " ROI.")
             self.dialog_box.exec_()
             return False
 
         # Ensure there are no duplicate ROIs selected
         duplicates = False
-        if self.link_a_combo_box.currentText() != "":
-            if (self.link_a_combo_box.currentText() == self.link_b_combo_box.currentText()) \
-                    or (self.link_a_combo_box.currentText() == self.link_c_combo_box.currentText()):
+        if self.roi_selector_01.currentText() != "":
+            if (self.roi_selector_01.currentText() == self.roi_selector_02.currentText()) \
+                    or (self.roi_selector_01.currentText() == self.roi_selector_03.currentText()):
                 duplicates = True
-        if self.link_b_combo_box.currentText() != "":
-            if (self.link_b_combo_box.currentText() == self.link_a_combo_box.currentText()) \
-                    or (self.link_b_combo_box.currentText() == self.link_c_combo_box.currentText()):
+        if self.roi_selector_02.currentText() != "":
+            if (self.roi_selector_02.currentText() == self.roi_selector_01.currentText()) \
+                    or (self.roi_selector_02.currentText() == self.roi_selector_03.currentText()):
                 duplicates = True
-        if self.link_c_combo_box.currentText() != "":
-            if (self.link_c_combo_box.currentText() == self.link_a_combo_box.currentText()) \
-                    or (self.link_c_combo_box.currentText() == self.link_b_combo_box.currentText()):
+        if self.roi_selector_03.currentText() != "":
+            if (self.roi_selector_03.currentText() == self.roi_selector_01.currentText()) \
+                    or (self.roi_selector_03.currentText() == self.roi_selector_02.currentText()):
                 duplicates = True
 
-        # Disply dialog box to end user about duplicate ROIs
+        # Display dialog box to end user about duplicate ROIs
         if duplicates:
             self.dialog_box.label.setText("The same ROI has been selected multiple times. Please select only one ROI per patch "
                                           "cord link.")

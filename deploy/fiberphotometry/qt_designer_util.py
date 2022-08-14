@@ -23,7 +23,8 @@ def convert_ui_file_to_py(file_location: str, output_file_name: str) -> str:
         location of the resulting py file
     """
     if not Path(file_location).exists():
-        raise f"{file_location} - File does not exist"
+        logging.error(f"{file_location} - UI file does not exist, exiting...")
+        exit(1)
     sp_cmd = ["pyuic5", f"--output={output_file_name}", file_location]
     try:
         logging.info(f".ui file converted to .py file named: {output_file_name}")
