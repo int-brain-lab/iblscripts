@@ -521,7 +521,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         return selected_rois
 
     def reset_form(self):
-        """Resets the form in case mistakes were made"""
+        """Resets the form, called after a successful transfer to server or explicitly by user"""
         # Clear combo boxes
         self.subject_combo_box.clear()
         self.patch_cord_selector_01.clear()
@@ -549,18 +549,30 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Cleanup local queue_path files and empty self.items_to_transfer list
         for item in self.items_to_transfer:
             if item["queue_path"]:
-                print(f"Deleting {Path(item['queue_path']).parent}")
-                shutil.rmtree(Path(item["queue_path"]).parent)
+                print(f"Deleting {Path(item['queue_path']).parent.parent.parent}")
+                shutil.rmtree(Path(item["queue_path"]).parent.parent.parent)
         self.items_to_transfer = []
 
         # Disable attach CSV buttons
         self.disable_all_attach_csv_buttons()
 
+        # Reset attach CSV labels
+        self.attach_csv_label_01.setText("No CSV Loaded")
+        self.attach_csv_label_02.setText("No CSV Loaded")
+        self.attach_csv_label_03.setText("No CSV Loaded")
+        self.attach_csv_label_04.setText("No CSV Loaded")
+        self.attach_csv_label_05.setText("No CSV Loaded")
+        self.attach_csv_label_06.setText("No CSV Loaded")
+        self.attach_csv_label_07.setText("No CSV Loaded")
+        self.attach_csv_label_08.setText("No CSV Loaded")
+        self.attach_csv_label_09.setText("No CSV Loaded")
+        self.attach_csv_label_10.setText("No CSV Loaded")
+
         # Disable transfer button
         self.button_transfer_items_to_server.setDisabled(True)
 
         # Dialog box for reset notification
-        self.dialog_box.label.setText("Form has been reset. CSV file is still loaded.")
+        self.dialog_box.label.setText("Form has been reset.")
         self.dialog_box.exec_()
 
     def populate_default_subjects_and_server_path(self):
@@ -592,6 +604,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.dialog_box.exec_()
             return False
 
+        # Ensure Patch Cord selection lines up with ROI selection
+        if (self.patch_cord_selector_01.currentText() != "" and self.roi_selector_01.currentText() == "") or \
+                (self.patch_cord_selector_01.currentText() == "" and self.roi_selector_01.currentText() != "") or \
+                (self.patch_cord_selector_02.currentText() != "" and self.roi_selector_02.currentText() == "") or \
+                (self.patch_cord_selector_02.currentText() == "" and self.roi_selector_02.currentText() != "") or \
+                (self.patch_cord_selector_03.currentText() != "" and self.roi_selector_03.currentText() == "") or \
+                (self.patch_cord_selector_03.currentText() == "" and self.roi_selector_03.currentText() != ""):
+            self.dialog_box.label.setText("Patch Cord and ROI selections do not match up. Please make sure each Patch Cord "
+                                          "selection has an ROI selection.")
+            self.dialog_box.exec_()
+            return False
+
         # Ensure there are no duplicate ROIs selected
         duplicates = False
         if self.roi_selector_01.currentText() != "":
@@ -613,6 +637,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                                           "cord link.")
             self.dialog_box.exec_()
             return False
+
+        # If all of the above tests pass, return True
         return True
 
 
