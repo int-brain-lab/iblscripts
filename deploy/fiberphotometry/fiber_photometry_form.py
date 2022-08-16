@@ -140,23 +140,32 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def remove_old_sessions(self):
         # TODO:
-        #  - Identify local sessions older than 3 months ago  .../Subject/Date/SessionNumber
         #  - Call up confirmation dialog box to verify removal action
-        #  - Remove sessions
         # import os
+        # import logging
+        # import shutil
         # from pathlib import Path
         # from datetime import datetime
-        # date_string = '2021-12-31'
-        # datetime = datetime.strptime(date_string, '%Y-%m-%d')
-        # print(datetime)
+        # from dateutil.relativedelta import relativedelta
         #
-        # test_dir = "/tmp/test_dir/Subjects/"
-        # dir_list = os.listdir(Path(test_dir))
-        # for entry in dir_list:
-        #     date_formatted_str = datetime.strptime(entry, "%Y-%m-%d")
-        #     # if entry
-        # print(dir_list)
-        self.dialog_box.label.setText("Feature not yet implemented.")
+        # test_dir = Path("/tmp/test_dir/Subjects")  # TODO: Update to FIBER_PHOTOMETRY_DATA_FOLDER
+        # subject_list = os.listdir(test_dir)
+        # six_month_old_date = datetime.now() - relativedelta(months=6)
+        #
+        # for subject in subject_list:
+        #     subject = str(subject)
+        #     date_list = os.listdir(Path.joinpath(test_dir, subject))
+        #     for date_dir in date_list:
+        #         date_dir = str(date_dir)
+        #         date_dir_as_date = datetime.strptime(date_dir, "%Y-%m-%d")
+        #         if date_dir_as_date < six_month_old_date:
+        #             dir_to_remove = Path.joinpath(test_dir, subject, date_dir)
+        #             logging.info(f"Removing {dir_to_remove} ...")
+        #             try:
+        #                 shutil.rmtree(dir_to_remove)
+        #             except FileNotFoundError:
+        #                 raise
+        self.dialog_box.label.setText("Feature not yet fully implemented.")
         self.dialog_box.exec_()
 
     def clear_qsetting_values(self):
@@ -238,13 +247,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             # Display dialog box with success message
             self.dialog_box.label.setText("The transfer has completed. Please review the log messages in the terminal for "
-                                          "details. Pressing OK will reset the application.")
+                                          "details. Pressing OK will reset the form.")
             self.dialog_box.exec_()
 
             self.reset_form()
 
     def add_item_to_queue(self):
-        """Verifies that all entered values are present."""
+        """Verifies that all entered values are valid and present. Adds item to the queue."""
 
         if not self.validate_patch_cord_and_roi():  # Check for at least a single ROI has been selected; no duplicate ROIs
             return
@@ -262,6 +271,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.date_edit.text() /
             self.session_number.text() /
             "raw_fiber_photometry_data")
+
+        # Ensure Subject / Date / Session Number are unique
+        for item in self.items_to_transfer:
+            if queue_path == Path(item["queue_path"]):
+                self.dialog_box.label.setText("Subject / Date / Session Number combination already queued.")
+                self.dialog_box.exec_()
+                return
 
         # set data file name
         data_file = f"{self.subject_combo_box.currentText()}_data_file.parquet"
@@ -306,6 +322,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Reset patch cord link ROI selectors
         self.reset_patch_cord_roi_combo_boxes_and_brain_area()
+
+        # Validate if transfer button should be enabled or not
+        self.validate_transfers_ready()
 
     def prepare_item_for_transfer(self, text: str):
         """
@@ -409,8 +428,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         return_string += "Server Path: " + item_to_transfer["server_path"]
         return return_string
 
-    def enable_transfers(self):
+    def validate_transfers_ready(self):
         """Validates every queued item has a csv file attached before enabling transfer button"""
+        self.button_transfer_items_to_server.setEnabled(False)
         transfer_ready = True
         for item in self.items_to_transfer:
             data_file_loc = Path(item["queue_path"]) / Path(item["data_file"])
@@ -497,7 +517,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         Model(pd.read_csv(file)).dataframe.to_parquet(Path(item["queue_path"]) / Path(item["data_file"]))
 
         # Attempt to enable transfer button
-        self.enable_transfers()
+        self.validate_transfers_ready()
 
         return f"Attached:\n{file.name}"
 
@@ -550,7 +570,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for item in self.items_to_transfer:
             if item["queue_path"]:
                 print(f"Deleting {Path(item['queue_path']).parent.parent.parent}")
-                shutil.rmtree(Path(item["queue_path"]).parent.parent.parent)
+                try:
+                    shutil.rmtree(Path(item["queue_path"]).parent.parent.parent)
+                except FileNotFoundError:
+                    print(f"{Path(item['queue_path']).parent.parent.parent} was not found. Directory was likely already"
+                                    f" deleted.")
         self.items_to_transfer = []
 
         # Disable attach CSV buttons
