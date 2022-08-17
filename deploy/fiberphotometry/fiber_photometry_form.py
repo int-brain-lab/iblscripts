@@ -11,7 +11,6 @@ Development machine details:
 
 TODO:
 - use shutil.copyfile(src, bonsai_file) to get workflow file into appropriate location
-- create clean up script to remove local sessions older than some given time period
 
 QtSettings values:
     last_loaded_csv_path: str - path to the parent dir of the last loaded csv
@@ -24,11 +23,12 @@ import os
 import shutil
 import sys
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import pandas as pd
 from PyQt5 import QtWidgets, QtCore
+from dateutil.relativedelta import relativedelta
 from ibllib.pipes.misc import rsync_paths
 
 from qt_designer_util import convert_ui_file_to_py
@@ -42,8 +42,13 @@ try:  # specify ui file(s) output by Qt Designer, call function to convert to py
     dialog_box_ui_file = "fiber_photometry_dialog_box.ui"
     convert_ui_file_to_py(dialog_box_ui_file, dialog_box_ui_file[:-3] + "_ui.py")
 
+    # confirm box ui file
+    confirm_box_ui_file = "fiber_photometry_confirm_box.ui"
+    convert_ui_file_to_py(confirm_box_ui_file, confirm_box_ui_file[:-3] + "_ui.py")
+
     from fiber_photometry_form_ui import Ui_MainWindow
     from fiber_photometry_dialog_box_ui import Ui_Dialog
+    from fiber_photometry_confirm_box_ui import Ui_Dialog as Ui_Confirm
 except ImportError:
     raise
 
@@ -80,6 +85,12 @@ class Dialog(QtWidgets.QDialog, Ui_Dialog):
         self.setupUi(self)
 
 
+class ConfirmBox(QtWidgets.QDialog, Ui_Confirm):
+    def __init__(self, parent=None):
+        super(ConfirmBox, self).__init__(parent=parent)
+        self.setupUi(self)
+
+
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     """
     Controller
@@ -88,6 +99,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         super(MainWindow, self).__init__(parent=parent)
         self.setupUi(self)
         self.dialog_box = Dialog()
+        self.confirm_box = ConfirmBox()
         self.items_to_transfer = []
 
         # init QSettings
@@ -126,7 +138,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.button_transfer_items_to_server.setEnabled(False)
 
     def disable_all_attach_csv_buttons(self):
-        """Disables all the attach csv buttons, buttons are enabled once an item is added to queue"""
+        """Disables all the attach_csv buttons, buttons are enabled once an item is added to queue"""
         self.button_attach_csv_01.setDisabled(True)
         self.button_attach_csv_02.setDisabled(True)
         self.button_attach_csv_03.setDisabled(True)
@@ -139,39 +151,48 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.button_attach_csv_10.setDisabled(True)
 
     def remove_old_sessions(self):
-        # TODO:
-        #  - Call up confirmation dialog box to verify removal action
-        # import os
-        # import logging
-        # import shutil
-        # from pathlib import Path
-        # from datetime import datetime
-        # from dateutil.relativedelta import relativedelta
-        #
-        # test_dir = Path("/tmp/test_dir/Subjects")  # TODO: Update to FIBER_PHOTOMETRY_DATA_FOLDER
-        # subject_list = os.listdir(test_dir)
-        # six_month_old_date = datetime.now() - relativedelta(months=6)
-        #
-        # for subject in subject_list:
-        #     subject = str(subject)
-        #     date_list = os.listdir(Path.joinpath(test_dir, subject))
-        #     for date_dir in date_list:
-        #         date_dir = str(date_dir)
-        #         date_dir_as_date = datetime.strptime(date_dir, "%Y-%m-%d")
-        #         if date_dir_as_date < six_month_old_date:
-        #             dir_to_remove = Path.joinpath(test_dir, subject, date_dir)
-        #             logging.info(f"Removing {dir_to_remove} ...")
-        #             try:
-        #                 shutil.rmtree(dir_to_remove)
-        #             except FileNotFoundError:
-        #                 raise
-        self.dialog_box.label.setText("Feature not yet fully implemented.")
-        self.dialog_box.exec_()
+        """Calls confirmation box for user, then will remove any session older than six months in the local data folder"""
+        self.confirm_box.label.setText(
+            "Pressing OK will remove any local sessions older than 6 months. Please be sure this is your intention.")
+        if self.confirm_box.exec_() == 1:  # OK button pressed
+            # get list of all subjects and create a datetime obj 6 months in the past
+            subject_list = os.listdir(FIBER_PHOTOMETRY_DATA_FOLDER)
+            six_month_old_date = datetime.now() - relativedelta(months=6)
+
+            for subject in subject_list:
+                subject = str(subject)
+                # get list of all date directories for a subject
+                date_list = os.listdir(Path(FIBER_PHOTOMETRY_DATA_FOLDER).joinpath(subject))
+
+                for date_dir in date_list:
+                    date_dir = str(date_dir)
+                    date_dir_as_datetime = datetime.strptime(date_dir, "%Y-%m-%d")
+                    if date_dir_as_datetime < six_month_old_date:
+                        dir_to_remove = Path(FIBER_PHOTOMETRY_DATA_FOLDER).joinpath(subject, date_dir)
+                        print(f"Removing {dir_to_remove} ...")
+                        try:
+                            shutil.rmtree(dir_to_remove)
+                        except FileNotFoundError:
+                            raise
+
+            self.dialog_box.label.setText(
+                "Local sessions older than 6 months have been removed. Review the terminal for details on the operation.")
+            self.dialog_box.exec_()
+        else:
+            self.dialog_box.label.setText("Operation cancelled, local sessions have not been removed.")
+            self.dialog_box.exec_()
 
     def clear_qsetting_values(self):
-        self.settings.clear()
-        self.dialog_box.label.setText("QSettings cleared, please restart the application to see changes.")
-        self.dialog_box.exec_()
+        self.confirm_box.label.setText(
+            "Pressing OK will reset the QSetting values (Subject names and server path). Please be sure this is your intention.")
+        if self.confirm_box.exec_() == 1:  # OK button pressed
+            self.settings.clear()
+            self.dialog_box.label.setText("QSetting values have been cleared, application will now close.")
+            self.dialog_box.exec_()
+            exit(0)
+        else:
+            self.dialog_box.label.setText("Operation cancelled, QSetting values have NOT been changed.")
+            self.dialog_box.exec_()
 
     def populate_widgets(self):
         """
@@ -573,8 +594,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 try:
                     shutil.rmtree(Path(item["queue_path"]).parent.parent.parent)
                 except FileNotFoundError:
-                    print(f"{Path(item['queue_path']).parent.parent.parent} was not found. Directory was likely already"
-                                    f" deleted.")
+                    print(f"{Path(item['queue_path']).parent.parent.parent} was not found. Directory was likely already deleted.")
         self.items_to_transfer = []
 
         # Disable attach CSV buttons
