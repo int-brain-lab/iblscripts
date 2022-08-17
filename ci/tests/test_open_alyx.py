@@ -14,7 +14,11 @@ _logger = logging.getLogger('ibllib')
 _logger.setLevel(10)
 
 ba = AllenAtlas()
-one = ONE(base_url='https://openalyx.internationalbrainlab.org')
+one = ONE(
+    base_url='https://openalyx.internationalbrainlab.org',
+    silent=True,
+    password='international'
+)
 
 
 class TestReadSpikeSorting(unittest.TestCase):
@@ -38,7 +42,11 @@ class TestStreamData(unittest.TestCase):
         pid = '675952a4-e8b3-4e82-a179-cc970d5a8b01'
         t0 = 50
         with tempfile.TemporaryDirectory() as td:
-            tmp_one = ONE(base_url='https://openalyx.internationalbrainlab.org', cache_dir=td)
+            tmp_one = ONE(
+                base_url='https://openalyx.internationalbrainlab.org',
+                password='international',
+                silent=True,
+                cache_dir=td)
             sr = Streamer(pid=pid, one=tmp_one)
             # read once to download the data
             raw_ = sr[int(t0 * 30000):int((t0 + 1) * 30000), :]  # noqa

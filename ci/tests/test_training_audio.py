@@ -1,5 +1,6 @@
 import unittest
 
+import numpy as np
 import one.alf.io as alfio
 from ibllib.io.extractors import training_audio as audio
 
@@ -29,6 +30,16 @@ class TestAudioExtraction(base.IntegrationTest):
         path_out = self.ses_path / 'raw_behavior_data'
         for f in path_out.glob('_iblmic_*'):
             f.unlink()
+
+
+class TestAudioProcessing(base.IntegrationTest):
+
+    def test_detect_go_cues(self):
+        fs = 200_000
+        w = np.load(self.data_path.joinpath("sound/example_gocue_clicks_error_fs200k.npy"))
+        dtect = audio.detect_ready_tone(w, fs, threshold=.2)
+        # this example contains 3 go cue times
+        assert np.all(dtect == (np.array([ 188863, 1318916, 1932242])))
 
 
 if __name__ == "__main__":

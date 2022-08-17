@@ -20,3 +20,4 @@ pybpod-api.log
 iblrig.egg-info/
 iblscripts.egg-info/
 .*
+!.coveragerc
