@@ -4,8 +4,6 @@ NB: FPGA TaskQC extractor is tested in test_ephys_extraction_choiceWorld
 import unittest
 import tempfile
 
-import numpy as np
-
 from pkg_resources import parse_version
 from ibllib.qc.task_metrics import TaskQC
 from ibllib.qc.task_extractors import TaskQCExtractor
