@@ -14,7 +14,7 @@ from deploy.videopc.transfer_video_session import main as transfer_video_session
 from deploy.widefieldpc.transfer_widefield import main as transfer_widefield
 from deploy.transfer_data_folder import main as transfer_data_folder
 
-from .base import IntegrationTest
+from ci.tests import base
 
 
 def make_session(session_path, stype='training'):
@@ -40,7 +40,7 @@ def make_session(session_path, stype='training'):
                               'PYBPOD_BOARD': pybpod_board}))
 
 
-class TestTransferRigDataEphys(IntegrationTest):
+class TestTransferRigDataEphys(base.IntegrationTest):
     def setUp(self):
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.root_data_folder = Path(self.tmp_dir.name)
@@ -63,7 +63,7 @@ class TestTransferRigDataEphys(IntegrationTest):
             self.assertFalse(fl.exists())
 
 
-class TestTransferRigDataTraining(IntegrationTest):
+class TestTransferRigDataTraining(base.IntegrationTest):
     def setUp(self):
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.root_data_folder = Path(self.tmp_dir.name)
@@ -102,7 +102,7 @@ class TestTransferRigDataTraining(IntegrationTest):
         self.tmp_dir.cleanup()
 
 
-class TestTransferRigDataTrainingOnEphys(IntegrationTest):
+class TestTransferRigDataTrainingOnEphys(base.IntegrationTest):
     def setUp(self):
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.root_data_folder = Path(self.tmp_dir.name)
@@ -141,7 +141,7 @@ class TestTransferRigDataTrainingOnEphys(IntegrationTest):
         self.tmp_dir.cleanup()
 
 
-class TestTransferVideoSession(IntegrationTest):
+class TestTransferVideoSession(base.IntegrationTest):
     def setUp(self):
         # Data emulating local rig data
         self.root_test_folder = tempfile.TemporaryDirectory()
@@ -254,7 +254,7 @@ class TestTransferVideoSession(IntegrationTest):
         shutil.rmtree(self.remote_repo)
 
 
-class TestTransferWidefieldSession(IntegrationTest):
+class TestTransferWidefieldSession(base.IntegrationTest):
     """Tests for the iblscripts/deploy/widefieldpc/transfer_widefield.py script"""
     def setUp(self):
         # Data emulating local rig data
@@ -302,7 +302,7 @@ class TestTransferWidefieldSession(IntegrationTest):
 
 
 @unittest.skip('TODO Finish test')
-class TestTransferMesoscopeSession(IntegrationTest):
+class TestTransferMesoscopeSession(base.IntegrationTest):
     """Tests for the iblscripts/deploy/mesoscope/transfer_mesoscope.py script"""
     def setUp(self):
         # Data emulating local rig data
@@ -349,7 +349,7 @@ class TestTransferMesoscopeSession(IntegrationTest):
             self.assertIn('No outstanding local sessions', log.records[-1].message)
 
 
-class TestTransferRawDataSession(IntegrationTest):
+class TestTransferRawDataSession(base.IntegrationTest):
     """Tests for the iblscripts/deploy/transfer_data_folder.py script"""
     def setUp(self):
         # Data emulating local rig data
