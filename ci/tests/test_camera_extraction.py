@@ -631,7 +631,7 @@ class TestCameraQC(base.IntegrationTest):
             '_videoLeft_position': 'PASS',
             '_videoLeft_resolution': 'PASS',
             '_videoLeft_timestamps': 'PASS',
-            '_videoLeft_wheel_alignment': ('FAIL', -95)
+            '_videoLeft_wheel_alignment': ('WARNING', -95)
         }
         self.assertEqual(expected, extended)
 
