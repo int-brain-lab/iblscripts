@@ -6,14 +6,14 @@ from pathlib import Path
 import shutil
 
 import ibllib.io.flags as flags
-from ibllib.misc import log_to_file
+from iblutil.util import log_to_file
 from ibllib.pipes.misc import create_basic_transfer_params, subjects_data_folder, transfer_session_folders
 
 
 def main(local=None, remote=None, rename_files=False):
     DATA_FOLDER = 'raw_widefield_data'
     # logging configuration
-    log = log_to_file('transfer_widefield_sessions.log', log='ibllib.pipes.misc')
+    log = log_to_file(filename='transfer_widefield_sessions.log', log='ibllib.pipes.misc')
 
     # Determine if user passed in arg for local/remote subject folder locations or pull in from
     # local param file or prompt user if missing
