@@ -117,8 +117,6 @@ if __name__ == "__main__":
     parser.add_argument('--dry-run', help='gather tests without running', action='store_true')
     parser.add_argument('--failfast', action='store_true',
                         help='stop the test run on the first error or failure')
-    parser.add_argument('--failfast', action='store_true',
-                        help='stop the test run on the first error or failure')
     parser.add_argument('--exit', action='store_true', help='return 1 if tests fail')
     args = parser.parse_args()  # returns data from the options specified (echo)
 
