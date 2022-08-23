@@ -7,7 +7,6 @@ from ibllib.pipes.scan_fix_passive_files import execute
 log = logging.getLogger('ibllib')
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Scan and fix badly transfered passive sessions')
     parser.add_argument('root_data_folder', default='/mnt/s0/Data', help='Root data folder [/mnt/s0/Data]')

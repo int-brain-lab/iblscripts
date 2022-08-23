@@ -94,7 +94,7 @@ class TestTaskQCObject(base.IntegrationTest):
             '_task_wheel_move_during_closed_loop': 'PASS',
             '_task_wheel_move_during_closed_loop_bpod': 'PASS',
             '_task_passed_trial_checks': 'NOT_SET'
-                             }
+        }
         self.assertTrue(all(outcomes[k] == expected_outcomes[k] for k in outcomes.keys()))
 
 

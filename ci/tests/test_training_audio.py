@@ -39,7 +39,7 @@ class TestAudioProcessing(base.IntegrationTest):
         w = np.load(self.data_path.joinpath("sound/example_gocue_clicks_error_fs200k.npy"))
         dtect = audio.detect_ready_tone(w, fs, threshold=.2)
         # this example contains 3 go cue times
-        assert np.all(dtect == (np.array([ 188863, 1318916, 1932242])))
+        self.assertTrue(np.all(dtect == (np.array([188863, 1318916, 1932242]))))
 
 
 if __name__ == "__main__":

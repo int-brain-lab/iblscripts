@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.testing
 import matplotlib.pyplot as plt
 import unittest
 from ibllib.atlas import AllenAtlas, FlatMap, BrainRegions
@@ -18,25 +19,24 @@ class TestAtlasSlicesConversion(unittest.TestCase):
         ix, iy = np.meshgrid(np.arange(ba.bc.nx), np.arange(ba.bc.ny))
         iz = ba.bc.z2i(ba.top)
         inds = ba._lookup_inds(np.stack((ix, iy, iz), axis=-1))
-        assert np.all(ba.label.flat[inds][~np.isnan(ba.top)] != 0)
+        self.assertTrue(np.all(ba.label.flat[inds][~np.isnan(ba.top)] != 0))
         # one sample above, it's all zeros
         inds = ba._lookup_inds(np.stack((ix, iy, np.maximum(iz - 1, 0)), axis=-1))
-        assert np.all(ba.label.flat[inds][~np.isnan(ba.top)] == 0)
+        self.assertTrue(np.all(ba.label.flat[inds][~np.isnan(ba.top)] == 0))
         # plt.imshow(self._label2rgb(self.label.flat[inds]))  # show the surface
         # do the same for the bottom surface
         izb = ba.bc.z2i(ba.bottom)
         inds = ba._lookup_inds(np.stack((ix, iy, izb), axis=-1))
-        assert np.all(ba.label.flat[inds][~np.isnan(ba.top)] != 0)
+        self.assertTrue(np.all(ba.label.flat[inds][~np.isnan(ba.top)] != 0))
         # one sample below, it's all zeros
         inds = ba._lookup_inds(np.stack((ix, iy, np.maximum(izb + 1, 0)), axis=-1))
-        assert np.all(ba.label.flat[inds][~np.isnan(ba.bottom)] == 0)
-
+        self.assertTrue(np.all(ba.label.flat[inds][~np.isnan(ba.bottom)] == 0))
 
     def test_lookups(self):
         ba = self.ba
         # test the probabilistic indices lookup
-        radius_um = 200
-        mapping = 'Beryl'
+        # radius_um = 200
+        # mapping = 'Beryl'
         xyz = np.array([0, -.0058, -.0038])
 
         # from atlasview import atlasview  # mouais il va falloir changer ça
@@ -45,9 +45,10 @@ class TestAtlasSlicesConversion(unittest.TestCase):
         aid = ba.get_labels(xyz, mapping='Beryl')
         aids, proportions = ba.get_labels(xyz, mapping='Beryl', radius_um=250)
 
-        assert (aid == 912)
-        assert (np.all(aids == np.array([997, 912, 976, 968])))
-        assert np.all(np.isclose(proportions, np.array([0.40709028, 0.35887036, 0.22757999, 0.00645937])))
+        self.assertEqual(aid, 912)
+        self.assertTrue(np.all(aids == np.array([997, 912, 976, 968])))
+        expected = np.array([0.40709028, 0.35887036, 0.22757999, 0.00645937])
+        np.testing.assert_allclose(proportions, expected)
 
 
 class TestFlatMaps(unittest.TestCase):

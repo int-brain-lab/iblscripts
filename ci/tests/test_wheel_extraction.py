@@ -1,6 +1,5 @@
 import numpy as np
 import shutil
-import logging
 
 from scipy.signal import butter, filtfilt
 import scipy.interpolate
@@ -12,7 +11,6 @@ from ibllib.io.extractors import ephys_fpga, training_wheel
 from ci.tests import base
 
 DISPLAY = False
-_logger = logging.getLogger('ibllib')
 
 
 def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
@@ -81,16 +79,16 @@ class TestWheelExtractionSessionEphys(base.IntegrationTest):
 
     def test_wheel_extraction_session(self):
         for session_path in self.sessions:
-            _logger.info(f"EPHYS: {session_path}")
-            _, wheel = compare_wheel_fpga_behaviour(session_path)
-            # makes sure that the HF component matches
-            b, a = butter(3, 0.0001, btype='high', analog=False)
-            fpga = filtfilt(b, a, wheel['fpga'])
-            bpod = filtfilt(b, a, wheel['bpod'])
-            # plt.figure()
-            # plt.plot(wheel['tscale'], fpga)
-            # plt.plot(wheel['tscale'], bpod)
-            self.assertTrue(np.all(np.abs(fpga - bpod < 0.1)))
+            with self.subTest(msg=session_path):
+                _, wheel = compare_wheel_fpga_behaviour(session_path)
+                # makes sure that the HF component matches
+                b, a = butter(3, 0.0001, btype='high', analog=False)
+                fpga = filtfilt(b, a, wheel['fpga'])
+                bpod = filtfilt(b, a, wheel['bpod'])
+                # plt.figure()
+                # plt.plot(wheel['tscale'], fpga)
+                # plt.plot(wheel['tscale'], bpod)
+                self.assertTrue(np.all(np.abs(fpga - bpod < 0.1)))
 
 
 class TestWheelExtractionTraining(base.IntegrationTest):
@@ -102,6 +100,6 @@ class TestWheelExtractionTraining(base.IntegrationTest):
     def test_wheel_extraction_training(self):
         for rbf in self.root_path.rglob('raw_behavior_data'):
             session_path = get_session_path(rbf)
-            _logger.info(f"TRAINING: {session_path}")
-            bpod_t, _ = training_wheel.get_wheel_position(session_path)
-            self.assertTrue(bpod_t.size)
+            with self.subTest(msg=session_path):
+                bpod_t, _ = training_wheel.get_wheel_position(session_path)
+                self.assertTrue(bpod_t.size)

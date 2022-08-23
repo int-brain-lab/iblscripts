@@ -94,7 +94,7 @@ class TestReadSpikeSorting(IntegrationTest):
         _logger.setLevel(0)
         spikes, _, _ = sl.load_spike_sorting(spike_sorter='', dataset_types=['spikes.samples'])
         # TODO: add the sync files
-        assert(np.all(np.abs(sl.samples2times(spikes.samples) - spikes.times) < 1e11))
+        self.assertTrue(np.all(np.abs(sl.samples2times(spikes.samples) - spikes.times) < 1e11))
 
 
 class TestSessionLoader(IntegrationTest):

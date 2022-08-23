@@ -73,7 +73,9 @@ def test_model(file_test):
     This test does not require instantiating a GUI, and tests only the model logic
     """
     model = Model(pd.read_csv(file_test))
-    assert(model.regions == ['Region0R', 'Region1G', 'Region2R', 'Region3R', 'Region4R', 'Region5G', 'Region6G', 'Region7R', 'Region8G'])
+    expected = ['Region0R', 'Region1G', 'Region2R', 'Region3R', 'Region4R',
+                'Region5G', 'Region6G', 'Region7R', 'Region8G']
+    assert model.regions == expected
 
 
 def test_gui(fiber_copy, file_test):

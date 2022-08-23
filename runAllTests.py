@@ -19,7 +19,7 @@ import projects
 logger = logging.getLogger('ibllib')
 
 try:  # Import the test packages
-    import brainbox.tests, ci.tests, ibllib.tests
+    import brainbox.tests, ci.tests, ibllib.tests  # noqa
 except ModuleNotFoundError as ex:
     logger.warning(f'Failed to import test packages: {ex} encountered')
 
@@ -70,7 +70,6 @@ def run_tests(complete: bool = True,
             unit_tests = unittest.TestLoader().discover(str(tdir), pattern='test_*', top_level_dir=root)
             logger.info(f"Found {unit_tests.countTestCases()}, appending to the test suite")
             ci_tests.addTests(unit_tests)
-
 
     logger.info(f'Complete suite contains {ci_tests.countTestCases()} tests')
     # Check all tests loaded successfully
