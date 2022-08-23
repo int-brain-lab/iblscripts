@@ -13,7 +13,15 @@ conda activate ci
 # Flake ibllib and save the output in a separate log
 mkdir -p "$3"
 pushd "$2"
-flake8 . --tee --output-file="$3/flake_output.txt"
+echo "flaking ibllib"
+flake8 . --tee --output-file="$3/flake_output_ibllib.txt"
+
+# Flake iblscripts
+echo "flaking iblscripts"
+flake8 "$2/../iblscripts/" --tee --output-file="$3/flake_output_iblscripts.txt"
+
+# Merge flake reports
+more "$3/flake_output_*.txt" | cat >> "$3/flake_output.txt"
 
 # Should run the tests in the source directory as the coverage paths are relative to the cwd.
 # As we install via pip this will be in anaconda3 env packages
@@ -35,9 +43,9 @@ done
 pkgs=${pkgs%?} # remove last comma
 
 # Run tests
+passed=true
 coverage run --source="$pkgs" --rcfile "$2/../iblscripts/.coveragerc" \
-"$2/../iblscripts/runAllTests.py" -c "$1" -r "$2" --logdir "$3" --exit
-passed=$? # record exit code
+"$2/../iblscripts/runAllTests.py" -c "$1" -r "$2" --logdir "$3" --exit || passed=false
 
 #coverage report --skip-covered # (for debugging)
 
@@ -45,7 +53,7 @@ echo Saving coverage reports
 coverage html -d "$3/reports/$1" --skip-covered --show-contexts
 coverage xml -o "$3/reports/$1/CoverageResults.xml"
 coverage json -o "$3/reports/$1/CoverageResults.json"
-if ! [ ${passed} -eq 0 ] ; then
+if ! [ "${passed}" = false ] ; then
    echo "Done"
    exit
 fi
