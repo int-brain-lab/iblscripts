@@ -23,6 +23,8 @@ flake8 . --tee --output-file="$3/flake_output.txt"
 source=$(pip show ibllib | awk -F':' '$1 == "Location" { print $2 }' | xargs)
 pushd "$source"
 
+coverage erase  # Be extra careful and erase previous coverage
+
 # Build up sources
 pkgs=''
 for pkg in 'ibllib' 'brainbox'
@@ -32,11 +34,10 @@ do
 done
 pkgs=${pkgs%?} # remove last comma
 
-coverage erase  # Be extra careful and erase previous coverage
-
 # Run tests
 coverage run --source="$pkgs" --rcfile "$2/../iblscripts/.coveragerc" \
-"$2/../iblscripts/runAllTests.py" -c "$1" -r "$2" --logdir "$3"
+"$2/../iblscripts/runAllTests.py" -c "$1" -r "$2" --logdir "$3" --exit
+passed=$? # record exit code
 
 #coverage report --skip-covered # (for debugging)
 
@@ -44,12 +45,17 @@ echo Saving coverage reports
 coverage html -d "$3/reports/$1" --skip-covered --show-contexts
 coverage xml -o "$3/reports/$1/CoverageResults.xml"
 coverage json -o "$3/reports/$1/CoverageResults.json"
-coverage lcov -o "$3/reports/$1/CoverageResults.lcov"
+if ! [ ${passed} -eq 0 ] ; then
+   echo "Done"
+   exit
+fi
 
 # Post lcov to coveralls then delete file
+coverage lcov -o "$3/reports/$1/CoverageResults.lcov"
+popd > /dev/null
+
 echo Posting to coveralls.io
 coveralls="$2/../matlab-ci/node_modules/coveralls/bin/coveralls.js"
 $coveralls < "$3/reports/$1/CoverageResults.lcov" && rm "$3/reports/$1/CoverageResults.lcov"
-popd > /dev/null
 popd > /dev/null
 echo "Done"
