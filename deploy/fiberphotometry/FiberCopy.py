@@ -8,7 +8,7 @@ Dataclasses
 import argparse
 import sys
 from pathlib import Path
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import pandas as pd
 

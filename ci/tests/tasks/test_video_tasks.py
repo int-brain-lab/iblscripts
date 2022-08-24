@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 import unittest.mock
 
-from ibllib.pipes.video_tasks import VideoRegisterRaw, VideoCompress, VideoSyncQcBpod, VideoSyncQcNidq
+from ibllib.pipes.video_tasks import VideoCompress, VideoSyncQcBpod, VideoSyncQcNidq
 
 from ci.tests import base
 

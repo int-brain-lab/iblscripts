@@ -48,7 +48,7 @@ class TestAtlasSlicesConversion(unittest.TestCase):
         self.assertEqual(aid, 912)
         self.assertTrue(np.all(aids == np.array([997, 912, 976, 968])))
         expected = np.array([0.40709028, 0.35887036, 0.22757999, 0.00645937])
-        np.testing.assert_allclose(proportions, expected)
+        np.testing.assert_allclose(proportions, expected, atol=1e-6)
 
 
 class TestFlatMaps(unittest.TestCase):
