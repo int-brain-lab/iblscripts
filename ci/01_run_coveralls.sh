@@ -14,14 +14,14 @@ conda activate ci
 mkdir -p "$3"
 pushd "$2"
 echo "flaking ibllib"
-flake8 . --tee --output-file="$3/flake_output_ibllib.txt"
+flake8 . --tee --output-file="$3/reports/$1/flake_output_ibllib.txt"
 
 # Flake iblscripts
 echo "flaking iblscripts"
 flake8 "$2/../iblscripts" --tee --output-file="$3/flake_output_iblscripts.txt" --config="$2/../iblscripts/.flake8"
 
 # Merge flake reports
-more "$3/flake_output_*.txt" | cat >> "$3/flake_output.txt"
+more "$3/reports/$1/flake_output_*.txt" | cat >> "$3/reports/$1/flake_output.txt"
 
 # Should run the tests in the source directory as the coverage paths are relative to the cwd.
 # As we install via pip this will be in anaconda3 env packages
