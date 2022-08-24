@@ -18,7 +18,7 @@ flake8 . --tee --output-file="$3/flake_output_ibllib.txt"
 
 # Flake iblscripts
 echo "flaking iblscripts"
-flake8 "$2/../iblscripts/" --tee --output-file="$3/flake_output_iblscripts.txt"
+flake8 "$2/../iblscripts" --tee --output-file="$3/flake_output_iblscripts.txt" --config="$2/../iblscripts/.flake8"
 
 # Merge flake reports
 more "$3/flake_output_*.txt" | cat >> "$3/flake_output.txt"
