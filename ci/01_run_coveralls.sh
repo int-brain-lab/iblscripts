@@ -18,10 +18,15 @@ flake8 . --tee --output-file="$3/reports/$1/flake_output_ibllib.txt"
 
 # Flake iblscripts
 echo "flaking iblscripts"
-flake8 "$2/../iblscripts" --tee --output-file="$3/flake_output_iblscripts.txt" --config="$2/../iblscripts/.flake8"
+flake8 "$2/../iblscripts" --tee --output-file="$3/reports/$1/flake_output_iblscripts.txt" --config="$2/../iblscripts/.flake8"
 
 # Merge flake reports
-more "$3/reports/$1/flake_output_*.txt" | cat >> "$3/reports/$1/flake_output.txt"
+for file in "$3"/reports/"$1"/flake_output_*.txt
+do
+   printf '===== %s =====\n\n' "$file" >> "$3/reports/$1/flake_output.txt"
+   cat "$file" >> "$3/reports/$1/flake_output.txt"
+   rm "$file"
+done
 
 # Should run the tests in the source directory as the coverage paths are relative to the cwd.
 # As we install via pip this will be in anaconda3 env packages
