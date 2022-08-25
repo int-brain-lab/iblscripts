@@ -99,7 +99,7 @@ while running:
         else (tr.data['nice_status'] or tr.data['status']).upper()
     )
     status = next((k for k, v in status_map.items() if detail in v), tr.data['status'])
-    running = tr.data['status'] == 'ACTIVE' and detail in ('ACTIVE', 'QUEUED')
+    running = tr.data['status'] == 'ACTIVE' and detail in ('ACTIVE', 'QUEUED', 'GC_NOT_CONNECTED')
     if files_skipped != tr.data['files_skipped']:
         files_skipped = tr.data['files_skipped']
         logger.info(f'Skipping {files_skipped} files....')
