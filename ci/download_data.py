@@ -127,7 +127,7 @@ while running:
         poll = POLL[0]
     else:
         poll = min((poll * 2, POLL[1]))
-    time.sleep(poll)
+    time.sleep(poll) if running else logger.info(f'Final status: {last_status}')
 
 if logger.level == 10:
     """Sometime Globus sets the status to SUCCEEDED but doesn't truly finish.

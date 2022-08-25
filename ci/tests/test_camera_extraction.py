@@ -584,7 +584,7 @@ class TestCameraQC(base.IntegrationTest):
             '_videoLeft_dropped_frames': ('WARNING', 1, 1),
             '_videoLeft_file_headers': 'PASS',
             '_videoLeft_focus': 'PASS',
-            '_videoLeft_framerate': ('PASS', 59.767),  # this is now 59.88
+            '_videoLeft_framerate': ('PASS', 59.767),
             '_videoLeft_pin_state': ('WARNING', 2, 1),
             '_videoLeft_position': 'PASS',
             '_videoLeft_resolution': 'PASS',
