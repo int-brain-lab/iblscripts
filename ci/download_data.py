@@ -24,7 +24,7 @@ SRC_DIR = '/integration'
 POLL = (5, 60 * 2)  # min max seconds between pinging server
 TIMEOUT = 24 * 60 * 60  # seconds before timeout
 status_map = {
-    'ACTIVE': ('QUEUED', 'ACTIVE'),
+    'ACTIVE': ('QUEUED', 'ACTIVE', 'GC_NOT_CONNECTED'),
     'FAILED': ('ENDPOINT_ERROR', 'PERMISSION_DENIED', 'CONNECT_FAILED'),
     'INACTIVE': 'PAUSED_BY_ADMIN'
 }
@@ -99,7 +99,7 @@ while running:
         else (tr.data['nice_status'] or tr.data['status']).upper()
     )
     status = next((k for k, v in status_map.items() if detail in v), tr.data['status'])
-    running = tr.data['status'] == 'ACTIVE' and detail in ('ACTIVE', 'QUEUED', 'GC_NOT_CONNECTED')
+    running = tr.data['status'] == 'ACTIVE' and detail in status_map['ACTIVE']
     if files_skipped != tr.data['files_skipped']:
         files_skipped = tr.data['files_skipped']
         logger.info(f'Skipping {files_skipped} files....')
@@ -124,6 +124,9 @@ while running:
                 logger.warning(f'{abs(new_failed - subtasks_failed)} sub-tasks expired or failed')
                 subtasks_failed = new_failed
         last_status = status
+        poll = POLL[0]
+    elif detail == 'GC_NOT_CONNECTED':
+        logger.warning('Globus Client not connected, this may be temporary')
         poll = POLL[0]
     else:
         poll = min((poll * 2, POLL[1]))
