@@ -87,6 +87,7 @@ poll = POLL[0]
 MAX_WAIT = 60 * 60
 # while not gtc.task_wait(task_id, timeout=WAIT):
 running = True
+prev_detail = None
 while running:
     """Possible statuses = ('ACTIVE', 'INACTIVE', 'FAILED', 'SUCCEEDED')
     Nice statuses = (None, 'OK', 'Queued', 'PERMISSION_DENIED',
@@ -125,11 +126,12 @@ while running:
                 subtasks_failed = new_failed
         last_status = status
         poll = POLL[0]
-    elif detail == 'GC_NOT_CONNECTED':
+    elif detail == 'GC_NOT_CONNECTED' and prev_detail != detail:
         logger.warning('Globus Client not connected, this may be temporary')
         poll = POLL[0]
     else:
         poll = min((poll * 2, POLL[1]))
+    prev_detail = detail
     time.sleep(poll) if running else logger.info(f'Final status: {last_status}')
 
 if logger.level == 10:

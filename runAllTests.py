@@ -20,6 +20,7 @@ logger = logging.getLogger('ibllib')
 
 try:  # Import the test packages
     import brainbox.tests, ci.tests, ibllib.tests  # noqa
+    from ci.tests.base import TimeLoggingTestRunner
 except ModuleNotFoundError as ex:
     logger.warning(f'Failed to import test packages: {ex} encountered')
 
@@ -45,7 +46,8 @@ def load_doctests(test_dir, options) -> unittest.TestSuite:
 def run_tests(complete: bool = True,
               strict: bool = True,
               dry_run: bool = False,
-              failfast: bool = False) -> (unittest.TestResult, str):
+              failfast: bool = False,
+              time_tests: bool = True) -> (unittest.TestResult, str):
     """
     Run integration tests
     :param complete: When true ibllib unit tests are run in addition to the integration tests.
@@ -86,7 +88,8 @@ def run_tests(complete: bool = True,
     test_list = list_tests(ci_tests)
 
     # Run tests
-    result = unittest.TextTestRunner(verbosity=2, stream=sys.stdout, failfast=failfast).run(ci_tests)
+    TestRunner = TimeLoggingTestRunner if time_tests else unittest.TextTestRunner
+    result = TestRunner(verbosity=2, stream=sys.stdout, failfast=failfast).run(ci_tests)
 
     return result, test_list
 
