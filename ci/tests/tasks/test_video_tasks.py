@@ -16,9 +16,9 @@ from ci.tests import base
 _logger = logging.getLogger('ibllib')
 
 
+@unittest.skip('TODO')
 class TestVideoRegisterRaw(base.IntegrationTest):
     def setUp(self) -> None:
-
         pass
 
     def test_register(self):

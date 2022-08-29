@@ -57,7 +57,7 @@ class TestPipeline(base.IntegrationTest):
                                           graph='TrainingExtractionPipeline', no_cache=True)
             self.assertTrue(len(errored_tasks) == 0)
             session_dict = one.alyx.rest('sessions', 'list',
-                                         django='extended_qc__isnull, False', no_cache=True)
+                                         django='extended_qc__isnull,False', no_cache=True)
             self.assertTrue(len(session_dict) > 0)
 
 
@@ -75,4 +75,4 @@ def create_pipeline(session_path, one):
     assert eid
     alyx_tasks = one.alyx.rest('tasks', 'list',
                                session=eid, graph='TrainingExtractionPipeline', no_cache=True)
-    assert(len(alyx_tasks) == 6)
+    assert len(alyx_tasks) == 6

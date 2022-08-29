@@ -1,19 +1,29 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 # @Author: Miles
+"""
+Simply transfers the specified raw data folders and writes a local 'transferred.flag' file upon
+transfer.
+
+Expects data folder to be in the following folder structure:
+DATA_FOLDER_PATH/subject/yyyy-mm-dd/nnn/<data_folder>
+
+Example:
+    python transfer_data_folder.py raw_sync_data
+"""
 import argparse
 from pathlib import Path
-import shutil
+import re
 
 import ibllib.io.flags as flags
 from iblutil.util import log_to_file
 from ibllib.pipes.misc import create_basic_transfer_params, subjects_data_folder, transfer_session_folders
 
 
-def main(local=None, remote=None, rename_files=False):
-    DATA_FOLDER = 'raw_widefield_data'
+def main(data_folder, local=None, remote=None):
     # logging configuration
-    log = log_to_file(filename='transfer_widefield_sessions.log', log='ibllib.pipes.misc')
+    data_name, = (re.match(r'raw_(\w+)_data', data_folder) or (data_folder,)).groups()
+    log = log_to_file(filename=f'transfer_{data_name}_session.log', log='ibllib.pipes.misc')
 
     # Determine if user passed in arg for local/remote subject folder locations or pull in from
     # local param file or prompt user if missing
@@ -25,8 +35,8 @@ def main(local=None, remote=None, rename_files=False):
     log.info(f'Local subjects folder: {local_subject_folder}')
     log.info(f'Remote subjects folder: {remote_subject_folder}')
 
-    # Find all local folders that have 'raw_widefield_data'
-    local_sessions = local_subject_folder.rglob(DATA_FOLDER)
+    # Find all local folders that have 'raw_sync_data'
+    local_sessions = local_subject_folder.rglob(data_folder)
     # Remove sessions that have a transferred flag file
     local_sessions = filter(lambda x: not any(x.glob('transferred.flag')), local_sessions)
     local_sessions = sorted(x.parent for x in local_sessions)
@@ -38,39 +48,24 @@ def main(local=None, remote=None, rename_files=False):
         log.info('No outstanding local sessions to transfer.')
         return
 
-    def copy_wiring(wiring_file, filter_pattern):
-        default_file = Path(__file__).parent.joinpath('wirings', wiring_file)
-        for session_path in filter(lambda x: not any(x.glob(f'{DATA_FOLDER}/{filter_pattern}')), local_sessions):
-            destination = session_path.joinpath(DATA_FOLDER, wiring_file)
-            log.debug(f'{default_file} -> {destination}')
-            shutil.copy(default_file, destination)
-
-    # Ensure each session contains a channels file: copy file over if not present
-    log.info('Copying missing wiring files')
-    copy_wiring('widefield_wiring.htsv', '*widefield_wiring*')
-    copy_wiring('_spikeglx_DAQdata.wiring.json', '*DAQdata.wiring*')
-
     # Call ibllib function to perform generalized user interaction and kick off transfer
     transfer_list, success = transfer_session_folders(
-        local_sessions, remote_subject_folder, subfolder_to_transfer=DATA_FOLDER)
+        local_sessions, remote_subject_folder, subfolder_to_transfer=data_folder)
 
     # Create transferred flag files and rename files
     for src, dst in (x for x, ok in zip(transfer_list, success) if ok):
-        log.info(f"{src} -> {dst} - widefield transfer success")
+        log.info(f"{src} -> {dst} - {data_name} transfer success")
 
         # Create flag
-        flag_file = src.joinpath(DATA_FOLDER, 'transferred.flag')
+        flag_file = src.joinpath(data_folder, 'transferred.flag')
         file_list = map(str, filter(Path.is_file, flag_file.parent.rglob('*')))
         flags.write_flag_file(flag_file, file_list=list(file_list))
 
-        if rename_files:
-            log.info('Renaming remote widefield data files')
-            raise NotImplementedError
-
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Transfer widefield files to IBL local server')
+    parser = argparse.ArgumentParser(description='Transfer raw data folder(s) to IBL local server')
+    parser.add_argument('data_folder', help='The raw data folder to transfer, e.g. "raw_sync_data"')
     parser.add_argument('-l', '--local', default=False, required=False, help='Local iblrig_data/Subjects folder')
     parser.add_argument('-r', '--remote', default=False, required=False, help='Remote iblrig_data/Subjects folder')
     args = parser.parse_args()
-    main(args.local, args.remote)
+    main(args.data_folder, args.local, args.remote)

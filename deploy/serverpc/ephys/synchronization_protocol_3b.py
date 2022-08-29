@@ -331,7 +331,7 @@ def evaluate_camera_sync(d, sync, show_plots=SHOW_PLOTS):
         # assuming at the end the frames are dropped
         drops = len(cam_times) - len(r3)
 
-        print('# FPGA time stamps: ', len(cam_times),'# camera frames: ', len(r3))
+        print(f'# FPGA time stamps: {len(cam_times)} # camera frames: {len(r3)}')
         # check if an extremely high number of frames is dropped at the end
         assert drops < 500, '%s frames dropped for %s!!!' % (drops, vid)
 
@@ -511,5 +511,5 @@ if __name__ == "__main__":
     args = parser.parse_args()  # returns data from the options specified (echo)
     if args.display and args.display.lower() == 'false':
         args.display = False
-    assert(Path(args.folder).exists())
+    assert Path(args.folder).exists()
     run_synchronization_protocol(args.folder, display=args.display)

@@ -23,8 +23,8 @@ class Test(base.IntegrationTest):
 
         # List all dataset types available in that session.
         dset_types = one.list_datasets(eid)
-        assert(len(dset_types) == 13)
+        assert len(dset_types) == 13
         # Loading a single dataset.
         one.load_dataset(eid, dset_types[0])
         obj = one.load_object(eid, "_ibl_trials")
-        assert(len(obj.keys()) == 13)
+        assert len(obj.keys()) == 13

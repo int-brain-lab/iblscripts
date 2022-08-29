@@ -198,7 +198,7 @@ class TestTrainingCameraExtractor(base.IntegrationTest):
         for i in range(5):
             trials[i]['behavior_data']['Events timestamps']['Port1In'] = None
         # Should fall back on the basic extraction
-        with self.assertLogs(logging.getLogger('ibllib'), logging.CRITICAL):
+        with self.assertLogs(logging.getLogger('ibllib.io.extractors.camera'), logging.CRITICAL):
             ts, _ = ext.extract(save=False, bpod_trials=trials)
         expected = np.array([25.0232, 25.0536, 25.0839, 25.1143, 25.1447])
         np.testing.assert_array_almost_equal(ts[:5], expected)
@@ -329,7 +329,7 @@ class TestEphysCameraExtractor(base.IntegrationTest):
     def test_groom_pin_state(self):
         self._groom_pin_state()
         # Create a frameData file from old timestamps, gpio, and frame_counter files
-        data = self._make_frameData_file(self.groom_session_path, label='left')
+        self._make_frameData_file(self.groom_session_path, label='left')
         # Rerun same test
         self._groom_pin_state()
 
@@ -344,7 +344,6 @@ class TestEphysCameraExtractor(base.IntegrationTest):
         out, fil = camio.extract_all(self.session_path, save=False)
         self.assertTrue(len(out), 3)
         self.assertFalse(fil)
-
 
     @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
     def test_extract_all(self, mock_vc):
@@ -433,7 +432,7 @@ class TestEphysCameraExtractor(base.IntegrationTest):
         gpio = {'indices': np.sort(np.random.choice(np.arange(self.n_frames[side]), n)),
                 'polarities': np.insert(np.random.choice([-1, 1], n - 1), 0, -1)}
         mock_aux.return_value = (np.arange(self.n_frames[side]), [None, None, None, gpio])
-        with self.assertLogs(logging.getLogger('ibllib'), logging.CRITICAL):
+        with self.assertLogs(logging.getLogger('ibllib.io.extractors.camera'), logging.CRITICAL):
             ts, _ = ext.extract(save=False, sync=sync, chmap=chmap)
         # Should fallback to basic extraction
         np.testing.assert_array_almost_equal(ts[:5], expected)
@@ -585,7 +584,7 @@ class TestCameraQC(base.IntegrationTest):
             '_videoLeft_dropped_frames': ('WARNING', 1, 1),
             '_videoLeft_file_headers': 'PASS',
             '_videoLeft_focus': 'PASS',
-            '_videoLeft_framerate': ('PASS', 59.767),  #this is now 59.88
+            '_videoLeft_framerate': ('PASS', 59.767),
             '_videoLeft_pin_state': ('WARNING', 2, 1),
             '_videoLeft_position': 'PASS',
             '_videoLeft_resolution': 'PASS',
@@ -631,7 +630,7 @@ class TestCameraQC(base.IntegrationTest):
             '_videoLeft_position': 'PASS',
             '_videoLeft_resolution': 'PASS',
             '_videoLeft_timestamps': 'PASS',
-            '_videoLeft_wheel_alignment': ('FAIL', -95)
+            '_videoLeft_wheel_alignment': ('WARNING', -95)
         }
         self.assertEqual(expected, extended)
 

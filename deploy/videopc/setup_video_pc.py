@@ -63,7 +63,7 @@ def download_pyspin(destination_file=None):
     if destination_file is None:
         destination_file = Path().home() / "Downloads" / "pyspin.zip"
     # Download the spinnaker-python library
-    print(f"\n\nDownloading the spinnaker-python library\n")
+    print("\n\nDownloading the spinnaker-python library\n")
     # file_id = '1A-tiVYnZvcZJA0LbLT51B6mjmXlnmwRq'  # Old file
     file_id = '1Fmo2fNZRMjwhI1_b-9vxq33qgW3qEpHp'
     download_file_from_google_drive(file_id, destination_file)
@@ -80,7 +80,6 @@ def unzip_pyspin(source_file=None, destination_dir=None):
         destination_dir = source_file.parent / source_file.stem
         if not destination_dir.exists():
             destination_dir.mkdir()
-
 
     print("Unzipping pyspin...")
     with zipfile.ZipFile(source_file, 'r') as zip_ref:
@@ -129,7 +128,7 @@ def pip_install_pyspin(env_name='iblenv', pyspin_whl=None):
         else:
             pyspin_whl = destination_dir / "spinnaker_python-2.0.0.147-cp37-cp37m-linux_x86_64.whl"
 
-    print(f"\n\nINFO: Installing PySpin python library\n")
+    print("\n\nINFO: Installing PySpin python library\n")
     os.system(f"{pip} install {pyspin_whl}")
 
 
@@ -138,7 +137,7 @@ def pip_install_ibllib(env_name='iblenv'):
     """
     pip = get_env_pip(env_name=env_name)
 
-    print(f"\n\nINFO: Installing ibllib python library\n")
+    print("\n\nINFO: Installing ibllib python library\n")
     os.system(f"{pip} install -U ibllib --use-feature=2020-resolver")
 
 
@@ -177,7 +176,6 @@ def create_environment(env_name="iblenv", use_conda_yaml=False, force=False):
     print(f"{env_name} installed.")
 
 
-
 def install_bonsai():
     if sys.platform not in ["Windows", "windows", "win32"]:
         print("\n\nSkippinig Bonsai installation now on Windows platform")
@@ -213,15 +211,15 @@ def setup_videopc(env_name='iblenv'):
 
     # Create python environment using conda
 
-    print(f"\n\nCreating python environment\n")
+    print("\n\nCreating python environment\n")
     create_environment(env_name=env_name, force=False)
 
     # Install ibllib
-    print(f"\n\nInstalling ibllib\n")
+    print("\n\nInstalling ibllib\n")
     pip_install_ibllib(env_name=env_name)
 
     # Download and install the spinnaker-python library
-    print(f"\n\nDownloading and installing the spinnaker-python library\n")
+    print("\n\nDownloading and installing the spinnaker-python library\n")
     download_pyspin()
     unzip_pyspin()
     pip_install_pyspin(env_name=env_name)

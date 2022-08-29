@@ -132,6 +132,7 @@ def main(session_path, display=True):
             )
     return out
 
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("I need a session_path as input...")

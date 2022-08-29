@@ -24,7 +24,7 @@ SRC_DIR = '/integration'
 POLL = (5, 60 * 2)  # min max seconds between pinging server
 TIMEOUT = 24 * 60 * 60  # seconds before timeout
 status_map = {
-    'ACTIVE': ('QUEUED', 'ACTIVE'),
+    'ACTIVE': ('QUEUED', 'ACTIVE', 'GC_NOT_CONNECTED'),
     'FAILED': ('ENDPOINT_ERROR', 'PERMISSION_DENIED', 'CONNECT_FAILED'),
     'INACTIVE': 'PAUSED_BY_ADMIN'
 }
@@ -87,6 +87,7 @@ poll = POLL[0]
 MAX_WAIT = 60 * 60
 # while not gtc.task_wait(task_id, timeout=WAIT):
 running = True
+prev_detail = None
 while running:
     """Possible statuses = ('ACTIVE', 'INACTIVE', 'FAILED', 'SUCCEEDED')
     Nice statuses = (None, 'OK', 'Queued', 'PERMISSION_DENIED',
@@ -99,7 +100,7 @@ while running:
         else (tr.data['nice_status'] or tr.data['status']).upper()
     )
     status = next((k for k, v in status_map.items() if detail in v), tr.data['status'])
-    running = tr.data['status'] == 'ACTIVE' and detail in ('ACTIVE', 'QUEUED')
+    running = tr.data['status'] == 'ACTIVE' and detail in status_map['ACTIVE']
     if files_skipped != tr.data['files_skipped']:
         files_skipped = tr.data['files_skipped']
         logger.info(f'Skipping {files_skipped} files....')
@@ -125,9 +126,13 @@ while running:
                 subtasks_failed = new_failed
         last_status = status
         poll = POLL[0]
+    elif detail == 'GC_NOT_CONNECTED' and prev_detail != detail:
+        logger.warning('Globus Client not connected, this may be temporary')
+        poll = POLL[0]
     else:
         poll = min((poll * 2, POLL[1]))
-    time.sleep(poll)
+    prev_detail = detail
+    time.sleep(poll) if running else logger.info(f'Final status: {last_status}')
 
 if logger.level == 10:
     """Sometime Globus sets the status to SUCCEEDED but doesn't truly finish.

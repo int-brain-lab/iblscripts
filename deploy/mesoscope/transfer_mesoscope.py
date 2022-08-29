@@ -1,19 +1,25 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 # @Author: Miles
+"""
+Expects mesoscope data to be in the following folder structure:
+DATA_FOLDER_PATH/subject/yyyy-mm-dd/nnn/raw_mesoscope_data
+
+For now let's assume the snapshot data are in DATA_FOLDER_PATH/subject/yyyy-mm-dd/000.
+"""
 import argparse
 from pathlib import Path
 import shutil
 
 import ibllib.io.flags as flags
-from iblutil.util import log_to_file
+from ibllib.misc import log_to_file
 from ibllib.pipes.misc import create_basic_transfer_params, subjects_data_folder, transfer_session_folders
 
 
 def main(local=None, remote=None, rename_files=False):
-    DATA_FOLDER = 'raw_widefield_data'
+    DATA_FOLDER = 'raw_mesoscope_data'
     # logging configuration
-    log = log_to_file(filename='transfer_widefield_sessions.log', log='ibllib.pipes.misc')
+    log = log_to_file('transfer_mesoscope_session.log', log='ibllib.pipes.misc')
 
     # Determine if user passed in arg for local/remote subject folder locations or pull in from
     # local param file or prompt user if missing
@@ -25,7 +31,7 @@ def main(local=None, remote=None, rename_files=False):
     log.info(f'Local subjects folder: {local_subject_folder}')
     log.info(f'Remote subjects folder: {remote_subject_folder}')
 
-    # Find all local folders that have 'raw_widefield_data'
+    # Find all local folders that have 'raw_mesoscope_data'
     local_sessions = local_subject_folder.rglob(DATA_FOLDER)
     # Remove sessions that have a transferred flag file
     local_sessions = filter(lambda x: not any(x.glob('transferred.flag')), local_sessions)
@@ -47,8 +53,23 @@ def main(local=None, remote=None, rename_files=False):
 
     # Ensure each session contains a channels file: copy file over if not present
     log.info('Copying missing wiring files')
-    copy_wiring('widefield_wiring.htsv', '*widefield_wiring*')
+    copy_wiring('mesoscope_wiring.htsv', '*mesoscope_wiring*')
     copy_wiring('_spikeglx_DAQdata.wiring.json', '*DAQdata.wiring*')
+
+    # Ensure full field snapshot in each session
+    fullfield_directory = f'{DATA_FOLDER}/fullfield'
+    for session_path in filter(lambda x: not any(x.glob(fullfield_directory)), local_sessions):
+        src = session_path.parent.joinpath('000')
+        dst = session_path.joinpath(fullfield_directory)
+        if src.exists() and any(src.glob('*.*')):
+            log.debug(f'Copying {src} -> {dst}')
+            shutil.copy(src, dst)
+        else:
+            answer = input(f'No full-field recordings found in {src}, '
+                           f'please enter a folder path to copy to {dst}').strip()
+            assert Path(answer).exists(), 'Folder path does not exist'
+            log.debug(f'Copying {answer} -> {dst}')
+            shutil.copy(answer, dst)
 
     # Call ibllib function to perform generalized user interaction and kick off transfer
     transfer_list, success = transfer_session_folders(
@@ -56,7 +77,7 @@ def main(local=None, remote=None, rename_files=False):
 
     # Create transferred flag files and rename files
     for src, dst in (x for x, ok in zip(transfer_list, success) if ok):
-        log.info(f"{src} -> {dst} - widefield transfer success")
+        log.info(f"{src} -> {dst} - mesoscope transfer success")
 
         # Create flag
         flag_file = src.joinpath(DATA_FOLDER, 'transferred.flag')
@@ -64,12 +85,12 @@ def main(local=None, remote=None, rename_files=False):
         flags.write_flag_file(flag_file, file_list=list(file_list))
 
         if rename_files:
-            log.info('Renaming remote widefield data files')
+            log.info('Renaming remote mesoscope data files')
             raise NotImplementedError
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Transfer widefield files to IBL local server')
+    parser = argparse.ArgumentParser(description='Transfer mesoscope files to IBL local server')
     parser.add_argument('-l', '--local', default=False, required=False, help='Local iblrig_data/Subjects folder')
     parser.add_argument('-r', '--remote', default=False, required=False, help='Remote iblrig_data/Subjects folder')
     args = parser.parse_args()

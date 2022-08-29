@@ -1,4 +1,6 @@
 import unittest
+from unittest.runner import TextTestResult
+import time
 import os
 from pathlib import Path
 from functools import wraps
@@ -9,6 +11,42 @@ import tempfile
 from iblutil.io import params
 from one.alf.files import get_session_path
 from one.api import ONE
+
+
+class TimeLoggingTestResult(TextTestResult):
+    """A class to record test durations"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.test_timings = []
+        self._test_started_at = time.time()
+
+    def startTest(self, test):
+        self._test_started_at = time.time()
+        super().startTest(test)
+
+    def addSuccess(self, test):
+        elapsed = time.time() - self._test_started_at
+        name = self.getDescription(test)
+        self.test_timings.append((name, elapsed))
+        super().addSuccess(test)
+
+    def getTestTimings(self):
+        return self.test_timings
+
+
+class TimeLoggingTestRunner(unittest.TextTestRunner):
+
+    def __init__(self, slow_test_threshold=0.3, *args, **kwargs):
+        self.slow_test_threshold = slow_test_threshold
+        super().__init__(resultclass=TimeLoggingTestResult, *args, **kwargs)
+
+    def run(self, test):
+        result = super().run(test)
+        self.stream.writeln(f'\nSlow Tests (>{self.slow_test_threshold:.03}s):\n')
+        for name, elapsed in result.getTestTimings():
+            if elapsed > self.slow_test_threshold:
+                self.stream.writeln(f'({elapsed:.03}s) {name}')
+        return result
 
 
 class IntegrationTest(unittest.TestCase):

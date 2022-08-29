@@ -1,4 +1,3 @@
-import logging
 import shutil
 
 import numpy as np
@@ -8,8 +7,6 @@ from one.api import ONE
 from ibllib.io.extractors import ephys_fpga
 
 from ci.tests import base
-
-_logger = logging.getLogger('ibllib')
 
 BPOD_FILES = [
     '_ibl_trials.table.pqt',
@@ -44,8 +41,8 @@ class TestEphysTaskExtraction(base.IntegrationTest):
             # init_folder.joinpath("ibl_witten_27/2021-01-21/001"),  # frame2ttl flicker
         ]
         for session_path in self.sessions:
-            _logger.info(f"{session_path}")
-            self._task_extraction_assertions(session_path)
+            with self.subTest(msg=session_path):
+                self._task_extraction_assertions(session_path)
 
     def _task_extraction_assertions(self, session_path):
         alf_path = session_path.joinpath('alf')
@@ -108,7 +105,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         for k in res_ephys:
             if k == "_task_response_feedback_delays":
                 continue
-            if (np.abs(res_bpod[k] - res_ephys[k]) > .2):
+            if np.abs(res_bpod[k] - res_ephys[k]) > .2:
                 ok = False
                 print(f"{k} bpod: {res_bpod[k]}, ephys: {res_ephys[k]}")
         assert ok

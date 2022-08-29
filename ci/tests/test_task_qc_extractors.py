@@ -4,9 +4,7 @@ NB: FPGA TaskQC extractor is tested in test_ephys_extraction_choiceWorld
 import unittest
 import tempfile
 
-import numpy as np
-
-from ibllib.misc import version
+from pkg_resources import parse_version
 from ibllib.qc.task_metrics import TaskQC
 from ibllib.qc.task_extractors import TaskQCExtractor
 from one.api import ONE
@@ -68,20 +66,36 @@ class TestTaskQCObject(base.IntegrationTest):
         self.assertEqual('FAIL', outcome)
 
         # Check each outcome matches...
-        # NOT_SET
-        not_set = [k for k, v in results.items() if np.isnan(v)]
-        self.assertTrue(all(outcomes[k] == 'NOT_SET' for k in not_set))
-        # PASS
-        passed = [k for k, v in results.items() if v >= self.qc.criteria['PASS']]
-        self.assertTrue(all(outcomes[k] == 'PASS' for k in passed))
-        # WARNING
-        wrn = [k for k, v in results.items()
-               if self.qc.criteria['WARNING'] <= v <= self.qc.criteria['PASS']]
-        self.assertTrue(all(outcomes[k] == 'WARNING' for k in wrn))
-        # FAIL
-        fail = [k for k, v in results.items() if v <= self.qc.criteria['FAIL']
-                and k not in TaskQC.fcns_value2status]
-        self.assertTrue(all(outcomes[k] == 'FAIL' for k in fail))
+        expected_outcomes = {
+            '_task_audio_pre_trial': 'PASS',
+            '_task_correct_trial_event_sequence': 'FAIL',
+            '_task_detected_wheel_moves': 'WARNING',
+            '_task_errorCue_delays': 'WARNING',
+            '_task_error_trial_event_sequence': 'FAIL',
+            '_task_goCue_delays': 'WARNING',
+            '_task_iti_delays': 'NOT_SET',
+            '_task_n_trial_events': 'FAIL',
+            '_task_negative_feedback_stimOff_delays': 'WARNING',
+            '_task_positive_feedback_stimOff_delays': 'WARNING',
+            '_task_response_feedback_delays': 'FAIL',
+            '_task_response_stimFreeze_delays': 'WARNING',
+            '_task_reward_volume_set': 'PASS',
+            '_task_reward_volumes': 'PASS',
+            '_task_stimFreeze_delays': 'WARNING',
+            '_task_stimOff_delays': 'WARNING',
+            '_task_stimOff_itiIn_delays': 'WARNING',
+            '_task_stimOn_delays': 'WARNING',
+            '_task_stimOn_goCue_delays': 'FAIL',
+            '_task_stimulus_move_before_goCue': 'PASS',
+            '_task_trial_length': 'WARNING',
+            '_task_wheel_freeze_during_quiescence': 'PASS',
+            '_task_wheel_integrity': 'PASS',
+            '_task_wheel_move_before_feedback': 'PASS',
+            '_task_wheel_move_during_closed_loop': 'PASS',
+            '_task_wheel_move_during_closed_loop_bpod': 'PASS',
+            '_task_passed_trial_checks': 'NOT_SET'
+        }
+        self.assertTrue(all(outcomes[k] == expected_outcomes[k] for k in outcomes.keys()))
 
 
 class TestBpodQCExtractors(base.IntegrationTest):
@@ -147,7 +161,7 @@ class TestBpodQCExtractors(base.IntegrationTest):
                         'stimOffTrigger_times',
                         'stimOff_times',
                         'stimOnTrigger_times']
-        if version.ge(ex.settings['IBLRIG_VERSION_TAG'], '5.0.0'):
+        if parse_version(ex.settings['IBLRIG_VERSION_TAG']) >= parse_version('5.0.0'):
             expected += expected_5up
         self.assertTrue(set(expected).issubset(set(ex.data.keys())))
 
