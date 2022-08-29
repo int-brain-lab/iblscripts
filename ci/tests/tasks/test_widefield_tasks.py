@@ -6,6 +6,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 from iblutil.util import Bunch
 from ibllib.pipes.widefield_tasks import WidefieldPreprocess, WidefieldCompress, WidefieldSync, WidefieldRegisterRaw
+from ibllib.io.extractors.ephys_fpga import get_sync_and_chn_map, get_sync_fronts
 
 from ci.tests import base
 
@@ -170,6 +171,12 @@ class TestWidefieldSync(base.IntegrationTest):
         times = np.load(self.alf_folder.joinpath('imaging.times.npy'))
         assert len(times) == self.video_meta['length']
         assert np.all(np.diff(times) > 0)
+
+        sync, chmap = get_sync_and_chn_map(self.session_path, 'raw_widefield_data')
+        expected_times = get_sync_fronts(sync, chmap['frame_trigger'])
+
+        assert np.array_equal(times, expected_times['times'][0::2])
+
         leds = np.load(self.alf_folder.joinpath('imaging.imagingLightSource.npy'))
         assert leds[0] == 2
         assert np.array_equal(np.unique(leds), np.array([1, 2]))
