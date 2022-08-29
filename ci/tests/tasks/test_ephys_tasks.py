@@ -3,13 +3,14 @@ import random
 import string
 import shutil
 import tempfile
+import unittest
 from pathlib import Path
 import numpy as np
 
 from one.api import ONE
 import one.alf.io as alfio
 from ibllib.pipes.ephys_tasks import (EphysRegisterRaw, EphysCompressNP1, EphysCompressNP21, EphysCompressNP24,
-                                      EphysSyncRegisterRaw, EphysSyncPulses, EphysPulses)
+                                      EphysSyncRegisterRaw, EphysSyncPulses, EphysPulses, SpikeSorting)
 
 from ci.tests import base
 
@@ -307,3 +308,17 @@ class TestEphysPulses(EphysTemplate):
         # assert np.array_equal(sync_probe00['times'], sync_probe01a['times']) # TODO this doesn't pass :(
 
         self.check_files(task)
+
+
+class TestSpikeSortingTask(unittest.TestCase):
+
+    def test_get_ks2_version(self):
+        test_strings = [
+            '\x1b[0m15:39:37.919 [I] ibl:90               Starting Pykilosort version ibl_1.3.0, output in gnagga^[[0m\n',
+            '\x1b[0m15:39:37.919 [I] ibl:90               Starting Pykilosort version ibl_1.3.0^[[0m\n'
+        ]
+        for test_string in test_strings:
+            with tempfile.NamedTemporaryFile() as tf:
+                with open(tf.name, 'w') as fid:
+                    fid.write(test_string)
+                assert SpikeSorting._fetch_pykilosort_run_version(tf.name) == 'pykilosort_ibl_1.3.0'
