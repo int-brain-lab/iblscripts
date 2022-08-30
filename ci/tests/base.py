@@ -30,7 +30,7 @@ class TimeLoggingTestResult(TextTestResult):
         self.test_timings.append((name, elapsed))
         super().addSuccess(test)
 
-    def getTestDurations(self) -> list[tuple[str, int]]:
+    def getTestDurations(self) -> 'list[tuple[str, int]]':
         """Returns list of tests and their durations, in reverse duration order"""
         return sorted(self.test_timings, key=lambda x: x[1], reverse=True)
 
