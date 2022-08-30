@@ -260,14 +260,19 @@ class TestNeuropixel2ConverterNP1(base.IntegrationTest):
                                                  '_spikeglx_ephysData_g0_t0.imec0.ap.bin')
         meta_file = self.file_path.parent.joinpath('NP1_meta',
                                                    '_spikeglx_ephysData_g0_t0.imec0.ap.meta')
-        self.meta_file = self.file_path.parent.joinpath('_spikeglx_ephysData_g0_t0.imec0.ap.meta')
+        self.meta_file = self.file_path.with_suffix('.meta')
+        # Back up current meta file
+        shutil.move(self.meta_file, self.meta_file.with_suffix('.meta.bk'))
+        # Copy the neuropixels v1 meta file into the probe00 folder
         shutil.copy(meta_file, self.meta_file)
         self.sglx_instances = []
         self.temp_directories = []
 
     def tearDown(self):
         # here should look for anything with test in it and delete
-        self.meta_file.unlink()
+        ...
+        # replace meta file with backup
+        shutil.move(self.meta_file.with_suffix('.meta.bk'), self.meta_file)
 
     def testProcessNP1(self):
         """
