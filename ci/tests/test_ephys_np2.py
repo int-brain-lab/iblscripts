@@ -1,7 +1,8 @@
-import numpy as np
 import random
 import shutil
 
+import numpy as np
+import numpy.testing
 from neuropixel import NP2Converter, NP2Reconstructor
 import spikeglx
 
@@ -64,14 +65,14 @@ class TestNeuropixel2ConverterNP24(base.IntegrationTest):
 
         # Make sure all the aps are the same regardless of window size we used
 
-        assert np.array_equal(sr_a_ap[:, :], sr_b_ap[:, :])
-        assert np.array_equal(sr_a_ap[:, :], sr_c_ap[:, :])
-        assert np.array_equal(sr_b_ap[:, :], sr_c_ap[:, :])
+        np.testing.assert_array_equal(sr_a_ap[:, :], sr_b_ap[:, :])
+        np.testing.assert_array_equal(sr_a_ap[:, :], sr_c_ap[:, :])
+        np.testing.assert_array_equal(sr_b_ap[:, :], sr_c_ap[:, :])
 
         # For AP also check that all values are the same as the original file
-        assert np.array_equal(sr_a_ap[:, :], sr[:, np_a.shank_info['shank0']['chns']])
-        assert np.array_equal(sr_b_ap[:, :], sr[:, np_b.shank_info['shank0']['chns']])
-        assert np.array_equal(sr_c_ap[:, :], sr[:, np_c.shank_info['shank0']['chns']])
+        np.testing.assert_array_equal(sr_a_ap[:, :], sr[:, np_a.shank_info['shank0']['chns']])
+        np.testing.assert_array_equal(sr_b_ap[:, :], sr[:, np_b.shank_info['shank0']['chns']])
+        np.testing.assert_array_equal(sr_c_ap[:, :], sr[:, np_c.shank_info['shank0']['chns']])
 
         sr_a_lf = spikeglx.Reader(np_a.shank_info['shank0']['lf_file'])
         self.sglx_instances.append(sr_a_lf)
@@ -81,9 +82,9 @@ class TestNeuropixel2ConverterNP24(base.IntegrationTest):
         self.sglx_instances.append(sr_c_lf)
 
         # Make sure all the lfps are the same regardless of window size we used
-        assert np.array_equal(sr_a_lf[:, :], sr_b_lf[:, :])
-        assert np.array_equal(sr_a_lf[:, :], sr_c_lf[:, :])
-        assert np.array_equal(sr_b_lf[:, :], sr_c_lf[:, :])
+        np.testing.assert_array_equal(sr_a_lf[:, :], sr_b_lf[:, :])
+        np.testing.assert_array_equal(sr_a_lf[:, :], sr_c_lf[:, :])
+        np.testing.assert_array_equal(sr_b_lf[:, :], sr_c_lf[:, :])
 
     def testProcessNP24(self):
         """
@@ -100,24 +101,24 @@ class TestNeuropixel2ConverterNP24(base.IntegrationTest):
         # Test a random ap metadata file and make sure it all makes sense
         shank_n = random.randint(0, 3)
         sr_ap = spikeglx.Reader(np_conv.shank_info[f'shank{shank_n}']['ap_file'])
-        assert np.array_equal(sr_ap.meta['acqApLfSy'], [96, 0, 1])
-        assert np.array_equal(sr_ap.meta['snsApLfSy'], [96, 0, 1])
-        assert np.equal(sr_ap.meta['nSavedChans'], 97)
-        assert (sr_ap.meta['snsSaveChanSubset'] == '0:96')
-        assert np.equal(sr_ap.meta['NP2.4_shank'], shank_n)
-        assert (sr_ap.meta['original_meta'] == 'False')
+        np.testing.assert_array_equal(sr_ap.meta['acqApLfSy'], [96, 0, 1])
+        np.testing.assert_array_equal(sr_ap.meta['snsApLfSy'], [96, 0, 1])
+        self.assertEqual(sr_ap.meta['nSavedChans'], 97)
+        self.assertEqual(sr_ap.meta['snsSaveChanSubset'], '0:96')
+        self.assertEqual(sr_ap.meta['NP2.4_shank'], shank_n)
+        self.assertEqual(sr_ap.meta['original_meta'], 'False')
         sr_ap.close()
 
         # Test a random lf metadata file and make sure it all makes sense
         shank_n = random.randint(0, 3)
         sr_lf = spikeglx.Reader(np_conv.shank_info[f'shank{shank_n}']['lf_file'])
-        assert np.array_equal(sr_lf.meta['acqApLfSy'], [0, 96, 1])
-        assert np.array_equal(sr_lf.meta['snsApLfSy'], [0, 96, 1])
-        assert np.equal(sr_lf.meta['nSavedChans'], 97)
-        assert (sr_lf.meta['snsSaveChanSubset'] == '0:96')
-        assert np.equal(sr_lf.meta['NP2.4_shank'], shank_n)
-        assert (sr_lf.meta['original_meta'] == 'False')
-        assert np.equal(sr_lf.meta['imSampRate'], 2500)
+        np.testing.assert_array_equal(sr_lf.meta['acqApLfSy'], [0, 96, 1])
+        np.testing.assert_array_equal(sr_lf.meta['snsApLfSy'], [0, 96, 1])
+        self.assertEqual(sr_lf.meta['nSavedChans'], 97)
+        self.assertEqual(sr_lf.meta['snsSaveChanSubset'], '0:96')
+        self.assertEqual(sr_lf.meta['NP2.4_shank'], shank_n)
+        self.assertEqual(sr_lf.meta['original_meta'], 'False')
+        self.assertEqual(sr_lf.meta['imSampRate'], 2500)
         sr_lf.close()
 
         # Rerun again and make sure that nothing happens because folders already exists
@@ -224,12 +225,12 @@ class TestNeuropixel2ConverterNP21(base.IntegrationTest):
 
         # test the meta file
         sr_ap = spikeglx.Reader(np_conv.shank_info['shank0']['lf_file'])
-        assert np.array_equal(sr_ap.meta['acqApLfSy'], [0, 384, 1])
-        assert np.array_equal(sr_ap.meta['snsApLfSy'], [0, 384, 1])
-        assert np.equal(sr_ap.meta['nSavedChans'], 385)
-        assert (sr_ap.meta['snsSaveChanSubset'] == '0:384')
-        assert np.equal(sr_ap.meta['NP2.1_shank'], 0)
-        assert (sr_ap.meta['original_meta'] == 'False')
+        np.testing.assert_array_equal(sr_ap.meta['acqApLfSy'], [0, 384, 1])
+        np.testing.assert_array_equal(sr_ap.meta['snsApLfSy'], [0, 384, 1])
+        self.assertEqual(sr_ap.meta['nSavedChans'], 385)
+        self.assertEqual(sr_ap.meta['snsSaveChanSubset'], '0:384')
+        self.assertEqual(sr_ap.meta['NP2.1_shank'], 0)
+        self.assertEqual(sr_ap.meta['original_meta'], 'False')
         sr_ap.close()
 
         np_conv.sr.close()
@@ -315,7 +316,7 @@ class TestNeuropixelReconstructor(base.IntegrationTest):
         np_recon = NP2Reconstructor(self.file_path.parent.parent, pname='probe00_temp', compress=True)
         status = np_recon.process()
 
-        assert status == 1
+        self.assertEqual(status, 1)
 
         recon_file = self.file_path.with_suffix('.cbin')
         sr_recon = spikeglx.Reader(recon_file)
@@ -323,7 +324,7 @@ class TestNeuropixelReconstructor(base.IntegrationTest):
         sr_orig = spikeglx.Reader(self.orig_file)
         self.sglx_instances.append(sr_orig)
 
-        assert np.array_equal(sr_recon._raw[:, :], sr_orig._raw[:, :])
+        np.testing.assert_array_equal(sr_recon._raw[:, :], sr_orig._raw[:, :])
 
         orig_meta = spikeglx.read_meta_data(self.orig_meta_file)
         recon_meta = spikeglx.read_meta_data(recon_file.with_suffix('.meta'))
