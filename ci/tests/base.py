@@ -1,5 +1,5 @@
 import unittest
-from unittest.runner import TextTestResult
+from unittest.runner import TextTestResult, TextTestRunner
 import time
 import os
 from pathlib import Path
@@ -26,16 +26,17 @@ class TimeLoggingTestResult(TextTestResult):
 
     def addSuccess(self, test):
         elapsed = time.time() - self._test_started_at
-        name = self.getDescription(test)
+        name = str(test)  # self.getDescription(test) # includes first line of docstring
         self.test_timings.append((name, elapsed))
         super().addSuccess(test)
 
-    def getTestTimings(self):
-        return self.test_timings
+    def getTestDurations(self) -> list[tuple[str, int]]:
+        """Returns list of tests and their durations, in reverse duration order"""
+        return sorted(self.test_timings, key=lambda x: x[1], reverse=True)
 
 
-class TimeLoggingTestRunner(unittest.TextTestRunner):
-
+class TimeLoggingTestRunner(TextTestRunner):
+    """A class that prints a list of the slowest tests to the output stream"""
     def __init__(self, slow_test_threshold=0.3, *args, **kwargs):
         self.slow_test_threshold = slow_test_threshold
         super().__init__(resultclass=TimeLoggingTestResult, *args, **kwargs)
@@ -43,7 +44,7 @@ class TimeLoggingTestRunner(unittest.TextTestRunner):
     def run(self, test):
         result = super().run(test)
         self.stream.writeln(f'\nSlow Tests (>{self.slow_test_threshold:.03}s):\n')
-        for name, elapsed in result.getTestTimings():
+        for name, elapsed in result.getTestDurations():
             if elapsed > self.slow_test_threshold:
                 self.stream.writeln(f'({elapsed:.03}s) {name}')
         return result
