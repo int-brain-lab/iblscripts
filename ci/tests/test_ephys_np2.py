@@ -269,8 +269,6 @@ class TestNeuropixel2ConverterNP1(base.IntegrationTest):
         self.temp_directories = []
 
     def tearDown(self):
-        # here should look for anything with test in it and delete
-        ...
         # replace meta file with backup
         shutil.move(self.meta_file.with_suffix('.meta.bk'), self.meta_file)
 
