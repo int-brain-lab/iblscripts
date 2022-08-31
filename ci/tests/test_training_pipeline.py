@@ -64,7 +64,6 @@ class TestPipeline(base.IntegrationTest):
 def create_pipeline(session_path, one):
     # creates the session if necessary
     task_type = get_session_extractor_type(session_path)
-    print(session_path, task_type)
     session_path.joinpath('raw_session.flag').touch()
     # delete the session if it exists
     eid = one.path2eid(session_path, query_type='remote')
