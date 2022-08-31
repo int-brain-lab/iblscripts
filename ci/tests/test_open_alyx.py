@@ -47,17 +47,17 @@ class TestStreamData(unittest.TestCase):
                 password='international',
                 silent=True,
                 cache_dir=td)
-            sr = Streamer(pid=pid, one=tmp_one)
+            sr = Streamer(pid=pid, one=tmp_one, typ='lf')
             # read once to download the data
-            raw_ = sr[int(t0 * 30000):int((t0 + 1) * 30000), :]  # noqa
+            raw_ = sr[int(t0 * 2500):int((t0 + 1) * 2500), :]  # noqa
             # second read to use the local cache
-            raw_ = sr[int(t0 * 30000):int((t0 + 1) * 30000), :]
-            sl_raw = sr[int(t0 * 30000):int((t0 + 1) * 30000), :-1]
-            assert sl_raw.shape == (30000, 384)
+            raw_ = sr[int(t0 * 2500):int((t0 + 1) * 2500), :]
+            sl_raw = sr[int(t0 * 2500):int((t0 + 1) * 2500), :-1]
+            assert sl_raw.shape == (2500, 384)
             assert sr.nc == 385
             assert sr.nsync == 1
             assert sr.rl == 6085.7024
-            assert (raw_.shape == (30000, 385))
+            assert (raw_.shape == (2500, 385))
             assert sr.target_dir.exists()
             assert sr.geometry.keys()
             """
@@ -69,7 +69,7 @@ class TestStreamData(unittest.TestCase):
             import datetime
             if datetime.datetime.now() > datetime.datetime(2022, 11, 26):
                 raise NotImplementedError
-            raw, t0out = stream(pid, t0, nsecs=1, one=tmp_one, remove_cached=False, typ='ap')
-            assert (raw.shape == (30000, 385))
+            raw, t0out = stream(pid, t0, nsecs=1, one=tmp_one, remove_cached=False, typ='lf')
+            assert (raw.shape == (2500, 385))
             assert np.all(raw[:, :] == raw_)
             # ########################## end delete from here
