@@ -139,7 +139,7 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
         tasks = self.one.alyx.rest('tasks', 'list', session=self.eid, no_cache=True)
         assert len(tasks) == 8
 
-        all_dsets = tasks_runner(self.temp_dir, tasks, one=self.one, count=10, max_md5_size=1024 * 1024 * 20, assert_status=True)
+        all_dsets = tasks_runner(self.temp_dir, tasks, one=self.one, count=10, max_md5_size=1024 * 1024 * 20, mode='raise')
         print(len(all_dsets))
 
         complete_tasks = self.one.alyx.rest('tasks', 'list', status='Complete', session=self.eid, no_cache=True)
