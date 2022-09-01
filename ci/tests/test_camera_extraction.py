@@ -18,6 +18,7 @@ import logging
 import tempfile
 import shutil
 
+import cv2
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -728,25 +729,25 @@ class TestWheelMotionNRG(base.IntegrationTest):
         for frame in self.frames:
             yield True, frame
 
-    @mock.patch('ibllib.io.video.cv2.VideoCapture')
-    def test_wheel_motion(self, mock_cv):
+    def test_wheel_motion(self):
         side = 'left'
         period = np.array([1730.3513333, 1734.1743333])
-        mock_cv().read.side_effect = self.side_effect()
-        aln = MotionAlignment(self.dummy_id, one=self.one)
-        aln.session_path = self.data_path / 'camera' / 'SWC_054' / '2020-10-07' / '001'
-        cam = alfio.load_object(aln.session_path / 'alf', f'{side}Camera')
-        aln.data.camera_times = {side: cam['times']}
-        aln.video_paths = {
-            side: aln.session_path / 'raw_video_data' / f'_iblrig_{side}Camera.raw.mp4'
-        }
-        aln.data.wheel = alfio.load_object(aln.session_path / 'alf', 'wheel')
+        with mock.patch('ibllib.io.video.cv2.VideoCapture') as mock_cv:
+            mock_cv().read.side_effect = self.side_effect()
+            aln = MotionAlignment(self.dummy_id, one=self.one)
+            aln.session_path = self.data_path / 'camera' / 'SWC_054' / '2020-10-07' / '001'
+            cam = alfio.load_object(aln.session_path / 'alf', f'{side}Camera')
+            aln.data.camera_times = {side: cam['times']}
+            aln.video_paths = {
+                side: aln.session_path / 'raw_video_data' / f'_iblrig_{side}Camera.raw.mp4'
+            }
+            aln.data.wheel = alfio.load_object(aln.session_path / 'alf', 'wheel')
 
-        # Test value error when invalid period given
-        with self.assertRaises(ValueError):
-            aln.align_motion(period=[5000, 5000.01], side=side)
+            # Test value error when invalid period given
+            with self.assertRaises(ValueError):
+                aln.align_motion(period=[5000, 5000.01], side=side)
 
-        dt_i, c, df = aln.align_motion(period=period, side=side)
+            dt_i, c, df = aln.align_motion(period=period, side=side)
         expected = np.array([0.90278801, 0.68067675, 0.73734772, 0.82648895, 0.80950881,
                              0.88054471, 0.84264046, 0.302118, 0.94302567, 0.86188695])
         np.testing.assert_array_almost_equal(expected, df[:10])
@@ -758,7 +759,11 @@ class TestWheelMotionNRG(base.IntegrationTest):
             aln.plot_alignment(save=tdir)
             vid = next(Path(tdir).glob('*.mp4'))
             self.assertEqual(vid.name, '2018-07-13_1_flowers_l.mp4')
-            self.assertEqual(round(vid.stat().st_size / 1e5), 18)
+            # Check number of frames
+            cap = cv2.VideoCapture(str(vid))
+            n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            cap.release()
+            self.assertEqual(227, n_frames)
 
 
 if __name__ == "__main__":
