@@ -1,7 +1,6 @@
 import tempfile
 from pathlib import Path
 
-from ibllib.io.extractors.base import get_session_extractor_type
 from one.api import ONE
 from ibllib.pipes import local_server
 
@@ -63,7 +62,7 @@ class TestPipeline(base.IntegrationTest):
 
 def create_pipeline(session_path, one):
     # creates the session if necessary
-    task_type = get_session_extractor_type(session_path)
+    # task_type = get_session_extractor_type(session_path)
     session_path.joinpath('raw_session.flag').touch()
     # delete the session if it exists
     eid = one.path2eid(session_path, query_type='remote')
