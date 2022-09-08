@@ -4,8 +4,6 @@ NB: FPGA TaskQC extractor is tested in test_ephys_extraction_choiceWorld
 import unittest
 import tempfile
 
-import numpy as np
-
 from pkg_resources import parse_version
 from ibllib.qc.task_metrics import TaskQC
 from ibllib.qc.task_extractors import TaskQCExtractor
@@ -96,7 +94,7 @@ class TestTaskQCObject(base.IntegrationTest):
             '_task_wheel_move_during_closed_loop': 'PASS',
             '_task_wheel_move_during_closed_loop_bpod': 'PASS',
             '_task_passed_trial_checks': 'NOT_SET'
-                             }
+        }
         self.assertTrue(all(outcomes[k] == expected_outcomes[k] for k in outcomes.keys()))
 
 

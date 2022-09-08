@@ -1,6 +1,6 @@
 [flake8]
-max-line-length = 99
+max-line-length = 130
 ignore = W504
 exclude =
     scratch_*.py,
-    test_examples.py
+    ci/tests/examples_test.py

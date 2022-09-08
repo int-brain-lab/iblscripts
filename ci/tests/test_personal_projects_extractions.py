@@ -77,18 +77,21 @@ class TestTrainingTaskExtraction(base.IntegrationTest):
 
     def test_biased_opto_prob(self):
         # this session has both laser probability and laser stimulation fields labeled
-        desired_output = list(TRAINING_TRIALS_SIGNATURE) + \
-                         ['_ibl_trials.laserProbability.npy', '_ibl_trials.laserStimulation.npy']
+        extra_outputs = ['_ibl_trials.laserProbability.npy', '_ibl_trials.laserStimulation.npy']
+        desired_output = list(TRAINING_TRIALS_SIGNATURE) + extra_outputs
+
         self.session_path = self.data_path.joinpath("personal_projects/biased_opto/ZFM-01802/2021-02-08/001")
         if self.session_path.joinpath('alf').exists():
             shutil.move(self.session_path.joinpath('alf'), self.session_path.joinpath('alf.bk'))
         task = TrainingTrials(self.session_path, one=self.one_offline)
         task.run()
         assert task.status == 0
-        assert set([p.name for p in task.outputs]) == set(desired_output)
+        assert set(p.name for p in task.outputs) == set(desired_output)
         trials = check_trials(self.session_path)
-        assert(np.all(np.unique(trials.laserStimulation) == np.array([0, 1])))
-        assert(np.all(np.logical_and(trials.laserProbability >= 0, trials.laserProbability <= 1)))
+        self.assertTrue(np.all(np.unique(trials.laserStimulation) == np.array([0, 1])))
+        self.assertTrue(
+            np.all(np.logical_and(trials.laserProbability >= 0, trials.laserProbability <= 1))
+        )
 
     def tearDown(self) -> None:
         cleanup(self.session_path)

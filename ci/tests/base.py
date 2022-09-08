@@ -1,13 +1,53 @@
 import unittest
+from unittest.runner import TextTestResult, TextTestRunner
+import time
 import os
 from pathlib import Path
 from functools import wraps
 import logging
 import json
+import tempfile
 
 from iblutil.io import params
 from one.alf.files import get_session_path
 from one.api import ONE
+
+
+class TimeLoggingTestResult(TextTestResult):
+    """A class to record test durations"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.test_timings = []
+        self._test_started_at = time.time()
+
+    def startTest(self, test):
+        self._test_started_at = time.time()
+        super().startTest(test)
+
+    def addSuccess(self, test):
+        elapsed = time.time() - self._test_started_at
+        name = str(test)  # self.getDescription(test) # includes first line of docstring
+        self.test_timings.append((name, elapsed))
+        super().addSuccess(test)
+
+    def getTestDurations(self) -> 'list[tuple[str, int]]':
+        """Returns list of tests and their durations, in reverse duration order"""
+        return sorted(self.test_timings, key=lambda x: x[1], reverse=True)
+
+
+class TimeLoggingTestRunner(TextTestRunner):
+    """A class that prints a list of the slowest tests to the output stream"""
+    def __init__(self, slow_test_threshold=0.3, *args, **kwargs):
+        self.slow_test_threshold = slow_test_threshold
+        super().__init__(resultclass=TimeLoggingTestResult, *args, **kwargs)
+
+    def run(self, test):
+        result = super().run(test)
+        self.stream.writeln(f'\nSlow Tests (>{self.slow_test_threshold:.03}s):\n')
+        for name, elapsed in result.getTestDurations():
+            if elapsed > self.slow_test_threshold:
+                self.stream.writeln(f'({elapsed:.03}s) {name}')
+        return result
 
 
 class IntegrationTest(unittest.TestCase):
@@ -93,6 +133,30 @@ def _get_test_db():
             'password': 'TapetesBloc18',
             'silent': True
         }
+
+
+def make_sym_links(raw_session_path, extraction_path=None):
+    """
+    This creates symlinks to a scratch directory to start an extraction while leaving the
+    raw data untouched.
+    :param raw_session_path: location containing the extraction fixture, complying with alf convention
+    :param extraction_path: (None) scratch location where the symlinks will end up,
+    omitting the session parts example: "/tmp". If set to None, it will create a temporary
+    directory using tempdir.
+    :return:
+    """
+    if extraction_path is None:
+        extraction_path = Path(tempfile.TemporaryDirectory().name)
+
+    session_path = Path(extraction_path).joinpath(*raw_session_path.parts[-5:])
+
+    for f in raw_session_path.rglob('*.*'):
+        new_file = session_path.joinpath(f.relative_to(raw_session_path))
+        if new_file.exists():
+            continue
+        new_file.parent.mkdir(exist_ok=True, parents=True)
+        new_file.symlink_to(f)
+    return session_path, extraction_path
 
 
 TEST_DB = _get_test_db()

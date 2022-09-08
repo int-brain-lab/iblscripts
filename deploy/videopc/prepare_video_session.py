@@ -136,7 +136,7 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
 
     start = "--start"  # --start-no-debug
     noboot = "--no-boot"
-    noeditor = "--no-editor"
+    # noeditor = "--no-editor"
     # Force trigger mode on all cams
     cams.disable_trigger_mode()
     here = os.getcwd()
@@ -172,7 +172,7 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
     rec.wait()
     os.chdir(here)
     # Check lengths
-    lengths = len_files(SESSION_FOLDER.parent, display=True)  # Will printout the results
+    len_files(SESSION_FOLDER.parent, display=True)  # Will printout the results
     # XXX: Consider not creating the transfer flag if lengths are not good:
     #       will impact the transfer script as it requires both transfers to be completed before
     #       creating the raw_session.flag
