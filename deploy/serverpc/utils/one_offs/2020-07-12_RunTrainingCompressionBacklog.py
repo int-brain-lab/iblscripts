@@ -4,7 +4,6 @@ import ibllib.io.extractors.base
 from oneibl.one import ONE
 import alf.io
 from ibllib.pipes import training_preprocessing
-import ibllib.io.raw_data_loaders as rawio
 
 ROOT_PATH = Path('/mnt/s0/Data/Subjects')
 DRY = False

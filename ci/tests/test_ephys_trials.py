@@ -1,4 +1,3 @@
-import logging
 import shutil
 
 import numpy as np
@@ -8,8 +7,6 @@ from one.api import ONE
 from ibllib.io.extractors import ephys_fpga
 
 from ci.tests import base
-
-_logger = logging.getLogger('ibllib')
 
 BPOD_FILES = [
     '_ibl_trials.table.pqt',
@@ -44,8 +41,8 @@ class TestEphysTaskExtraction(base.IntegrationTest):
             # init_folder.joinpath("ibl_witten_27/2021-01-21/001"),  # frame2ttl flicker
         ]
         for session_path in self.sessions:
-            _logger.info(f"{session_path}")
-            self._task_extraction_assertions(session_path)
+            with self.subTest(msg=session_path):
+                self._task_extraction_assertions(session_path)
 
     def _task_extraction_assertions(self, session_path):
         alf_path = session_path.joinpath('alf')
@@ -55,7 +52,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
             shutil.move(alf_path, bk_path)
             self.addCleanup(shutil.move, str(bk_path), alf_path)
         # this gets the full output
-        ephys_fpga.extract_all(session_path, save=True, bin_exists=False)
+        ephys_fpga.extract_all(session_path, save=True)
         # check that the output is complete
         for f in BPOD_FILES:
             self.assertTrue(alf_path.joinpath(f).exists())
@@ -69,7 +66,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
             for k, v in alf_trials.items():
                 numpy.testing.assert_array_almost_equal(v, alf_trials_old[k])
         # go deeper and check the internal fpga trials structure consistency
-        sync, chmap = ephys_fpga.get_main_probe_sync(session_path, bin_exists=False)
+        sync, chmap = ephys_fpga.get_main_probe_sync(session_path)
         fpga_trials = ephys_fpga.extract_behaviour_sync(sync, chmap)
         # check dimensions
         self.assertEqual(alfio.check_dimensions(fpga_trials), 0)
@@ -108,7 +105,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         for k in res_ephys:
             if k == "_task_response_feedback_delays":
                 continue
-            if (np.abs(res_bpod[k] - res_ephys[k]) > .2):
+            if np.abs(res_bpod[k] - res_ephys[k]) > .2:
                 ok = False
                 print(f"{k} bpod: {res_bpod[k]}, ephys: {res_ephys[k]}")
         assert ok

@@ -54,4 +54,3 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
     main(Path(args.session_path), display=args.display, seesion_type=args.type)
-

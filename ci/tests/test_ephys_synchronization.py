@@ -97,7 +97,7 @@ def _check_session_sync(ses_path, channel):
                                         ).with_suffix('.npy')
         fs = spikeglx._get_fs_from_meta(spikeglx.read_meta_data(ef.ap.with_suffix('.meta')))
         tstamp = sync_probes.apply_sync(ts_file, t * fs, forward=True)
-        assert(np.all(tstamp - tsync < 1e-12))
+        assert np.all(tstamp - tsync < 1e-12)
     return tinterp[0] - tinterp[1]
 
 

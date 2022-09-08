@@ -75,4 +75,4 @@ def create_pipeline(session_path, one):
     assert eid
     alyx_tasks = one.alyx.rest('tasks', 'list',
                                session=eid, graph='TrainingExtractionPipeline', no_cache=True)
-    assert(len(alyx_tasks) == 6)
+    assert len(alyx_tasks) == 6

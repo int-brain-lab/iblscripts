@@ -21,7 +21,7 @@ def check_ephys_file(root_path, hash=False):
                     if not ok:
                         raise ValueError("hashes don't match")
                 _logger.info(f"PASS {ef[lab]}")
-            except(Exception) as e:
+            except Exception:
                 _logger.error(f"FAILED {ef[lab]} is corrupt !!")
 
 
@@ -32,5 +32,5 @@ if __name__ == "__main__":
                         const=True, default=False, nargs='?')
     args = parser.parse_args()  # returns data from the options specified (echo)
     root_path = Path(args.folder)
-    assert(root_path.exists())
+    assert root_path.exists()
     check_ephys_file(root_path, hash=args.hash)

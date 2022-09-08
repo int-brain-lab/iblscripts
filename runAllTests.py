@@ -19,7 +19,8 @@ import projects
 logger = logging.getLogger('ibllib')
 
 try:  # Import the test packages
-    import brainbox.tests, ci.tests, ibllib.tests
+    import brainbox.tests, ci.tests, ibllib.tests  # noqa
+    from ci.tests.base import TimeLoggingTestRunner
 except ModuleNotFoundError as ex:
     logger.warning(f'Failed to import test packages: {ex} encountered')
 
@@ -44,13 +45,16 @@ def load_doctests(test_dir, options) -> unittest.TestSuite:
 
 def run_tests(complete: bool = True,
               strict: bool = True,
-              dry_run: bool = False) -> (unittest.TestResult, str):
+              dry_run: bool = False,
+              failfast: bool = False,
+              time_tests: bool = True) -> (unittest.TestResult, str):
     """
     Run integration tests
     :param complete: When true ibllib unit tests are run in addition to the integration tests.
     :param strict: When true asserts that all gathered tests were successfully imported.  This
     means that a module not found error in any test module will raise an exception.
     :param dry_run: When true the tests are gathered but not run.
+    :param failfast: Stop the test run on the first error or failure.
     :return Test results and test list (or test suite if dry-run).
     """
     # Gather tests
@@ -69,7 +73,6 @@ def run_tests(complete: bool = True,
             logger.info(f"Found {unit_tests.countTestCases()}, appending to the test suite")
             ci_tests.addTests(unit_tests)
 
-
     logger.info(f'Complete suite contains {ci_tests.countTestCases()} tests')
     # Check all tests loaded successfully
     not_loaded = [x[12:] for x in list_tests(ci_tests) if x.startswith('_Failed')]
@@ -85,7 +88,8 @@ def run_tests(complete: bool = True,
     test_list = list_tests(ci_tests)
 
     # Run tests
-    result = unittest.TextTestRunner(verbosity=2, stream=sys.stdout).run(ci_tests)
+    TestRunner = TimeLoggingTestRunner if time_tests else unittest.TextTestRunner
+    result = TestRunner(verbosity=2, stream=sys.stdout, failfast=failfast).run(ci_tests)
 
     return result, test_list
 
@@ -114,6 +118,9 @@ if __name__ == "__main__":
     parser.add_argument('--logdir', '-l', help='the log path', default=root)
     parser.add_argument('--repo', '-r', help='repo directory', default=repo_dir)
     parser.add_argument('--dry-run', help='gather tests without running', action='store_true')
+    parser.add_argument('--failfast', action='store_true',
+                        help='stop the test run on the first error or failure')
+    parser.add_argument('--exit', action='store_true', help='return 1 if tests fail')
     args = parser.parse_args()  # returns data from the options specified (echo)
 
     # Paths
@@ -130,7 +137,8 @@ if __name__ == "__main__":
 
     # Tests
     logger.info(Path(args.repo).joinpath('*'))
-    result, test_list = run_tests(dry_run=args.dry_run)
+    result, test_list = run_tests(dry_run=args.dry_run, failfast=args.failfast)
+    exit_code = int(not result.wasSuccessful()) if args.exit else 0
 
     # Generate report
     logger.info('Saving coverage report to %s', report_dir)
@@ -138,7 +146,7 @@ if __name__ == "__main__":
 
     # When running tests without a specific commit, exit without saving the result
     if args.commit is parser.get_default('commit'):
-        exit(0)
+        sys.exit(exit_code)
 
     # Summarize the results of the tests and write results to the JSON file
     logger.info('Saving outcome to %s', db_file)
@@ -188,3 +196,5 @@ if __name__ == "__main__":
     # Save record to file
     with open(db_file, 'w') as json_file:
         json.dump(records, json_file)
+
+    sys.exit(exit_code)

@@ -4,9 +4,7 @@ NB: FPGA TaskQC extractor is tested in test_ephys_extraction_choiceWorld
 import unittest
 import tempfile
 
-import numpy as np
-
-from ibllib.misc import version
+from pkg_resources import parse_version
 from ibllib.qc.task_metrics import TaskQC
 from ibllib.qc.task_extractors import TaskQCExtractor
 from one.api import ONE
@@ -96,7 +94,7 @@ class TestTaskQCObject(base.IntegrationTest):
             '_task_wheel_move_during_closed_loop': 'PASS',
             '_task_wheel_move_during_closed_loop_bpod': 'PASS',
             '_task_passed_trial_checks': 'NOT_SET'
-                             }
+        }
         self.assertTrue(all(outcomes[k] == expected_outcomes[k] for k in outcomes.keys()))
 
 
@@ -163,7 +161,7 @@ class TestBpodQCExtractors(base.IntegrationTest):
                         'stimOffTrigger_times',
                         'stimOff_times',
                         'stimOnTrigger_times']
-        if version.ge(ex.settings['IBLRIG_VERSION_TAG'], '5.0.0'):
+        if parse_version(ex.settings['IBLRIG_VERSION_TAG']) >= parse_version('5.0.0'):
             expected += expected_5up
         self.assertTrue(set(expected).issubset(set(ex.data.keys())))
 

@@ -3,7 +3,6 @@ import ibllib.io.extractors
 
 from oneibl.one import ONE
 import alf.io
-import ibllib.plots as iblplots
 
 one = ONE()
 eid = one.search(subject='KS005', date_range='2019-08-30', number=1)[0]
@@ -13,14 +12,14 @@ one.alyx.rest('sessions', 'read', id=eid)['task_protocol']
 
 one.list(eid)
 dtypes = [
-         '_spikeglx_sync.channels',
-         '_spikeglx_sync.polarities',
-         '_spikeglx_sync.times',
-         '_iblrig_taskSettings.raw',
-         '_iblrig_taskData.raw',
-         '_iblrig_encoderEvents.raw',
-         '_iblrig_encoderPositions.raw',
-         '_iblrig_encoderTrialInfo.raw',
+    '_spikeglx_sync.channels',
+    '_spikeglx_sync.polarities',
+    '_spikeglx_sync.times',
+    '_iblrig_taskSettings.raw',
+    '_iblrig_taskData.raw',
+    '_iblrig_encoderEvents.raw',
+    '_iblrig_encoderPositions.raw',
+    '_iblrig_encoderTrialInfo.raw',
 ]
 
 files = one.load(eid, dataset_types=dtypes, download_only=True)
@@ -61,4 +60,4 @@ plt.plot(fpga_behaviour['intervals'][:, 0], bpod_behaviour['stimOn_times'] -
          fpga_behaviour['stimOn_times'] + bpod_offset)
 
 plt.figure(5)
-plt.plot(fpga_behaviour['stimOn_times'] - fpga_behaviour['intervals'][:, 0] )
+plt.plot(fpga_behaviour['stimOn_times'] - fpga_behaviour['intervals'][:, 0])

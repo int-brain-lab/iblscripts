@@ -198,7 +198,7 @@ class TestTrainingCameraExtractor(base.IntegrationTest):
         for i in range(5):
             trials[i]['behavior_data']['Events timestamps']['Port1In'] = None
         # Should fall back on the basic extraction
-        with self.assertLogs(logging.getLogger('ibllib'), logging.CRITICAL):
+        with self.assertLogs(logging.getLogger('ibllib.io.extractors.camera'), logging.CRITICAL):
             ts, _ = ext.extract(save=False, bpod_trials=trials)
         expected = np.array([25.0232, 25.0536, 25.0839, 25.1143, 25.1447])
         np.testing.assert_array_almost_equal(ts[:5], expected)
@@ -329,7 +329,7 @@ class TestEphysCameraExtractor(base.IntegrationTest):
     def test_groom_pin_state(self):
         self._groom_pin_state()
         # Create a frameData file from old timestamps, gpio, and frame_counter files
-        data = self._make_frameData_file(self.groom_session_path, label='left')
+        self._make_frameData_file(self.groom_session_path, label='left')
         # Rerun same test
         self._groom_pin_state()
 
@@ -344,7 +344,6 @@ class TestEphysCameraExtractor(base.IntegrationTest):
         out, fil = camio.extract_all(self.session_path, save=False)
         self.assertTrue(len(out), 3)
         self.assertFalse(fil)
-
 
     @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
     def test_extract_all(self, mock_vc):
@@ -433,7 +432,7 @@ class TestEphysCameraExtractor(base.IntegrationTest):
         gpio = {'indices': np.sort(np.random.choice(np.arange(self.n_frames[side]), n)),
                 'polarities': np.insert(np.random.choice([-1, 1], n - 1), 0, -1)}
         mock_aux.return_value = (np.arange(self.n_frames[side]), [None, None, None, gpio])
-        with self.assertLogs(logging.getLogger('ibllib'), logging.CRITICAL):
+        with self.assertLogs(logging.getLogger('ibllib.io.extractors.camera'), logging.CRITICAL):
             ts, _ = ext.extract(save=False, sync=sync, chmap=chmap)
         # Should fallback to basic extraction
         np.testing.assert_array_almost_equal(ts[:5], expected)
@@ -668,13 +667,16 @@ class TestCameraPipeline(base.IntegrationTest):
             video_path = session_path.joinpath('raw_video_data')
             video_path.mkdir(parents=True)
             video_path.joinpath('_iblrig_leftCamera.raw.mp4').touch()
+
             with mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture') as mock_vc, \
+                    mock.patch('ibllib.io.ffmpeg.get_video_meta') as mock_meta, \
                     mock.patch('ibllib.pipes.training_preprocessing.CameraQC') as mock_qc:
                 def side_effect():
                     return True, np.random.randint(0, 255, size=(1024, 1280, 3))
                 mock_vc().read.side_effect = side_effect
                 length = 68453
                 mock_vc().get.return_value = length
+                mock_meta.return_value = Bunch(length=length, size=1024)
                 job.run()
                 self.assertEqual(job.status, 0)
                 self.assertEqual(mock_qc.call_args.args, (session_path, 'left'))

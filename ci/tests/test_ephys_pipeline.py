@@ -1,8 +1,8 @@
-import logging
 import shutil
 import numpy as np
 from unittest import mock
 import json
+import logging
 
 import one.alf.io as alfio
 from ibllib.pipes import local_server
@@ -11,8 +11,6 @@ from one.api import ONE
 
 from ci.tests import base
 
-_logger = logging.getLogger('ibllib')
-
 
 class TestEphysSignatures(base.IntegrationTest):
     def setUp(self):
@@ -20,36 +18,32 @@ class TestEphysSignatures(base.IntegrationTest):
 
     def make_new_dataset(self):
         """helper function to use to create a new dataset"""
-        from iblscripts.ci.tests.base import IntegrationTest
-        import json
-        data_path = IntegrationTest.default_data_root()
-        folder_path = data_path.joinpath('ephys', 'ephys_signatures', 'RawEphysQC')
+        folder_path = self.data_path.joinpath('ephys', 'ephys_signatures', 'RawEphysQC')
         for json_file in folder_path.rglob('result.json'):
             with open(json_file) as fid:
                 result = json.load(fid)
-            if result['outputs'] == True:
+            if result['outputs']:
                 for bin_file in json_file.parent.rglob('*ap.meta'):
                     bin_file.parent.joinpath("_iblqc_ephysChannels.labels.npy").touch()
                     print(bin_file)
 
+    @base.disable_log(level=logging.ERROR, quiet=True)
     def assert_task_inputs_outputs(self, session_paths, EphysTask):
         for session_path in session_paths.iterdir():
-            task = EphysTask(session_path)
-            if EphysTask.__name__ == 'SpikeSorting':
-                task.signature['input_files'], task.signature['output_files'] = task.spike_sorting_signature()
-            task.get_signatures()
-            output_status, _ = task.assert_expected(task.output_files)
-            input_status, _ = task.assert_expected_inputs(raise_error=False)
-            with open(session_path.joinpath('result.json'), 'r') as f:
-                result = json.load(f)
-            test_ok = True
-            if output_status != result['outputs']:
-                test_ok = False
-                _logger.critical(f"test failed outputs {EphysTask}, {session_path}")
-            if input_status != result['inputs']:
-                test_ok = False
-                _logger.critical(f"test failed inputs {EphysTask}, {session_path}")
-        assert test_ok
+            with self.subTest(session=session_path):
+                task = EphysTask(session_path)
+                if EphysTask.__name__ == 'SpikeSorting':
+                    task.signature['input_files'], task.signature['output_files'] = \
+                        task.spike_sorting_signature()
+                task.get_signatures()
+                output_status, _ = task.assert_expected(task.output_files)
+                input_status, _ = task.assert_expected_inputs(raise_error=False)
+                with open(session_path.joinpath('result.json'), 'r') as f:
+                    result = json.load(f)
+                self.assertEqual(output_status, result['outputs'],
+                                 f"test failed outputs {EphysTask}, {session_path}")
+                self.assertEqual(input_status, result['inputs'],
+                                 f"test failed inputs {EphysTask}, {session_path}")
 
     def test_EphysAudio_signatures(self):
         EphysTask = ephys_tasks.EphysAudio
@@ -285,16 +279,12 @@ class TestEphysPipeline(base.IntegrationTest):
         dids = np.array([d['id'] for d in all_datasets])
         self.assertTrue(set(dids).issubset(set([ds['url'][-36:] for ds in dsets])))
         dtypes = sorted([ds['dataset_type'] for ds in dsets])
-        success = True
         for ed in EXPECTED_DATASETS:
-            count = sum([1 if ed[0] == dt else 0 for dt in dtypes])
-            if not ed[1] <= count <= ed[2]:
-                _logger.critical(f'missing dataset types: {ed[0]} found {count}, '
-                                 f'expected between [{ed[1]} and {ed[2]}]')
-                success = False
-            else:
-                _logger.info(f'check dataset types registration OK: {ed[0]}')
-        self.assertTrue(success)
+            with self.subTest(dataset=ed[0]):
+                count = sum([1 if ed[0] == dt else 0 for dt in dtypes])
+                self.assertTrue(ed[1] <= count <= ed[2],
+                                f'missing dataset types: {ed[0]} found {count}, '
+                                f'expected between [{ed[1]} and {ed[2]}]')
         # check that the task QC was successfully run
         session_dict = one.alyx.rest('sessions', 'read', id=eid, no_cache=True)
         self.assertNotEqual('NOT_SET', session_dict['qc'], 'qc field not updated')
@@ -385,17 +375,21 @@ class TestEphysPipeline(base.IntegrationTest):
             """ compare against the cortexlab spikes Matlab code output if fixtures exist """
             for famps in session_path.joinpath(
                     'raw_ephys_data', probe_folder.parts[-1]).rglob('expected_amps_V_matlab.npy'):
-                expected_amps = np.load(famps)
-                # the difference is within 2 uV
-                assert np.max(np.abs((spikes.amps * 1e6 - np.squeeze(expected_amps)))) < 2
-                _logger.info('checked ' + '/'.join(famps.parts[-2:]))
+                with self.subTest(msg='/'.join(famps.parts[-2:])):
+                    expected_amps = np.load(famps)
+                    # the difference is within 2 uV
+                    self.assertTrue(
+                        np.max(np.abs((spikes.amps * 1e6 - np.squeeze(expected_amps)))) < 2
+                    )
 
             folder = session_path.joinpath('raw_ephys_data', probe_folder.parts[-1])
             for fdepths in folder.rglob('expected_dephts_um_matlab.npy'):
-                expected_depths = np.load(fdepths)
-                # the difference is within 2 uV
-                assert np.nanmax(np.abs((spikes.depths - np.squeeze(expected_depths)))) < .01
-                _logger.info('checked ' + '/'.join(fdepths.parts[-2:]))
+                with self.subTest(msg='/'.join(fdepths.parts[-2:])):
+                    expected_depths = np.load(fdepths)
+                    # the difference is within 2 uV
+                    self.assertTrue(
+                        np.nanmax(np.abs((spikes.depths - np.squeeze(expected_depths)))) < .01
+                    )
 
     def tearDown(self) -> None:
         if self.main_folder.exists():
