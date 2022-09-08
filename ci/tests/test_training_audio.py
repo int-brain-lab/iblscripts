@@ -10,7 +10,7 @@ from ci.tests import base
 class TestAudioExtraction(base.IntegrationTest):
 
     def setUp(self):
-        file_wav = self.data_path.joinpath('Subjects_init', 'ZM_1085', '2019-06-24', '001',
+        file_wav = self.data_path.joinpath('Subjects_init', 'ZM_1085', '2019-07-01', '002',
                                            'raw_behavior_data', '_iblrig_micData.raw.wav')
         self.ses_path = file_wav.parents[1]
         if not self.ses_path.exists():
@@ -21,7 +21,7 @@ class TestAudioExtraction(base.IntegrationTest):
         audio.extract_sound(self.ses_path, save=True)
         D = alfio.load_object(self.ses_path / 'raw_behavior_data', 'audioSpectrogram')
         cues = alfio.load_object(self.ses_path / 'raw_behavior_data', 'audioOnsetGoCue')
-        self.assertEqual(cues['times_mic'].size, 4)
+        self.assertEqual(cues['times_mic'].size, 7)
         self.assertEqual(D['power'].shape[0], D['times_mic'].shape[0])
         self.assertEqual(D['frequencies'].shape[1], D['power'].shape[1])
         # now test the registration of the data
