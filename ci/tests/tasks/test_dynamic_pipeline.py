@@ -132,7 +132,11 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
         )
         # also need to make an experiment description file
 
-    def test_job_creator(self):
+    def test_run_dynamic_pipeline_full(self):
+        """
+        This runs the full suite of tasks on a TrainingChoiceWorld task
+        """
+
         dsets = job_creator(self.session_path, one=self.one)
         assert len(dsets) == 0
 
@@ -140,10 +144,15 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
         assert len(tasks) == 8
 
         all_dsets = tasks_runner(self.temp_dir, tasks, one=self.one, count=10, max_md5_size=1024 * 1024 * 20)
-        print(len(all_dsets))
 
-        complete_tasks = self.one.alyx.rest('tasks', 'list', status='Complete', session=self.eid, no_cache=True)
-        assert len(complete_tasks) == 8
+        for t in self.one.alyx.rest('tasks', 'list', session=self.eid, no_cache=True):
+            with self.subTest(name=t['name']):
+                if t['name'] == 'TrainingStatus_trainingChoiceWorld':
+                    continue
+                self.assertEqual(t['status'], 'Complete')
+
+        self.assertEqual(len(all_dsets), 29)
+        self.assertIn('_ibl_experiment.description.yaml', [d['name'] for d in all_dsets])
 
     def tearDown(self) -> None:
         shutil.rmtree(self.temp_dir)

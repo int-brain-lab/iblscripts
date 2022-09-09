@@ -7,6 +7,7 @@ import numpy as np
 import ibllib.io.video as vidio
 from one.api import ONE
 from ci.tests import base
+from ibllib.io.raw_daq_loaders import load_channels_tdms
 
 
 class TestVideoIO(base.IntegrationTest):
@@ -89,6 +90,24 @@ class TestVideoIO(base.IntegrationTest):
         video_url = next(fr['data_url'] for fr in dset['file_records'] if fr['data_url'])
         meta = vidio.get_video_meta(video_url, one=one)
         self.assertTrue(set(expected.keys()).issubset(meta.keys()))
+
+
+class Read_DAQ_tdms(base.IntegrationTest):
+
+    def setUp(self) -> None:
+        root = self.data_path  # Path to integration data
+        self.tdms_file = root.joinpath(
+            "personal_projects/biased_photometry/fip_16/2021-04-21/001/raw_photometry_data/20210421_1027.tdms")
+
+    def test_read_tdms(self):
+        data = load_channels_tdms(self.tdms_file)
+        self.assertEqual(set(data.keys()), set([f'AI{i}' for i in range(8)]))
+        _, fs = load_channels_tdms(self.tdms_file, return_fs=True)
+        self.assertEqual(fs, 1000)
+        chmap = {'titi': 'AI0', 'tata': 'AI1'}
+        dch, fs = load_channels_tdms(self.tdms_file, chmap=chmap, return_fs=True)
+        np.testing.assert_array_equal(dch['tata'], data['AI1'])
+        self.assertEqual(fs, 1000)
 
 
 if __name__ == '__main__':

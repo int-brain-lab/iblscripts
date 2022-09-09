@@ -10,10 +10,11 @@ from iblutil.util import log_to_file
 from ibllib.pipes.misc import create_basic_transfer_params, subjects_data_folder, transfer_session_folders
 
 
-def main(local=None, remote=None, rename_files=False):
-    DATA_FOLDER = 'raw_widefield_data'
+def main(local=None, remote=None, rename_files=False, data_folder='raw_widefield_data'):
+    DATA_FOLDER = data_folder
+    fold = data_folder.split('_')[1]
     # logging configuration
-    log = log_to_file(filename='transfer_widefield_sessions.log', log='ibllib.pipes.misc')
+    log = log_to_file(filename=f'transfer_{fold}_sessions.log', log='ibllib.pipes.misc')
 
     # Determine if user passed in arg for local/remote subject folder locations or pull in from
     # local param file or prompt user if missing
@@ -47,8 +48,10 @@ def main(local=None, remote=None, rename_files=False):
 
     # Ensure each session contains a channels file: copy file over if not present
     log.info('Copying missing wiring files')
-    copy_wiring('widefield_wiring.htsv', '*widefield_wiring*')
-    copy_wiring('_spikeglx_DAQdata.wiring.json', '*DAQdata.wiring*')
+    if fold == 'widefield':
+        copy_wiring('widefield_wiring.htsv', '*widefield_wiring*')
+    elif fold == 'sync':
+        copy_wiring('_spikeglx_DAQdata.wiring.json', '*DAQdata.wiring*')
 
     # Call ibllib function to perform generalized user interaction and kick off transfer
     transfer_list, success = transfer_session_folders(
@@ -56,7 +59,7 @@ def main(local=None, remote=None, rename_files=False):
 
     # Create transferred flag files and rename files
     for src, dst in (x for x, ok in zip(transfer_list, success) if ok):
-        log.info(f"{src} -> {dst} - widefield transfer success")
+        log.info(f"{src} -> {dst} - {fold} transfer success")
 
         # Create flag
         flag_file = src.joinpath(DATA_FOLDER, 'transferred.flag')
@@ -64,7 +67,7 @@ def main(local=None, remote=None, rename_files=False):
         flags.write_flag_file(flag_file, file_list=list(file_list))
 
         if rename_files:
-            log.info('Renaming remote widefield data files')
+            log.info(f'Renaming remote {fold} data files')
             raise NotImplementedError
 
 
@@ -73,4 +76,6 @@ if __name__ == "__main__":
     parser.add_argument('-l', '--local', default=False, required=False, help='Local iblrig_data/Subjects folder')
     parser.add_argument('-r', '--remote', default=False, required=False, help='Remote iblrig_data/Subjects folder')
     args = parser.parse_args()
-    main(args.local, args.remote)
+    main(args.local, args.remote, data_folder='raw_widefield_data')
+    main(args.local, args.remote, data_folder='raw_sync_data')
+    main(args.local, args.remote, data_folder='raw_video_data')
