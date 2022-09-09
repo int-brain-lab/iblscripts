@@ -12,7 +12,8 @@ from ci.tests import base
 
 _logger = logging.getLogger('ibllib')
 
-FIXTURES_PATH = Path(__file__).parent.joinpath('fictures_acquisition_descriptions')
+FIXTURES_PATH = Path(__file__).parent.joinpath('fixtures_acquisition_descriptions')
+
 
 class TestDynamicPipeline(base.IntegrationTest):
 
@@ -89,6 +90,10 @@ class TestStandardPipelines(base.IntegrationTest):
 
     def test_widefield(self):
         shutil.copytree(self.folder_path.joinpath('widefield'), self.session_path)
+        self.check_pipeline()
+
+    def test_photometry(self):
+        shutil.copytree(self.folder_path.joinpath('photometry'), self.session_path)
         self.check_pipeline()
 
     def check_pipeline(self):

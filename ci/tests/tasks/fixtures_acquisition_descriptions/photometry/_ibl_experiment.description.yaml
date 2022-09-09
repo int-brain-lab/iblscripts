@@ -1,0 +1,26 @@
+devices:
+  cameras:
+    left:
+        collection: raw_video_data
+        sync_label: frame2ttl
+        compressed: True
+  microphone:
+    microphone:
+        collection: raw_behavior_data
+        sync_label: null
+  photometry:
+    region3G:
+        collection: raw_photometry_data
+        sync_label: frame_trigger
+procedures:
+- Fiber photometry
+projects:
+- ibl_fibrephotometry
+sync:
+  bpod:
+    collection: raw_behavior_data
+    extension: bin
+tasks:
+  trainingChoiceWorld:
+    collection: raw_behavior_data
+    sync_label: bpod
