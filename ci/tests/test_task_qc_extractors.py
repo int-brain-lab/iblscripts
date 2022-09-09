@@ -1,7 +1,10 @@
 """Tests TaskQC object and Bpod extractors
 NB: FPGA TaskQC extractor is tested in test_ephys_extraction_choiceWorld
+
+This module uses ZM_1150/2019-05-07/001 ('b1c968ad-4874-468d-b2e4-5ffa9b9964e9').
 """
 import unittest
+import unittest.mock
 import tempfile
 
 from pkg_resources import parse_version
@@ -15,12 +18,13 @@ one = ONE(**base.TEST_DB)
 
 class TestTaskQCObject(base.IntegrationTest):
     def setUp(self):
+        # TODO Add to integration data so doesn't re-download
         self.one = one
-        self.eid = "b1c968ad-4874-468d-b2e4-5ffa9b9964e9"
+        self.eid = 'b1c968ad-4874-468d-b2e4-5ffa9b9964e9'
         # Make sure the data exists locally
-        self.session_path = self.one.eid2path(self.eid)
-        self.qc = TaskQC(self.eid, one=one)
-        self.qc.load_data(bpod_only=True)  # Test session has no raw FPGA data
+        self.session_path = self.data_path.joinpath('training', 'ZM_1150', '2019-05-07', '001')
+        self.qc = TaskQC(self.session_path, one=one)
+        self.qc.load_data(bpod_only=True, download_data=False)  # Test session has no raw FPGA data
 
     def test_compute(self):
         # Compute metrics
@@ -106,15 +110,15 @@ class TestBpodQCExtractors(base.IntegrationTest):
         self.eid = 'b1c968ad-4874-468d-b2e4-5ffa9b9964e9'
         self.eid_incomplete = '4e0b3320-47b7-416e-b842-c34dc9004cf8'  # Missing required datasets
         # Make sure the data exists locally
-        self.session_path = self.one.eid2path(self.eid)
+        self.session_path = self.data_path.joinpath('training', 'ZM_1150', '2019-05-07', '001')
 
     def test_lazy_extract(self):
-        ex = TaskQCExtractor(self.session_path, lazy=True, one=self.one, download_data=True)
+        ex = TaskQCExtractor(self.session_path, lazy=True, one=self.one, download_data=False)
         self.assertIsNone(ex.data)
 
     def test_extraction(self):
         ex = TaskQCExtractor(self.session_path,
-                             lazy=True, one=self.one, bpod_only=True, download_data=True)
+                             lazy=True, one=self.one, bpod_only=True, download_data=False)
         self.assertIsNone(ex.raw_data)
 
         # Test loading raw data
@@ -143,7 +147,7 @@ class TestBpodQCExtractors(base.IntegrationTest):
 
     def test_partial_extraction(self):
         ex = TaskQCExtractor(self.session_path,
-                             lazy=True, one=self.one, bpod_only=True, download_data=True)
+                             lazy=True, one=self.one, bpod_only=True, download_data=False)
         ex.extract_data()
 
         expected = ['contrastLeft',
@@ -178,10 +182,9 @@ class TestBpodQCExtractors(base.IntegrationTest):
             _cache = self.one.cache_dir
             self.one.alyx._par = self.one.alyx._par.set('CACHE_DIR', tdir)
             try:
-                TaskQCExtractor(self.session_path, lazy=True, one=self.one, download_data=True)
-                files = list(self.session_path.rglob('*.*'))
-                expected = 6  # NB This session is missing raw ephys data and missing some datasets
-                self.assertEqual(len(files), expected)
+                with unittest.mock.patch.object(self.one, '_download_datasets') as download_method:
+                    TaskQCExtractor(self.session_path, lazy=True, one=self.one, download_data=True)
+                    download_method.assert_called()
             finally:
                 self.one.alyx._par = self.one.alyx._par.set('CACHE_DIR', _cache)
 
