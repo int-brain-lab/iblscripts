@@ -185,18 +185,24 @@ class TestWidefieldSync(base.IntegrationTest):
         # Mock video file with more frames than led timestamps
         self.video_meta.length = 2035
         task = WidefieldSync(self.session_path, sync_collection='raw_widefield_data', sync_namespace='spikeglx')
-        status = task.run()
-        assert status == -1
-        assert 'ValueError: More video frames than led frames detected' in task.log
+        expected_error = 'ValueError: More video frames than led frames detected'
+        with self.assertLogs('ibllib.pipes.tasks', logging.ERROR) as log:
+            status = task.run()
+            self.assertTrue(len(log.output) <= 2, 'Expected at most 2 errors logged')
+            self.assertIn(expected_error, log.output[-1])
+        self.assertEqual(-1, status)
 
     def test_video_led_sync_too_many(self):
         # Mock video file with more that two extra led timestamps
         self.video_meta.length = 2029
 
         task = WidefieldSync(self.session_path, sync_collection='raw_widefield_data', sync_namespace='spikeglx')
-        status = task.run()
-        assert status == -1
-        assert 'ValueError: Led frames and video frames differ by more than 2' in task.log
+        expected_error = 'ValueError: Led frames and video frames differ by more than 2'
+        with self.assertLogs('ibllib.pipes.tasks', logging.ERROR) as log:
+            status = task.run()
+            self.assertTrue(len(log.output) <= 2, 'Expected at most 2 errors logged')
+            self.assertIn(expected_error, log.output[-1])
+        self.assertEqual(-1, status)
 
     def tearDown(self):
         self.video_file.unlink()
