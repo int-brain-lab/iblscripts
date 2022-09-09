@@ -154,8 +154,7 @@ class TestEphysPipeline(base.IntegrationTest):
             one.alyx.rest('sessions', 'delete', id=eid)
 
         # create the jobs and run them
-        raw_ds = local_server.job_creator(self.session_path,
-                                          one=one, max_md5_size=1024 * 1024 * 20)
+        raw_ds = local_server.job_creator(self.session_path, one=one, max_md5_size=1024 * 1024 * 20)
         one.alyx.clear_rest_cache()
         eid = one.path2eid(self.session_path, query_type='remote')
         self.assertFalse(eid is None)  # the session is created on the database
@@ -169,17 +168,13 @@ class TestEphysPipeline(base.IntegrationTest):
         # id_compress = [t['id'] for t in tasks_dict if t['name'] == 'EphysVideoCompress'][0]
         # tasks_dict[idx]['parents'] = [id_compress]
         # # Hack end, to be removed later
-        for td in tasks_dict:
-            print(td['name'])
         all_datasets = local_server.tasks_runner(
             subject_path, tasks_dict, one=one, max_md5_size=1024 * 1024 * 20, count=20)
 
         # check the trajectories and probe info
         self.assertTrue(len(one.alyx.rest('insertions', 'list', session=eid, no_cache=True)) == 2)
-        traj = one.alyx.rest('trajectories', 'list',
-                             session=eid, provenance='Micro-manipulator', no_cache=True)
-        self.assertEqual(len(traj), 2)
-
+        # traj = one.alyx.rest('trajectories', 'list', session=eid, provenance='Micro-manipulator', no_cache=True)
+        # self.assertEqual(len(traj), 2)
         # check the spike sorting output on disk
         self.check_spike_sorting_output(self.session_path)
 
@@ -245,7 +240,6 @@ class TestEphysPipeline(base.IntegrationTest):
                              # ('ephysData.raw.wiring', 2, 3),
 
                              ('probes.description', 1, 1),
-                             ('probes.trajectory', 1, 1),
                              ('drift_depths.um', nss, nss),
                              ('drift.times', nss, nss),
                              ('drift.um', nss, nss),
@@ -302,9 +296,9 @@ class TestEphysPipeline(base.IntegrationTest):
         # check that tasks ran with proper status
         tasks_end = one.alyx.rest('tasks', 'list', session=eid, no_cache=True)
         for t in tasks_end:
-            if t['name'] in ['EphysPassive']:
+            if t['name'] in ['EphysPassive', 'TrainingStatus']:
                 continue
-            assert t['status'] == 'Complete', f"{t['name']} FAILED and shouldn't have for this test"
+            assert t['status'] == 'Complete', f"{t['name']} has status {t['status']}, expected Complete"
 
     def check_spike_sorting_output(self, session_path):
         """ Check the spikes object """
@@ -338,17 +332,17 @@ class TestEphysPipeline(base.IntegrationTest):
             """Check the template object"""
             templates = alfio.load_object(probe_folder, 'templates')
             templates_attributes = ['amps', 'waveforms', 'waveformsChannels']
-            self.assertTrue(set(templates.keys()) == set(templates_attributes))
+            self.assertEqual(set(templates.keys()), set(templates_attributes))
             self.assertTrue(np.unique([templates[k].shape[0] for k in templates]).size == 1)
             # """Check the probes object"""
-            probes_attributes = ['description', 'trajectory']
+            probes_attributes = ['description']
             probes = alfio.load_object(session_path.joinpath('alf'), 'probes')
-            self.assertTrue(set(probes.keys()) == set(probes_attributes))
+            self.assertEqual(set(probes.keys()), set(probes_attributes))
 
             """check sample waveforms and make sure amplitudes check out"""
             swv = alfio.load_object(probe_folder, 'spikes_subset')
             swv_attributes = ['spikes', 'channels', 'waveforms']
-            self.assertTrue(set(swv_attributes) == set(swv.keys()))
+            self.assertEqual(set(swv_attributes), set(swv.keys()))
             iswv = 10000
             it = spikes.templates[swv.spikes[iswv]]
             _, ics, ict = np.intersect1d(swv.channels[iswv], templates.waveformsChannels[it],

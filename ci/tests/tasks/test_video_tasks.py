@@ -3,6 +3,7 @@ import shutil
 import tempfile
 from pathlib import Path
 import numpy as np
+import numpy.testing
 from random import sample
 import unittest.mock
 
@@ -81,11 +82,11 @@ class TestVideoConvert(base.IntegrationTest):
     def test_videoconvert(self):
         task = VideoConvert(self.session_path, device_collection='raw_video_data', cameras=['left'])
         status = task.run()
-        assert status == 0
+        self.assertEqual(status, 0)
         task.assert_expected_outputs()
 
         # check that the original video has been removed
-        assert not self.orig_video.exists()
+        self.assertFalse(self.orig_video.exists())
 
         # compare the avi and mp4 videos and make sure they give the same results
         mp4_file = next(self.session_path.joinpath('raw_video_data').glob('*.mp4'))
@@ -95,15 +96,17 @@ class TestVideoConvert(base.IntegrationTest):
 
         # Make sure metadata is the same
         for key in avi_meta.keys():
-            assert avi_meta[key] == mp4_meta[key]
+            with self.subTest(key=key):
+                self.assertEqual(avi_meta[key], mp4_meta[key])
 
         # Choose 3 random frames and make sure they are the same
         frame_idx = sample(range(avi_meta['length']), 3)
         frame_idx = [0] + frame_idx + [avi_meta['length']]  # make sure to check last and first just in case
         for fr in frame_idx:
-            frame_avi = get_video_frame(self.avi_file, fr)
-            frame_mp4 = get_video_frame(mp4_file, fr)
-            assert np.array_equal(frame_avi, frame_mp4)
+            with self.subTest(frame_id=fr):
+                frame_avi = get_video_frame(self.avi_file, fr)
+                frame_mp4 = get_video_frame(mp4_file, fr)
+                np.testing.assert_array_almost_equal(frame_avi, frame_mp4)
 
 
 class TestVideoSyncQCBpod(base.IntegrationTest):
@@ -121,7 +124,7 @@ class TestVideoSyncQCBpod(base.IntegrationTest):
                                collection='raw_behavior_data')
         status = task.run()
         self.assertEqual(mock_qc.call_count, 1)
-        assert status == 0
+        self.assertEqual(status, 0)
         task.assert_expected_outputs()
 
 
@@ -145,7 +148,7 @@ class TestVideoSyncQcCamlog(base.IntegrationTest):
         task = VideoSyncQcCamlog(self.session_path, device_collection='raw_video_data', sync='nidq', sync_namespace='spikeglx',
                                  sync_collection='raw_sync_data', cameras=['left'])
         status = task.run(qc=False)
-        assert status == 0
+        self.assertEqual(status, 0)
         task.assert_expected_outputs()
 
         # check the timestamps make sense, they should just be the fpga times
@@ -155,7 +158,7 @@ class TestVideoSyncQcCamlog(base.IntegrationTest):
         cam_times = extract_camera_sync(sync=sync, chmap=chmap)
         left_cam_times = cam_times['left']
 
-        assert np.array_equal(times, left_cam_times)
+        np.testing.assert_array_equal(times, left_cam_times)
 
     def tearDown(self):
         shutil.rmtree(self.temp_dir)
@@ -185,7 +188,7 @@ class TestVideoSyncQCNidq(base.IntegrationTest):
                                sync_collection='raw_ephys_data', cameras=['left', 'right', 'body'])
         status = task.run()
         self.assertEqual(mock_qc.call_count, 3)
-        assert status == 0
+        self.assertEqual(status, 0)
         task.assert_expected_outputs()
 
     def tearDown(self) -> None:
