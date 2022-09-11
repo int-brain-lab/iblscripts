@@ -1,0 +1,103 @@
+(base) ibladmin@iblserver:/mnt/s0/Data/scratch/photometry$ tree .
+.
+├── rigs_data
+│ ├── behaviour
+│ │ └── _iblrig_test_mouse
+│ │     └── 2022-09-02
+│ │         └── 005
+│ │             ├── raw_behavior_data
+│ │             │ ├── _iblrig_ambientSensorData.raw.jsonable
+│ │             │ ├── _iblrig_encoderEvents.raw.ssv
+│ │             │ ├── _iblrig_encoderPositions.raw.ssv
+│ │             │ ├── _iblrig_encoderTrialInfo.raw.ssv
+│ │             │ ├── _iblrig_micData.raw.wav
+│ │             │ ├── _iblrig_stimPositionScreen.raw.csv
+│ │             │ ├── _iblrig_syncSquareUpdate.raw.csv
+│ │             │ ├── _iblrig_taskCodeFiles.raw.zip
+│ │             │ ├── _iblrig_taskData.raw.jsonable
+│ │             │ ├── _iblrig_taskSettings.raw.json
+│ │             │ └── online_plot.png
+│ │             └── raw_video_data
+│ │                 ├── _iblrig_leftCamera.frameData.bin
+│ │                 ├── _iblrig_leftCamera.raw.avi
+│ │                 └── _iblrig_videoCodeFiles.raw.zip
+│ └── photometry
+│     ├── 2022-09-02
+│     │ ├── raw_photometry0.csv
+│     │ ├── sync_1027.tdms
+│     │ └── sync_1027.tdms_index
+│     ├── 2022-09-06
+│     │ ├── bonsai_DI00.csv
+│     │ ├── bonsai_DI01.csv
+│     │ ├── bonsai_DO00.csv
+│     │ ├── bonsai_DO01.csv
+│     │ ├── bonsailayout.01.bonsai
+│     │ ├── bonsailayout.01.bonsai.layout
+│     │ ├── FP3002Config.01.xml
+│     │ ├── FP3002Config.02.xml
+│     │ ├── raw_photometry0-Chart.jpg
+│     │ ├── raw_photometry0.csv
+│     │ ├── raw_photometry0.jpg
+│     │ ├── raw_photometry1-Chart.jpg
+│     │ ├── raw_photometry1.csv
+│     │ ├── raw_photometry1.jpg
+│     │ ├── sync_1527.tdms
+│     │ ├── sync_1527.tdms_index
+│     │ ├── sync_1545.tdms
+│     │ └── sync_1545.tdms_index
+│     └── single_channel
+│         └── 2022-08-30
+│             ├── bonsailayout_30Aug2022.bonsai
+│             ├── bonsailayout_30Aug2022.bonsai.layout
+│             ├── daq_config.amicfg
+│             ├── DAQ_sync_test_30Aug2022.ipynb
+│             ├── FP3002Config.xml
+│             ├── raw_photometry0.csv
+│             ├── sync_1055.tdms
+│             ├── sync_1055.tdms_index
+│             ├── TESTAug30_DO00.csv
+│             ├── TESTAug30_DO10.csv
+│             ├── TESTAug30_PHOTOMETRY0-Chart.jpg
+│             └── TESTAug30_PHOTOMETRY0.jpg
+└── server_data
+    ├── 2022-09-06
+    │ ├── bonsai_DI00.csv
+    │ ├── bonsai_DI01.csv
+    │ ├── bonsai_DO00.csv
+    │ ├── bonsai_DO01.csv
+    │ ├── bonsailayout.01.bonsai
+    │ ├── bonsailayout.01.bonsai.layout
+    │ ├── FP3002Config.01.xml
+    │ ├── FP3002Config.02.xml
+    │ ├── raw_photometry0-Chart.jpg
+    │ ├── raw_photometry0.csv
+    │ ├── raw_photometry0.jpg
+    │ ├── raw_photometry1-Chart.jpg
+    │ ├── raw_photometry1.csv
+    │ ├── raw_photometry1.jpg
+    │ ├── sync_1527.tdms
+    │ ├── sync_1527.tdms_index
+    │ ├── sync_1545.tdms
+    │ └── sync_1545.tdms_index
+    └── _iblrig_test_mouse
+        └── 2022-09-02
+            └── 005
+                ├── raw_behavior_data
+                │ ├── _iblrig_ambientSensorData.raw.jsonable
+                │ ├── _iblrig_encoderEvents.raw.ssv
+                │ ├── _iblrig_encoderPositions.raw.ssv
+                │ ├── _iblrig_encoderTrialInfo.raw.ssv
+                │ ├── _iblrig_micData.raw.wav
+                │ ├── _iblrig_stimPositionScreen.raw.csv
+                │ ├── _iblrig_syncSquareUpdate.raw.csv
+                │ ├── _iblrig_taskCodeFiles.raw.zip
+                │ ├── _iblrig_taskData.raw.jsonable
+                │ ├── _iblrig_taskSettings.raw.json
+                │ └── online_plot.png
+                ├── raw_photometry_data
+                │ ├── _mcc_DAQdata.raw.tdms
+                │ └── _neurophotometrics_fpData.raw.pqt
+                └── raw_video_data
+                    ├── _iblrig_leftCamera.frameData.bin
+                    ├── _iblrig_leftCamera.raw.avi
+                    └── _iblrig_videoCodeFiles.raw.zip

@@ -7,15 +7,17 @@ Development machine details:
 - Python 3.8
 - opencv-python 4.3.0.36
 - PyQt5 5.15.7
-- ibllib widefield2 branch
-
-TODO:
-- use shutil.copyfile(src, bonsai_file) to get workflow file into appropriate location
+- ibllib develop branch
 
 QtSettings values:
-    last_loaded_csv_path: str - path to the parent dir of the last loaded csv
-    server_path: str - destination path for local lab server, i.e  \\mainenlab_server\Subjects
     subjects: list[str] = field(default_factory=list) - list of subjects should carry over between sessions
+    local_data_path: str - destination path for parent data directory on local machine, i.e C:\ibl_fiber_photometry_data\Subjects
+    server_data_path: str - destination path for local lab server, i.e  \\mainenlab_server\Subjects
+
+TODO:
+    - add run numbers to exported data
+    - validation for daq produced tdms when compared to bonsai produced csv file, read in peaks/troughs for TTLs, timestamps, +/- 100 frames
+    - validation for selected ROI with headers available in bonsai produced csv file
 """
 import argparse
 import json
@@ -29,6 +31,7 @@ from pathlib import Path
 import pandas as pd
 from PyQt5 import QtWidgets, QtCore
 from dateutil.relativedelta import relativedelta
+from ibllib.atlas import BrainRegions
 from ibllib.pipes.misc import rsync_paths
 
 from qt_designer_util import convert_ui_file_to_py
@@ -105,50 +108,27 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # init QSettings
         self.settings = QtCore.QSettings("int-brain-lab", "fiber_photometry_form")
 
-        # connect triggers to methods
-        self.action_attach_csv_01.triggered.connect(self.attach_csv_01)
-        self.action_attach_csv_02.triggered.connect(self.attach_csv_02)
-        self.action_attach_csv_03.triggered.connect(self.attach_csv_03)
-        self.action_attach_csv_04.triggered.connect(self.attach_csv_04)
-        self.action_attach_csv_05.triggered.connect(self.attach_csv_05)
-        self.action_attach_csv_06.triggered.connect(self.attach_csv_06)
-        self.action_attach_csv_07.triggered.connect(self.attach_csv_07)
-        self.action_attach_csv_08.triggered.connect(self.attach_csv_08)
-        self.action_attach_csv_09.triggered.connect(self.attach_csv_09)
-        self.action_attach_csv_10.triggered.connect(self.attach_csv_10)
+        # connect triggers to class methods
         self.action_clear_qsetting_values.triggered.connect(self.clear_qsetting_values)
         self.action_remove_old_sessions.triggered.connect(self.remove_old_sessions)
         self.action_add_item_to_queue.triggered.connect(self.add_item_to_queue)
         self.action_transfer_items_to_server.triggered.connect(self.transfer_items_to_server)
         self.action_reset_form.triggered.connect(self.reset_form)
 
-        # Populate default qsetting values for subjects and server_path
-        self.populate_default_subjects_and_server_path()
+        # Populate default qsetting values for subjects and server_data_path
+        self.populate_default_qsetting_values()
 
         # List of the default Patch Cords and ROIs to display in combo boxes
         self.patch_cord_defaults = ["", "Patch Cord A", "Patch Cord B", "Patch Cord C"]
         self.roi_defaults = [
             "", "Region0R", "Region1G", "Region2R", "Region3R", "Region4R", "Region5G", "Region6G", "Region7R", "Region8G"]
+        self.run_numbers = ["", "1", "2", "3", "4", "5", "6", "7", "8", "9"]  # hashtag_programming
 
         # Populate widgets
         self.populate_widgets()
 
         # Disable widgets until needed
-        self.disable_all_attach_csv_buttons()
         self.button_transfer_items_to_server.setEnabled(False)
-
-    def disable_all_attach_csv_buttons(self):
-        """Disables all the attach_csv buttons, buttons are enabled once an item is added to queue"""
-        self.button_attach_csv_01.setDisabled(True)
-        self.button_attach_csv_02.setDisabled(True)
-        self.button_attach_csv_03.setDisabled(True)
-        self.button_attach_csv_04.setDisabled(True)
-        self.button_attach_csv_05.setDisabled(True)
-        self.button_attach_csv_06.setDisabled(True)
-        self.button_attach_csv_07.setDisabled(True)
-        self.button_attach_csv_08.setDisabled(True)
-        self.button_attach_csv_09.setDisabled(True)
-        self.button_attach_csv_10.setDisabled(True)
 
     def remove_old_sessions(self):
         """Calls confirmation box for user, then will remove any session older than six months in the local data folder"""
@@ -184,7 +164,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def clear_qsetting_values(self):
         self.confirm_box.label.setText(
-            "Pressing OK will reset the QSetting values (Subject names and server path). Please be sure this is your intention.")
+            "Pressing OK will reset the QSetting values (subject names, local data path, and server data path). Please be sure "
+            "this is your intention.")
         if self.confirm_box.exec_() == 1:  # OK button pressed
             self.settings.clear()
             self.dialog_box.label.setText("QSetting values have been cleared, application will now close.")
@@ -205,19 +186,25 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for value in reversed(self.settings.value("subjects")):  # list the most recent entries first
             self.subject_combo_box.addItem(value)
 
-        # server_path
-        self.server_path.setText(self.settings.value("server_path"))
+        # local_data_path
+        self.local_data_path.setText(self.settings.value("local_data_path"))
+
+        # server_data_path
+        self.server_data_path.setText(self.settings.value("server_data_path"))
 
         # session_number
         self.session_number.setText("001")
 
-        # patch cord and ROI combo boxes
+        # patch cord, ROI, run selector combo boxes
         self.patch_cord_selector_01.addItems(self.patch_cord_defaults)
         self.patch_cord_selector_02.addItems(self.patch_cord_defaults)
         self.patch_cord_selector_03.addItems(self.patch_cord_defaults)
         self.roi_selector_01.addItems(self.roi_defaults)
         self.roi_selector_02.addItems(self.roi_defaults)
         self.roi_selector_03.addItems(self.roi_defaults)
+        self.run_selector_01.addItems(self.run_numbers)
+        self.run_selector_02.addItems(self.run_numbers)
+        self.run_selector_03.addItems(self.run_numbers)
 
     def transfer_items_to_server(self):
         """Transfer queued items to server using ibllib rsync_paths function"""
@@ -226,7 +213,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE:  # if var is set, we should be in testing mode
             remote_folder = Path(FIBER_PHOTOMETRY_DATA_FOLDER_TEST_REMOTE)
         else:
-            remote_folder = Path(self.server_path.text())
+            remote_folder = Path(self.server_data_path.text())
 
         try:  # Copy items from queue_path to data_path for every item in queue
             [shutil.copytree(item["queue_path"], item["data_path"], dirs_exist_ok=True) for item in self.items_to_transfer]
@@ -262,9 +249,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 subject_list.append(self.subject_combo_box.currentText())
                 self.settings.setValue("subjects", subject_list)
 
-            # Set server path to QSettings as the new default if it has changed
-            if self.server_path.text() is not self.settings.value("server_path"):
-                self.settings.setValue("server_path", self.server_path.text())
+            # Set server data path to QSettings as the new default if it has changed
+            if self.server_data_path.text() is not self.settings.value("server_data_path"):
+                self.settings.setValue("server_data_path", self.server_data_path.text())
 
             # Display dialog box with success message
             self.dialog_box.label.setText("The transfer has completed. Please review the log messages in the terminal for "
@@ -273,11 +260,92 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             self.reset_form()
 
+    def validate_brain_area(self) -> bool:
+        """
+        Attempts to match text input (case-insensitive) into the "Brain Area" QLineEdit field with the acronyms listed in ibllib
+        BrainRegions class.
+
+        Returns
+        -------
+        bool
+            True - text input matches the given acronyms
+            False - the text does not match the given acronyms
+        """
+
+        # TODO: Finish generalizing this check
+        # def _private_brain_area_validate(text_input: QtWidgets.QLineEdit) -> bool:
+        #     text = text_input.text()
+        #     if text != "":
+        #         text = "".join(text.split()).lower()
+        #         try:
+        #             region_index = lower_case_acronym_list.index(text)
+        #         except ValueError:
+        #             self.dialog_box.label.setText(f"Brain Area text for input {text} could not be validated. Please verify what "
+        #                                           f"was typed.")
+        #             self.dialog_box.exec_()
+        #             return False
+        #         text_input.setText(acronym_list[region_index])
+
+        # Check if any text has been input and requires validation
+        ba01 = self.brain_area_01.text()
+        ba02 = self.brain_area_02.text()
+        ba03 = self.brain_area_03.text()
+        if ba01 == "" and ba02 == "" and ba03 == "":  # No regions input, nothing to validate
+            return True
+
+        # Brain Region
+        acronym_list = BrainRegions().acronym.tolist()
+        # TODO: simplify with list comprehension
+        lower_case_acronym_list = []
+        for acronym in acronym_list:
+            lower_case_acronym_list.append("".join(acronym.split()).lower())
+
+        # TODO: generalize this
+        # Pull out all white spaces and lowercase the input for ease of text comparison
+        if ba01 != "":
+            ba01 = "".join(ba01.split()).lower()
+            try:
+                region_index = lower_case_acronym_list.index(ba01)
+            except ValueError:
+                self.dialog_box.label.setText("Brain Area text for input 01 could not be validated. Please verify what was "
+                                              "typed.")
+                self.dialog_box.exec_()
+                return False
+            self.brain_area_01.setText(acronym_list[region_index])
+
+        if ba02 != "":
+            ba02 = "".join(ba02.split()).lower()
+            try:
+                region_index = lower_case_acronym_list.index(ba02)
+            except ValueError:
+                self.dialog_box.label.setText("Brain Area text for input 02 could not be validated. Please verify what was "
+                                              "typed.")
+                self.dialog_box.exec_()
+                return False
+            self.brain_area_02.setText(acronym_list[region_index])
+
+        if ba03 != "":
+            ba03 = "".join(ba03.split()).lower()
+            try:
+                region_index = lower_case_acronym_list.index(ba03)
+            except ValueError:
+                self.dialog_box.label.setText("Brain Area text for input 03 could not be validated. Please verify what was "
+                                              "typed.")
+                self.dialog_box.exec_()
+                return False
+            self.brain_area_03.setText(acronym_list[region_index])
+
+        return True
+
     def add_item_to_queue(self):
         """Verifies that all entered values are valid and present. Adds item to the queue."""
 
+        # Validations
         if not self.validate_patch_cord_and_roi():  # Check for at least a single ROI has been selected; no duplicate ROIs
             return
+        if not self.validate_brain_area():  # check if text input for brain area is valid
+            return
+        # Validate local_data_path
 
         # local directory structure .../Subject/Date/SessionNumber/raw_fiber_photometry_data
         data_path = Path(
@@ -321,7 +389,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             "brain_area_01": self.brain_area_01.text(),
             "brain_area_02": self.brain_area_02.text(),
             "brain_area_03": self.brain_area_03.text(),
-            "server_path": self.server_path.text(),
+            "local_data_path": self.local_data_path.text(),
+            "server_data_path": self.server_data_path.text(),
             "queue_path": str(queue_path),
             "data_path": str(data_path),
             "data_file": data_file,
@@ -349,7 +418,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def prepare_item_for_transfer(self, text: str):
         """
-        Adds the stringified text to the next available text box for a queued item and enables relevant attach_csv button
+        Adds the stringified text to the next available text box for a queued item
 
         Parameters
         ----------
@@ -358,34 +427,24 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         """
         if self.item_queue_01.toPlainText() == "":
             self.item_queue_01.setText(text)
-            self.button_attach_csv_01.setEnabled(True)
         elif self.item_queue_02.toPlainText() == "":
             self.item_queue_02.setText(text)
-            self.button_attach_csv_02.setEnabled(True)
         elif self.item_queue_03.toPlainText() == "":
             self.item_queue_03.setText(text)
-            self.button_attach_csv_03.setEnabled(True)
         elif self.item_queue_04.toPlainText() == "":
             self.item_queue_04.setText(text)
-            self.button_attach_csv_04.setEnabled(True)
         elif self.item_queue_05.toPlainText() == "":
             self.item_queue_05.setText(text)
-            self.button_attach_csv_05.setEnabled(True)
         elif self.item_queue_06.toPlainText() == "":
             self.item_queue_06.setText(text)
-            self.button_attach_csv_06.setEnabled(True)
         elif self.item_queue_07.toPlainText() == "":
             self.item_queue_07.setText(text)
-            self.button_attach_csv_07.setEnabled(True)
         elif self.item_queue_08.toPlainText() == "":
             self.item_queue_08.setText(text)
-            self.button_attach_csv_08.setEnabled(True)
         elif self.item_queue_09.toPlainText() == "":
             self.item_queue_09.setText(text)
-            self.button_attach_csv_09.setEnabled(True)
         elif self.item_queue_10.toPlainText() == "":
             self.item_queue_10.setText(text)
-            self.button_attach_csv_10.setEnabled(True)
             self.button_add_item_to_queue.setDisabled(True)
 
     def reset_patch_cord_roi_combo_boxes_and_brain_area(self):
@@ -416,7 +475,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         Parameters
         ----------
         item_to_transfer: dict
-            The following keys are extracted: subject, date, session_number, rois, patches, server_path
+            The following keys are extracted: subject, date, session_number, rois, patches, server_data_path
         Returns
         -------
         str
@@ -446,7 +505,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             return_string += "Brain Area 02: " + item_to_transfer["brain_area_02"] + "\n"
         if item_to_transfer["brain_area_03"] != "":
             return_string += "Brain Area 03: " + item_to_transfer["brain_area_03"] + "\n"
-        return_string += "Server Path: " + item_to_transfer["server_path"]
+        # Local and Server Data Paths
+        return_string += "Local Data Path: " + item_to_transfer["local_data_path"] + "\n" + \
+                         "Server Data Path: " + item_to_transfer["server_data_path"]
         return return_string
 
     def validate_transfers_ready(self):
@@ -461,58 +522,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if transfer_ready:
             self.button_transfer_items_to_server.setEnabled(True)
 
-    def attach_csv_01(self):
-        """Attach CSV file to queued item"""
-        attach_csv_label_text = self.attach_csv(1)
-        self.attach_csv_label_01.setText(attach_csv_label_text)
-
-    def attach_csv_02(self):
-        """Attach CSV file to queued item"""
-        attach_csv_label_text = self.attach_csv(2)
-        self.attach_csv_label_02.setText(attach_csv_label_text)
-
-    def attach_csv_03(self):
-        """Attach CSV file to queued item"""
-        attach_csv_label_text = self.attach_csv(3)
-        self.attach_csv_label_03.setText(attach_csv_label_text)
-
-    def attach_csv_04(self):
-        """Attach CSV file to queued item"""
-        attach_csv_label_text = self.attach_csv(4)
-        self.attach_csv_label_04.setText(attach_csv_label_text)
-
-    def attach_csv_05(self):
-        """Attach CSV file to queued item"""
-        attach_csv_label_text = self.attach_csv(5)
-        self.attach_csv_label_05.setText(attach_csv_label_text)
-
-    def attach_csv_06(self):
-        """Attach CSV file to queued item"""
-        attach_csv_label_text = self.attach_csv(6)
-        self.attach_csv_label_06.setText(attach_csv_label_text)
-
-    def attach_csv_07(self):
-        """Attach CSV file to queued item"""
-        attach_csv_label_text = self.attach_csv(7)
-        self.attach_csv_label_07.setText(attach_csv_label_text)
-
-    def attach_csv_08(self):
-        """Attach CSV file to queued item"""
-        attach_csv_label_text = self.attach_csv(8)
-        self.attach_csv_label_08.setText(attach_csv_label_text)
-
-    def attach_csv_09(self):
-        """Attach CSV file to queued item"""
-        attach_csv_label_text = self.attach_csv(9)
-        self.attach_csv_label_09.setText(attach_csv_label_text)
-
-    def attach_csv_10(self):
-        """Attach CSV file to queued item"""
-        attach_csv_label_text = self.attach_csv(10)
-        self.attach_csv_label_10.setText(attach_csv_label_text)
-
     def attach_csv(self, queue_item_num: int) -> str:
         """
+        ------ DEPRECATED ------
         Attaches CSV file to given queued item value
 
         Parameters
@@ -597,21 +609,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     print(f"{Path(item['queue_path']).parent.parent.parent} was not found. Directory was likely already deleted.")
         self.items_to_transfer = []
 
-        # Disable attach CSV buttons
-        self.disable_all_attach_csv_buttons()
-
-        # Reset attach CSV labels
-        self.attach_csv_label_01.setText("No CSV Loaded")
-        self.attach_csv_label_02.setText("No CSV Loaded")
-        self.attach_csv_label_03.setText("No CSV Loaded")
-        self.attach_csv_label_04.setText("No CSV Loaded")
-        self.attach_csv_label_05.setText("No CSV Loaded")
-        self.attach_csv_label_06.setText("No CSV Loaded")
-        self.attach_csv_label_07.setText("No CSV Loaded")
-        self.attach_csv_label_08.setText("No CSV Loaded")
-        self.attach_csv_label_09.setText("No CSV Loaded")
-        self.attach_csv_label_10.setText("No CSV Loaded")
-
         # Disable transfer button
         self.button_transfer_items_to_server.setDisabled(True)
 
@@ -619,13 +616,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.dialog_box.label.setText("Form has been reset.")
         self.dialog_box.exec_()
 
-    def populate_default_subjects_and_server_path(self):
-        """Populate QSettings with default values, typically for a first run"""
+    def populate_default_qsetting_values(self):
+        """Populate QSettings with default values, used for first run of application or after a qsetting reset"""
         if not self.settings.value("subjects"):
             self.settings.setValue("subjects", ["mouse1"])
 
-        if not self.settings.value("server_path"):
-            self.settings.setValue("server_path", "\\\\path_to_server\\Subjects")
+        if not self.settings.value("local_data_path") or os.name != "nt":  # os name check for testing on linux with temp dirs
+            self.settings.setValue("local_data_path", FIBER_PHOTOMETRY_DATA_FOLDER)
+
+        if not self.settings.value("server_data_path"):
+            self.settings.setValue("server_data_path", "\\\\path_to_server\\Subjects")
 
     def validate_patch_cord_and_roi(self) -> bool:
         """
