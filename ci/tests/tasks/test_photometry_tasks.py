@@ -1,8 +1,14 @@
-from one.api import ONE
-from ci.tests import base
+import shutil
 
+import pandas as pd
+
+from one.api import ONE
+from one.registration import RegistrationClient
+from ibllib.io.session_params import read_params
 from ibllib.io.extractors import fibrephotometry
 import ibllib.pipes.photometry_tasks as photometry_tasks
+
+from ci.tests import base
 
 
 class TestCopy2Server(base.IntegrationTest):
@@ -26,23 +32,47 @@ class TestCopy2Server(base.IntegrationTest):
                 fibrephotometry.sync_photometry_to_daq(daq_file, photometry_file)
 
 
-class TestPhotometryRegisterRaw(base.IntegrationTest):
+class BasePhotometryTaskTest(base.IntegrationTest):
 
     def setUp(self) -> None:
-        from one.registration import RegistrationClient
         cache_dir = self.data_path.joinpath('dynamic_pipeline', 'photometry', 'server_data')
         self.session_path = cache_dir.joinpath('ZFM-03448', '2022-09-06', '001')
         self.one = ONE(**base.TEST_DB, cache_dir=cache_dir, cache_rest=None)
+        try:
+            self.one.alyx.rest('subjects', 'delete', id='ZFM-03448')
+        except BaseException:
+            pass
         self.one.alyx.rest('subjects', 'create', data={
             'nickname': 'ZFM-03448', 'responsible_user': 'root', 'birth_date': '2022-02-02', 'lab': 'mainenlab'})
-        path, self.eid = RegistrationClient(self.one).create_new_session('ZFM-03448')
+        self.acquisition_description = read_params(self.session_path)
+        sdict = RegistrationClient(self.one).create_session(self.session_path)
+        self.kwargs = self.acquisition_description['devices']['photometry']
+        self.eid = sdict['id']
+
+    def tearDown(self) -> None:
+        self.one.alyx.rest('subjects', 'delete', id='ZFM-03448')
+
+
+class TestTaskPhotometryRegisterRaw(BasePhotometryTaskTest):
 
     def test_register_raw(self):
-        task = photometry_tasks.FibrePhotometryRegisterRaw(self.session_path, one=self.one, collection='raw_photometry_data')
+        task = photometry_tasks.TaskFibrePhotometryRegisterRaw(self.session_path, one=self.one, **self.kwargs)
         status = task.run()
         assert status == 0
         # Even if we run the task again we should get the same output
         task.run()
 
+
+class TestTaskFibrePhotometryPreprocess(BasePhotometryTaskTest):
+
+    def test_extract_fp_data(self):
+        task = photometry_tasks.TaskFibrePhotometryPreprocess(self.session_path, one=self.one, **self.kwargs)
+        status = task.run()
+        assert status == 0
+        # Even if we run the task again we should get the same output
+        task.run()
+        fp_table = pd.read_parquet(task.outputs)
+        self.assertEqual(set(fp_table.keys()), set(list(['Region1G', 'Region3G', 'color', 'name', 'times', 'wavelength'])))
+
     def tearDown(self) -> None:
-        self.one.alyx.rest('subjects', 'delete', id='ZFM-03448')
+        shutil.rmtree(self.session_path.joinpath('alf'))

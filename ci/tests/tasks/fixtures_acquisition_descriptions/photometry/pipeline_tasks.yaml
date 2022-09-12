@@ -142,14 +142,14 @@
     collection: raw_photometry_data
     sync_label: frame_trigger
   cpu: 1
-  executable: ibllib.pipes.photometry_tasks.FibrePhotometryRegisterRaw
+  executable: ibllib.pipes.photometry_tasks.TaskFibrePhotometryRegisterRaw
   gpu: 0
   graph: Pipeline
   io_charge: 5
   level: 0
   log: null
   module: ibllib.pipes.tasks.Pipeline
-  name: FibrePhotometryRegisterRaw
+  name: TaskFibrePhotometryRegisterRaw
   parents: []
   priority: 100
   ram: 4
@@ -164,16 +164,16 @@
     sync_label: frame_trigger
     sync_namespace: null
   cpu: 1
-  executable: ibllib.pipes.photometry_tasks.FibrePhotometryPreprocess
+  executable: ibllib.pipes.photometry_tasks.TaskFibrePhotometryPreprocess
   gpu: 0
   graph: Pipeline
   io_charge: 5
   level: 1
   log: null
   module: ibllib.pipes.tasks.Pipeline
-  name: FibrePhotometryPreprocess
+  name: TaskFibrePhotometryPreprocess
   parents:
-  - FibrePhotometryRegisterRaw
+  - TaskFibrePhotometryRegisterRaw
   priority: 90
   ram: 4
   session: null
