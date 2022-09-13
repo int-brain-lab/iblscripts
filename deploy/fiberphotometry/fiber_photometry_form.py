@@ -17,6 +17,9 @@ QtSettings values:
 TODO:
     - validation for daq produced tdms when compared to bonsai produced csv file, read in peaks/troughs for TTLs, timestamps, +/- 100 frames
     - validation for selected ROI with headers available in bonsai produced csv file
+    - files we care about, determine names based on session values and run number input
+        - src: FIBER_PHOTOMETRY_DATA_FOLDER/.../raw_photometry0.csv, sync_1027.tdms
+        - dest: remote_folder/Subject/2022-09-02/001/raw_fiber_photometry_data/
 """
 import argparse
 import json
@@ -121,7 +124,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.patch_cord_defaults = ["", "Patch Cord A", "Patch Cord B", "Patch Cord C"]
         self.roi_defaults = [
             "", "Region0R", "Region1G", "Region2R", "Region3R", "Region4R", "Region5G", "Region6G", "Region7R", "Region8G"]
-        self.run_numbers = ["", "1", "2", "3", "4", "5", "6", "7", "8", "9"]  # hashtag_programming
+        self.run_number_defaults = ["", "1", "2", "3", "4", "5", "6", "7", "8", "9"]  # hashtag_programming
 
         # Populate widgets
         self.populate_widgets()
@@ -201,9 +204,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.roi_selector_01.addItems(self.roi_defaults)
         self.roi_selector_02.addItems(self.roi_defaults)
         self.roi_selector_03.addItems(self.roi_defaults)
-        self.run_selector_01.addItems(self.run_numbers)
-        self.run_selector_02.addItems(self.run_numbers)
-        self.run_selector_03.addItems(self.run_numbers)
+        self.run_selector_01.addItems(self.run_number_defaults)
+        self.run_selector_02.addItems(self.run_number_defaults)
+        self.run_selector_03.addItems(self.run_number_defaults)
 
     def transfer_items_to_server(self):
         """Transfer queued items to server using ibllib rsync_paths function"""
@@ -270,69 +273,38 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             True - text input matches the given acronyms
             False - the text does not match the given acronyms
         """
+        # Check if any text has been input that requires validation
+        if self.brain_area_01.text() == "" and self.brain_area_02.text() == "" and self.brain_area_03.text() == "":
+            return True  # No brain area input, nothing to validate
 
-        # TODO: Finish generalizing this check
-        # def _private_brain_area_validate(text_input: QtWidgets.QLineEdit) -> bool:
-        #     text = text_input.text()
-        #     if text != "":
-        #         text = "".join(text.split()).lower()
-        #         try:
-        #             region_index = lower_case_acronym_list.index(text)
-        #         except ValueError:
-        #             self.dialog_box.label.setText(f"Brain Area text for input {text} could not be validated. Please verify what "
-        #                                           f"was typed.")
-        #             self.dialog_box.exec_()
-        #             return False
-        #         text_input.setText(acronym_list[region_index])
-
-        # Check if any text has been input and requires validation
-        ba01 = self.brain_area_01.text()
-        ba02 = self.brain_area_02.text()
-        ba03 = self.brain_area_03.text()
-        if ba01 == "" and ba02 == "" and ba03 == "":  # No regions input, nothing to validate
-            return True
-
-        # Brain Region
+        # Brain Regions acronym list
         acronym_list = BrainRegions().acronym.tolist()
-        # TODO: simplify with list comprehension
-        lower_case_acronym_list = []
-        for acronym in acronym_list:
-            lower_case_acronym_list.append("".join(acronym.split()).lower())
+        lower_case_acronym_list = ["".join(x.split()).lower() for x in acronym_list]
 
-        # TODO: generalize this
-        # Pull out all white spaces and lowercase the input for ease of text comparison
-        if ba01 != "":
-            ba01 = "".join(ba01.split()).lower()
-            try:
-                region_index = lower_case_acronym_list.index(ba01)
-            except ValueError:
-                self.dialog_box.label.setText("Brain Area text for input 01 could not be validated. Please verify what was "
-                                              "typed.")
-                self.dialog_box.exec_()
-                return False
-            self.brain_area_01.setText(acronym_list[region_index])
+        # Simple helper function to match user input with the available acronyms found in the ibllib BrainRegions class
+        def _match_user_input_to_atlas_acronym(text_input: QtWidgets.QLineEdit) -> bool:
+            text = text_input.text()
+            if text != "":
+                text = "".join(text.split()).lower()
+                try:
+                    list_region_index = lower_case_acronym_list.index(text)
+                except ValueError:
+                    self.dialog_box.label.setText(f"Brain Area text for input {text} could not be validated. Please verify what "
+                                                  f"was typed.")
+                    self.dialog_box.exec_()
+                    return False
+                text_input.setText(acronym_list[list_region_index])  # Update the QtWidgets.QLineEdit text field
+                return True
+            else:
+                return True  # No brain area input, nothing to validate
 
-        if ba02 != "":
-            ba02 = "".join(ba02.split()).lower()
-            try:
-                region_index = lower_case_acronym_list.index(ba02)
-            except ValueError:
-                self.dialog_box.label.setText("Brain Area text for input 02 could not be validated. Please verify what was "
-                                              "typed.")
-                self.dialog_box.exec_()
-                return False
-            self.brain_area_02.setText(acronym_list[region_index])
-
-        if ba03 != "":
-            ba03 = "".join(ba03.split()).lower()
-            try:
-                region_index = lower_case_acronym_list.index(ba03)
-            except ValueError:
-                self.dialog_box.label.setText("Brain Area text for input 03 could not be validated. Please verify what was "
-                                              "typed.")
-                self.dialog_box.exec_()
-                return False
-            self.brain_area_03.setText(acronym_list[region_index])
+        # Match user input with the available acronyms
+        if not _match_user_input_to_atlas_acronym(self.brain_area_01):
+            return False
+        if not _match_user_input_to_atlas_acronym(self.brain_area_02):
+            return False
+        if not _match_user_input_to_atlas_acronym(self.brain_area_03):
+            return False
 
         return True
 
@@ -415,8 +387,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         stringified_item_to_transfer = self.stringify_item_to_transfer(self.items_to_transfer[-1])
         self.prepare_item_for_transfer(stringified_item_to_transfer)
 
-        # Reset patch cord link ROI selectors
-        self.reset_patch_cord_roi_combo_boxes_and_brain_area()
+        # Reset insertion information widgets
+        self.reset_insertion_widgets()
 
         # Validate if transfer button should be enabled or not
         self.validate_transfers_ready()
@@ -452,8 +424,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.item_queue_10.setText(text)
             self.button_add_item_to_queue.setDisabled(True)
 
-    def reset_patch_cord_roi_combo_boxes_and_brain_area(self):
-        """Sets the default values to the patch cord and roi selector combo boxes"""
+    def reset_insertion_widgets(self):
+        """Sets the default values to the various insertion information widgets"""
         # Patch Cords
         self.patch_cord_selector_01.clear()
         self.patch_cord_selector_01.addItems(self.patch_cord_defaults)
@@ -472,6 +444,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.brain_area_01.clear()
         self.brain_area_02.clear()
         self.brain_area_03.clear()
+        # Notes
+        self.notes_01.clear()
+        self.notes_02.clear()
+        self.notes_03.clear()
+        # Run Number
+        self.run_selector_01.clear()
+        self.run_selector_01.addItems(self.run_number_defaults)
+        self.run_selector_02.clear()
+        self.run_selector_02.addItems(self.run_number_defaults)
+        self.run_selector_03.clear()
+        self.run_selector_03.addItems(self.run_number_defaults)
 
     def stringify_item_to_transfer(self, item_to_transfer: dict) -> str:
         """
