@@ -15,7 +15,6 @@ QtSettings values:
     server_data_path: str - destination path for local lab server, i.e  \\mainenlab_server\Subjects
 
 TODO:
-    - add run numbers to exported data
     - validation for daq produced tdms when compared to bonsai produced csv file, read in peaks/troughs for TTLs, timestamps, +/- 100 frames
     - validation for selected ROI with headers available in bonsai produced csv file
 """
@@ -389,6 +388,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             "brain_area_01": self.brain_area_01.text(),
             "brain_area_02": self.brain_area_02.text(),
             "brain_area_03": self.brain_area_03.text(),
+            "notes_01": self.notes_01.text(),
+            "notes_02": self.notes_02.text(),
+            "notes_03": self.notes_03.text(),
+            "run_selection_01": self.run_selector_01.currentText(),
+            "run_selection_02": self.run_selector_02.currentText(),
+            "run_selection_03": self.run_selector_03.currentText(),
             "local_data_path": self.local_data_path.text(),
             "server_data_path": self.server_data_path.text(),
             "queue_path": str(queue_path),
@@ -505,6 +510,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             return_string += "Brain Area 02: " + item_to_transfer["brain_area_02"] + "\n"
         if item_to_transfer["brain_area_03"] != "":
             return_string += "Brain Area 03: " + item_to_transfer["brain_area_03"] + "\n"
+        # Notes
+        if item_to_transfer["notes_01"] != "":
+            return_string += "Note 01: " + item_to_transfer["notes_01"] + "\n"
+        if item_to_transfer["notes_02"] != "":
+            return_string += "Note 02: " + item_to_transfer["notes_02"] + "\n"
+        if item_to_transfer["notes_03"] != "":
+            return_string += "Note 03: " + item_to_transfer["notes_03"] + "\n"
+        # Run Selector
+        if item_to_transfer["run_selection_01"] != "":
+            return_string += "Run Selection 01: " + item_to_transfer["run_selection_01"] + "\n"
+        if item_to_transfer["run_selection_02"] != "":
+            return_string += "Run Selection 02: " + item_to_transfer["run_selection_02"] + "\n"
+        if item_to_transfer["run_selection_03"] != "":
+            return_string += "Run Selection 03: " + item_to_transfer["run_selection_03"] + "\n"
         # Local and Server Data Paths
         return_string += "Local Data Path: " + item_to_transfer["local_data_path"] + "\n" + \
                          "Server Data Path: " + item_to_transfer["server_data_path"]
