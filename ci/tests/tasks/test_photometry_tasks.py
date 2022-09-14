@@ -15,21 +15,22 @@ class TestCopy2Server(base.IntegrationTest):
 
     def test_check_timestamps(self):
         # LOAD THE CSV FILES
-        FOLDER_RAW_PHOTOMETRY = self.data_path.joinpath('dynamic_pipeline', 'photometry', 'rigs_data')
+        FOLDER_RAW_PHOTOMETRY = self.data_path.joinpath('dynamic_pipeline', 'photometry', 'rigs_data', 'photometry')
         daily_folders = [f for f in FOLDER_RAW_PHOTOMETRY.glob('20*') if f.is_dir()]
 
         for daily_folder in daily_folders:
             daq_files = list(daily_folder.glob("sync_*.tdms"))
             photometry_files = list(daily_folder.glob("raw_photometry*.csv"))
+            fp_config_files = list(daily_folder.glob("FP3002Config*.xml"))
             daq_files.sort()
             photometry_files.sort()
-            assert len(daq_files) == len(photometry_files)
+            fp_config_files.sort()
+            assert len(daq_files) == len(photometry_files) == len(fp_config_files)
             n_run = len(daq_files)
             for n in range(n_run):
                 daq_file = daq_files[n]
                 photometry_file = photometry_files[n]
                 fibrephotometry.check_timestamps(daq_file, photometry_file)
-                fibrephotometry.sync_photometry_to_daq(daq_file, photometry_file)
 
 
 class BasePhotometryTaskTest(base.IntegrationTest):
