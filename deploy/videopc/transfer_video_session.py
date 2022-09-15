@@ -1,13 +1,13 @@
 import argparse
 
-from ibllib.misc import log_to_file
 from ibllib.pipes.misc import check_create_raw_session_flag, create_video_transfer_done_flag, load_videopc_params, \
     subjects_data_folder, transfer_session_folders
+from iblutil.util import log_to_file
 
 
 def main(local=None, remote=None):
     # logging configuration
-    log = log_to_file('transfer_video_session.log', log='ibllib.pipes.misc')
+    log = log_to_file(log='ibllib.pipes.misc', filename='transfer_video_session.log')
 
     # Determine if user passed in arg for local/remote subject folder locations or pull in from local param file
     local_folder = local if local else load_videopc_params()["DATA_FOLDER_PATH"]
