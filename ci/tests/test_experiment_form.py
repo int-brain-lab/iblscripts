@@ -4,6 +4,8 @@ import unittest
 import unittest.mock
 from pathlib import Path
 import tempfile
+import json
+import yaml
 
 from PyQt5.QtWidgets import QApplication, QMessageBox
 from PyQt5.QtTest import QTest
@@ -82,6 +84,30 @@ class TestMainForm(IntegrationTest):
 
         self.form.plainTextEdit.setPlainText(text)
         QTest.mouseClick(self.form.validateButton, Qt.LeftButton)
+
+    def test_remote_devices(self):
+        """Test the population and validation of the remote devices table"""
+        # First test behaviour when params are missing
+        param_file = Path(self.tmpdir.name, '.transfer_params')
+        mock_loc = 'iblutil.io.params.getfile'
+        with unittest.mock.patch(mock_loc, return_value=param_file), self.assertWarns(Warning):
+            self.form.populate_table()
+
+        # Set up remote data params
+        with open(param_file, 'w') as fp:
+            json.dump({'REMOTE_DATA_FOLDER_PATH': self.tmpdir.name}, fp)
+
+        with unittest.mock.patch(mock_loc, return_value=param_file):
+            self.form.populate_table()
+        self.assertEqual(0, self.form.remoteDeviceTable.rowCount())
+
+        with open(Path(self.tmpdir.name, 'remote_devices.yaml'), 'w') as fp:
+            yaml.dump({'cameras': '192.168.0.1', 'mesoscope': 'ws://86.167.0.224:8888'}, fp)
+        with unittest.mock.patch(mock_loc, return_value=param_file):
+            self.form.populate_table()
+        self.assertEqual(2, self.form.remoteDeviceTable.rowCount())
+        self.assertEqual(3, self.form.remoteDeviceTable.columnCount())
+
 
     def test_load_yaml(self):
         """Test the loading of a YAML file"""

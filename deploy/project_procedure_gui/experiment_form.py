@@ -4,6 +4,7 @@ import warnings
 import argparse
 
 import yaml
+from iblutil.io import params
 from one.api import ONE
 from PyQt5 import QtWidgets, QtCore, uic
 
@@ -50,7 +51,7 @@ class MainWindow(QtWidgets.QMainWindow):
         prev_procedures = self.session_info.get('projects', [])
 
         try:
-            one = one or ONE()
+            one = one or ONE(mode='remote')
             users = list({user, one.alyx.user})
             projects = one.alyx.rest('projects', 'list')
             self.projects = [p['name'] for p in projects]
@@ -84,6 +85,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.procedureList.itemChanged.connect(partial(self.on_item_clicked, 'procedures'))
         self.populate_lists(self.projectList, self.projects, prev_projects)
         self.populate_lists(self.procedureList, PROCEDURES, prev_procedures)
+        self.populate_table()
         # Update experiment description text field with previous data
         self.validate_yaml(data=self.session_info)
 
@@ -99,6 +101,44 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 item.setCheckState(QtCore.Qt.Unchecked)
             listView.addItem(item)
+
+    def populate_table(self):
+        # Load remote devices file # TODO Move into init
+        self.remoteDeviceTable.clear()
+        self.remoteDeviceTable.setColumnCount(3)
+        self.remoteDeviceTable.setHorizontalHeaderLabels(['Device Name', 'URI', 'Enabled'])
+
+        p = (params.as_dict(params.read('transfer_params', {})) or {}).get('REMOTE_DATA_FOLDER_PATH')
+        if not p:
+            # TODO Elevate to error
+            warnings.warn('No remote data path found.  Please run ibllib.pipes.misc.create_basic_transfer_params')
+            self.remoteDeviceTable.setRowCount(0)
+            return
+        remote_devices_file = Path(p, 'remote_devices.yaml')
+        remote_devices = {}
+        if remote_devices_file.exists():
+            with open(remote_devices_file, 'r') as fp:
+                remote_devices = yaml.safe_load(fp)
+
+        self.remoteDeviceTable.setRowCount(len(remote_devices))
+        states = self.subject_settings.value('remote_device_states') or {}
+        # Populate table
+        for i, (name, uri) in enumerate(remote_devices.items()):
+            self.remoteDeviceTable.setItem(i, 0, QtWidgets.QTableWidgetItem(name))
+            self.remoteDeviceTable.setItem(i, 1, QtWidgets.QTableWidgetItem(uri))
+            tickbox = QtWidgets.QTableWidgetItem()
+            tickbox.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+            value = QtCore.Qt.Checked if states.get(name, False) else QtCore.Qt.Unchecked
+            tickbox.setCheckState(value)
+            self.remoteDeviceTable.setItem(i, 2, tickbox)
+
+    def _get_state_map(self,):
+        remote_device_states = {}
+        for i in range(self.remoteDeviceTable.getRowCount()):
+            key = self.remoteDeviceTable.cellWidget(i, 0).currentText()
+            value = self.remoteDeviceTable.cellWidget(i, 2).checkState() == QtCore.Qt.Checked
+            remote_device_states[key] = value
+        return remote_device_states
 
     def on_item_clicked(self, list_name):
         """Callback for when a list item is (un)ticked"""
@@ -127,6 +167,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.validate_yaml()  # Check the YAML is OK, update session_info field
         self.save_to_yaml()
         self.subject_settings.setValue('selected_description', self.session_info)
+        self.subject_settings.setValue('remote_device_states', self._get_state_map())
+        # TODO save states to remote file
 
         selected_procedures = self.session_info.get('procedures', [])
         if 'Fiber photometry' in selected_procedures:
@@ -192,7 +234,8 @@ class MainWindow(QtWidgets.QMainWindow):
             data = self.plainTextEdit.toPlainText()
         if isinstance(data, dict):
             self.session_info.update(data)
-            self.plainTextEdit.setPlainText(yaml.dump(self.session_info))
+            default = {'protocols': None, 'procedures': None}
+            self.plainTextEdit.setPlainText(yaml.dump(self.session_info or default))
         else:
             try:
                 self.session_info.update(yaml.safe_load(data))
@@ -242,7 +285,7 @@ class FibrePhotometryDialog(QtWidgets.QDialog):
 
 
 if __name__ == '__main__':
-    r"""Experimental session parameter GUI.
+    """Experimental session parameter GUI.
     A GUI for managing the devices, procedures and projects associated with a given session.
 
     python experiment_form.py <subject> <user> --session-path <session path>
