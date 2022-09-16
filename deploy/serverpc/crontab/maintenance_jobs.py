@@ -322,10 +322,18 @@ def remove_old_spike_sortings_outputs():
     _logger.info(f'remove old spike sorting outputs removed {siz / 1024 ** 3} Go')
 
 
+def remove_iti_duration():
+    c = 0
+    for iti_file in ROOT_PATH.rglob('_ibl_trials.itiDuration.npy'):
+        iti_file.unlink()
+        c += 1
+    _logger.info(f'removed {c} _ibl_trials.itiDuration.npy files')
+
+
 if __name__ == "__main__":
     correct_flags_biased_in_ephys_rig()
     correct_ephys_manual_video_copies()
-    spike_amplitude_patching()
+    # spike_amplitude_patching()
     # upload_ks2_output()
     correct_passive_in_wrong_folder()
     # remove_old_spike_sortings_outputs()
