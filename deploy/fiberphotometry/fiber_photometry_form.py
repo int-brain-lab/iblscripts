@@ -7,7 +7,7 @@ Development machine details:
 - Python 3.8
 - opencv-python 4.3.0.36
 - PyQt5 5.15.7
-- ibllib develop branch AND ibllib fiberphotometry branch (needs merging)
+- ibllib fiberphotometry branch
 
 QtSettings values:
     subjects: list[str] = field(default_factory=list) - list of subjects should carry over between sessions
@@ -17,29 +17,29 @@ QtSettings values:
 
 TODO:
     - implement validation for daq produced tdms, compared to bonsai/fp produced csv file (ibllib fp keyword error resolution)
-    - on transfer success, read in yml file found on server, integrate FP settings, overwrite server yml file
     - add FP3002Config.01.xml data to parquet metadata
-    - save item settings as json/yml
     - validation for selected ROI with headers available in bonsai produced csv file (modify available ROI combobox selection)
+        - run number selection must occur prior to this, modify view to place run selection higher up
+    - replace print statements with proper logging
 """
 import argparse
 import json
 import os
+import random
 import shutil
 import sys
 import time
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-import yaml
-import random
 
 import pandas as pd
+import yaml
 from PyQt5 import QtWidgets, QtCore
 from dateutil.relativedelta import relativedelta
 from ibllib.atlas import BrainRegions
-from ibllib.pipes.misc import rsync_paths
 from ibllib.io.extractors import fibrephotometry as fp_extractor
+from ibllib.pipes.misc import rsync_paths
 
 from qt_designer_util import convert_ui_file_to_py
 
@@ -205,7 +205,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 display_str += str(self.available_data_files["daq_files"][self.run_selector_index])
                 display_str += "\nPhotometry File: "
                 display_str += str(self.available_data_files["photometry_files"][self.run_selector_index])
-                display_str += "\nFP Configuration File: "  # TODO: this will eventually get wrapped into the parquet metadata
+                display_str += "\nFP Configuration File: "  # TODO: wrap into the parquet metadata
                 display_str += str(self.available_data_files["fp_config_files"][self.run_selector_index])
                 self.run_selector_display.setText(display_str)
 
@@ -378,15 +378,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 with open(exp_desc_path, "r") as ed:
                     data = yaml.safe_load(ed)
                 # error check that fiber photometry information does not already exist
-                if "photometry" in data["devices"]:  # TODO: throw some kind of error
-                    print("photometry string found in device list of experiment description file")
+                if "photometry" in data["devices"]:
+                    self.dialog_box.label.setText("The 'photometry' key value is already in the experiment description file "
+                                                  "found on the server. Please review log messages in the terminal.")
+                    self.dialog_box.exec_()
+                    print(f"Unknown state for experiment description file, nothing written to disk. Experiment description file "
+                          f"location that requires further investigation: {exp_desc_path}")
+                    return
                 else:  # append fiber photometry data into data dict
                     data["devices"]["photometry"] = {
                         "collection": "raw_photometry_data",
                         "sync_label": "frame_trigger",
                     }
                     data["procedures"] = data["procedures"].append("Fiber photometry")
-                    data["projects"] = data["projects"].append("ibl_fibrephotometry")
+                    data["projects"] = data["projects"].append("ibl_fiberphotometry")
                     for i in range(1, 4):
                         if item[f"roi_selection_0{i}"] != "":
                             data["devices"]["photometry"]["regions"] = {
@@ -404,7 +409,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         }
                     },
                     "procedures": ["Fiber photometry"],
-                    "projects": ["ibl_fibrephotometry"]
+                    "projects": ["ibl_fiberphotometry"]
                 }
                 for i in range(1, 4):
                     if item[f"roi_selection_0{i}"] != "":
@@ -415,7 +420,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         }
 
             # attempt to write the experiment description file locally
-            with open((Path(item["local_bkup_raw_path"]).parent / "_ibl_experiment.description.yaml"), "w")as ed:
+            with open((Path(item["local_bkup_raw_path"]).parent / "_ibl_experiment.description.yaml"), "w") as ed:
                 try:
                     yaml.safe_dump(data, ed)
                 except OSError as msg:
@@ -462,11 +467,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         -------
         bool
             True - text input matches the given acronyms
-            False - the text does not match the given acronyms
+            False - no text input or the text does not match any given acronyms
         """
         # Check if any text has been input that requires validation
         if self.brain_area_01.text() == "" and self.brain_area_02.text() == "" and self.brain_area_03.text() == "":
-            return True  # No brain area input, nothing to validate ... TODO: check if this is even a feasible situation
+            self.dialog_box.label.setText("No text input into the Brain Area field. Please input a value.")
+            self.dialog_box.exec_()
+            return False  # No brain area input, nothing to validate
 
         # Brain Regions acronym list
         acronym_list = BrainRegions().acronym.tolist()
@@ -541,11 +548,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         item_settings = queue_data_raw_path / "_item_settings.json"
 
         try:  # to validate timestamps, comparison between FP and DAQ data files
-            pass  # TODO: implement timestamp check once 'fp keyword error' is resolved
-            # fp_extractor.check_timestamps(daq_file=src_daq_data_file_path, photometry_file=src_fp_data_file_path)
+            fp_extractor.check_timestamps(daq_file=src_daq_data_file_path, photometry_file=src_fp_data_file_path)
         except (AssertionError, TypeError) as msg:
             self.dialog_box.label.setText("Validation during the comparison of TTLs between DAQ and Fiber Photometry produced "
-                                          "csv file failed. ")
+                                          "csv file has failed. Check the terminal for a more detailed error message.")
             self.dialog_box.exec_()
             print(msg)
             return
@@ -585,7 +591,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             os.makedirs(queue_data_raw_path, exist_ok=True)
             Model(pd.read_csv(src_fp_data_file_path)).dataframe.to_parquet(dst_fp_data_file)
             shutil.copy(src_daq_data_file_path, dst_daq_data_file)
-            shutil.copy(src_fp_config_file_path, dst_fp_config_file_path)  # TODO: configuration to be moved into pandas metadata
+            shutil.copy(src_fp_config_file_path, dst_fp_config_file_path)  # TODO: configuration to be moved into parquet metadata
             item_settings.write_text(json.dumps(item))
         except (OSError, TypeError) as msg:
             print(msg)
