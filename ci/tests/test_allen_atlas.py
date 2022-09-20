@@ -1,5 +1,4 @@
 import numpy as np
-import numpy.testing
 import matplotlib.pyplot as plt
 import unittest
 from ibllib.atlas import AllenAtlas, FlatMap, BrainRegions

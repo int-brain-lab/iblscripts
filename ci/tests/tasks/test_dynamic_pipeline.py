@@ -157,7 +157,7 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
                     continue
                 self.assertEqual(t['status'], 'Complete')
 
-        self.assertEqual(len(all_dsets), 29)
+        self.assertEqual(len(all_dsets), 28)
         self.assertIn('_ibl_experiment.description.yaml', [d['name'] for d in all_dsets])
 
     def tearDown(self) -> None:
