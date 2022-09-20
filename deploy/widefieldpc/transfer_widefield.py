@@ -48,10 +48,7 @@ def main(local=None, remote=None, rename_files=False, data_folder='raw_widefield
 
     # Ensure each session contains a channels file: copy file over if not present
     log.info('Copying missing wiring files')
-    if fold == 'widefield':
-        copy_wiring('widefield_wiring.htsv', '*widefield_wiring*')
-    elif fold == 'sync':
-        copy_wiring('_spikeglx_DAQdata.wiring.json', '*DAQdata.wiring*')
+    copy_wiring('widefield_wiring.htsv', '*widefield_wiring*')
 
     # Call ibllib function to perform generalized user interaction and kick off transfer
     transfer_list, success = transfer_session_folders(
@@ -77,5 +74,3 @@ if __name__ == "__main__":
     parser.add_argument('-r', '--remote', default=False, required=False, help='Remote iblrig_data/Subjects folder')
     args = parser.parse_args()
     main(args.local, args.remote, data_folder='raw_widefield_data')
-    main(args.local, args.remote, data_folder='raw_sync_data')
-    main(args.local, args.remote, data_folder='raw_video_data')
