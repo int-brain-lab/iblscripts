@@ -7,7 +7,7 @@ Development machine details:
 - Python 3.8
 - opencv-python 4.3.0.36
 - PyQt5 5.15.7
-- ibllib fiberphotometry branch
+- ibllib v2.15
 
 QtSettings values:
     subjects: list[str] = field(default_factory=list) - list of subjects should carry over between sessions
@@ -16,14 +16,15 @@ QtSettings values:
     local_bkup_path: str - local path mirrors server dir structure, ensures backup exists, i.e. C:\fp_data_bkup\Subjects
 
 TODO:
-    - implement validation for daq produced tdms, compared to bonsai/fp produced csv file (ibllib fp keyword error resolution)
-    - add FP3002Config.01.xml data to parquet metadata
     - validation for selected ROI with headers available in bonsai produced csv file (modify available ROI combobox selection)
         - run number selection must occur prior to this, modify view to place run selection higher up
-    - replace print statements with proper logging
+    - add FP3002Config.01.xml data to parquet metadata
+    - determine issue with double logs being generated when calling iblutil, basic logger put in place for the time being
+    - flesh out placeholder try/except blocks with additional messaging
 """
 import argparse
 import json
+import logging
 import os
 import random
 import shutil
@@ -41,7 +42,9 @@ from ibllib.atlas import BrainRegions
 from ibllib.io.extractors import fibrephotometry as fp_extractor
 from ibllib.pipes.misc import rsync_paths
 
-from qt_designer_util import convert_ui_file_to_py
+from fiber_photometry_util import convert_ui_file_to_py  # import configures logger
+
+log = logging.getLogger("fiber_photometry_form")
 
 try:  # specify ui file(s) output by Qt Designer, call function to convert to py for runtime efficiency and ease of imports
     # main ui file
@@ -60,6 +63,7 @@ try:  # specify ui file(s) output by Qt Designer, call function to convert to py
     from fiber_photometry_form_ui import Ui_MainWindow
     from fiber_photometry_dialog_box_ui import Ui_Dialog
     from fiber_photometry_confirm_box_ui import Ui_Dialog as Ui_Confirm
+    log.info("All ui files converted to py files and imported")
 except ImportError:
     raise
 
@@ -89,15 +93,15 @@ else:
         os.makedirs(FP_LOCAL_QUEUED_PATH, exist_ok=True)
     except OSError:
         raise
-    print(f"Not a Windows OS, will only create temp files\nlocal subject dir: {FP_LOCAL_DATA_PATH}\nremote subject dir: "
-          f"{FP_REMOTE_PATH_TEST}\nqueued subject dir: {FP_LOCAL_QUEUED_PATH}")
+    log.info(f"\nNot a Windows OS, will only create temp files\nlocal subject dir: {FP_LOCAL_DATA_PATH}\nremote subject dir: "
+             f"{FP_REMOTE_PATH_TEST}\nqueued subject dir: {FP_LOCAL_QUEUED_PATH}")
 
 # Used to copy test data, remove once ready for production with proper tests in place, functionality finalized
 # -----------------------------------------------------------------------------
 TEST_DATA_LOC = Path.home() / "Downloads/FP_Extraction_Prototypes/rigs_data/photometry/2022-09-06/"
 TEST_LOCAL_DATE_LOC = Path(FP_LOCAL_DATA_PATH) / Path(str(date.today()))
 shutil.copytree(TEST_DATA_LOC, TEST_LOCAL_DATE_LOC)
-print("TEST DATA LOADED FROM: ", TEST_DATA_LOC, "\nTEST DATA LOADED TO: ", TEST_LOCAL_DATE_LOC)
+log.info(f"\nTEST DATA LOADED FROM: {TEST_DATA_LOC}\nTEST DATA LOADED TO: {TEST_LOCAL_DATE_LOC}")
 # -----------------------------------------------------------------------------
 
 
@@ -193,8 +197,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             # TODO: ideal location to populate the ROI combo boxes based on content of the available data files
             # Populate run numbers as strings, starting with 1 instead of 0
             self.runs_available = [str(x + 1) for x in range(len(self.available_data_files["daq_files"]))]
-            self.run_selector.addItems(self.runs_available) if self.runs_available else print("Something went wrong identifying "
-                                                                                              "run numbers.")
+            self.run_selector.addItems(self.runs_available) if self.runs_available else log.warning("Something went wrong "
+                                                                                                    "identifying run numbers.")
 
     def run_selector_updated(self):
         """Called when the run_selector combo box text is changed"""
@@ -255,7 +259,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     date_dir_as_datetime = datetime.strptime(date_dir, "%Y-%m-%d")
                     if date_dir_as_datetime < six_month_old_date:
                         dir_to_remove = Path(FP_LOCAL_DATA_PATH).joinpath(subject, date_dir)
-                        print(f"Removing {dir_to_remove} ...")
+                        log.info(f"Removing {dir_to_remove} ...")
                         try:
                             shutil.rmtree(dir_to_remove)
                         except FileNotFoundError:
@@ -382,8 +386,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.dialog_box.label.setText("The 'photometry' key value is already in the experiment description file "
                                                   "found on the server. Please review log messages in the terminal.")
                     self.dialog_box.exec_()
-                    print(f"Unknown state for experiment description file, nothing written to disk. Experiment description file "
-                          f"location that requires further investigation: {exp_desc_path}")
+                    log.error(f"Unknown state for experiment description file, nothing written to disk. Experiment description "
+                              f"file location that requires further investigation: {exp_desc_path}")
                     return
                 else:  # append fiber photometry data into data dict
                     data["devices"]["photometry"] = {
@@ -424,7 +428,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 try:
                     yaml.safe_dump(data, ed)
                 except OSError as msg:
-                    print("Something went wrong writing the experiment description file locally.", msg)
+                    log.error("Something went wrong writing the experiment description file locally.", msg)
 
             # attempt to (over)write the server file, if file is in use, wait a randomized time period and attempt to write again
             with open(exp_desc_path, "w") as ed:
@@ -435,12 +439,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         exp_desc_write_success = True
                         break
                     except OSError as msg:
-                        print("Could not write experiment description file to server: ", msg, "\nReattempting write operation...")
+                        log.warning("Could not write experiment description file to server: ", msg, "\nReattempting write "
+                                                                                                    "operation...")
                         time.sleep(random.randint(0, 5))
                 if exp_desc_write_success:
-                    print("Experiment description file successfully wrote to server.")
+                    log.info("Experiment description file successfully wrote to server.")
                 else:
-                    print("Failed to write experiment description file to server after several attempts.")
+                    log.error("Failed to write experiment description file to server after several attempts.")
 
     def store_qsetting_values(self):
         """Store QSetting values (subject list, server data path, local data path)"""
@@ -553,7 +558,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.dialog_box.label.setText("Validation during the comparison of TTLs between DAQ and Fiber Photometry produced "
                                           "csv file has failed. Check the terminal for a more detailed error message.")
             self.dialog_box.exec_()
-            print(msg)
+            log.error(msg)
             return
 
         # Build out item to transfer as dict, to be output to json/yml
@@ -594,7 +599,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             shutil.copy(src_fp_config_file_path, dst_fp_config_file_path)  # TODO: configuration to be moved into parquet metadata
             item_settings.write_text(json.dumps(item))
         except (OSError, TypeError) as msg:
-            print(msg)
+            log.error(msg)
             return
 
         # Display data that has been added to the queue
@@ -746,11 +751,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for item in self.items_to_transfer:
             subject_name_path = Path(item['queue_data_raw_path']).parent.parent.parent
             if item["queue_data_raw_path"]:
-                print(f"Deleting {subject_name_path}")
+                log.info(f"Deleting {subject_name_path}")
                 try:
                     shutil.rmtree(subject_name_path)
                 except FileNotFoundError:
-                    print(f"{subject_name_path} was not found. Directory was likely already deleted.")
+                    log.info(f"{subject_name_path} was not found. Directory was likely already deleted.")
         self.items_to_transfer = []
         self.runs_available = []
         self.available_data_files = {}
