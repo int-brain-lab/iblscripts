@@ -8,7 +8,8 @@ from iblutil.util import Bunch
 import one.alf.io as alfio
 
 # from ibllib.pipes.mesoscope_tasks import MesoscopeSync, MesoscopeRegisterRaw
-from ibllib.io.extractors.ephys_fpga import get_sync_and_chn_map, get_sync_fronts
+from ibllib.io.extractors.ephys_fpga import get_wheel_positions
+from ibllib.io.extractors import mesoscope
 
 from ci.tests import base
 
@@ -70,10 +71,17 @@ class TesMesoscopeSync(base.IntegrationTest):
         self.session_path = self.default_data_root().joinpath('mesoscope', 'SP026', '2022-06-29', '001')
 
     def test_sync(self):
+        # # NB: For now we're testing individual functions before we have complete data
         # task = MesoscopeSync(self.session_path, sync_collection='raw_mesoscope_data', sync_namespace='timeline')
         # status = task.run()
         # assert status == 0
-        pass
 
-    def test_timeline2sync(self):
-        pass
+        # Check timeline2sync
+        sync, chmap = mesoscope._timeline2sync(self.session_path)
+        self.assertCountEqual(('times', 'channels', 'polarities'), sync.keys())
+        expected = ('left_camera', 'right_camera', 'belly_camera', 'frame2ttl', 'audio', 'bpod', 'rotary_encoder')
+        self.assertCountEqual(expected, chmap.keys())
+
+        # Check that we can extract the wheel as it's from a counter channel, instead of raw analogue input
+        ts, pos = get_wheel_positions(sync, chmap)
+
