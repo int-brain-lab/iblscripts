@@ -1,0 +1,22 @@
+devices:
+  mesoscope:
+    mesoscope:
+      collection: raw_mesoscope_data
+      sync_label: chrono
+procedures:
+- Mesoscope recording
+projects:
+- ibl_neuropixel_brainwide_01
+sync:
+  nidq:
+    acquisition_software: timeline
+    collection: raw_mesoscope_data
+    extension: npy
+tasks:
+  ephysChoiceWorld:
+    collection: raw_behavior_data
+    sync_label: bpod
+  passiveChoiceWorld:
+    collection: raw_passive_data
+    sync_label: bpod
+version: 0.1.0
