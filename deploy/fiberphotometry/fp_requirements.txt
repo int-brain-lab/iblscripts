@@ -1,0 +1,4 @@
+ibllib
+pandas
+PyQt5
+pyyaml

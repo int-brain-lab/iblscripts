@@ -68,10 +68,10 @@ except ImportError:
     raise
 
 # Ensure data folders exist for local storage of fiber photometry data
-FP_REMOTE_PATH_TEST = None  # used for testing transfer function, TODO: better implementation for testing desired
+FP_REMOTE_PATH_TEST = None  # used for testing transfer function, TODO: better implementation for testing and dir settings desired
 if os.name == "nt":  # check on OS platform
-    FP_LOCAL_DATA_PATH = "D:\\ibl_fp_data"  # folder that will contain the fp data output from bonsai and daq
-    FP_LOCAL_BKUP_PATH = "D:\\ibl_fp_data_bkup\\Subjects"  # folder mirroring server dir structure
+    FP_LOCAL_DATA_PATH = "C:\\Users\\IBLuser\\Documents\\fp_transfer_test\\fp_data"  # folder that will contain the fp data output from bonsai and daq
+    FP_LOCAL_BKUP_PATH = "C:\\ibl_fp_data_bkup\\Subjects"  # folder mirroring server dir structure
     FP_LOCAL_QUEUED_PATH = "C:\\Temp\\ibl_fp_data_queued\\Subjects"  # temp folder created for queued items
     try:  # to create local queue data folder
         os.makedirs(FP_LOCAL_BKUP_PATH, exist_ok=True)
@@ -98,10 +98,10 @@ else:
 
 # Used to copy test data, remove once ready for production with proper tests in place, functionality finalized
 # -----------------------------------------------------------------------------
-TEST_DATA_LOC = Path.home() / "Downloads/FP_Extraction_Prototypes/rigs_data/photometry/2022-09-06/"
-TEST_LOCAL_DATE_LOC = Path(FP_LOCAL_DATA_PATH) / Path(str(date.today()))
-shutil.copytree(TEST_DATA_LOC, TEST_LOCAL_DATE_LOC)
-log.info(f"\nTEST DATA LOADED FROM: {TEST_DATA_LOC}\nTEST DATA LOADED TO: {TEST_LOCAL_DATE_LOC}")
+# TEST_DATA_LOC = Path.home() / "Downloads/FP_Extraction_Prototypes/rigs_data/photometry/2022-09-06/"
+# TEST_LOCAL_DATE_LOC = Path(FP_LOCAL_DATA_PATH) / Path(str(date.today()))
+# shutil.copytree(TEST_DATA_LOC, TEST_LOCAL_DATE_LOC)
+# log.info(f"\nTEST DATA LOADED FROM: {TEST_DATA_LOC}\nTEST DATA LOADED TO: {TEST_LOCAL_DATE_LOC}")
 # -----------------------------------------------------------------------------
 
 
@@ -150,7 +150,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # List of the default Patch Cords and ROIs to display in combo boxes
         self.patch_cord_defaults = ["", "Patch Cord A", "Patch Cord B", "Patch Cord C"]
         self.roi_defaults = [
-            "", "Region0R", "Region1G", "Region2R", "Region3R", "Region4R", "Region5G", "Region6G", "Region7R", "Region8G"]
+            "", "Region0R", "Region1G", "Region2R", "Region3G", "Region3R", "Region4R", "Region5G", "Region6G", "Region7R", "Region8G"]
 
         # Populate widgets
         self.populate_widgets()
