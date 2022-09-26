@@ -165,10 +165,8 @@ class TestSessionLoader(IntegrationTest):
         self.assertCountEqual(['pupilDiameter_raw', 'pupilDiameter_smooth'], self.sess_loader.pupil.columns)
         self.assertEqual(4000, self.sess_loader.pupil.shape[0])
 
-        with self.assertLogs(_logger, level='ERROR') as cm:
+        with self.assertRaises(ValueError):
             self.sess_loader.load_pupil(snr_thresh=20)
-            self.assertEqual(['ERROR:ibllib:Pupil diameter SNR (12.07) below threshold SNR (20), removing data.'],
-                             cm.output)
             self.assertTrue(self.sess_loader.pupil.empty)
 
     def test_load_session_data(self):
