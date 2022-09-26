@@ -76,12 +76,7 @@ class TesMesoscopeSync(base.IntegrationTest):
         # status = task.run()
         # assert status == 0
 
-        # Check timeline2sync
-        sync, chmap = mesoscope._timeline2sync(self.session_path)
-        self.assertCountEqual(('times', 'channels', 'polarities'), sync.keys())
-        expected = ('left_camera', 'right_camera', 'belly_camera', 'frame2ttl', 'audio', 'bpod', 'rotary_encoder')
-        self.assertCountEqual(expected, chmap.keys())
-
+        timeline_trials = mesoscope.TimelineTrials(self.session_path)
         # Check that we can extract the wheel as it's from a counter channel, instead of raw analogue input
-        ts, pos = get_wheel_positions(sync, chmap)
+        wheel, moves = timeline_trials.get_wheel_positions()
 
