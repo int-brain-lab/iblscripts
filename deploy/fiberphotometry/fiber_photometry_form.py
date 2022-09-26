@@ -16,15 +16,14 @@ QtSettings values:
     local_bkup_path: str - local path mirrors server dir structure, ensures backup exists, i.e. C:\fp_data_bkup\Subjects
 
 TODO:
-    - validation for selected ROI with headers available in bonsai produced csv file (modify available ROI combobox selection)
-        - run number selection must occur prior to this, modify view to place run selection higher up
     - add FP3002Config.01.xml data to parquet metadata
-    - determine issue with double logs being generated when calling iblutil, basic logger put in place for the time being
     - flesh out placeholder try/except blocks with additional messaging
+    - better implementation for testing and folder creation
+    - determine if "FP3002Config.xml" is something worth checking
 """
 import argparse
+import csv
 import json
-import logging
 import os
 import random
 import shutil
@@ -41,11 +40,11 @@ from dateutil.relativedelta import relativedelta
 from ibllib.atlas import BrainRegions
 from ibllib.io.extractors import fibrephotometry as fp_extractor
 from ibllib.pipes.misc import rsync_paths
+from iblutil.util import get_logger
 
-from fiber_photometry_util import convert_ui_file_to_py  # import configures logger
+from fiber_photometry_util import convert_ui_file_to_py
 
-log = logging.getLogger("fiber_photometry_form")
-
+log = get_logger(name="fiber_photometry_form", file=True)
 try:  # specify ui file(s) output by Qt Designer, call function to convert to py for runtime efficiency and ease of imports
     # main ui file
     main_ui_file = "fiber_photometry_form.ui"
@@ -64,14 +63,15 @@ try:  # specify ui file(s) output by Qt Designer, call function to convert to py
     from fiber_photometry_dialog_box_ui import Ui_Dialog
     from fiber_photometry_confirm_box_ui import Ui_Dialog as Ui_Confirm
     log.info("All ui files converted to py files and imported")
-except ImportError:
-    raise
+except ImportError as msg:
+    log.error(f"Could not import PyQt Designer ui files\n{msg}")
+    exit(1)
 
 # Ensure data folders exist for local storage of fiber photometry data
-FP_REMOTE_PATH_TEST = None  # used for testing transfer function, TODO: better implementation for testing and dir settings desired
+FP_REMOTE_PATH_TEST = None  # used for testing transfer function, TODO: better implementation for testing desired
 if os.name == "nt":  # check on OS platform
-    FP_LOCAL_DATA_PATH = "C:\\Users\\IBLuser\\Documents\\fp_transfer_test\\fp_data"  # folder that will contain the fp data output from bonsai and daq
-    FP_LOCAL_BKUP_PATH = "C:\\ibl_fp_data_bkup\\Subjects"  # folder mirroring server dir structure
+    FP_LOCAL_DATA_PATH = "D:\\ibl_fp_data"  # folder that will contain the fp data output from bonsai and daq
+    FP_LOCAL_BKUP_PATH = "D:\\ibl_fp_data_bkup\\Subjects"  # folder mirroring server dir structure
     FP_LOCAL_QUEUED_PATH = "C:\\Temp\\ibl_fp_data_queued\\Subjects"  # temp folder created for queued items
     try:  # to create local queue data folder
         os.makedirs(FP_LOCAL_BKUP_PATH, exist_ok=True)
@@ -98,10 +98,10 @@ else:
 
 # Used to copy test data, remove once ready for production with proper tests in place, functionality finalized
 # -----------------------------------------------------------------------------
-# TEST_DATA_LOC = Path.home() / "Downloads/FP_Extraction_Prototypes/rigs_data/photometry/2022-09-06/"
-# TEST_LOCAL_DATE_LOC = Path(FP_LOCAL_DATA_PATH) / Path(str(date.today()))
-# shutil.copytree(TEST_DATA_LOC, TEST_LOCAL_DATE_LOC)
-# log.info(f"\nTEST DATA LOADED FROM: {TEST_DATA_LOC}\nTEST DATA LOADED TO: {TEST_LOCAL_DATE_LOC}")
+TEST_DATA_LOC = Path.home() / "Downloads/FP_Extraction_Prototypes/rigs_data/photometry/2022-09-06/"
+TEST_LOCAL_DATE_LOC = Path(FP_LOCAL_DATA_PATH) / Path(str(date.today()))
+shutil.copytree(TEST_DATA_LOC, TEST_LOCAL_DATE_LOC)
+log.info(f"\n- TEST DATA LOADED FROM: {TEST_DATA_LOC}\n- TEST DATA LOADED TO: {TEST_LOCAL_DATE_LOC}")
 # -----------------------------------------------------------------------------
 
 
@@ -149,8 +149,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # List of the default Patch Cords and ROIs to display in combo boxes
         self.patch_cord_defaults = ["", "Patch Cord A", "Patch Cord B", "Patch Cord C"]
-        self.roi_defaults = [
-            "", "Region0R", "Region1G", "Region2R", "Region3G", "Region3R", "Region4R", "Region5G", "Region6G", "Region7R", "Region8G"]
 
         # Populate widgets
         self.populate_widgets()
@@ -191,11 +189,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Determine what data files are available for the currently selected date and set self.available_data_files
         self.scan_local_date_folder()
         if self.available_data_files:  # Evaluate the available files
-            # Enable the user insertion input widgets
-            self.enable_insertion_user_input_widgets(enable=True)
+            # Enable the run selector widget and display
+            self.run_selector.setEnabled(True)
+            self.run_selector_display.setEnabled(True)
 
-            # TODO: ideal location to populate the ROI combo boxes based on content of the available data files
-            # Populate run numbers as strings, starting with 1 instead of 0
+            # Populate run numbers as strings, starting with 1 instead of 0 for readability
             self.runs_available = [str(x + 1) for x in range(len(self.available_data_files["daq_files"]))]
             self.run_selector.addItems(self.runs_available) if self.runs_available else log.warning("Something went wrong "
                                                                                                     "identifying run numbers.")
@@ -213,6 +211,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 display_str += str(self.available_data_files["fp_config_files"][self.run_selector_index])
                 self.run_selector_display.setText(display_str)
 
+                # Grab ROI fieldnames from selected csv file
+                with open(self.available_data_files["photometry_files"][self.run_selector_index], "r") as infile:
+                    reader = csv.DictReader(infile)
+                    fieldnames = reader.fieldnames
+
+                # Populate ROI values into the roi selectors
+                for field in fieldnames:
+                    if field.startswith("Region"):
+                        self.roi_selector_01.addItem(field)
+                        self.roi_selector_02.addItem(field)
+                        self.roi_selector_03.addItem(field)
+
+                # Enable the remaining user inputs
+                self.enable_insertion_user_input_widgets()
+
     def scan_local_date_folder(self):
         """
         Method to scan the local date directory to find available data files based on what is currently input for the date_edit
@@ -226,9 +239,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             return
         daq_files = list(date_folder.glob("sync_*.tdms"))
         photometry_files = list(date_folder.glob("raw_photometry*.csv"))
-        fp_config_files = list(date_folder.glob("FP3002Config*.xml"))
+        fp_config_files = list(date_folder.glob("FP3002Config*.xml"))  # TODO: Determine if this is something worth checking
         if not (len(daq_files) == len(photometry_files) == len(fp_config_files)):
-            self.dialog_box.label.setText(f"Number of found output files for DAQ and Photometry do not match.")
+            self.dialog_box.label.setText(f"Number of found output files for DAQ, Photometry, and FP Config do not match.")
             self.dialog_box.exec_()
             return
         # sort the files alphabetically to (hopefully) determine which run was first
@@ -304,12 +317,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.patch_cord_selector_01.addItems(self.patch_cord_defaults)
         self.patch_cord_selector_02.addItems(self.patch_cord_defaults)
         self.patch_cord_selector_03.addItems(self.patch_cord_defaults)
-        # ROI TODO: this may change if we decide to populate these widgets based on what is available in the data file
-        self.roi_selector_01.addItems(self.roi_defaults)
-        self.roi_selector_02.addItems(self.roi_defaults)
-        self.roi_selector_03.addItems(self.roi_defaults)
+        # ROI
+        self.roi_selector_01.addItem("")
+        self.roi_selector_02.addItem("")
+        self.roi_selector_03.addItem("")
         # Run selector
-        self.run_selector.addItems([""])
+        self.run_selector.addItem("")
 
     def transfer_items_to_server(self):
         """Transfer queued items to server using ibllib rsync_paths function"""
@@ -674,11 +687,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.patch_cord_selector_03.addItems(self.patch_cord_defaults)
         # ROI
         self.roi_selector_01.clear()
-        self.roi_selector_01.addItems(self.roi_defaults)
+        # self.roi_selector_01.addItems(self.roi_defaults)
         self.roi_selector_02.clear()
-        self.roi_selector_02.addItems(self.roi_defaults)
+        # self.roi_selector_02.addItems(self.roi_defaults)
         self.roi_selector_03.clear()
-        self.roi_selector_03.addItems(self.roi_defaults)
+        # self.roi_selector_03.addItems(self.roi_defaults)
         # Brain Area
         self.brain_area_01.clear()
         self.brain_area_02.clear()

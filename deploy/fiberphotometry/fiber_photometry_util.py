@@ -1,19 +1,12 @@
 """
 Utility functions for fiber photometry form
 """
-import logging
-import os
 import subprocess
-import sys
 from pathlib import Path
 
-# log configurations
-log_file_path = "C:\\Temp\\fiber_photometry_form.log" if os.name == "nt" else "/tmp/fiber_photometry_form.log"
-os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s",
-                    handlers=[logging.FileHandler(log_file_path), logging.StreamHandler(sys.stdout)])
-log = logging.getLogger("fiber_photometry_form")
-log.info("Fiber Photometry Form Init")
+from iblutil.util import get_logger
+
+log = get_logger(name="fiber_photometry_form", file=True)
 
 
 def convert_ui_file_to_py(file_location: str, output_file_name: str) -> str:
