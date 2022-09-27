@@ -145,7 +145,7 @@ if __name__ == "__main__":
     Check them:
         python jobs.py status create
         python jobs.py status run
-        python jobs.py status report        
+        python jobs.py status report
     Kill them:
         python jobs.py kill create
         python jobs.py kill run

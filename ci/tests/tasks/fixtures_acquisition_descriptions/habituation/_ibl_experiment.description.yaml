@@ -1,0 +1,21 @@
+devices:
+   cameras:
+    left:
+        collection: raw_video_data
+        sync_label: frame2ttl
+   microphone:
+    microphone:
+        collection: raw_behavior_data
+        sync_label: null
+procedures:
+- Behavior training/tasks
+projects:
+- ibl_neuropixel_brainwide_01
+sync:
+  bpod:
+    collection: raw_behavior_data
+    extension: bin
+tasks:
+  habituationChoiceWorld:
+    collection: raw_behavior_data
+    sync_label: bpod

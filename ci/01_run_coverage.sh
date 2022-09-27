@@ -28,13 +28,14 @@ done
 pkgs=${pkgs%?} # remove last comma
 
 # Build up sources
-coverage run --omit=*pydevd_file_utils.py,*test_*,*tests* --source="$pkgs" \
+coverage run --source="$pkgs" --rcfile /home/experiment/Documents/github/iblscripts/.coveragerc \
 /home/experiment/Documents/github/iblscripts/runAllTests.py -c "$1" -r "$2" --logdir "$3"
 #coverage report --skip-covered
 
 echo Saving coverage reports
-coverage html -d "$3/reports/$1" --skip-covered
+coverage html -d "$3/reports/$1" --skip-covered --show-contexts
 coverage xml -o "$3/reports/$1/CoverageResults.xml"
+coverage json -o "$3/reports/$1/CoverageResults.json"
 
 # Remove source directories from HTML report (more readable/secure)
 echo Renaming coverage files

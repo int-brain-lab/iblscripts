@@ -52,11 +52,12 @@ def correct_flags_biased_in_ephys_rig():
         ses_date = datetime.strptime(session_path.parts[-2], "%Y-%M-%d")
         if (datetime.now() - ses_date).days > N_DAYS:
             settings = raw.load_settings(session_path)
-            if 'ephys' in settings['PYBPOD_BOARD'] and settings['PYBPOD_PROTOCOL']\
-                    == '_iblrig_tasks_biasedChoiceWorld':
-                _logger.info(session_path)
-                flag.unlink()
-                session_path.joinpath('raw_session.flag').touch()
+            if settings is not None:
+                if ('ephys' in settings['PYBPOD_BOARD'] and
+                        settings['PYBPOD_PROTOCOL'] == '_iblrig_tasks_biasedChoiceWorld'):
+                    _logger.info(session_path)
+                    flag.unlink()
+                    session_path.joinpath('raw_session.flag').touch()
 
 
 def correct_passive_in_wrong_folder():
@@ -321,10 +322,19 @@ def remove_old_spike_sortings_outputs():
     _logger.info(f'remove old spike sorting outputs removed {siz / 1024 ** 3} Go')
 
 
+def remove_iti_duration():
+    c = 0
+    for iti_file in ROOT_PATH.rglob('_ibl_trials.itiDuration.npy'):
+        iti_file.unlink()
+        c += 1
+    _logger.info(f'removed {c} _ibl_trials.itiDuration.npy files')
+
+
 if __name__ == "__main__":
     correct_flags_biased_in_ephys_rig()
-    correct_ephys_manual_video_copies()
-    spike_amplitude_patching()
+    # correct_ephys_manual_video_copies()
+    remove_iti_duration()
+    # spike_amplitude_patching()
     # upload_ks2_output()
     correct_passive_in_wrong_folder()
     # remove_old_spike_sortings_outputs()

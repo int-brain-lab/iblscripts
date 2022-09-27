@@ -1,7 +1,6 @@
 import tempfile
 from pathlib import Path
 
-from ibllib.io.extractors.base import get_session_extractor_type
 from one.api import ONE
 from ibllib.pipes import local_server
 
@@ -57,14 +56,13 @@ class TestPipeline(base.IntegrationTest):
                                           graph='TrainingExtractionPipeline', no_cache=True)
             self.assertTrue(len(errored_tasks) == 0)
             session_dict = one.alyx.rest('sessions', 'list',
-                                         django='extended_qc__isnull, False', no_cache=True)
+                                         django='extended_qc__isnull,False', no_cache=True)
             self.assertTrue(len(session_dict) > 0)
 
 
 def create_pipeline(session_path, one):
     # creates the session if necessary
-    task_type = get_session_extractor_type(session_path)
-    print(session_path, task_type)
+    # task_type = get_session_extractor_type(session_path)
     session_path.joinpath('raw_session.flag').touch()
     # delete the session if it exists
     eid = one.path2eid(session_path, query_type='remote')
@@ -75,4 +73,4 @@ def create_pipeline(session_path, one):
     assert eid
     alyx_tasks = one.alyx.rest('tasks', 'list',
                                session=eid, graph='TrainingExtractionPipeline', no_cache=True)
-    assert(len(alyx_tasks) == 6)
+    assert len(alyx_tasks) == 6

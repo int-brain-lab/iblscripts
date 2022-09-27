@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import globus_sdk
 
-from ibllib.misc import version
+from ibllib import __version__
 from iblutil.io import hashfile, params
 from one.api import ONE
 from oneibl.patcher import SSHPatcher, GlobusPatcher, FTPPatcher
@@ -67,7 +67,7 @@ def _patch_file(self, download=True):
     # the dataset hash should have been updated
     dataset = self.one.alyx.rest('datasets', 'read', id=dataset_id)
     self.assertEqual(uuid.UUID(dataset['hash']), uuid.UUID(new_check_sum))
-    self.assertEqual(dataset['version'], version.ibllib())
+    self.assertEqual(dataset['version'], __version__)
     if download:
         # download again and check the hash
         local_file_path.unlink()

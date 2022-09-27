@@ -1,8 +1,9 @@
-import numpy as np
 import random
 import shutil
 
-from ibllib.ephys.np2_converter import NP2Converter
+import numpy as np
+import numpy.testing
+from neuropixel import NP2Converter, NP2Reconstructor
 import spikeglx
 
 from ci.tests import base
@@ -64,14 +65,14 @@ class TestNeuropixel2ConverterNP24(base.IntegrationTest):
 
         # Make sure all the aps are the same regardless of window size we used
 
-        assert np.array_equal(sr_a_ap[:, :], sr_b_ap[:, :])
-        assert np.array_equal(sr_a_ap[:, :], sr_c_ap[:, :])
-        assert np.array_equal(sr_b_ap[:, :], sr_c_ap[:, :])
+        np.testing.assert_array_equal(sr_a_ap[:, :], sr_b_ap[:, :])
+        np.testing.assert_array_equal(sr_a_ap[:, :], sr_c_ap[:, :])
+        np.testing.assert_array_equal(sr_b_ap[:, :], sr_c_ap[:, :])
 
         # For AP also check that all values are the same as the original file
-        assert np.array_equal(sr_a_ap[:, :], sr[:, np_a.shank_info['shank0']['chns']])
-        assert np.array_equal(sr_b_ap[:, :], sr[:, np_b.shank_info['shank0']['chns']])
-        assert np.array_equal(sr_c_ap[:, :], sr[:, np_c.shank_info['shank0']['chns']])
+        np.testing.assert_array_equal(sr_a_ap[:, :], sr[:, np_a.shank_info['shank0']['chns']])
+        np.testing.assert_array_equal(sr_b_ap[:, :], sr[:, np_b.shank_info['shank0']['chns']])
+        np.testing.assert_array_equal(sr_c_ap[:, :], sr[:, np_c.shank_info['shank0']['chns']])
 
         sr_a_lf = spikeglx.Reader(np_a.shank_info['shank0']['lf_file'])
         self.sglx_instances.append(sr_a_lf)
@@ -81,9 +82,9 @@ class TestNeuropixel2ConverterNP24(base.IntegrationTest):
         self.sglx_instances.append(sr_c_lf)
 
         # Make sure all the lfps are the same regardless of window size we used
-        assert np.array_equal(sr_a_lf[:, :], sr_b_lf[:, :])
-        assert np.array_equal(sr_a_lf[:, :], sr_c_lf[:, :])
-        assert np.array_equal(sr_b_lf[:, :], sr_c_lf[:, :])
+        np.testing.assert_array_equal(sr_a_lf[:, :], sr_b_lf[:, :])
+        np.testing.assert_array_equal(sr_a_lf[:, :], sr_c_lf[:, :])
+        np.testing.assert_array_equal(sr_b_lf[:, :], sr_c_lf[:, :])
 
     def testProcessNP24(self):
         """
@@ -100,24 +101,24 @@ class TestNeuropixel2ConverterNP24(base.IntegrationTest):
         # Test a random ap metadata file and make sure it all makes sense
         shank_n = random.randint(0, 3)
         sr_ap = spikeglx.Reader(np_conv.shank_info[f'shank{shank_n}']['ap_file'])
-        assert np.array_equal(sr_ap.meta['acqApLfSy'], [96, 0, 1])
-        assert np.array_equal(sr_ap.meta['snsApLfSy'], [96, 0, 1])
-        assert np.equal(sr_ap.meta['nSavedChans'], 97)
-        assert (sr_ap.meta['snsSaveChanSubset'] == '0:96')
-        assert np.equal(sr_ap.meta['NP2.4_shank'], shank_n)
-        assert (sr_ap.meta['original_meta'] == 'False')
+        np.testing.assert_array_equal(sr_ap.meta['acqApLfSy'], [96, 0, 1])
+        np.testing.assert_array_equal(sr_ap.meta['snsApLfSy'], [96, 0, 1])
+        self.assertEqual(sr_ap.meta['nSavedChans'], 97)
+        self.assertEqual(sr_ap.meta['snsSaveChanSubset'], '0:96')
+        self.assertEqual(sr_ap.meta['NP2.4_shank'], shank_n)
+        self.assertEqual(sr_ap.meta['original_meta'], 'False')
         sr_ap.close()
 
         # Test a random lf metadata file and make sure it all makes sense
         shank_n = random.randint(0, 3)
         sr_lf = spikeglx.Reader(np_conv.shank_info[f'shank{shank_n}']['lf_file'])
-        assert np.array_equal(sr_lf.meta['acqApLfSy'], [0, 96, 1])
-        assert np.array_equal(sr_lf.meta['snsApLfSy'], [0, 96, 1])
-        assert np.equal(sr_lf.meta['nSavedChans'], 97)
-        assert (sr_lf.meta['snsSaveChanSubset'] == '0:96')
-        assert np.equal(sr_lf.meta['NP2.4_shank'], shank_n)
-        assert (sr_lf.meta['original_meta'] == 'False')
-        assert np.equal(sr_lf.meta['imSampRate'], 2500)
+        np.testing.assert_array_equal(sr_lf.meta['acqApLfSy'], [0, 96, 1])
+        np.testing.assert_array_equal(sr_lf.meta['snsApLfSy'], [0, 96, 1])
+        self.assertEqual(sr_lf.meta['nSavedChans'], 97)
+        self.assertEqual(sr_lf.meta['snsSaveChanSubset'], '0:96')
+        self.assertEqual(sr_lf.meta['NP2.4_shank'], shank_n)
+        self.assertEqual(sr_lf.meta['original_meta'], 'False')
+        self.assertEqual(sr_lf.meta['imSampRate'], 2500)
         sr_lf.close()
 
         # Rerun again and make sure that nothing happens because folders already exists
@@ -137,8 +138,7 @@ class TestNeuropixel2ConverterNP24(base.IntegrationTest):
         np_conv.sr.close()
 
         # test that original has been deleted
-
-        self.assertFalse(self.file_path.parent.exists())
+        self.assertFalse(self.file_path.exists())
 
         # Finally test that we cannot process a file that has already been split
         shank_n = random.randint(0, 3)
@@ -224,13 +224,13 @@ class TestNeuropixel2ConverterNP21(base.IntegrationTest):
         self.assertTrue(status)
 
         # test the meta file
-        sr_ap = spikeglx.Reader(np_conv.shank_info[f'shank0']['lf_file'])
-        assert np.array_equal(sr_ap.meta['acqApLfSy'], [0, 384, 1])
-        assert np.array_equal(sr_ap.meta['snsApLfSy'], [0, 384, 1])
-        assert np.equal(sr_ap.meta['nSavedChans'], 385)
-        assert (sr_ap.meta['snsSaveChanSubset'] == '0:384')
-        assert np.equal(sr_ap.meta['NP2.1_shank'], 0)
-        assert (sr_ap.meta['original_meta'] == 'False')
+        sr_ap = spikeglx.Reader(np_conv.shank_info['shank0']['lf_file'])
+        np.testing.assert_array_equal(sr_ap.meta['acqApLfSy'], [0, 384, 1])
+        np.testing.assert_array_equal(sr_ap.meta['snsApLfSy'], [0, 384, 1])
+        self.assertEqual(sr_ap.meta['nSavedChans'], 385)
+        self.assertEqual(sr_ap.meta['snsSaveChanSubset'], '0:384')
+        self.assertEqual(sr_ap.meta['NP2.1_shank'], 0)
+        self.assertEqual(sr_ap.meta['original_meta'], 'False')
         sr_ap.close()
 
         np_conv.sr.close()
@@ -260,14 +260,17 @@ class TestNeuropixel2ConverterNP1(base.IntegrationTest):
                                                  '_spikeglx_ephysData_g0_t0.imec0.ap.bin')
         meta_file = self.file_path.parent.joinpath('NP1_meta',
                                                    '_spikeglx_ephysData_g0_t0.imec0.ap.meta')
-        self.meta_file = self.file_path.parent.joinpath('_spikeglx_ephysData_g0_t0.imec0.ap.meta')
+        self.meta_file = self.file_path.with_suffix('.meta')
+        # Back up current meta file
+        shutil.move(self.meta_file, self.meta_file.with_suffix('.meta.bk'))
+        # Copy the neuropixels v1 meta file into the probe00 folder
         shutil.copy(meta_file, self.meta_file)
         self.sglx_instances = []
         self.temp_directories = []
 
     def tearDown(self):
-        # here should look for anything with test in it and delete
-        self.meta_file.unlink()
+        # replace meta file with backup
+        shutil.move(self.meta_file.with_suffix('.meta.bk'), self.meta_file)
 
     def testProcessNP1(self):
         """
@@ -275,7 +278,62 @@ class TestNeuropixel2ConverterNP1(base.IntegrationTest):
         """
         np_conv = NP2Converter(self.file_path)
         status = np_conv.process()
-        self.assertFalse(status)
+        self.assertEqual(status, -1)
+
+
+class TestNeuropixelReconstructor(base.IntegrationTest):
+    def setUp(self) -> None:
+
+        self.orig_file = self.data_path.joinpath('ephys', 'ephys_np2', 'raw_ephys_data', 'probe00',
+                                                 '_spikeglx_ephysData_g0_t0.imec0.ap.bin')
+        self.file_path = self.orig_file.parent.parent.joinpath('probe00_temp', self.orig_file.name)
+        self.file_path.parent.mkdir(exist_ok=True, parents=True)
+        self.orig_meta_file = self.orig_file.parent.joinpath('NP24_meta', '_spikeglx_ephysData_g0_t0.imec0.ap.meta')
+        self.meta_file = self.file_path.parent.joinpath('_spikeglx_ephysData_g0_t0.imec0.ap.meta')
+        shutil.copy(self.orig_file, self.file_path)
+        shutil.copy(self.orig_meta_file, self.meta_file)
+        self.sglx_instances = []
+
+    def tearDown(self):
+        _ = [sglx.close() for sglx in self.sglx_instances]
+        # here should look for any directories with test in it and delete
+        test_dir = list(self.file_path.parent.parent.glob('*test*'))
+        _ = [shutil.rmtree(test) for test in test_dir]
+        # For case where we have deleted already as part of test
+        if self.file_path.parent.exists():
+            shutil.rmtree(self.file_path.parent)
+
+    def test_reconstruction(self):
+
+        # First split the probes
+        np_conv = NP2Converter(self.file_path)
+        np_conv.init_params(extra='_test')
+        _ = np_conv.process()
+        np_conv.sr.close()
+
+        # Delete the original file
+        self.file_path.unlink()
+        self.meta_file.unlink()
+
+        # Now reconstruct
+        np_recon = NP2Reconstructor(self.file_path.parent.parent, pname='probe00_temp', compress=True)
+        status = np_recon.process()
+
+        self.assertEqual(status, 1)
+
+        recon_file = self.file_path.with_suffix('.cbin')
+        sr_recon = spikeglx.Reader(recon_file)
+        self.sglx_instances.append(sr_recon)
+        sr_orig = spikeglx.Reader(self.orig_file)
+        self.sglx_instances.append(sr_orig)
+
+        np.testing.assert_array_equal(sr_recon._raw[:, :], sr_orig._raw[:, :])
+
+        orig_meta = spikeglx.read_meta_data(self.orig_meta_file)
+        recon_meta = spikeglx.read_meta_data(recon_file.with_suffix('.meta'))
+        recon_meta.pop('original_meta')
+
+        self.assertEqual(orig_meta, recon_meta)
 
 
 if __name__ == "__main__":

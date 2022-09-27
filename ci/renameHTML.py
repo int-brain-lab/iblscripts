@@ -9,15 +9,15 @@ _logger.setLevel(DEBUG)
 
 if __name__ == "__main__":
     r"""Remove source paths from coverage HTML report files
-    The coverage HTML and XML files contain the full paths to the code files.  This function 
+    The coverage HTML and XML files contain the full paths to the code files.  This function
     replaces all full paths with paths relative to a source directory.  The `source` tag is
-    properly updated in the coverage XML file.  
+    properly updated in the coverage XML file.
 
     python renameHTML.py --directory <html directory> --source <code root directory>
 
     Examples:
       python renameHTML.py -d C:\Users\User\AppData\Roaming\CI\Reports\develop -s C:\Users\User
-    
+
     TODO This function is not perfect: site-packages remains in text.
     """
 

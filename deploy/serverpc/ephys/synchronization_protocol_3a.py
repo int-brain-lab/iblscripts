@@ -76,7 +76,7 @@ def get_ephys_data(raw_ephys_apfile, label=''):
 
     if alfio.exists(raw_ephys_apfile.parent, '_spikeglx_sync', glob=[label]):
         sync = alfio.load_object(raw_ephys_apfile.parent, '_spikeglx_sync',
-                                  glob=[label], short_keys=True)
+                                 glob=[label], short_keys=True)
     else:
         sync = ephys_fpga._sync_to_alf(raw_ephys_apfile, parts=label, save=False)
     # load reader object, and extract sync traces
@@ -514,5 +514,5 @@ if __name__ == "__main__":
     args = parser.parse_args()  # returns data from the options specified (echo)
     if args.display and args.display.lower() == 'false':
         args.display = False
-    assert(Path(args.folder).exists())
+    assert Path(args.folder).exists()
     run_synchronization_protocol(args.folder, display=args.display)

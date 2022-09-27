@@ -18,6 +18,13 @@ fi
 source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 outdated=$(pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1)
 
+# Check if pip needs update
+update=$(echo $outdated | grep -o "pip" | cut -d = -f 1)
+if test "$update" ; then
+  echo "Updating pip" ;
+  pip install --upgrade pip
+fi
+
 # These libraries need to be installed in order, so if one is updated, the ones after need to be updated too
 update=$(echo $outdated | grep -o "tensorflow " | cut -d = -f 1)
 # Note that the space after tensorflow is crucial as the tensorflow-estimator otherwise keeps tensorflow being updated
@@ -33,10 +40,10 @@ else
   update=$(echo $outdated | grep -o "deeplabcut" | cut -d = -f 1)
   if test "$update" ; then
     echo "Updating deeplabcut and ibllib" ;
-  pip uninstall -y ONE-api ibllib deeplabcut ;
-  pip install deeplabcut ;
-  pip install ibllib ;
-  pip install ONE-api ;
+    pip uninstall -y ONE-api ibllib deeplabcut ;
+    pip install deeplabcut ;
+    pip install ibllib ;
+    pip install ONE-api ;
   else
     echo "deeplabcut is up-to-date" ;
     update=$(echo $outdated | grep -o "ibllib" | cut -d = -f 1)

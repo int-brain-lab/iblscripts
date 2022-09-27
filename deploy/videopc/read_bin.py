@@ -5,9 +5,9 @@ bla = np.fromfile(
 )
 
 print(len(bla))
-print(len(bla)%4)
+print(len(bla) % 4)
 try:
-    rows = int(len(bla)/4)
+    rows = int(len(bla) / 4)
     ble = np.reshape(bla.astype(np.int64), (rows, 4))
-except:
+except Exception:
     print(404)
