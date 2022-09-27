@@ -346,7 +346,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 Path(item["subject"]) /
                 Path(item["date"]) /
                 Path(item["session_number"]) /
-                "raw_fiber_photometry_data")
+                "raw_photometry_data")
             try:
                 os.makedirs(remote_data_path, exist_ok=True)
             except OSError:
@@ -387,57 +387,29 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 Path(item["subject"]) /
                 Path(item["date"]) /
                 Path(item["session_number"]) /
-                Path("_ibl_experiment.description.yaml")
+                '_device' / "photometry_00.yaml"
             )
 
-            if exp_desc_path.exists():
-                # load data from experiment description file into dict
-                with open(exp_desc_path, "r") as ed:
-                    data = yaml.safe_load(ed)
-                # error check that fiber photometry information does not already exist
-                if "photometry" in data["devices"]:
-                    self.dialog_box.label.setText("The 'photometry' key value is already in the experiment description file "
-                                                  "found on the server. Please review log messages in the terminal.")
-                    self.dialog_box.exec_()
-                    log.error(f"Unknown state for experiment description file, nothing written to disk. Experiment description "
-                              f"file location that requires further investigation: {exp_desc_path}")
-                    return
-                else:  # append fiber photometry data into data dict
-                    data["devices"]["photometry"] = {
+            data = {
+                "devices": {
+                    "photometry": {
                         "collection": "raw_photometry_data",
                         "sync_label": "frame_trigger",
                     }
-                    data["procedures"] = data["procedures"].append("Fiber photometry")
-                    data["projects"] = data["projects"].append("ibl_fiberphotometry")
-                    for i in range(1, 4):
-                        if item[f"roi_selection_0{i}"] != "":
-                            data["devices"]["photometry"]["regions"] = {
-                                item[f"roi_selection_0{i}"]: item[f"patch_cord_selection_0{i}"],
-                                "acronym": item[f"brain_area_0{i}"],
-                                "notes": item[f"notes_0{i}"]
-                            }
-
-            else:  # the experiment description file does not exist on server
-                data = {
-                    "devices": {
-                        "photometry": {
-                            "collection": "raw_photometry_data",
-                            "sync_label": "frame_trigger",
-                        }
-                    },
-                    "procedures": ["Fiber photometry"],
-                    "projects": ["ibl_fiberphotometry"]
-                }
-                for i in range(1, 4):
-                    if item[f"roi_selection_0{i}"] != "":
-                        data["devices"]["photometry"]["regions"] = {
-                            item[f"roi_selection_0{i}"]: item[f"patch_cord_selection_0{i}"],
+                },
+                "procedures": ["Fiber photometry"],
+            }
+            for i in range(1, 4):
+                if item[f"roi_selection_0{i}"] != "":
+                    data["devices"]["photometry"]["regions"] = {
+                        item[f"roi_selection_0{i}"]: {
+                            'patch_cord': item[f"patch_cord_selection_0{i}"],
                             "acronym": item[f"brain_area_0{i}"],
                             "notes": item[f"notes_0{i}"]
                         }
-
+                    }
             # attempt to write the experiment description file locally
-            with open((Path(item["local_bkup_raw_path"]).parent / "_ibl_experiment.description.yaml"), "w") as ed:
+            with open((Path(item["local_bkup_raw_path"]).parent / "photometry_00.yaml"), "w") as ed:
                 try:
                     yaml.safe_dump(data, ed)
                 except OSError as msg:
@@ -535,7 +507,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if not self.validate_run_selector():  # check if user has selected a run number
             return
 
-        # local directory structures, create to mirror server side .../Subject/Date/SessionNumber/raw_fiber_photometry_data
+        # local directory structures, create to mirror server side .../Subject/Date/SessionNumber/raw_photometry_data
         local_bkup_raw_path = Path(
             Path(FP_LOCAL_BKUP_PATH) /
             self.subject_combo_box.currentText() /
