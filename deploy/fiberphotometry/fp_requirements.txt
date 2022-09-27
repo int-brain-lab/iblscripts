@@ -1,4 +1,6 @@
 ibllib
+iblutil
 pandas
 PyQt5
+python-dateutil
 pyyaml

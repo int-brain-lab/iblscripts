@@ -1,25 +1,11 @@
 """
 Application to perform Fiber Photometry related tasks
 
-Development machine details:
-- Ubuntu 22.04
-- Anaconda 4.13.0
-- Python 3.8
-- opencv-python 4.3.0.36
-- PyQt5 5.15.7
-- ibllib v2.15
-
 QtSettings values:
     subjects: list[str] = field(default_factory=list) - list of subjects should carry over between sessions
     local_data_path: str - destination path for parent data directory on local machine, i.e C:\fp_data
     server_data_path: str - destination path for local lab server, i.e  \\mainenlab_server\Subjects
     local_bkup_path: str - local path mirrors server dir structure, ensures backup exists, i.e. C:\fp_data_bkup\Subjects
-
-TODO:
-    - add FP3002Config.01.xml data to parquet metadata
-    - flesh out placeholder try/except blocks with additional messaging
-    - better implementation for testing and folder creation
-    - determine if "FP3002Config.xml" is something worth checking
 """
 import argparse
 import csv
@@ -42,7 +28,7 @@ from ibllib.io.extractors import fibrephotometry as fp_extractor
 from ibllib.pipes.misc import rsync_paths
 from iblutil.util import get_logger
 
-from fiber_photometry_util import convert_ui_file_to_py
+from fiber_photometry_util import convert_ui_file_to_py, create_data_dirs
 
 log = get_logger(name="fiber_photometry_form", file=True)
 try:  # specify ui file(s) output by Qt Designer, call function to convert to py for runtime efficiency and ease of imports
@@ -66,44 +52,6 @@ try:  # specify ui file(s) output by Qt Designer, call function to convert to py
 except ImportError as msg:
     log.error(f"Could not import PyQt Designer ui files\n{msg}")
     exit(1)
-
-# Ensure data folders exist for local storage of fiber photometry data
-FP_REMOTE_PATH_TEST = None  # used for testing transfer function, TODO: better implementation for testing desired
-if os.name == "nt":  # check on OS platform
-    FP_LOCAL_DATA_PATH = "D:\\ibl_fp_data"  # folder that will contain the fp data output from bonsai and daq
-    FP_LOCAL_BKUP_PATH = "D:\\ibl_fp_data_bkup\\Subjects"  # folder mirroring server dir structure
-    FP_LOCAL_QUEUED_PATH = "C:\\Temp\\ibl_fp_data_queued\\Subjects"  # temp folder created for queued items
-    try:  # to create local queue data folder
-        os.makedirs(FP_LOCAL_BKUP_PATH, exist_ok=True)
-        os.makedirs(FP_LOCAL_QUEUED_PATH, exist_ok=True)
-    except OSError:
-        raise
-else:
-    import tempfile  # cleaner implementation desired
-    # Create temp dir structure
-    TEMP_DIR = tempfile.TemporaryDirectory()
-    FP_LOCAL_DATA_PATH = TEMP_DIR.name + "/local/fp_data"
-    FP_LOCAL_BKUP_PATH = TEMP_DIR.name + "/local/Subjects"
-    FP_REMOTE_PATH_TEST = TEMP_DIR.name + "/remote/Subjects"
-    FP_LOCAL_QUEUED_PATH = TEMP_DIR.name + "/queued/Subjects"
-    try:
-        os.makedirs(FP_LOCAL_DATA_PATH, exist_ok=True)
-        os.makedirs(FP_LOCAL_BKUP_PATH, exist_ok=True)
-        os.makedirs(FP_REMOTE_PATH_TEST, exist_ok=True)
-        os.makedirs(FP_LOCAL_QUEUED_PATH, exist_ok=True)
-    except OSError:
-        raise
-    log.info(f"\nNot a Windows OS, will only create temp files\nlocal subject dir: {FP_LOCAL_DATA_PATH}\nremote subject dir: "
-             f"{FP_REMOTE_PATH_TEST}\nqueued subject dir: {FP_LOCAL_QUEUED_PATH}")
-
-# Used to copy test data, remove once ready for production with proper tests in place, functionality finalized
-# -----------------------------------------------------------------------------
-TEST_DATA_LOC = Path.home() / "Downloads/FP_Extraction_Prototypes/rigs_data/photometry/2022-09-06/"
-TEST_LOCAL_DATE_LOC = Path(FP_LOCAL_DATA_PATH) / Path(str(date.today()))
-shutil.copytree(TEST_DATA_LOC, TEST_LOCAL_DATE_LOC)
-log.info(f"\n- TEST DATA LOADED FROM: {TEST_DATA_LOC}\n- TEST DATA LOADED TO: {TEST_LOCAL_DATE_LOC}")
-# -----------------------------------------------------------------------------
-
 
 class Dialog(QtWidgets.QDialog, Ui_Dialog):
     def __init__(self, parent=None):
@@ -232,7 +180,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         widget. This generates a dict with three lists, referencable by the following keys: "daq_files", "photometry_files", and
         "fp_config_files"
         """
-        date_folder = Path(FP_LOCAL_DATA_PATH) / Path(self.date_edit.text())
+        date_folder = DATA_DIRS["fp_local_data_path"] / self.date_edit.text()
         if not date_folder.is_dir():
             self.dialog_box.label.setText(f"Date folder was not found:\n{date_folder}")
             self.dialog_box.exec_()
@@ -259,19 +207,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             "Pressing OK will remove any local sessions older than 6 months. Please be sure this is your intention.")
         if self.confirm_box.exec_() == 1:  # OK button pressed
             # get list of all subjects and create a datetime obj 6 months in the past
-            subject_list = os.listdir(FP_LOCAL_DATA_PATH)
+            subject_list = os.listdir(DATA_DIRS["fp_local_data_path"])
             six_month_old_date = datetime.now() - relativedelta(months=6)
 
             for subject in subject_list:
                 subject = str(subject)
                 # get list of all date directories for a subject
-                date_list = os.listdir(Path(FP_LOCAL_DATA_PATH).joinpath(subject))
+                date_list = os.listdir(DATA_DIRS["fp_local_data_path"].joinpath(subject))
 
                 for date_dir in date_list:
                     date_dir = str(date_dir)
                     date_dir_as_datetime = datetime.strptime(date_dir, "%Y-%m-%d")
                     if date_dir_as_datetime < six_month_old_date:
-                        dir_to_remove = Path(FP_LOCAL_DATA_PATH).joinpath(subject, date_dir)
+                        dir_to_remove = DATA_DIRS["fp_local_data_path"].joinpath(subject, date_dir)
                         log.info(f"Removing {dir_to_remove} ...")
                         try:
                             shutil.rmtree(dir_to_remove)
@@ -326,10 +274,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def transfer_items_to_server(self):
         """Transfer queued items to server using ibllib rsync_paths function"""
-        if FP_REMOTE_PATH_TEST:  # if var is set, we should be in testing mode TODO: cleaner implementation desired
-            remote_folder = Path(FP_REMOTE_PATH_TEST)
-        else:
-            remote_folder = Path(self.server_data_path.text())
+        remote_folder = DATA_DIRS["fp_remote_path_test"] if TESTING_MODE else Path(self.server_data_path.text())
 
         try:  # Copy items from queue_data_raw_path to local_bkup_raw_path for every item in queue
             [shutil.copytree(
@@ -375,10 +320,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         Append to or creates the experiment description file. Appending will occur if an existing file is found on the local lab
         server. Method will also create a local copy of the file in case anything goes wrong writing to the network location.
         """
-        if FP_REMOTE_PATH_TEST:  # if var is set, we should be in testing mode TODO: cleaner implementation desired
-            remote_folder = Path(FP_REMOTE_PATH_TEST)
-        else:
-            remote_folder = Path(self.server_data_path.text())
+        remote_folder = DATA_DIRS["fp_remote_path_test"] if TESTING_MODE else Path(self.server_data_path.text())
 
         for item in self.items_to_transfer:
             # set experiment description file path
@@ -387,8 +329,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 Path(item["subject"]) /
                 Path(item["date"]) /
                 Path(item["session_number"]) /
-                '_device' / "photometry_00.yaml"
+                "_device" / "photometry_00.yaml"
             )
+            # Ensure "_device" dir exists
+            os.makedirs(exp_desc_path.parent, exist_ok=True) if not exp_desc_path.parent.exists() else None
 
             data = {
                 "devices": {
@@ -509,13 +453,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # local directory structures, create to mirror server side .../Subject/Date/SessionNumber/raw_photometry_data
         local_bkup_raw_path = Path(
-            Path(FP_LOCAL_BKUP_PATH) /
+            DATA_DIRS["fp_local_bkup_path"] /
             self.subject_combo_box.currentText() /
             self.date_edit.text() /
             self.session_number.text() /
             "raw_photometry_data")
         queue_data_raw_path = Path(
-            Path(FP_LOCAL_QUEUED_PATH) /
+            DATA_DIRS["fp_local_queued_path"] /
             self.subject_combo_box.currentText() /
             self.date_edit.text() /
             self.session_number.text() /
@@ -537,14 +481,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         dst_fp_config_file_path = queue_data_raw_path / "_fp_config.xml"
         item_settings = queue_data_raw_path / "_item_settings.json"
 
-        try:  # to validate timestamps, comparison between FP and DAQ data files
-            fp_extractor.check_timestamps(daq_file=src_daq_data_file_path, photometry_file=src_fp_data_file_path)
-        except (AssertionError, TypeError) as msg:
-            self.dialog_box.label.setText("Validation during the comparison of TTLs between DAQ and Fiber Photometry produced "
-                                          "csv file has failed. Check the terminal for a more detailed error message.")
-            self.dialog_box.exec_()
-            log.error(msg)
-            return
+        if not TESTING_MODE:
+            try:  # to validate timestamps, comparison between FP and DAQ data files
+                fp_extractor.check_timestamps(daq_file=src_daq_data_file_path, photometry_file=src_fp_data_file_path)
+            except (AssertionError, TypeError) as msg:
+                self.dialog_box.label.setText("Validation during the comparison of TTLs between DAQ and Fiber Photometry produced "
+                                              "csv file has failed. Check the terminal for a more detailed error message.")
+                self.dialog_box.exec_()
+                log.error(msg)
+                return
 
         # Build out item to transfer as dict, to be output to json/yml
         item = {
@@ -759,13 +704,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.settings.setValue("subjects", ["mouse1"])
 
         if not self.settings.value("local_data_path") or os.name != "nt":  # os name check for testing on linux with temp dirs
-            self.settings.setValue("local_data_path", FP_LOCAL_DATA_PATH)
-
+            self.settings.setValue("local_data_path", str(DATA_DIRS["fp_local_data_path"]))
         if not self.settings.value("server_data_path"):
             self.settings.setValue("server_data_path", "\\\\path_to_server\\Subjects")
 
         if not self.settings.value("local_bkup_path") or os.name != "nt":  # os name check for testing on linux with temp dirs
-            self.settings.setValue("local_bkup_path", FP_LOCAL_BKUP_PATH)
+            self.settings.setValue("local_bkup_path", str(DATA_DIRS["fp_local_bkup_path"]))
 
     def validate_run_selector(self) -> bool:
         """
@@ -873,22 +817,30 @@ def test_controller(fiber_form_test, file_test):
 if __name__ == "__main__":
     # arg parsing
     parser = argparse.ArgumentParser(description="Fiber Photometry Form")
-    parser.add_argument("-t", "--test", default=False, required=False, action="store_true", help="Run tests")
+    parser.add_argument("-t", "--test", default=False, required=False, action="store_true", help="Load test data")
     clear_qsettings_help = "Resets the Qt QSetting values; useful for when there are many unused values in the subject combo box."
     parser.add_argument("-c", "--clear-qsettings", default=False, required=False, action="store_true", help=clear_qsettings_help)
     args = parser.parse_args()
 
-    # Create application and main window
+    # Create application
     app = QtWidgets.QApplication(sys.argv)
-    fiber_form = MainWindow()
 
     # determine test situation or production
     if args.test:
-        csv_file = Path("fiber_copy_test_fixture.csv")
-        test_model(csv_file)
-        test_controller(fiber_form, csv_file)
+        DATA_DIRS = create_data_dirs(test=True)  # Ensure data folders exist for local storage of fiber photometry data
+        TESTING_MODE = True
+        test_data_dir = Path(os.getcwd()) / "test_data" / "2022-09-06"
+        test_local_date_dir = DATA_DIRS["fp_local_data_path"] / str(date.today())
+        shutil.copytree(test_data_dir, test_local_date_dir)
+        log.info(f"Testing mode:\n- TEST DATA LOADED FROM: {test_data_dir}\n- TEST DATA LOADED TO: {test_local_date_dir}")
+        fiber_form = MainWindow()
+        fiber_form.show()
+        sys.exit(app.exec_())
     elif args.clear_qsettings:
+        fiber_form = MainWindow()
         fiber_form.settings.clear()
     else:
+        DATA_DIRS = create_data_dirs()
+        fiber_form = MainWindow()
         fiber_form.show()
         sys.exit(app.exec_())
