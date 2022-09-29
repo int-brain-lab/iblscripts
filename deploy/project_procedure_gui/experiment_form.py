@@ -54,7 +54,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.previously_selected_description_path = self.subject_settings.value('selected_description_path') or ''
         self.session_info = self.subject_settings.value('selected_description') or {}
         prev_projects = self.session_info.get('projects', [])
-        prev_procedures = self.session_info.get('projects', [])
+        prev_procedures = self.session_info.get('procedures', [])
 
         try:
             one = one or ONE(mode='remote')
