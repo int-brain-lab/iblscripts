@@ -1,0 +1,6 @@
+---
+app_user: "ubuntu"
+http_host: "test_domain"
+http_conf: "test_domain.conf"
+http_port: "80"
+disable_default: true

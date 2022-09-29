@@ -1,0 +1,36 @@
+---
+- hosts: localhost
+  connection: local
+  become: true
+  vars_files:
+    - vars.yml
+  pre_tasks:
+    - name: Create directories for logs
+      file:
+        path: /var/log/ibl
+        state: directory
+        owner: root
+        group: root
+        mode: 0664
+
+    - name: Create log file
+      file:
+        path: /var/log/ibl/ansible-pull.log
+        owner: root
+        group: root
+        mode: 0664
+
+  tasks:
+    - name: Schedule an ansible-pull every 15 minutes, log to /var/log/ibl/ansible-pull.log
+      cron:
+        name: "ansible-pull job"
+        minute: "15"
+        job: "/usr/bin/ansible-pull --only-if-changed --url https://github.com/micheleangelofabbri/ansible-test.git >> /var/log/ibl/ansible-pull.log"
+
+    - name: Mount and bind a volume
+      ansible.posix.mount:
+        path: /mnt/s0
+        src: /dev/sdb
+        opts: defaults,nofail,discard
+        state: mounted
+        fstype: xfs
