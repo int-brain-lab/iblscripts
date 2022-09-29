@@ -1,3 +1,8 @@
+"""A GUI for selecting devices, projects and procedures.
+
+Notes:
+    - Currently if a device i
+"""
 from pathlib import Path
 from functools import partial
 import warnings
@@ -7,6 +12,7 @@ import yaml
 from iblutil.io import params
 from one.api import ONE
 from PyQt5 import QtWidgets, QtCore, uic
+from PyQt5.QtCore import Qt
 
 PROCEDURES = ['Behavior training/tasks',
               'Ephys recording with acute probe(s)',
@@ -58,7 +64,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.user_projects = [p['name'] for p in projects if any(u in p['users'] for u in users)]
             self.settings.setValue('projects', self.projects)
             self.settings.setValue('user_projects', self.user_projects)
-        except ConnectionError:
+        except (ConnectionError, TimeoutError):
             # If we can't connect to alyx see if we can get the projects from the previously stored settings
             self.projects = self.settings.value('projects')
             self.user_projects = self.settings.value('user_projects') or []
@@ -85,7 +91,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.procedureList.itemChanged.connect(partial(self.on_item_clicked, 'procedures'))
         self.populate_lists(self.projectList, self.projects, prev_projects)
         self.populate_lists(self.procedureList, PROCEDURES, prev_procedures)
-        self.populate_table()
+
+        # Load remote devices file
+        p = (params.as_dict(params.read('transfer_params', {})) or {}).get('REMOTE_DATA_FOLDER_PATH', None)
+        self.populate_table(p)
+        self.remoteDeviceTable.itemChanged.connect(self.on_table_changed)
+
         # Update experiment description text field with previous data
         self.validate_yaml(data=self.session_info)
 
@@ -95,48 +106,51 @@ class MainWindow(QtWidgets.QMainWindow):
         for opt in options:
             item = QtWidgets.QListWidgetItem()
             item.setText(opt)
-            item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
             if opt in defaults:
-                item.setCheckState(QtCore.Qt.Checked)
+                item.setCheckState(Qt.Checked)
             else:
-                item.setCheckState(QtCore.Qt.Unchecked)
+                item.setCheckState(Qt.Unchecked)
             listView.addItem(item)
 
-    def populate_table(self):
-        # Load remote devices file # TODO Move into init
+    def populate_table(self, remote_device_path):
         self.remoteDeviceTable.clear()
         self.remoteDeviceTable.setColumnCount(3)
         self.remoteDeviceTable.setHorizontalHeaderLabels(['Device Name', 'URI', 'Enabled'])
 
-        p = (params.as_dict(params.read('transfer_params', {})) or {}).get('REMOTE_DATA_FOLDER_PATH')
-        if not p:
+        if not remote_device_path:
             # TODO Elevate to error
             warnings.warn('No remote data path found.  Please run ibllib.pipes.misc.create_basic_transfer_params')
             self.remoteDeviceTable.setRowCount(0)
             return
-        remote_devices_file = Path(p, 'remote_devices.yaml')
+
+        remote_devices_file = Path(remote_device_path, 'remote_devices.yaml')
         remote_devices = {}
         if remote_devices_file.exists():
             with open(remote_devices_file, 'r') as fp:
                 remote_devices = yaml.safe_load(fp)
 
         self.remoteDeviceTable.setRowCount(len(remote_devices))
-        states = self.subject_settings.value('remote_device_states') or {}
+        selected_devices = self.session_info.get('devices', {}).keys()
         # Populate table
         for i, (name, uri) in enumerate(remote_devices.items()):
-            self.remoteDeviceTable.setItem(i, 0, QtWidgets.QTableWidgetItem(name))
-            self.remoteDeviceTable.setItem(i, 1, QtWidgets.QTableWidgetItem(uri))
+            device_name = QtWidgets.QTableWidgetItem(name)
+            device_name.setFlags(Qt.NoItemFlags)
+            self.remoteDeviceTable.setItem(i, 0, device_name)
+            device_uri = QtWidgets.QTableWidgetItem(uri)
+            device_uri.setFlags(Qt.NoItemFlags)
+            self.remoteDeviceTable.setItem(i, 1, device_uri)
             tickbox = QtWidgets.QTableWidgetItem()
-            tickbox.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
-            value = QtCore.Qt.Checked if states.get(name, False) else QtCore.Qt.Unchecked
+            tickbox.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+            value = Qt.Checked if name in selected_devices else Qt.Unchecked
             tickbox.setCheckState(value)
             self.remoteDeviceTable.setItem(i, 2, tickbox)
 
     def _get_state_map(self,):
         remote_device_states = {}
-        for i in range(self.remoteDeviceTable.getRowCount()):
-            key = self.remoteDeviceTable.cellWidget(i, 0).currentText()
-            value = self.remoteDeviceTable.cellWidget(i, 2).checkState() == QtCore.Qt.Checked
+        for i in range(self.remoteDeviceTable.rowCount()):
+            key = self.remoteDeviceTable.item(i, 0).text()
+            value = self.remoteDeviceTable.item(i, 2).checkState() == Qt.Checked
             remote_device_states[key] = value
         return remote_device_states
 
@@ -148,12 +162,34 @@ class MainWindow(QtWidgets.QMainWindow):
         self.session_info[list_name] = self.get_selected_items(list_widget)
         self.validate_yaml(data=self.session_info)
 
+    def on_table_changed(self):
+        """Callback for when remote devices table is edited"""
+        remote_devices = self._get_state_map()
+        # Initialize devices in experiment description if empty
+        if any(remote_devices.values()) and not self.session_info.get('devices', False):
+            self.session_info['devices'] = {}
+        for device in remote_devices:
+            if remote_devices[device] is True:
+                uri = next(
+                    self.remoteDeviceTable.item(i, 1).text()
+                    for i in range(self.remoteDeviceTable.rowCount())
+                    if self.remoteDeviceTable.item(i, 0).text() == device
+                )
+                device_dict = self.session_info['devices'].get(device, {})
+                device_dict['URI'] = uri
+                self.session_info['devices'][device] = device_dict
+            elif device in self.session_info.get('devices', []):
+                self.session_info['devices'][device].pop('URI', None)  # Remove remote device flag
+                if not self.session_info['devices'][device]:
+                    self.session_info['devices'].pop(device)
+        self.validate_yaml(data=self.session_info)
+
     @staticmethod
     def get_selected_items(list_view):
         """Return the data of all ticked list items"""
         n_items = list_view.count()
         items = map(list_view.item, range(n_items))
-        ticked = filter(lambda x: x.checkState() == QtCore.Qt.Checked, items)
+        ticked = filter(lambda x: x.checkState() == Qt.Checked, items)
         return list(map(QtWidgets.QListWidgetItem.text, ticked))
 
     def on_filter_button_pressed(self):
@@ -167,13 +203,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.validate_yaml()  # Check the YAML is OK, update session_info field
         self.save_to_yaml()
         self.subject_settings.setValue('selected_description', self.session_info)
-        self.subject_settings.setValue('remote_device_states', self._get_state_map())
-        # TODO save states to remote file
-
-        selected_procedures = self.session_info.get('procedures', [])
-        if 'Fiber photometry' in selected_procedures:
-            self.fp_dialog = FibrePhotometryDialog(self, self.subject, self.session_path)
-            self.fp_dialog.open()
+        # TODO save updated URIs to remote file?
 
         # Should this be the case?
         # self.close()
@@ -200,19 +230,28 @@ class MainWindow(QtWidgets.QMainWindow):
             values = self.session_info.get(key, []).copy()  # setCheckState callback will edit
             # First deselect all in list view
             for item in map(list_view.item, range(list_view.count())):
-                item.setCheckState(QtCore.Qt.Unchecked)
+                item.setCheckState(Qt.Unchecked)
             # Then update all the necessary items
             for value in map(str.strip, values):
-                items = list_view.findItems(value, QtCore.Qt.MatchExactly)
+                items = list_view.findItems(value, Qt.MatchExactly)
                 if not items:  # add to list
                     item = QtWidgets.QListWidgetItem()
                     item.setText(value)
-                    item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
-                    item.setCheckState(QtCore.Qt.Checked)
+                    item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+                    item.setCheckState(Qt.Checked)
                     list_view.addItem(item)
                 else:  # Tick item in list
                     assert len(items) == 1
-                    items[0].setCheckState(QtCore.Qt.Checked)
+                    items[0].setCheckState(Qt.Checked)
+
+        # Update remote devices table
+        remote_devices = [self.remoteDeviceTable.item(i, 0).text() for i in range(self.remoteDeviceTable.rowCount())]
+        for device in self.session_info.get('devices', []):
+            if device in remote_devices:
+                uri = self.session_info['devices'][device].get('URI', False)
+                state = Qt.Checked if uri else Qt.Unchecked
+                i = remote_devices.index(device)
+                self.remoteDeviceTable.item(i, 2).setCheckState(state)
 
     def on_load_button_pressed(self):
         """Callback for when experiment description load button is pressed"""
@@ -254,34 +293,6 @@ class MainWindow(QtWidgets.QMainWindow):
         print(f'Saving experiment description file to {session_path}')
         with open(session_path / '_ibl_experiment.description.yaml', 'w') as fp:
             yaml.safe_dump(self.session_info, fp)
-
-
-class FibrePhotometryDialog(QtWidgets.QDialog):
-
-    def __init__(self, qmain, subject, session_path):
-        super(FibrePhotometryDialog, self).__init__()
-        uic.loadUi(Path(__file__).parent.joinpath('fibrephotometry_form.ui'), self)
-        self.qmain = qmain
-        self.subject = subject
-        self.session_path = session_path
-        self.subjectLabel.setText(subject)
-        self.previously_selected_fibres = self.qmain.settings.value(f'selected_fibres_{subject}') or []
-        self.qmain.populate_lists(self.roiList, [f'ROI_{i}' for i in range(5)], self.previously_selected_fibres)
-        self.saveButton.accepted.connect(self.on_save_button_pressed)
-
-    def on_save_button_pressed(self):
-        selected_fibers = self.qmain.get_selected_items(self.roiList)
-        self.qmain.settings.setValue(f'selected_fibres_{self.subject}', selected_fibers)
-        fiber_info = {
-            'fiberphotometry': {f'fiber0{fib.split("_")[-1]}': {} for fib in selected_fibers}
-        }
-
-        if self.qmain.session_info.get('devices', None):
-            self.qmain.session_info['devices'].update(fiber_info)
-        else:
-            self.qmain.session_info['devices'] = fiber_info
-
-        self.qmain.save_to_yaml(self.qmain.session_info)
 
 
 if __name__ == '__main__':

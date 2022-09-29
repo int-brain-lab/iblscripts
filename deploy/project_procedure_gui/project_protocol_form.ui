@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1208</width>
+    <width>348</width>
     <height>894</height>
    </rect>
   </property>
@@ -65,7 +65,7 @@
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
         <widget class="QWidget" name="widget_5" native="true">
-         <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="2,1">
+         <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="2,0">
           <item>
            <widget class="QLabel" name="label">
             <property name="font">
@@ -81,7 +81,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QRadioButton" name="filterprojectButton">
+           <widget class="QCheckBox" name="filterprojectButton">
             <property name="font">
              <font>
               <pointsize>10</pointsize>
@@ -307,7 +307,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1208</width>
+     <width>348</width>
      <height>21</height>
     </rect>
    </property>
