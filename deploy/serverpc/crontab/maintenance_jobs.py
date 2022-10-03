@@ -7,14 +7,17 @@ import shutil
 import numpy as np
 from one.api import ONE
 from one.alf.files import get_session_path
+import spikeglx
 
 import ibllib.io.raw_data_loaders as raw
 from ibllib.ephys import spikes
 from ibllib.pipes.local_server import _get_lab
-from ibllib.io import spikeglx
 from ibllib.pipes.ephys_preprocessing import SpikeSorting, EphysCellsQc
 from ibllib.oneibl.registration import register_dataset
 from ibllib.pipes.local_server import _get_volume_usage
+import ibllib.io.session_params as session_params
+from ibllib.pipes.dynamic_pipeline import acquisition_description_legacy_session
+
 
 ROOT_PATH = Path('/mnt/s0/Data/Subjects')
 
@@ -322,6 +325,23 @@ def remove_old_spike_sortings_outputs():
     _logger.info(f'remove old spike sorting outputs removed {siz / 1024 ** 3} Go')
 
 
+def dynamic_pipeline_transition_photometry():
+    """
+    Looks for a _device/photometry_00.yaml file if found create an acquisition description file and add
+    a raw_session_flag
+    """
+    photometry_yamls = list(ROOT_PATH.glob('**/photometry_00.yaml'))
+
+    for photometry_yaml in photometry_yamls:
+        session_path = get_session_path(photometry_yaml)
+        fp_description = session_params.read_params(photometry_yaml)
+        description = acquisition_description_legacy_session(session_path)
+        description['devices']['photometry'] = fp_description['devices']['photometry']
+        description['procedures'] = list(set(description['procedures'] + ['Fiber photometry']))
+        session_params.write_params(session_path, description)
+        session_path.joinpath('raw_session.flag').touch()
+
+
 if __name__ == "__main__":
     correct_flags_biased_in_ephys_rig()
     correct_ephys_manual_video_copies()
@@ -329,3 +349,4 @@ if __name__ == "__main__":
     # upload_ks2_output()
     correct_passive_in_wrong_folder()
     # remove_old_spike_sortings_outputs()
+    # dynamic_pipeline_transition_photometry()
