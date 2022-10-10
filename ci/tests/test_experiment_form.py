@@ -4,6 +4,8 @@ import unittest
 import unittest.mock
 from pathlib import Path
 import tempfile
+import json
+import yaml
 
 from PyQt5.QtWidgets import QApplication, QMessageBox
 from PyQt5.QtTest import QTest
@@ -34,7 +36,13 @@ class TestMainForm(IntegrationTest):
         QSettings('int-brain-lab', 'project_protocol_form').clear()
         QSettings('int-brain-lab', f'project_protocol_form_{self.subject}').clear()
 
-        self.form = MainWindow('ZM_1743', 'test_user', session_path=self.session_path, one=self.one)
+        # Set up remote data params
+        param_file = Path(self.tmpdir.name, '.transfer_params')
+        with open(param_file, 'w') as fp:
+            json.dump({'REMOTE_DATA_FOLDER_PATH': self.tmpdir.name}, fp)
+        mock_loc = 'iblutil.io.params.getfile'
+        with unittest.mock.patch(mock_loc, return_value=param_file):
+            self.form = MainWindow('ZM_1743', 'test_user', session_path=self.session_path, one=self.one)
 
     def test_user_filter(self):
         """Test that the project filter radio button toggles the project list"""
@@ -82,6 +90,32 @@ class TestMainForm(IntegrationTest):
 
         self.form.plainTextEdit.setPlainText(text)
         QTest.mouseClick(self.form.validateButton, Qt.LeftButton)
+
+    def test_remote_devices(self):
+        """Test the population and validation of the remote devices table"""
+        # Disconnect callback for now
+        self.form.remoteDeviceTable.itemChanged.disconnect()
+
+        # First test behaviour when params are missing
+        with self.assertWarns(Warning):
+            self.form.populate_table(None)
+            self.assertEqual(0, self.form.remoteDeviceTable.rowCount())
+
+        # Check behaviour when remote devices file doesn't exist
+        self.form.populate_table(self.tmpdir.name)
+        self.assertEqual(0, self.form.remoteDeviceTable.rowCount())
+
+        with open(Path(self.tmpdir.name, 'remote_devices.yaml'), 'w') as fp:
+            yaml.dump({'cameras': '192.168.0.1', 'mesoscope': 'ws://86.167.0.224:8888'}, fp)
+        self.form.populate_table(self.tmpdir.name)
+        self.assertEqual(2, self.form.remoteDeviceTable.rowCount())
+        self.assertEqual(3, self.form.remoteDeviceTable.columnCount())
+
+        # Check update of device states
+        self.form.remoteDeviceTable.itemChanged.connect(self.form.on_table_changed)
+        self.form.remoteDeviceTable.item(0, 2).setCheckState(Qt.Checked)
+        uri = self.form.session_info.get('devices', {}).get('cameras', {}).get('URI', None)
+        self.assertEqual('192.168.0.1', uri)
 
     def test_load_yaml(self):
         """Test the loading of a YAML file"""
