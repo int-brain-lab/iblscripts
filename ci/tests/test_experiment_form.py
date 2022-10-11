@@ -7,11 +7,14 @@ import tempfile
 import json
 import yaml
 
-from PyQt5.QtWidgets import QApplication, QMessageBox
-from PyQt5.QtTest import QTest
-from PyQt5.QtCore import Qt, QSettings
-from one.api import ONE
+try:
+    from PyQt5.QtWidgets import QApplication, QMessageBox
+    from PyQt5.QtTest import QTest
+    from PyQt5.QtCore import Qt, QSettings
+except Exception:
+    raise unittest.SkipTest('Import of PyQt5 failed')
 
+from one.api import ONE
 from ibllib import __file__ as ibllib_init  # for use of the experiment description fixture
 from ci.tests.base import IntegrationTest, TEST_DB
 from deploy.project_procedure_gui.experiment_form import MainWindow
