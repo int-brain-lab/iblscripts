@@ -15,9 +15,9 @@ from deploy.project_procedure_gui.experiment_form import MainWindow
 
 raise unittest.SkipTest('Import / Instantiation of PyQt5 app failed')
 
-from PyQt5.QtWidgets import QApplication, QMessageBox
-from PyQt5.QtTest import QTest
-from PyQt5.QtCore import Qt, QSettings
+from PyQt5.QtWidgets import QApplication, QMessageBox  # noqa
+from PyQt5.QtTest import QTest  # noqa
+from PyQt5.QtCore import Qt, QSettings  # noqa
 
 app = QApplication(sys.argv)
 
