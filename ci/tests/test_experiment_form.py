@@ -13,7 +13,7 @@ from ibllib import __file__ as ibllib_init  # for use of the experiment descript
 from ci.tests.base import IntegrationTest, TEST_DB
 from deploy.project_procedure_gui.experiment_form import MainWindow
 
-unittest.SkipTest('Import / Instantiation of PyQt5 app failed')
+raise unittest.SkipTest('Import / Instantiation of PyQt5 app failed')
 
 from PyQt5.QtWidgets import QApplication, QMessageBox
 from PyQt5.QtTest import QTest
