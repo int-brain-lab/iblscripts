@@ -50,5 +50,6 @@ pip install git+https://github.com/int-brain-lab/ibllib.git@$1
 pip install -e /home/experiment/Documents/github/iblscripts
 pip install pyfftw
 pip install -U git+https://github.com/int-brain-lab/project_extraction.git
+pip uninstall -y opencv-python
 
 python /home/experiment/Documents/github/iblscripts/ci/download_data.py
