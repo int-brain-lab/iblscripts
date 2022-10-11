@@ -66,6 +66,7 @@ class TestReadSpikeSorting(IntegrationTest):
         eid = one.path2eid(self.session_path)
 
         sl = SpikeSortingLoader(eid=eid, pname=pname, one=one)
+        self.assertEqual(sl.pid2ref(), '2020-10-05_1_SWC_054_probe01')
         _logger.setLevel(0)
         spikes, clusters, channels = sl.load_spike_sorting(spike_sorter='')
         _check(spikes['times'], spike_sorter='')
