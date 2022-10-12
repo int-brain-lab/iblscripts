@@ -133,7 +133,7 @@ class TestSessionLoader(IntegrationTest):
         self.assertEqual((626, 17), self.sess_loader.trials.shape)
 
     def test_load_wheel(self):
-        self.sess_loader.load_wheel(sampling_rate=100, smooth_size=0.05)
+        self.sess_loader.load_wheel(fs=100, corner_frequency=20, order=8)
         self.assertCountEqual(['times', 'position', 'velocity', 'acceleration'], self.sess_loader.wheel.columns)
 
     def test_load_pose(self):
