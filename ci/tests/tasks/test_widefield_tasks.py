@@ -87,7 +87,7 @@ class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
 
     def test_preprocess(self):
         task = WidefieldPreprocess(self.session_path)
-        status = task.run()
+        status = task.run(upload_plots=False)
         assert status == 0
 
         for exp_files in task.signature['output_files']:
