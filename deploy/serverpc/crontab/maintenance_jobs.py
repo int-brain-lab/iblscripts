@@ -344,8 +344,9 @@ def dynamic_pipeline_transition_photometry():
 
 if __name__ == "__main__":
     correct_flags_biased_in_ephys_rig()
-    correct_ephys_manual_video_copies()
-    spike_amplitude_patching()
+    # correct_ephys_manual_video_copies()
+    remove_iti_duration()
+    # spike_amplitude_patching()
     # upload_ks2_output()
     correct_passive_in_wrong_folder()
     # remove_old_spike_sortings_outputs()
