@@ -840,6 +840,7 @@ if __name__ == "__main__":
         fiber_form = MainWindow()
         fiber_form.settings.clear()
     else:
+        TESTING_MODE = False
         DATA_DIRS = create_data_dirs()
         fiber_form = MainWindow()
         fiber_form.show()
