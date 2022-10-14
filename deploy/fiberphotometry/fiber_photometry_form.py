@@ -4,8 +4,8 @@ Application to perform Fiber Photometry related tasks
 QtSettings values:
     subjects: list[str] = field(default_factory=list) - list of subjects should carry over between sessions
     local_data_path: str - destination path for parent data directory on local machine, i.e C:\fp_data
-    server_data_path: str - destination path for local lab server, i.e  \\mainenlab_server\Subjects
-    local_bkup_path: str - local path mirrors server dir structure, ensures backup exists, i.e. C:\fp_data_bkup\Subjects
+    server_data_path: str - destination path for local lab server, i.e  \\mainenlab_server\\Subjects
+    local_bkup_path: str - local path mirrors server dir structure, ensures backup exists, i.e. C:\fp_data_bkup\\Subjects
 """
 import argparse
 import csv
@@ -48,10 +48,12 @@ try:  # specify ui file(s) output by Qt Designer, call function to convert to py
     from fiber_photometry_form_ui import Ui_MainWindow
     from fiber_photometry_dialog_box_ui import Ui_Dialog
     from fiber_photometry_confirm_box_ui import Ui_Dialog as Ui_Confirm
+
     log.info("All ui files converted to py files and imported")
 except ImportError as msg:
     log.error(f"Could not import PyQt Designer ui files\n{msg}")
     exit(1)
+
 
 class Dialog(QtWidgets.QDialog, Ui_Dialog):
     def __init__(self, parent=None):
@@ -69,6 +71,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     """
     Controller
     """
+
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent=parent)
         self.setupUi(self)
@@ -143,8 +146,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             # Populate run numbers as strings, starting with 1 instead of 0 for readability
             self.runs_available = [str(x + 1) for x in range(len(self.available_data_files["daq_files"]))]
-            self.run_selector.addItems(self.runs_available) if self.runs_available else log.warning("Something went wrong "
-                                                                                                    "identifying run numbers.")
+            self.run_selector.addItems(self.runs_available) if self.runs_available else log.warning(
+                "Something went wrong "
+                "identifying run numbers.")
 
     def run_selector_updated(self):
         """Called when the run_selector combo box text is changed"""
@@ -187,9 +191,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             return
         daq_files = list(date_folder.glob("sync_*.tdms"))
         photometry_files = list(date_folder.glob("raw_photometry*.csv"))
-        fp_config_files = list(date_folder.glob("FP3002Config*.xml"))  # TODO: Determine if this is something worth checking
+        fp_config_files = list(
+            date_folder.glob("FP3002Config*.xml"))  # TODO: Determine if this is something worth checking
         if not (len(daq_files) == len(photometry_files) == len(fp_config_files)):
-            self.dialog_box.label.setText(f"Number of found output files for DAQ, Photometry, and FP Config do not match.")
+            self.dialog_box.label.setText(
+                "Number of found output files for DAQ, Photometry, and FP Config do not match.")
             self.dialog_box.exec_()
             return
         # sort the files alphabetically to (hopefully) determine which run was first
@@ -278,7 +284,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         try:  # Copy items from queue_data_raw_path to local_bkup_raw_path for every item in queue
             [shutil.copytree(
-                item["queue_data_raw_path"], item["local_bkup_raw_path"], dirs_exist_ok=True) for item in self.items_to_transfer]
+                item["queue_data_raw_path"], item["local_bkup_raw_path"], dirs_exist_ok=True) for item in
+                self.items_to_transfer]
         except shutil.Error:
             raise
 
@@ -300,8 +307,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             # Call rsync from ibllib
             transfer_success = rsync_paths(item["local_bkup_raw_path"], remote_data_path)
             if not transfer_success:
-                self.dialog_box.label.setText("Something went wrong during the transfer, please carefully review log messages in "
-                                              "the terminal.")
+                self.dialog_box.label.setText(
+                    "Something went wrong during the transfer, please carefully review log messages in "
+                    "the terminal.")
                 self.dialog_box.exec_()
 
         if transfer_success:
@@ -309,8 +317,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.append_or_create_experiment_description()
 
             # Display dialog box with success message
-            self.dialog_box.label.setText("The transfer has completed. Please review the log messages in the terminal for "
-                                          "details. Pressing OK will reset the form.")
+            self.dialog_box.label.setText(
+                "The transfer has completed. Please review the log messages in the terminal for "
+                "details. Pressing OK will reset the form.")
             self.dialog_box.exec_()
 
             self.reset_form()
@@ -368,8 +377,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         exp_desc_write_success = True
                         break
                     except OSError as msg:
-                        log.warning("Could not write experiment description file to server: ", msg, "\nReattempting write "
-                                                                                                    "operation...")
+                        log.warning("Could not write experiment description file to server: ", msg,
+                                    "\nReattempting write "
+                                    "operation...")
                         time.sleep(random.randint(0, 5))
                 if exp_desc_write_success:
                     log.info("Experiment description file successfully wrote to server.")
@@ -421,8 +431,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 try:
                     list_region_index = lower_case_acronym_list.index(text)
                 except ValueError:
-                    self.dialog_box.label.setText(f"Brain Area text for input {text} could not be validated. Please verify what "
-                                                  f"was typed.")
+                    self.dialog_box.label.setText(
+                        f"Brain Area text for input {text} could not be validated. Please verify what "
+                        f"was typed.")
                     self.dialog_box.exec_()
                     return False
                 text_input.setText(acronym_list[list_region_index])  # Update the QtWidgets.QLineEdit text field
@@ -485,8 +496,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             try:  # to validate timestamps, comparison between FP and DAQ data files
                 fp_extractor.check_timestamps(daq_file=src_daq_data_file_path, photometry_file=src_fp_data_file_path)
             except (AssertionError, TypeError) as msg:
-                self.dialog_box.label.setText("Validation during the comparison of TTLs between DAQ and Fiber Photometry produced "
-                                              "csv file has failed. Check the terminal for a more detailed error message.")
+                self.dialog_box.label.setText(
+                    "Validation during the comparison of TTLs between DAQ and Fiber Photometry produced "
+                    "csv file has failed. Check the terminal for a more detailed error message.")
                 self.dialog_box.exec_()
                 log.error(msg)
                 return
@@ -526,7 +538,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             os.makedirs(queue_data_raw_path, exist_ok=True)
             Model(pd.read_csv(src_fp_data_file_path)).dataframe.to_parquet(dst_fp_data_file)
             shutil.copy(src_daq_data_file_path, dst_daq_data_file)
-            shutil.copy(src_fp_config_file_path, dst_fp_config_file_path)  # TODO: configuration to be moved into parquet metadata
+            shutil.copy(src_fp_config_file_path,
+                        dst_fp_config_file_path)  # TODO: configuration to be moved into parquet metadata
             item_settings.write_text(json.dumps(item))
         except (OSError, TypeError) as msg:
             log.error(msg)
@@ -703,12 +716,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if not self.settings.value("subjects"):
             self.settings.setValue("subjects", ["mouse1"])
 
-        if not self.settings.value("local_data_path") or os.name != "nt":  # os name check for testing on linux with temp dirs
+        if not self.settings.value(
+                "local_data_path") or os.name != "nt":  # os name check for testing on linux with temp dirs
             self.settings.setValue("local_data_path", str(DATA_DIRS["fp_local_data_path"]))
         if not self.settings.value("server_data_path"):
             self.settings.setValue("server_data_path", "\\\\path_to_server\\Subjects")
 
-        if not self.settings.value("local_bkup_path") or os.name != "nt":  # os name check for testing on linux with temp dirs
+        if not self.settings.value(
+                "local_bkup_path") or os.name != "nt":  # os name check for testing on linux with temp dirs
             self.settings.setValue("local_bkup_path", str(DATA_DIRS["fp_local_bkup_path"]))
 
     def validate_run_selector(self) -> bool:
@@ -740,10 +755,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Ensure at least a single patch cord and a single ROI has been selected
         if ((self.patch_cord_selector_01.currentText() == "") and (self.roi_selector_02.currentText() == "") and
             (self.roi_selector_03.currentText() == "")) or \
-                ((self.roi_selector_01.currentText() == "") and (self.roi_selector_02.currentText() == "")
-                 and (self.roi_selector_03.currentText() == "")):
-            self.dialog_box.label.setText("Patch Cord or ROI selection is missing. Please select at least one Patch Cord and one"
-                                          " ROI.")
+                ((self.roi_selector_01.currentText() == "") and (self.roi_selector_02.currentText() == "") and
+                 (self.roi_selector_03.currentText() == "")):
+            self.dialog_box.label.setText(
+                "Patch Cord or ROI selection is missing. Please select at least one Patch Cord and one"
+                " ROI.")
             self.dialog_box.exec_()
             return False
 
@@ -754,8 +770,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 (self.patch_cord_selector_02.currentText() == "" and self.roi_selector_02.currentText() != "") or \
                 (self.patch_cord_selector_03.currentText() != "" and self.roi_selector_03.currentText() == "") or \
                 (self.patch_cord_selector_03.currentText() == "" and self.roi_selector_03.currentText() != ""):
-            self.dialog_box.label.setText("Patch Cord and ROI selections do not match up. Please make sure each Patch Cord "
-                                          "selection has an ROI selection.")
+            self.dialog_box.label.setText(
+                "Patch Cord and ROI selections do not match up. Please make sure each Patch Cord "
+                "selection has an ROI selection.")
             self.dialog_box.exec_()
             return False
 
@@ -776,8 +793,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Display dialog box to end user about duplicate ROIs
         if duplicates:
-            self.dialog_box.label.setText("The same ROI has been selected multiple times. Please select only one ROI per patch "
-                                          "cord link.")
+            self.dialog_box.label.setText(
+                "The same ROI has been selected multiple times. Please select only one ROI per patch "
+                "cord link.")
             self.dialog_box.exec_()
             return False
 
@@ -802,7 +820,7 @@ def test_model(file_test):
     This test does not require instantiating a GUI, and tests only the model logic
     """
     model = Model(pd.read_csv(file_test))
-    assert(model.regions == [
+    assert (model.regions == [
         'Region0R', 'Region1G', 'Region2R', 'Region3R', 'Region4R', 'Region5G', 'Region6G', 'Region7R', 'Region8G'])
 
 
@@ -819,7 +837,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fiber Photometry Form")
     parser.add_argument("-t", "--test", default=False, required=False, action="store_true", help="Load test data")
     clear_qsettings_help = "Resets the Qt QSetting values; useful for when there are many unused values in the subject combo box."
-    parser.add_argument("-c", "--clear-qsettings", default=False, required=False, action="store_true", help=clear_qsettings_help)
+    parser.add_argument("-c", "--clear-qsettings", default=False, required=False, action="store_true",
+                        help=clear_qsettings_help)
     args = parser.parse_args()
 
     # Create application
@@ -832,7 +851,8 @@ if __name__ == "__main__":
         test_data_dir = Path(os.getcwd()) / "test_data" / "2022-09-06"
         test_local_date_dir = DATA_DIRS["fp_local_data_path"] / str(date.today())
         shutil.copytree(test_data_dir, test_local_date_dir)
-        log.info(f"Testing mode:\n- TEST DATA LOADED FROM: {test_data_dir}\n- TEST DATA LOADED TO: {test_local_date_dir}")
+        log.info(
+            f"Testing mode:\n- TEST DATA LOADED FROM: {test_data_dir}\n- TEST DATA LOADED TO: {test_local_date_dir}")
         fiber_form = MainWindow()
         fiber_form.show()
         sys.exit(app.exec_())
