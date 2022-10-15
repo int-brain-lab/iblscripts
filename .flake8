@@ -2,6 +2,8 @@
 max-line-length = 130
 ignore = W504
 exclude =
-    scratch_*.py
-    ci/tests/examples_test.py
+    .git,
+    __pycache__,
+    scratch_*.py,
+    ci/tests/examples_test.py,
     venv
