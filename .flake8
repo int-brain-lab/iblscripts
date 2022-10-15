@@ -6,4 +6,7 @@ exclude =
     __pycache__,
     scratch_*.py,
     ci/tests/examples_test.py,
-    venv
+    venv,
+    deploy/fiberphotometry/fiber_photometry_confirm_box_ui.py,
+    deploy/fiberphotometry/fiber_photometry_dialog_box_ui.py,
+    deploy/fiberphotometry/fiber_photometry_form_ui.py
