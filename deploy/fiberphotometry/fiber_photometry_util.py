@@ -3,14 +3,16 @@ Utility functions for fiber photometry form
 """
 import os
 import subprocess
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
+import yaml
 from iblutil.util import get_logger
 
 log = get_logger(name="fiber_photometry_form", file=True)
 
-FP_LOCAL_DATA_PATH = "D:\\ibl_fp_data"  # folder that will contain the fp data output from bonsai and daq
-FP_LOCAL_BKUP_PATH = "D:\\ibl_fp_data_bkup\\Subjects"  # backup folder that mirrors what will be copied to server
+with open("fp_params.yml") as file:
+    fp_params = yaml.safe_load(file)
 
 
 def convert_ui_file_to_py(file_location: str, output_file_name: str) -> str:
@@ -78,8 +80,8 @@ def create_data_dirs(test=False) -> dict:
     else:  # ensure data dirs exist for local storage of fiber photometry data
         if os.name == "nt":  # check on OS platform
             data_dirs.update({
-                "fp_local_data_path": FP_LOCAL_DATA_PATH,
-                "fp_local_bkup_path": FP_LOCAL_BKUP_PATH
+                "fp_local_data_path": fp_params["fp_local_data_path"],
+                "fp_local_bkup_path": fp_params["fp_local_bkup_path"]
             })
             try:  # to create local queue data folder
                 os.makedirs(data_dirs["fp_local_bkup_path"], exist_ok=True)

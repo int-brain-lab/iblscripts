@@ -71,7 +71,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     """
     Controller
     """
-
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent=parent)
         self.setupUi(self)
@@ -94,6 +93,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.action_reset_form.triggered.connect(self.reset_form)
         self.action_verify_local_data_files.triggered.connect(self.verify_local_data_files)
         self.action_run_selector_updated.triggered.connect(self.run_selector_updated)
+        self.action_populate_rois.triggered.connect(self.populate_rois)
 
         # Populate default qsetting values for subjects and server_data_path
         self.populate_default_qsetting_values()
@@ -102,11 +102,30 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.patch_cord_defaults = ["", "Patch Cord A", "Patch Cord B", "Patch Cord C"]
 
         # Populate widgets
-        self.populate_widgets()
+        self.init_populate_widgets()
 
         # Disable various widgets until needed
         self.enable_insertion_user_input_widgets(enable=False)
         self.button_transfer_items_to_server.setEnabled(False)
+
+    def populate_rois(self):
+        """
+        Called when the 'Populate ROIs' button is pressed. Scans for available regions in selected file and populates combobox
+        """
+        # Grab ROI fieldnames from selected csv file
+        with open(self.available_data_files["photometry_files"][self.run_selector_index], "r") as infile:
+            reader = csv.DictReader(infile)
+            fieldnames = reader.fieldnames
+
+        # Populate ROI values into the roi selectors
+        for field in fieldnames:
+            if field.startswith("Region"):
+                self.roi_selector_01.addItem(field)
+                self.roi_selector_02.addItem(field)
+                self.roi_selector_03.addItem(field)
+
+        # Enable the remaining user inputs
+        self.enable_insertion_user_input_widgets()
 
     def enable_insertion_user_input_widgets(self, enable: bool = True):
         """Disables the various insertion input widgets to prevent undesired user interaction"""
@@ -129,8 +148,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # run selector
         self.run_selector.setEnabled(enable)
         self.run_selector_display.setEnabled(enable)
-        # add item to queue buttons
+        # buttons
         self.button_add_item_to_queue.setEnabled(enable)
+        self.button_populate_rois.setEnabled(enable)
 
     def verify_local_data_files(self):
         """
@@ -147,8 +167,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             # Populate run numbers as strings, starting with 1 instead of 0 for readability
             self.runs_available = [str(x + 1) for x in range(len(self.available_data_files["daq_files"]))]
             self.run_selector.addItems(self.runs_available) if self.runs_available else log.warning(
-                "Something went wrong "
-                "identifying run numbers.")
+                "Something went wrong identifying run numbers.")
 
     def run_selector_updated(self):
         """Called when the run_selector combo box text is changed"""
@@ -162,21 +181,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 display_str += "\nFP Configuration File: "  # TODO: wrap into the parquet metadata
                 display_str += str(self.available_data_files["fp_config_files"][self.run_selector_index])
                 self.run_selector_display.setText(display_str)
-
-                # Grab ROI fieldnames from selected csv file
-                with open(self.available_data_files["photometry_files"][self.run_selector_index], "r") as infile:
-                    reader = csv.DictReader(infile)
-                    fieldnames = reader.fieldnames
-
-                # Populate ROI values into the roi selectors
-                for field in fieldnames:
-                    if field.startswith("Region"):
-                        self.roi_selector_01.addItem(field)
-                        self.roi_selector_02.addItem(field)
-                        self.roi_selector_03.addItem(field)
-
-                # Enable the remaining user inputs
-                self.enable_insertion_user_input_widgets()
+                self.button_populate_rois.setEnabled(True)
 
     def scan_local_date_folder(self):
         """
@@ -192,10 +197,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         daq_files = list(date_folder.glob("sync_*.tdms"))
         photometry_files = list(date_folder.glob("raw_photometry*.csv"))
         fp_config_files = list(
-            date_folder.glob("FP3002Config*.xml"))  # TODO: Determine if this is something worth checking
+            date_folder.glob("FP3002Config*.xml"))
         if not (len(daq_files) == len(photometry_files) == len(fp_config_files)):
-            self.dialog_box.label.setText(
-                "Number of found output files for DAQ, Photometry, and FP Config do not match.")
+            self.dialog_box.label.setText("Number of found output files do not match.\n"
+                                          f"sync_*.tdms files: {len(daq_files)}\n"
+                                          f"raw_photometry files: {len(photometry_files)}\n"
+                                          f"FP3002Config files: {len(fp_config_files)}")
             self.dialog_box.exec_()
             return
         # sort the files alphabetically to (hopefully) determine which run was first
@@ -252,7 +259,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.dialog_box.label.setText("Operation cancelled, QSetting values have NOT been changed.")
             self.dialog_box.exec_()
 
-    def populate_widgets(self):
+    def init_populate_widgets(self):
         """
         Pulls from stored QSettings values where appropriate, and sets reasonable defaults to others
         """
@@ -551,6 +558,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Reset insertion information widgets
         self.reset_user_insertion_widgets()
+        self.enable_insertion_user_input_widgets(False)
 
         # Enable transfer button if it is not already
         self.button_transfer_items_to_server.setEnabled(True)
@@ -617,11 +625,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.patch_cord_selector_03.addItems(self.patch_cord_defaults)
         # ROI
         self.roi_selector_01.clear()
-        # self.roi_selector_01.addItems(self.roi_defaults)
+        self.roi_selector_01.addItem("")
         self.roi_selector_02.clear()
-        # self.roi_selector_02.addItems(self.roi_defaults)
+        self.roi_selector_02.addItem("")
         self.roi_selector_03.clear()
-        # self.roi_selector_03.addItems(self.roi_defaults)
+        self.roi_selector_03.addItem("")
         # Brain Area
         self.brain_area_01.clear()
         self.brain_area_02.clear()
@@ -632,6 +640,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.notes_03.clear()
         # Run Number
         self.run_selector.clear()
+        self.run_selector.addItem("")
         self.run_selector_display.clear()
 
     def get_selected_rois(self) -> list:
@@ -642,7 +651,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         -------
         list
             ROIs that have been selected for the current session
-
         """
         selected_rois = []
         if self.roi_selector_01.currentText() != "":
@@ -677,7 +685,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.run_selector.clear()
         self.run_selector_display.clear()
         # Populates widgets with default values
-        self.populate_widgets()
+        self.init_populate_widgets()
         # Clear item_queues
         self.item_queue_01.clear()
         self.item_queue_02.clear()

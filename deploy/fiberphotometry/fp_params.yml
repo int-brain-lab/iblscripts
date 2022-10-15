@@ -1,0 +1,2 @@
+fp_local_data_path: "D:\\ibl_fp_data"  # folder that will contain the fp data output from bonsai and daq
+fp_local_bkup_path: "D:\\ibl_fp_data_bkup\\Subjects"  # backup folder that mirrors what will be copied to server
