@@ -71,6 +71,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     """
     Controller
     """
+
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent=parent)
         self.setupUi(self)
