@@ -105,8 +105,7 @@ class TestStandardPipelines(base.IntegrationTest):
     def compare_dicts(self, dict1, dict2):
         assert len(dict1) == len(dict2)
         for d1, d2 in zip(dict1, dict2):
-
-            assert d1['executable'] == d2['executable']
+            assert d1['executable'] == d2['executable'], f'{d1["executable"]} != {d2["executable"]}'
             assert d1['parents'] == d2['parents']
             assert d1['name'] == d2['name']
 

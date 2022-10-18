@@ -276,17 +276,17 @@
     device_collection: raw_widefield_data
     sync_label: frame_trigger
   cpu: 1
-  executable: ibllib.pipes.widefield_tasks.WidefieldPreprocess
+  executable: ibllib.pipes.widefield_tasks.WidefieldCompress
   gpu: 0
   graph: Pipeline
   io_charge: 5
   level: 1
   log: null
   module: ibllib.pipes.tasks.Pipeline
-  name: WidefieldPreprocess
+  name: WidefieldCompress
   parents:
   - WidefieldRegisterRaw
-  priority: 80
+  priority: 90
   ram: 4
   session: null
   status: Waiting
@@ -295,17 +295,17 @@
     device_collection: raw_widefield_data
     sync_label: frame_trigger
   cpu: 1
-  executable: ibllib.pipes.widefield_tasks.WidefieldCompress
+  executable: ibllib.pipes.widefield_tasks.WidefieldPreprocess
   gpu: 0
   graph: Pipeline
   io_charge: 5
   level: 2
   log: null
   module: ibllib.pipes.tasks.Pipeline
-  name: WidefieldCompress
+  name: WidefieldPreprocess
   parents:
-  - WidefieldPreprocess
-  priority: 90
+  - WidefieldCompress
+  priority: 80
   ram: 4
   session: null
   status: Waiting
@@ -322,7 +322,7 @@
   gpu: 0
   graph: Pipeline
   io_charge: 5
-  level: 3
+  level: 2
   log: null
   module: ibllib.pipes.tasks.Pipeline
   name: WidefieldSync
@@ -343,7 +343,7 @@
   gpu: 0
   graph: Pipeline
   io_charge: 5
-  level: 2
+  level: 3
   log: null
   module: ibllib.pipes.tasks.Pipeline
   name: WidefieldFOV

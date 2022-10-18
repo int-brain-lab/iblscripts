@@ -2,6 +2,7 @@ import logging
 import hashlib
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from one.api import One
 from one.alf.io import load_object
@@ -34,6 +35,8 @@ class TestReadSpikeSorting(IntegrationTest):
         self.session_path = self.root_path.joinpath('SWC_054/2020-10-05/001')
         print('Building ONE cache from filesystem...')
         self.one = One.setup(self.root_path, silent=True)
+        self.pname = 'probe01'
+        self.eid = self.one.path2eid(self.session_path)
 
     def tearDown(self) -> None:
         for file in self.root_path.glob('*.pqt'):
@@ -60,12 +63,16 @@ class TestReadSpikeSorting(IntegrationTest):
             channels, {'localCoordinates': np.c_[h['x'], h['y']]}, brain_regions=br)
         assert set(channels.keys()) == BUNCH_KEYS
 
-    def test_read_spike_sorting(self):
-        pname = 'probe01'
-        one = self.one
-        eid = one.path2eid(self.session_path)
+    def test_display_spike_sorting(self):
+        sl = SpikeSortingLoader(eid=self.eid, pname=self.pname, one=self.one)
+        _logger.setLevel(0)
+        spikes, _, _ = sl.load_spike_sorting(spike_sorter='')
+        fig, ax = sl.raster(spikes)
+        plt.close(fig)
 
-        sl = SpikeSortingLoader(eid=eid, pname=pname, one=one)
+    def test_read_spike_sorting(self):
+        sl = SpikeSortingLoader(eid=self.eid, pname=self.pname, one=self.one)
+        self.assertEqual(sl.pid2ref, '2020-10-05_1_SWC_054_probe01')
         _logger.setLevel(0)
         spikes, clusters, channels = sl.load_spike_sorting(spike_sorter='')
         _check(spikes['times'], spike_sorter='')
@@ -78,13 +85,13 @@ class TestReadSpikeSorting(IntegrationTest):
 
         # load spike sorting using collection
         spikes, clusters, channels = sl.load_spike_sorting(
-            collection=f'alf/{pname}/ks2_preproc_tests')
+            collection=f'alf/{self.pname}/ks2_preproc_tests')
         _check(spikes['times'], spike_sorter='ks2_preproc_tests')
 
         # makes sure this is the pykilosort that is returned by default1
         spikes, clusters, channels = bbone._load_spike_sorting(
-            eid=eid, one=one, collection=f'alf/*{pname}/*', return_channels=True)
-        _check(spikes[pname]['times'])
+            eid=self.eid, one=self.one, collection=f'alf/*{self.pname}/*', return_channels=True)
+        _check(spikes[self.pname]['times'])
 
     def test_samples2times(self):
         pname = 'probe01'
@@ -126,7 +133,7 @@ class TestSessionLoader(IntegrationTest):
         self.assertEqual((626, 17), self.sess_loader.trials.shape)
 
     def test_load_wheel(self):
-        self.sess_loader.load_wheel(sampling_rate=100, smooth_size=0.05)
+        self.sess_loader.load_wheel(fs=100, corner_frequency=20, order=8)
         self.assertCountEqual(['times', 'position', 'velocity', 'acceleration'], self.sess_loader.wheel.columns)
 
     def test_load_pose(self):

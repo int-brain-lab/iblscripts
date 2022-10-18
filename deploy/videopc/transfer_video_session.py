@@ -7,6 +7,7 @@ from iblutil.util import get_logger
 # logging configuration
 log = get_logger(name="transfer_video_session", file=True)
 
+
 def main(local=None, remote=None):
     # Determine if user passed in arg for local/remote subject folder locations or pull in from local param file
     local_folder = local if local else load_videopc_params()["DATA_FOLDER_PATH"]
