@@ -336,7 +336,7 @@ def glob_sessions_fast(pattern, root_path=ROOT_PATH):
                 if not session_path.is_dir():
                     continue
                 for fn in session_path.glob(pattern):
-                    yield(fn)
+                    yield fn
 
 
 def dynamic_pipeline_transition_photometry():
