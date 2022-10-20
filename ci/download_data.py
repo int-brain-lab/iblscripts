@@ -30,7 +30,7 @@ status_map = {
 }
 
 try:
-    gtc = globus.login_auto(GLOBUS_CLIENT_ID)
+    gtc = globus.login_auto(GLOBUS_CLIENT_ID, GLOBUS_PARAM_STRING)
 except (ValueError, globus_sdk.AuthAPIError):
     logger.info('User authentication required...')
     globus.setup(GLOBUS_CLIENT_ID)

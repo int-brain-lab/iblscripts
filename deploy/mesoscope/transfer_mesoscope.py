@@ -77,7 +77,7 @@ def main(local=None, remote=None, rename_files=False):
 
     # Create transferred flag files and rename files
     for src, dst in (x for x, ok in zip(transfer_list, success) if ok):
-        log.info(f"{src} -> {dst} - mesoscope transfer success")
+        log.info(f'{src} -> {dst} - mesoscope transfer success')
 
         # Create flag
         flag_file = src.joinpath(DATA_FOLDER, 'transferred.flag')
