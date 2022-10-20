@@ -1,12 +1,22 @@
+"""Functions for interfacing with remote services.
+
+Examples
+--------
+Request an Alyx token from a remote service
+>>> client = await net.app.EchoProtocol.client('192.168.1.236:9998', name='timeline')
+>>> await client.alyx()  # Request token from remote client
+>>> one, logout = alyx_request_callback(*await client.on_event('ALYX'))
+
+"""
 import logging
 
 from iblutil.io import net
 import iblutil.io.net.app
 from iblutil.io.net.base import ExpMessage
-from ibllib.io import session_params
 from one.converters import ConversionMixin
 import one.params
 from one.api import ONE
+from ibllib.io import session_params
 
 
 _logger = logging.getLogger(__name__)
@@ -29,20 +39,22 @@ def install_alyx_token(base_url, token):
     bool
         True if the token was far a user not already cached.
     """
-    par = one.params.get(base_url)
-    is_new_user = next(iter(token)) not in par.TOKEN
-    par.TOKEN.update(token)
+    par = one.params.get(base_url, silent=True).as_dict()
+    is_new_user = next(iter(token), None) not in par.get('TOKEN', {})
+    par.setdefault('TOKEN', {}).update(token)
     one.params.save(par, base_url)
     return is_new_user
 
 
-def alyx_request_callback(*args):
+def alyx_request_callback(data, addr):
     """Callback to return ONE logged in with token from another device.
 
     Parameters
     ----------
-    args
-        The event message containing the token, e.g. (3, [url, {username: token}]).
+    data : (str, dict)
+        Tuple containing the Alyx database URL and token dict.
+    addr : (str, int)
+        The address of the remote host that sent the Alyx data.
 
     Returns
     -------
@@ -52,15 +64,20 @@ def alyx_request_callback(*args):
         If True, the user was not previously logged in on this device and should therefore be
         logged out during cleanup.
     """
-    _, (base_url, token) = args
+    base_url, token = data
+    if not (base_url and token):
+        return None, False
     logout = install_alyx_token(base_url, token)
-    username = next(iter(token[1]))
+    username = next(iter(token))
     one = ONE(base_url=base_url, username=username, silent=True)
     return one, logout
 
 
-def fetch_remote_clients(session_path):
+async def fetch_remote_clients(session_path):
     """Load remote device clients for a given session.
+
+    Loads the experiment description file and instantiates a network Communicator for devices that
+    have an associated URI.
 
     Parameters
     ----------
@@ -71,12 +88,17 @@ def fetch_remote_clients(session_path):
     -------
     list of iblutil.io.net.app.EchoProtocol
         A list of remote clients.
+
+    Notes
+    -----
+    If multiple devices have the same URI, only one Communicator will be instantiated (with the
+    name of the first device in the list).
     """
     if exp_info := session_params.read_params(session_path):
-        # FIXME Set of URIs
-        remote_devices = {k: v['URI'] for k, v in exp_info.get('devices', {}) if 'URI' in v}
-        remote_rigs = [await net.app.EchoProtocol.client(server_uri, name)
-                       for server_uri, name in remote_devices.items()]
+        uris = set()  # Remove keys with duplicate URIs; keep first in dict
+        remote_rigs = [await net.app.EchoProtocol.client(d['URI'], name)
+                       for name, d in exp_info.get('devices', {}).items()
+                       if 'URI' in d and d['URI'] not in uris and not uris.add(d['URI'])]
     else:
         remote_rigs = []
     return remote_rigs
@@ -96,8 +118,11 @@ async def prepare_remote_services(session_path):
     responses = await services.start(exp_ref)
 
     # STOP EXPERIMENT
-    for rig in remote_rigs.reverse():
-        await rig.stop(exp_ref)
+    responses = await services.stop(immediately=False)
+    # -OR-
+    # Without waiting for responses
+    # for rig in reversed(list(services.values())):
+    #     await rig.stop()
 
 
 if __name__ == '__main__':
