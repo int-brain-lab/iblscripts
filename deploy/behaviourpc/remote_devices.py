@@ -8,7 +8,7 @@ Request an Alyx token from a remote service
 >>> one, logout = alyx_request_callback(*await client.on_event('ALYX'))
 
 Set up client services
->>> remote_rigs = fetch_remote_clients(session_path)
+>>> remote_rigs = await fetch_remote_clients(session_path)
 >>> services = net.app.Services(remote_rigs)
 
 Set up (synchronous) callbacks
