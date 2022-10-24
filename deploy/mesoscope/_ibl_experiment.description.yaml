@@ -1,7 +1,7 @@
 devices:
   mesoscope:
     mesoscope:
-      collection: raw_mesoscope_data
+      collection: raw_imaging_data
       sync_label: chrono
 procedures:
 - Mesoscope recording
@@ -10,7 +10,7 @@ projects:
 sync:
   nidq:
     acquisition_software: timeline
-    collection: raw_mesoscope_data
+    collection: raw_sync_data
     extension: npy
 tasks:
   ephysChoiceWorld:
