@@ -2,10 +2,10 @@ import argparse
 
 from ibllib.pipes.misc import check_create_raw_session_flag, create_video_transfer_done_flag, load_videopc_params, \
     subjects_data_folder, transfer_session_folders
-from iblutil.util import get_logger
+from iblutil.util import setup_logger
 
 # logging configuration
-log = get_logger(name="transfer_video_session", file=True)
+log = setup_logger(name="transfer_video_session", file=True, level=20)
 
 
 def main(local=None, remote=None):

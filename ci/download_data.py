@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 import logging
 
 from iblutil.io import params
-from iblutil.util import get_logger
 from ibllib.io import globus
 
 import globus_sdk
@@ -11,7 +10,8 @@ from globus_sdk import TransferAPIError
 
 GLOBUS_PARAM_STRING = 'globus/admin'
 DEFAULT_PAR = {'local_endpoint': None, 'remote_endpoint': None, 'GLOBUS_CLIENT_ID': None}
-logger = get_logger('ibllib', level=logging.DEBUG)
+logger = logging.getLogger('ibllib')
+logger.setLevel(logging.DEBUG)
 
 # Read in parameters
 p = params.read(GLOBUS_PARAM_STRING, DEFAULT_PAR)
@@ -135,7 +135,7 @@ while running:
     time.sleep(poll) if running else logger.info(f'Final status: {last_status}')
 
 if logger.level == logging.DEBUG:
-    """Sometime Globus sets the status to SUCCEEDED but doesn't truly finish.
+    """Sometimes Globus sets the status to SUCCEEDED but doesn't truly finish.
     The try/except handles an error thrown when querying task_successful_transfers too early"""
     try:
         for info in gtc.task_successful_transfers(task_id):
@@ -146,5 +146,5 @@ if logger.level == logging.DEBUG:
         logger.debug('Failed to query transferred files')
 
 # Here we should exit
-if __name__ == "__main__":
+if __name__ == '__main__':
     exit(last_status != 'SUCCEEDED')
