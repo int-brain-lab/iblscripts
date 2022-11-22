@@ -1,0 +1,14 @@
+---
+ibl_user: "ubuntu"
+ibl_log_path: "/var/log/ibl"
+ansible_log_path: "{{ ibl_log_path }}/ansible_pull.log"
+certbot_log_path: "{{ ibl_log_path }}/certbot_renewal.log"
+certbot_url: "dev.alyx.internationalbrainlab.org"
+apache_user: "www-data"
+alyx_apache_dir: "/var/www/alyx"
+http_host: "alyx"
+http_conf: "test_domain.conf"
+http_port: "80"
+disable_default: true
+aws_ec2_region: "eu-west-2"
+aws_vpc_id: "vpc-c00387a8"

@@ -1,0 +1,98 @@
+---
+- hosts: localhost
+  connection: local
+  become: true
+  vars_files:
+    - vars.yml
+  pre_tasks:
+    - name: Create directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ibl_user }}"
+        group: "{{ ibl_user }}"
+        mode: 0664
+      with_items:
+        - "{{ ibl_log_path }}"
+        - "{{ alyx_apache_dir }}"
+
+    - name: Create log file
+      file:
+        path: "{{ item }}"
+        state: touch
+        owner: "{{ ibl_user }}"
+        group: "{{ ibl_user }}"
+        mode: 0664
+      with_items:
+        - "{{ ansible_log_path }}"
+        - "{{ certbot_log_path }}"
+
+  tasks:
+    - name: Schedule an ansible-pull every 15 minutes, log to ansible-pull.log
+      cron:
+        name: "ansible-pull job"
+        minute: "15"
+        job: >
+          /usr/bin/ansible-pull
+          --only-if-changed
+          --checkout ansible_init
+          --url https://github.com/int-brain-lab/iblscripts.git
+          deploy/ansible_playbooks/alyx-dev/local.yml >> {{ ibl_log_path }}/ansible-pull.log
+
+    - name: Ensure required apt packages are present
+      apt:
+        pkg:
+          - apache2
+          - apache2-utils
+          - awscli
+          - certbot
+          - git
+          - libapache2-mod-wsgi-py3
+          - postgresql
+          - python3-certbot-apache
+        state: present
+        autoclean: yes
+
+    - name: Alyx apache document root
+      file:
+        path: "{{ alyx_apache_dir }}"
+        state: directory
+        recurse: yes
+        owner: "{{ apache_user }}"
+        group: "{{ apache_user }}"
+        mode: 0755
+
+    - name: git clone alyx repo
+      git:
+        repo: https://github.com/cortex-lab/alyx.git
+        dest: "{{ alyx_apache_dir }}"
+        clone: yes
+        update: yes
+
+    - name: Ensure alyx requirements.txt are present
+      pip:
+        requirements: "{{ alyx_apache_dir }}/requirements.txt"
+
+    - name: Register certbot
+      shell: |
+        certbot --apache --noninteractive --agree-tos --email admin@internationalbrainlab.org -d {{ certbot_url }}
+        touch /etc/letsencrypt/.registered
+      args:
+        creates: /etc/letsencrypt/.registered
+
+    - name: Setup cronjob for renewal
+      cron:
+        name: certbot-renewal
+        job: "/bin/bash -lc '/usr/local/bin/certbot -q renew' >> {{ ibl_log_path }}/cert_renew.log"
+        hour: "14"
+
+  handlers:
+    - name: Reload Apache
+      service:
+        name: apache2
+        state: reloaded
+
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted

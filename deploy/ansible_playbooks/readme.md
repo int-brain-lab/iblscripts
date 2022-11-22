@@ -21,16 +21,24 @@ for our server configurations:
 Tested for Ubuntu 22.04 OS:
 ```bash
 sudo apt install ansible
-sudo ansible-pull --url https://github.com/int-brain-lab/iblscripts /deploy/ansible_playbooks/`server_name`/local.yml
+ansible-pull --url https://github.com/int-brain-lab/iblscripts.git deploy/ansible_playbooks/`server_name`/local.yml
 ```
 * `server_name` is the name of the server that is currently being configured, i.e. `parede`
 * run a `sudo crontab -l` command to verify that an ansible-pull cron job entry was created
+
+If working on a test branch, simply add the checkout argument:
+```bash
+ansible-pull --checkout `branch_name` --url https://github.com/int-brain-lab/iblscripts.git deploy/ansible_playbooks/`server_name`/local.yml
+```
+i.e. something along the lines of 
+`ansible-pull --checkout ansible_init --url https://github.com/int-brain-lab/iblscripts.git deploy/ansible_playbooks/alyx-dev/local.yml`
 
 ## Ansible documentation:
 * General:
   * https://docs.ansible.com/ansible/latest/cli/ansible-pull.html
 * Modules:
-  * https://docs.ansible.com/ansible/latest/collections/ansible/builtin/file_module.html
   * https://docs.ansible.com/ansible/latest/collections/ansible/builtin/apt_module.html
-  * https://docs.ansible.com/ansible/latest/collections/ansible/builtin/user_module.html
+  * https://docs.ansible.com/ansible/latest/collections/ansible/builtin/file_module.html
   * https://docs.ansible.com/ansible/latest/collections/ansible/posix/mount_module.html
+  * https://docs.ansible.com/ansible/latest/collections/ansible/builtin/shell_module.html
+  * https://docs.ansible.com/ansible/latest/collections/ansible/builtin/user_module.html
