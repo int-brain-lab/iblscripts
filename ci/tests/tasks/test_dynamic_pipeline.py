@@ -96,6 +96,12 @@ class TestStandardPipelines(base.IntegrationTest):
         shutil.copytree(self.folder_path.joinpath('photometry'), self.session_path)
         self.check_pipeline()
 
+    def test_mesoscope(self):
+        shutil.copytree(self.folder_path.joinpath('mesoscope'), self.session_path)
+        filepath = Path(base.__file__).parents[2].joinpath('deploy', 'mesoscope', '_ibl_experiment.description.yaml')
+        shutil.copy(filepath, self.session_path)
+        self.check_pipeline()
+
     def check_pipeline(self):
         pipe = dynamic.make_pipeline(self.session_path)
         dy_pipe = dynamic.make_pipeline_dict(pipe, save=False)
