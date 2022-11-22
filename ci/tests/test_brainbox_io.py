@@ -66,8 +66,8 @@ class TestReadSpikeSorting(IntegrationTest):
     def test_display_spike_sorting(self):
         sl = SpikeSortingLoader(eid=self.eid, pname=self.pname, one=self.one)
         _logger.setLevel(0)
-        spikes, _, _ = sl.load_spike_sorting(spike_sorter='')
-        fig, ax = sl.raster(spikes)
+        spikes, _, channels = sl.load_spike_sorting(spike_sorter='')
+        fig, ax = sl.raster(spikes, channels)
         plt.close(fig)
 
     def test_read_spike_sorting(self):

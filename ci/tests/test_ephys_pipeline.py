@@ -321,7 +321,7 @@ class TestEphysPipeline(base.IntegrationTest):
                                    'uuids', 'waveforms', 'waveformsChannels', 'metrics']
             self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters]).size == 1)
             self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
-            self.assertTrue(10 < np.nanmedian(clusters.amps) * 1e6 < 80)  # we expect Volts
+            self.assertTrue(10 < np.nanmedian(clusters.amps) * 1e6 < 200)  # we expect Volts
             self.assertTrue(0 < np.median(np.abs(clusters.peakToTrough)) < 5)  # we expect ms
 
             """Check the channels object"""
