@@ -101,7 +101,7 @@ class Read_DAQ_tdms(base.IntegrationTest):
 
     def test_read_tdms_analog_only(self):
         data = load_channels_tdms(self.file_tdms_analog)
-        self.assertEqual(set(data.keys()), set([f'AI{i}' for i in range(8)]))
+        self.assertEqual(set(data.keys()), set(f'AI{i}' for i in range(8)))
         _, fs = load_channels_tdms(self.file_tdms_analog, return_fs=True)
         self.assertEqual(fs, 1000)
         chmap = {'titi': 'AI0', 'tata': 'AI1'}
@@ -111,8 +111,8 @@ class Read_DAQ_tdms(base.IntegrationTest):
 
     def test_read_tdms_digital_only(self):
         data = load_channels_tdms(self.file_tdms_digital)
-        self.assertEqual(set(data.keys()), set([f'DI{i}' for i in range(2)]))
-        self.assertEqual(set([data[k].size for k in data.keys()]), set([2540244]))
+        self.assertEqual(set(data.keys()), set(f'DI{i}' for i in range(2)))
+        self.assertEqual(set(data[k].size for k in data.keys()), {2540244})
 
 
 if __name__ == '__main__':
