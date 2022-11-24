@@ -1,14 +1,33 @@
 ---
-ibl_user: "ubuntu"
-ibl_log_path: "/var/log/ibl"
-ansible_log_path: "{{ ibl_log_path }}/ansible_pull.log"
-certbot_log_path: "{{ ibl_log_path }}/certbot_renewal.log"
+# System
+os_user: "ubuntu"
+os_group: "ubuntu"
+os_host_name: "alyx-dev"
+
+# Logs
+ibl_log_dir: "/home/ubuntu/logs"
+alyx_log_path: "/var/log/alyx.log"
+ansible_log_path: "{{ ibl_log_dir }}/ansible_pull.log"
+certbot_log_path: "{{ ibl_log_dir }}/certbot_renewal.log"
+
+# Certbot
 certbot_url: "dev.alyx.internationalbrainlab.org"
+
+# Apache
 apache_user: "www-data"
-alyx_apache_dir: "/var/www/alyx"
-http_host: "alyx"
-http_conf: "test_domain.conf"
-http_port: "80"
-disable_default: true
+apache_group: "www-data"
+apache_alyx_path: "/var/www/alyx"
+apache_lock_path: "/var/lock/apache2"
+apache_pid_file_path: "/var/run/apache2/apache2.pid"
+apache_ssl_path: "/etc/apache2/ssl"
+apache_server_name: "dev.alyx.internationalbrainlab.org"
+
+# iblalyx
+iblalyx_path: "/home/ubuntu/iblalyx"
+
+# Conf
+conf_file_path: "/home/ubuntu/conf_files"
+
+# AWS (may not be needed)
 aws_ec2_region: "eu-west-2"
 aws_vpc_id: "vpc-c00387a8"

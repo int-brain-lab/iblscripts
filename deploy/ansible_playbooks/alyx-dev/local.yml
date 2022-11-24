@@ -5,29 +5,32 @@
   vars_files:
     - vars.yml
   pre_tasks:
-    - name: Create directories
+    - name: Create IBL log dir
       file:
-        path: "{{ item }}"
+        path: "{{ ibl_log_dir }}"
         state: directory
-        owner: "{{ ibl_user }}"
-        group: "{{ ibl_user }}"
+        owner: "{{ os_user }}"
+        group: "{{ os_group }}"
         mode: 0664
-      with_items:
-        - "{{ ibl_log_path }}"
-        - "{{ alyx_apache_dir }}"
 
-    - name: Create log file
+    - name: Create log files
       file:
         path: "{{ item }}"
         state: touch
-        owner: "{{ ibl_user }}"
-        group: "{{ ibl_user }}"
+        owner: "{{ os_user }}"
+        group: "{{ os_group }}"
         mode: 0664
+        modification_time: preserve
+        access_time: preserve
       with_items:
         - "{{ ansible_log_path }}"
         - "{{ certbot_log_path }}"
 
   tasks:
+    # OS Config Tasks
+    - name: Ensure hostname is set
+      hostname:
+        name: "{{ os_host_name }}"
     - name: Schedule an ansible-pull every 15 minutes, log to ansible-pull.log
       cron:
         name: "ansible-pull job"
@@ -37,8 +40,12 @@
           --only-if-changed
           --checkout ansible_init
           --url https://github.com/int-brain-lab/iblscripts.git
-          deploy/ansible_playbooks/alyx-dev/local.yml >> {{ ibl_log_path }}/ansible-pull.log
-
+          deploy/ansible_playbooks/{{ os_host_name }}/local.yml >> {{ ansible_log_path }}
+    - name: Add the os_user to apache_group
+      user:
+        name: "{{ os_user }}"
+        groups: "{{ apache_group }}"
+        append: yes
     - name: Ensure required apt packages are present
       apt:
         pkg:
@@ -50,49 +57,138 @@
           - libapache2-mod-wsgi-py3
           - postgresql
           - python3-certbot-apache
-        state: present
+          - python3-pip
+        update_cache: yes
+        state: latest
         autoclean: yes
 
-    - name: Alyx apache document root
-      file:
-        path: "{{ alyx_apache_dir }}"
-        state: directory
-        recurse: yes
-        owner: "{{ apache_user }}"
-        group: "{{ apache_user }}"
-        mode: 0755
-
+    # Alyx Config Tasks
+    - name: Set apache_alyx_path as a safe git dir
+      command: git config --global --add safe.directory {{ apache_alyx_path }}
+      args:
+        creates: .alyx_safe_dir_registered.flag  #creates flag to ensure this is only ever run once
+      notify: Create git safe dir flag
     - name: git clone alyx repo
       git:
         repo: https://github.com/cortex-lab/alyx.git
-        dest: "{{ alyx_apache_dir }}"
+        dest: "{{ apache_alyx_path }}"
         clone: yes
         update: yes
-
-    - name: Ensure alyx requirements.txt are present
+        force: yes
+    - name: Ensure alyx requirement python packages are intalled
       pip:
-        requirements: "{{ alyx_apache_dir }}/requirements.txt"
+        requirements: "{{ apache_alyx_path }}/requirements.txt"
+    - name: Ensure alyx settings files exist
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: "{{ apache_user }}"
+        group: "{{ apache_group }}"
+        mode: "0755"
+      with_items:
+        - { src: "{{ conf_file_path }}/settings.py-{{ os_host_name }}",
+            dest: "{{ apache_alyx_path }}/alyx/alyx/settings.py" }
+        - { src: "{{ conf_file_path }}/settings_secret.py-{{ os_host_name }}",
+            dest: "{{ apache_alyx_path }}/alyx/alyx/settings_secret.py" }
+        - { src: "{{ conf_file_path }}/settings_lab.py-{{ os_host_name }}",
+            dest: "{{ apache_alyx_path }}/alyx/alyx/settings_lab.py" }
+    - name: Ensure alyx backup directories exist
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ apache_user }}"
+        group: "{{ apache_group }}"
+        mode: 0777
+      with_items:
+        - /backups/tables
+        - /backups/uploaded
+    - name: Ensure alyx log file exists
+      file:
+        path: "{{ alyx_log_path }}"
+        state: touch
+        owner: "{{ apache_user }}"
+        group: "{{ apache_group }}"
+        mode: 0644
+        modification_time: preserve
+        access_time: preserve
 
-    - name: Register certbot
-      shell: |
-        certbot --apache --noninteractive --agree-tos --email admin@internationalbrainlab.org -d {{ certbot_url }}
-        touch /etc/letsencrypt/.registered
+    # iblalyx Config Tasks
+    - name: git clone iblalyx repo
+      git:
+        repo: https://github.com/int-brain-lab/iblalyx.git
+        dest: "{{ iblalyx_path }}"
+        clone: yes
+        update: yes
+        force: yes
+    - name: symlink iblalyx reports
+      file:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        state: link
+      with_items:
+        - { src: "{{ iblalyx_path }}/management/ibl_reports",
+            dest: "{{ apache_alyx_path }}/alyx/ibl_reports" }
+        - { src: "{{ iblalyx_path }}/management/ibl_reports/templates",
+            dest: "{{ apache_alyx_path }}/alyx/templates/ibl_reports" }
+
+    # Apache Config Tasks
+    - name: Enable apache2 modules
+      apache2_module:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - rewrite
+        - ssl
+        - wsgi
+      notify: Restart Apache
+    - name: Ensure apache settings files exist
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: "{{ apache_user }}"
+        group: "{{ apache_group }}"
+        mode: "0755"
+      with_items:
+        - { src: "{{ conf_file_path }}/apache-conf-{{ os_host_name }}",
+            dest: /etc/apache2/apache2.conf }
+        - { src: "{{ conf_file_path }}/000-default-conf-{{ os_host_name }}",
+            dest: /etc/apache2/sites-available/000-default.conf }
+        - { src: "{{ conf_file_path }}/ip-whitelist-conf",
+            dest: /etc/apache2/sites-available/ip_whitelist.conf }
+
+    # Certbot Config Tasks
+    - name: Certbot Init
+      command: /bin/bash {{ iblalyx_path }}/crons/renew_docker_certs.sh {{ os_host_name }}
       args:
-        creates: /etc/letsencrypt/.registered
-
-    - name: Setup cronjob for renewal
+        creates: .certbot_init.flag
+      notify: Create certbot init flag
+    - name: Setup cronjob for certbot renewal
       cron:
         name: certbot-renewal
-        job: "/bin/bash -lc '/usr/local/bin/certbot -q renew' >> {{ ibl_log_path }}/cert_renew.log"
-        hour: "14"
+        job: /bin/bash {{ iblalyx_path }}/crons/renew_docker_certs.sh {{ os_host_name }} >> {{ certbot_log_path }} 2>&1
+        day: 1
 
   handlers:
+    # Apache handlers
     - name: Reload Apache
       service:
         name: apache2
         state: reloaded
-
     - name: Restart Apache
       service:
         name: apache2
         state: restarted
+
+    # Flag handlers
+    - name: Create git safe dir flag
+      file:
+        path: .alyx_safe_dir_registered.flag
+        state: touch
+        modification_time: preserve
+        access_time: preserve
+    - name: Create certbot init flag
+      file:
+        path: .certbot_init.flag
+        state: touch
+        modification_time: preserve
+        access_time: preserve
