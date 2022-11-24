@@ -7,10 +7,11 @@ import shutil
 
 import ibllib.io.flags as flags
 from iblutil.util import log_to_file
-from ibllib.pipes.misc import create_basic_transfer_params, subjects_data_folder, transfer_session_folders
+from ibllib.pipes.misc import (create_basic_transfer_params, subjects_data_folder, transfer_session_folders,
+                               create_transfer_done_flag)
 
 
-def main(local=None, remote=None, rename_files=False, data_folder='raw_sync_data'):
+def main(local=None, remote=None, rename_files=False, data_folder='raw_sync_data', transfer_done_flag=False):
     DATA_FOLDER = data_folder
     fold = data_folder.split('_')[1]
     # logging configuration
@@ -63,6 +64,9 @@ def main(local=None, remote=None, rename_files=False, data_folder='raw_sync_data
         file_list = map(str, filter(Path.is_file, flag_file.parent.rglob('*')))
         flags.write_flag_file(flag_file, file_list=list(file_list))
 
+        if transfer_done_flag:
+            create_transfer_done_flag(str(dst), fold)
+
         if rename_files:
             log.info(f'Renaming remote {fold} data files')
             raise NotImplementedError
@@ -72,5 +76,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Transfer sync files to IBL local server')
     parser.add_argument('-l', '--local', default=False, required=False, help='Local iblrig_data/Subjects folder')
     parser.add_argument('-r', '--remote', default=False, required=False, help='Remote iblrig_data/Subjects folder')
+    parser.add_argument('-f', '--flag', default=True, required=False, help='Create transfer complete flag in remote folder')
     args = parser.parse_args()
-    main(args.local, args.remote, data_folder='raw_sync_data')
+    main(args.local, args.remote, data_folder='raw_sync_data', transfer_done_flag=args.flag)
