@@ -311,9 +311,8 @@ class TestTransferWidefieldSession(base.IntegrationTest):
         # Create 'remote' behaviour folder
         remote_session = fu.create_fake_session_folder(self.remote_repo)
         fu.create_fake_raw_behavior_data_folder(remote_session)
-        with mock.patch('builtins.input') as mock_in:
+        with mock.patch("deploy.widefieldpc.transfer_widefield.check_create_raw_session_flag", return_value=None):
             transfer_widefield(self.local_repo, self.remote_repo, transfer_done_flag=True)
-            mock_in.assert_not_called()  # Expect no need for user input
 
         remote_data = remote_session.joinpath('raw_widefield_data')
         self.assertTrue(remote_data.exists() and any(remote_data.glob('*.*')))
@@ -432,9 +431,8 @@ class TestTransferRawDataSession(base.IntegrationTest):
         # Create 'remote' behaviour folder
         remote_session = fu.create_fake_session_folder(self.remote_repo)
         fu.create_fake_raw_behavior_data_folder(remote_session)
-        with mock.patch('builtins.input') as mock_in:
+        with mock.patch("deploy.transfer_data_folder.check_create_raw_session_flag", return_value=None):
             transfer_data_folder(data_folder, self.local_repo, self.remote_repo, transfer_done_flag=True)
-            mock_in.assert_not_called()  # Expect no need for user input
 
         remote_data = remote_session.joinpath(data_folder)
         self.assertTrue(remote_data.exists() and any(remote_data.glob('*.*')))

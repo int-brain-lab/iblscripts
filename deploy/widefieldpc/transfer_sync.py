@@ -8,7 +8,7 @@ import shutil
 import ibllib.io.flags as flags
 from iblutil.util import log_to_file
 from ibllib.pipes.misc import (create_basic_transfer_params, subjects_data_folder, transfer_session_folders,
-                               create_transfer_done_flag)
+                               create_transfer_done_flag, check_create_raw_session_flag)
 
 
 def main(local=None, remote=None, rename_files=False, data_folder='raw_sync_data', transfer_done_flag=False):
@@ -66,6 +66,7 @@ def main(local=None, remote=None, rename_files=False, data_folder='raw_sync_data
 
         if transfer_done_flag:
             create_transfer_done_flag(str(dst), fold)
+            check_create_raw_session_flag(str(dst))
 
         if rename_files:
             log.info(f'Renaming remote {fold} data files')

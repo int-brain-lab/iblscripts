@@ -18,7 +18,7 @@ import re
 import ibllib.io.flags as flags
 from iblutil.util import log_to_file
 from ibllib.pipes.misc import (create_basic_transfer_params, subjects_data_folder, transfer_session_folders,
-                               create_transfer_done_flag)
+                               create_transfer_done_flag, check_create_raw_session_flag)
 
 
 def main(data_folder, local=None, remote=None, transfer_done_flag=False):
@@ -64,6 +64,7 @@ def main(data_folder, local=None, remote=None, transfer_done_flag=False):
 
         if transfer_done_flag:
             create_transfer_done_flag(str(dst), data_name)
+            check_create_raw_session_flag(str(dst))
 
 
 if __name__ == "__main__":
