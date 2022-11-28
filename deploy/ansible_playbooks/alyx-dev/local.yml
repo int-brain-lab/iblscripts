@@ -1,51 +1,14 @@
 ---
-- hosts: localhost
+- name: alyx-dev playbook
+  hosts: localhost
   connection: local
-  become: true
   vars_files:
     - vars.yml
-  pre_tasks:
-    - name: Create IBL log dir
-      file:
-        path: "{{ ibl_log_dir }}"
-        state: directory
-        owner: "{{ os_user }}"
-        group: "{{ os_group }}"
-        mode: 0664
-
-    - name: Create log files
-      file:
-        path: "{{ item }}"
-        state: touch
-        owner: "{{ os_user }}"
-        group: "{{ os_group }}"
-        mode: 0664
-        modification_time: preserve
-        access_time: preserve
-      with_items:
-        - "{{ ansible_log_path }}"
-        - "{{ certbot_log_path }}"
-
   tasks:
-    # OS Config Tasks
+    # OS and Apache Mod Tasks
     - name: Ensure hostname is set
       hostname:
         name: "{{ os_host_name }}"
-    - name: Schedule an ansible-pull every 15 minutes, log to ansible-pull.log
-      cron:
-        name: "ansible-pull job"
-        minute: "15"
-        job: >
-          /usr/bin/ansible-pull
-          --only-if-changed
-          --checkout ansible_init
-          --url https://github.com/int-brain-lab/iblscripts.git
-          deploy/ansible_playbooks/{{ os_host_name }}/local.yml >> {{ ansible_log_path }}
-    - name: Add the os_user to apache_group
-      user:
-        name: "{{ os_user }}"
-        groups: "{{ apache_group }}"
-        append: yes
     - name: Ensure required apt packages are present
       apt:
         pkg:
@@ -61,12 +24,42 @@
         update_cache: yes
         state: latest
         autoclean: yes
+      become: true
+    - name: Enable apache2 modules
+      apache2_module:
+        name: "{{ item }}"
+      with_items:
+        - rewrite
+        - ssl
+        - wsgi
+      become: true
+
+    # Logging Tasks
+    - name: Ensure IBL log directory exists
+      file:
+        path: "{{ ibl_log_dir }}"
+        state: directory
+        owner: "{{ os_user }}"
+        group: "{{ os_group }}"
+        mode: 0775
+    - name: Ensure log files exist
+      file:
+        path: "{{ item }}"
+        state: touch
+        owner: "{{ os_user }}"
+        group: "{{ os_group }}"
+        mode: 0664
+        modification_time: preserve
+        access_time: preserve
+      with_items:
+        - "{{ ansible_log_path }}"
+        - "{{ certbot_log_path }}"
 
     # Alyx Config Tasks
     - name: Set apache_alyx_path as a safe git dir
       command: git config --global --add safe.directory {{ apache_alyx_path }}
       args:
-        creates: .alyx_safe_dir_registered.flag  #creates flag to ensure this is only ever run once
+        creates: "{{ os_user_home_dir }}/.alyx_safe_dir_registered.flag"  #creates flag to ensure this is only ever run once
       notify: Create git safe dir flag
     - name: git clone alyx repo
       git:
@@ -75,16 +68,19 @@
         clone: yes
         update: yes
         force: yes
-    - name: Ensure alyx requirement python packages are intalled
+      become: true
+    - name: Ensure alyx requirement python packages are installed
       pip:
         requirements: "{{ apache_alyx_path }}/requirements.txt"
+      become_user: "{{ apache_user }}"
     - name: Ensure alyx settings files exist
       copy:
         src: "{{ item.src }}"
         dest: "{{ item.dest }}"
         owner: "{{ apache_user }}"
         group: "{{ apache_group }}"
-        mode: "0755"
+        mode: 0775
+      become: true
       with_items:
         - { src: "{{ conf_file_path }}/settings.py-{{ os_host_name }}",
             dest: "{{ apache_alyx_path }}/alyx/alyx/settings.py" }
@@ -98,7 +94,8 @@
         state: directory
         owner: "{{ apache_user }}"
         group: "{{ apache_group }}"
-        mode: 0777
+        mode: 0775
+      become: true
       with_items:
         - /backups/tables
         - /backups/uploaded
@@ -108,9 +105,10 @@
         state: touch
         owner: "{{ apache_user }}"
         group: "{{ apache_group }}"
-        mode: 0644
+        mode: 0664
         modification_time: preserve
         access_time: preserve
+      become: true
 
     # iblalyx Config Tasks
     - name: git clone iblalyx repo
@@ -120,75 +118,71 @@
         clone: yes
         update: yes
         force: yes
+      become: true
     - name: symlink iblalyx reports
       file:
         src: "{{ item.src }}"
         dest: "{{ item.dest }}"
         state: link
+      become: true
       with_items:
-        - { src: "{{ iblalyx_path }}/management/ibl_reports",
-            dest: "{{ apache_alyx_path }}/alyx/ibl_reports" }
+        - { src: "{{ iblalyx_path }}/management/ibl_reports", dest: "{{ apache_alyx_path }}/alyx/ibl_reports" }
         - { src: "{{ iblalyx_path }}/management/ibl_reports/templates",
             dest: "{{ apache_alyx_path }}/alyx/templates/ibl_reports" }
 
-    # Apache Config Tasks
-    - name: Enable apache2 modules
-      apache2_module:
-        name: "{{ item }}"
-        state: present
-      with_items:
-        - rewrite
-        - ssl
-        - wsgi
-      notify: Restart Apache
+    # Ensure remaining apache config files are in place with correct owner
     - name: Ensure apache settings files exist
       copy:
         src: "{{ item.src }}"
         dest: "{{ item.dest }}"
         owner: "{{ apache_user }}"
         group: "{{ apache_group }}"
-        mode: "0755"
+        mode: 0775
+      become: true
       with_items:
-        - { src: "{{ conf_file_path }}/apache-conf-{{ os_host_name }}",
-            dest: /etc/apache2/apache2.conf }
-        - { src: "{{ conf_file_path }}/000-default-conf-{{ os_host_name }}",
-            dest: /etc/apache2/sites-available/000-default.conf }
-        - { src: "{{ conf_file_path }}/ip-whitelist-conf",
-            dest: /etc/apache2/sites-available/ip_whitelist.conf }
+        - { src: "{{ conf_file_path }}/apache-conf-{{ os_host_name }}", dest: /etc/apache2/apache2.conf }
+        - { src: "{{ conf_file_path }}/000-default-conf-{{ os_host_name }}", dest: /etc/apache2/sites-available/000-default.conf }
+        - { src: "{{ conf_file_path }}/ip-whitelist-conf", dest: /etc/apache2/sites-available/ip_whitelist.conf }
+    - name: Set owners to alyx
+      file:
+        dest: "{{ apache_alyx_path }}"
+        owner: "{{ apache_user }}"
+        group: "{{ apache_group }}"
+        recurse: yes
+      become: yes
 
     # Certbot Config Tasks
+    - name: Ensure Apache SSL directory exists
+      file:
+        path: /etc/apache2/ssl/
+        state: directory
+      become: true
+    - name: Ensure certbot files exist
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      become: true
+      with_items:
+        - { src: "{{ conf_file_path }}/fullchain.pem-{{ os_host_name }}", dest: "{{ cert_fullchain_path }}" }
+        - { src: "{{ conf_file_path }}/privkey.pem-{{ os_host_name }}", dest: "{{ cert_privkey_path }}" }
     - name: Certbot Init
-      command: /bin/bash {{ iblalyx_path }}/crons/renew_docker_certs.sh {{ os_host_name }}
+      command: /bin/bash {{ iblalyx_path }}/crons/renew_docker_certs.sh {{ os_host_name }}  # script restarts apache service
       args:
-        creates: .certbot_init.flag
+        creates: "{{ os_user_home_dir }}/.certbot_init.flag"
+      become: true
       notify: Create certbot init flag
-    - name: Setup cronjob for certbot renewal
-      cron:
-        name: certbot-renewal
-        job: /bin/bash {{ iblalyx_path }}/crons/renew_docker_certs.sh {{ os_host_name }} >> {{ certbot_log_path }} 2>&1
-        day: 1
 
   handlers:
-    # Apache handlers
-    - name: Reload Apache
-      service:
-        name: apache2
-        state: reloaded
-    - name: Restart Apache
-      service:
-        name: apache2
-        state: restarted
-
     # Flag handlers
     - name: Create git safe dir flag
       file:
-        path: .alyx_safe_dir_registered.flag
+        path: "{{ os_user_home_dir }}/.alyx_safe_dir_registered.flag"
         state: touch
         modification_time: preserve
         access_time: preserve
     - name: Create certbot init flag
       file:
-        path: .certbot_init.flag
+        path: "{{ os_user_home_dir }}/.certbot_init.flag"
         state: touch
         modification_time: preserve
         access_time: preserve

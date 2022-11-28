@@ -2,16 +2,19 @@
 # System
 os_user: "ubuntu"
 os_group: "ubuntu"
+os_user_home_dir: "/home/{{ os_user }}"
 os_host_name: "alyx-dev"
 
 # Logs
-ibl_log_dir: "/home/ubuntu/logs"
+ibl_log_dir: "{{ os_user_home_dir }}/logs"
 alyx_log_path: "/var/log/alyx.log"
 ansible_log_path: "{{ ibl_log_dir }}/ansible_pull.log"
 certbot_log_path: "{{ ibl_log_dir }}/certbot_renewal.log"
 
 # Certbot
 certbot_url: "dev.alyx.internationalbrainlab.org"
+cert_fullchain_path: "/etc/apache2/ssl/fullchain.pem"
+cert_privkey_path: "/etc/apache2/ssl/privkey.pem"
 
 # Apache
 apache_user: "www-data"
@@ -23,11 +26,7 @@ apache_ssl_path: "/etc/apache2/ssl"
 apache_server_name: "dev.alyx.internationalbrainlab.org"
 
 # iblalyx
-iblalyx_path: "/home/ubuntu/iblalyx"
+iblalyx_path: "{{ os_user_home_dir }}/iblalyx"
 
 # Conf
-conf_file_path: "/home/ubuntu/conf_files"
-
-# AWS (may not be needed)
-aws_ec2_region: "eu-west-2"
-aws_vpc_id: "vpc-c00387a8"
+conf_file_path: "{{ os_user_home_dir }}/conf_files"

@@ -33,6 +33,28 @@ ansible-pull --checkout `branch_name` --url https://github.com/int-brain-lab/ibl
 i.e. something along the lines of 
 `ansible-pull --checkout ansible_init --url https://github.com/int-brain-lab/iblscripts.git deploy/ansible_playbooks/alyx-dev/local.yml`
 
+## How to develop an ansible playbook
+When developing a playbook, it is often useful to use a vm or ec2 instance in conjunction with snapshots to quickly revert to a 
+known state. It is also useful to create and modify a playbook locally prior to utilizing the `ansible-pull` command detailed 
+above.  
+
+To run a playbook locally, run a command like `ansible-playbook local_example.yml`
+
+Content of the `local_example.yml` file
+```yaml
+---
+  - name: "Local playbook example"
+    hosts: localhost
+    connection: local 
+    tasks:
+
+    - name: "executes an ls -lrt command"
+      shell: "ls -lrt"
+      register: "output"
+
+    - debug: var=output.stdout_lines
+```
+
 ## Ansible documentation:
 * General:
   * https://docs.ansible.com/ansible/latest/cli/ansible-pull.html
