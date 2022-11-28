@@ -17,10 +17,11 @@ import re
 
 import ibllib.io.flags as flags
 from iblutil.util import log_to_file
-from ibllib.pipes.misc import create_basic_transfer_params, subjects_data_folder, transfer_session_folders
+from ibllib.pipes.misc import (create_basic_transfer_params, subjects_data_folder, transfer_session_folders,
+                               create_transfer_done_flag, check_create_raw_session_flag)
 
 
-def main(data_folder, local=None, remote=None):
+def main(data_folder, local=None, remote=None, transfer_done_flag=False):
     # logging configuration
     data_name, = (re.match(r'raw_(\w+)_data', data_folder) or (data_folder,)).groups()
     log = log_to_file(filename=f'transfer_{data_name}_session.log', log='ibllib.pipes.misc')
@@ -61,11 +62,16 @@ def main(data_folder, local=None, remote=None):
         file_list = map(str, filter(Path.is_file, flag_file.parent.rglob('*')))
         flags.write_flag_file(flag_file, file_list=list(file_list))
 
+        if transfer_done_flag:
+            create_transfer_done_flag(str(dst), data_name)
+            check_create_raw_session_flag(str(dst))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Transfer raw data folder(s) to IBL local server')
     parser.add_argument('data_folder', help='The raw data folder to transfer, e.g. "raw_sync_data"')
     parser.add_argument('-l', '--local', default=False, required=False, help='Local iblrig_data/Subjects folder')
     parser.add_argument('-r', '--remote', default=False, required=False, help='Remote iblrig_data/Subjects folder')
+    parser.add_argument('-f', '--flag', default=False, required=False, help='Create transfer complete flag in remote folder')
     args = parser.parse_args()
-    main(args.data_folder, args.local, args.remote)
+    main(args.data_folder, args.local, args.remote, transfer_done_flag=args.flag)

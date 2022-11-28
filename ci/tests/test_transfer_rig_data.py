@@ -9,12 +9,15 @@ import shutil
 import ibllib.tests.fixtures.utils as fu
 import ibllib.io.flags as flags
 from ibllib.pipes import transfer_rig_data
+from ibllib.pipes.misc import check_create_raw_session_flag
 
 from deploy.videopc.transfer_video_session import main as transfer_video_session
 from deploy.widefieldpc.transfer_widefield import main as transfer_widefield
 from deploy.transfer_data_folder import main as transfer_data_folder
 
 from ci.tests import base
+
+FIXTURES_PATH = Path(__file__).parent.joinpath('tasks', 'fixtures_acquisition_descriptions')
 
 
 def make_session(session_path, stype='training'):
@@ -300,6 +303,24 @@ class TestTransferWidefieldSession(base.IntegrationTest):
             transfer_widefield(self.local_repo, self.remote_repo)
             self.assertIn('No outstanding local sessions', log.records[-1].message)
 
+    @mock.patch('ibllib.pipes.misc.create_basic_transfer_params')
+    def test_transfer_widefield_with_flag(self, mock_params):
+        paths = {'DATA_FOLDER_PATH': str(self.local_repo), 'REMOTE_DATA_FOLDER_PATH': str(self.remote_repo)}
+        mock_params.return_value = paths
+
+        # Create 'remote' behaviour folder
+        remote_session = fu.create_fake_session_folder(self.remote_repo)
+        fu.create_fake_raw_behavior_data_folder(remote_session)
+        with mock.patch("deploy.widefieldpc.transfer_widefield.check_create_raw_session_flag", return_value=None):
+            transfer_widefield(self.local_repo, self.remote_repo, transfer_done_flag=True)
+
+        remote_data = remote_session.joinpath('raw_widefield_data')
+        self.assertTrue(remote_data.exists() and any(remote_data.glob('*.*')))
+        local_flag = self.local_session_path.joinpath('raw_widefield_data', 'transferred.flag')
+        self.assertTrue(local_flag.exists())
+        remote_flag = remote_session.joinpath('widefield_data_transferred.flag')
+        self.assertTrue(remote_flag.exists())
+
 
 @unittest.skip('TODO Finish test')
 class TestTransferMesoscopeSession(base.IntegrationTest):
@@ -396,3 +417,98 @@ class TestTransferRawDataSession(base.IntegrationTest):
         with self.assertLogs('ibllib.pipes.misc', logging.INFO) as log:
             transfer_data_folder(data_folder, self.local_repo, self.remote_repo)
             self.assertIn('No outstanding local sessions', log.records[-1].message)
+
+    @mock.patch('ibllib.pipes.misc.create_basic_transfer_params')
+    def test_transfer_sync_with_flag(self, mock_params):
+        data_folder = 'raw_sync_data'
+        local_data_folder = self.local_session_path.joinpath(data_folder)
+        local_data_folder.mkdir()
+        local_data_folder.joinpath('foo.bar').touch()
+
+        paths = {'DATA_FOLDER_PATH': str(self.local_repo), 'REMOTE_DATA_FOLDER_PATH': str(self.remote_repo)}
+        mock_params.return_value = paths
+
+        # Create 'remote' behaviour folder
+        remote_session = fu.create_fake_session_folder(self.remote_repo)
+        fu.create_fake_raw_behavior_data_folder(remote_session)
+        with mock.patch("deploy.transfer_data_folder.check_create_raw_session_flag", return_value=None):
+            transfer_data_folder(data_folder, self.local_repo, self.remote_repo, transfer_done_flag=True)
+
+        remote_data = remote_session.joinpath(data_folder)
+        self.assertTrue(remote_data.exists() and any(remote_data.glob('*.*')))
+        local_flag = local_data_folder.joinpath('transferred.flag')
+        self.assertTrue(local_flag.exists())
+        remote_flag = remote_session.joinpath('sync_data_transferred.flag')
+        self.assertTrue(remote_flag.exists())
+
+
+class TestCheckCompleteCopy(base.IntegrationTest):
+    """Test for checking complete copy based on flags and existence of experiment description file"""
+
+    def setUp(self):
+        # Data emulating local rig data
+        self.root_test_folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.root_test_folder.cleanup)
+
+        self.remote_repo = Path(self.root_test_folder.name).joinpath("remote_repo")
+        self.remote_repo.joinpath("fakelab/Subjects").mkdir(parents=True)
+
+        self.remote_session_path = fu.create_fake_session_folder(self.remote_repo)
+
+    def test_copy_logic_ephys(self):
+
+        shutil.copy(FIXTURES_PATH.joinpath('ephys_NP3B', '_ibl_experiment.description.yaml'),
+                    self.remote_session_path.joinpath('_ibl_experiment.description.yaml'))
+
+        ephys_flag = self.remote_session_path.joinpath('ephys_data_transferred.flag')
+        video_flag = self.remote_session_path.joinpath('video_data_transferred.flag')
+        raw_session_flag = self.remote_session_path.joinpath('raw_session.flag')
+
+        # With no complete copy flags in the remote session path, raw flag should not be made
+        check_create_raw_session_flag(self.remote_session_path)
+        self.assertFalse(raw_session_flag.exists())
+
+        # Make flag saying ephys copy is complete, raw flag should not be made as video doesn't exist
+        ephys_flag.touch()
+        check_create_raw_session_flag(self.remote_session_path)
+
+        self.assertFalse(raw_session_flag.exists())
+        self.assertTrue(ephys_flag.exists())
+
+        # Make flag saying video copy is complete, raw flag should be made as video and ephys exist
+        video_flag.touch()
+        check_create_raw_session_flag(self.remote_session_path)
+
+        self.assertTrue(raw_session_flag.exists())
+        self.assertFalse(ephys_flag.exists())
+        self.assertFalse(video_flag.exists())
+
+    def test_widefield_copy_logic(self):
+
+        shutil.copy(FIXTURES_PATH.joinpath('widefield', '_ibl_experiment.description.yaml'),
+                    self.remote_session_path.joinpath('_ibl_experiment.description.yaml'))
+
+        widefield_flag = self.remote_session_path.joinpath('widefield_data_transferred.flag')
+        sync_flag = self.remote_session_path.joinpath('sync_data_transferred.flag')
+        video_flag = self.remote_session_path.joinpath('video_data_transferred.flag')
+        raw_session_flag = self.remote_session_path.joinpath('raw_session.flag')
+
+        # With no complete copy flags in the remote session path, raw flag should not be made
+        check_create_raw_session_flag(self.remote_session_path)
+        self.assertFalse(raw_session_flag.exists())
+
+        # Make flag saying widefield copy is complete, raw flag should not be made as video doesn't exist
+        widefield_flag.touch()
+        sync_flag.touch()
+        check_create_raw_session_flag(self.remote_session_path)
+
+        self.assertFalse(raw_session_flag.exists())
+        self.assertTrue(widefield_flag.exists())
+
+        # Make flag saying video copy is complete, raw flag should be made as video and ephys exist
+        video_flag.touch()
+        check_create_raw_session_flag(self.remote_session_path)
+
+        self.assertTrue(raw_session_flag.exists())
+        self.assertFalse(widefield_flag.exists())
+        self.assertFalse(video_flag.exists())
