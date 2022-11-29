@@ -23,6 +23,6 @@ sync:
     collection: raw_behavior_data
     extension: bin
 tasks:
-  trainingChoiceWorld:
+- trainingChoiceWorld:
     collection: raw_behavior_data
     sync_label: bpod

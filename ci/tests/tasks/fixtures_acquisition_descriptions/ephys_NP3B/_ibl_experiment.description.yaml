@@ -30,9 +30,9 @@ sync:
     extension: bin
     acquisition_software: spikeglx
 tasks:
-  passiveChoiceWorld:
+- passiveChoiceWorld:
     collection: raw_passive_data
     sync_label: bpod
-  ephysChoiceWorld:
+- ephysChoiceWorld:
     collection: raw_behavior_data
     sync_label: bpod

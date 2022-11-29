@@ -13,6 +13,7 @@ from ibllib.pipes import transfer_rig_data
 from deploy.videopc.transfer_video_session import main as transfer_video_session
 from deploy.widefieldpc.transfer_widefield import main as transfer_widefield
 from deploy.transfer_data_folder import main as transfer_data_folder
+from deploy.transfer_data import main as transfer_data
 
 from ci.tests import base
 
@@ -396,3 +397,139 @@ class TestTransferRawDataSession(base.IntegrationTest):
         with self.assertLogs('ibllib.pipes.misc', logging.INFO) as log:
             transfer_data_folder(data_folder, self.local_repo, self.remote_repo)
             self.assertIn('No outstanding local sessions', log.records[-1].message)
+
+
+class TestTransferData(base.IntegrationTest):
+    """A test for transfer_data.py.
+
+    This tests the main script for transferring any session data using the experiment description
+    file.
+    """
+    def setUp(self):
+        # Data emulating local rig data
+        self.root_test_folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.root_test_folder.cleanup)
+
+        self.remote_repo = Path(self.root_test_folder.name).joinpath('remote_repo', 'fakelab', 'Subjects')
+        self.remote_repo.mkdir(parents=True)
+
+        self.local_repo_1 = Path(self.root_test_folder.name).joinpath('local_repo_1')
+        self.session = ('subject', '2022-01-01', '001')
+        self.local_repo_2 = Path(self.root_test_folder.name).joinpath('local_repo_2')
+        session_1 = self.local_repo_1.joinpath('Subjects', *self.session)
+        session_2 = self.local_repo_2.joinpath('Subjects', *self.session)
+
+        # Change location of transfer list
+        label = 'hostname_9876'
+        self.pars = {'REMOTE_DATA_FOLDER_PATH': self.remote_repo,
+                     'DATA_FOLDER_PATH': self.local_repo_1,
+                     'TRANSFER_LABEL': f'{label}_0'
+                     }
+        self.patch = unittest.mock.patch('deploy.transfer_data.create_basic_transfer_params',
+                                         return_value=self.pars)
+        self.patch.start()
+        self.addCleanup(self.patch.stop)
+
+        self.behaviour_session_path = \
+            fu.create_fake_raw_behavior_data_folder(session_1, write_pars_stub=f'{label}_0')
+        self.video_session_path = \
+            fu.create_fake_raw_video_data_folder(session_2, write_pars_stub=f'{label}_1')
+        for i, src in enumerate(Path(self.root_test_folder.name).rglob('*_ibl_experiment.description*')):
+            dst = self.remote_repo.joinpath(*self.session, '_devices', f'{label}_{i}.yaml')
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(src, dst)
+
+    def test_session(self):
+        # --- Test 1 --- without the TRANSFERS_PATH param
+        transfer_data()
+        self.assertTrue(self.local_repo_1.joinpath('Subjects', *self.session, 'transferred.flag'))
+
+
+        # self.local_session_path.joinpath("transfer_me.flag").touch()
+        # remote_session = fu.create_fake_session_folder(self.remote_repo)
+        # fu.create_fake_raw_behavior_data_folder(remote_session)
+        # with mock.patch("deploy.videopc.transfer_video_session.check_create_raw_session_flag", return_value=None):
+        #     transfer_video_session(self.local_repo, self.remote_repo)
+        # shutil.rmtree(self.remote_repo)
+        #
+        # # --- Test - 1 local session w/ transfer_me.flag 1900-01-01, 1 remote session w/ raw_behavior_data 1900-01-01
+        # self.local_session_path.joinpath("transfer_me.flag").touch()
+        # remote_session = fu.create_fake_session_folder(self.remote_repo)
+        # fu.create_fake_raw_behavior_data_folder(remote_session)
+        # with mock.patch("deploy.videopc.transfer_video_session.check_create_raw_session_flag", return_value=None):
+        #     transfer_video_session(self.local_repo, self.remote_repo)
+        # # --- Test clean up
+        # shutil.rmtree(self.remote_repo)
+        #
+        # # --- Test - 1 local session w/o transfer_me.flag 1900-01-01, 1 remote session w/ raw_behavior_data 1900-01-01
+        # remote_session = fu.create_fake_session_folder(self.remote_repo)
+        # fu.create_fake_raw_behavior_data_folder(remote_session)
+        # with mock.patch("deploy.videopc.transfer_video_session.check_create_raw_session_flag", return_value=None):
+        #     with self.assertRaises(SystemExit) as cm:
+        #         transfer_video_session(self.local_repo, self.remote_repo)
+        # self.assertEqual(cm.exception.code, 0)
+        # # --- Test clean up
+        # shutil.rmtree(self.remote_repo)
+        #
+        # # # --- Test - 1 local session w/ transfer_me.flag 1900-01-01, 1 remote session w/o behavior folder
+        # self.local_session_path.joinpath("transfer_me.flag").touch()
+        # remote_session = fu.create_fake_session_folder(self.remote_repo)
+        # fu.create_fake_raw_behavior_data_folder(remote_session)
+        # shutil.rmtree(self.remote_repo / "fakelab" / "Subjects" / "fakemouse" / "1900-01-01" / "001" / "raw_behavior_data")
+        # with mock.patch("deploy.videopc.transfer_video_session.check_create_raw_session_flag", return_value=None):
+        #     transfer_video_session(self.local_repo, self.remote_repo)
+        # # --- Test clean up
+        # self.local_session_path.joinpath("transfer_me.flag").unlink()
+        # shutil.rmtree(self.remote_repo)
+        #
+        # # --- Test - 1 local session w/ transfer_me.flag 1900-01-01, 1 remote session w/o date folder
+        # self.local_session_path.joinpath("transfer_me.flag").touch()
+        # fu.create_fake_raw_behavior_data_folder(remote_session)
+        # shutil.rmtree(self.remote_repo / "fakelab" / "Subjects" / "fakemouse")
+        # with mock.patch("deploy.videopc.transfer_video_session.check_create_raw_session_flag", return_value=None):
+        #     transfer_video_session(self.local_repo, self.remote_repo)
+        # # --- Test clean up
+        # self.local_session_path.joinpath("transfer_me.flag").unlink()
+        # shutil.rmtree(self.remote_repo)
+        #
+        # # --- Test - 1 local sessions w/ transfer_me.flag 1900-01-01, 2 remote sessions w/ raw_behavior_data 1900-01-01
+        # self.local_session_path.joinpath("transfer_me.flag").touch()
+        # remote_session = fu.create_fake_session_folder(self.remote_repo)
+        # fu.create_fake_raw_behavior_data_folder(remote_session)
+        # remote_session002 = fu.create_fake_session_folder(self.remote_repo, date="1900-01-01")
+        # fu.create_fake_raw_behavior_data_folder(remote_session002)
+        # with mock.patch("builtins.input", side_effect=["002"]):
+        #     with mock.patch("deploy.videopc.transfer_video_session.check_create_raw_session_flag", return_value=None):
+        #         transfer_video_session(self.local_repo, self.remote_repo)
+        # # --- Test clean up
+        # shutil.rmtree(self.remote_repo)
+        #
+        # # # Test - 2 local sessions w/ transfer_me.flag 1900-01-01, 2 remote sessions w/ raw_behavior_data 1900-01-01
+        # self.local_session_path.joinpath("transfer_me.flag").touch()
+        # local_session002 = fu.create_fake_session_folder(self.local_repo, date="1900-01-01")
+        # fu.create_fake_raw_video_data_folder(local_session002)
+        # local_session002.joinpath("transfer_me.flag").touch()
+        # remote_session = fu.create_fake_session_folder(self.remote_repo)
+        # fu.create_fake_raw_behavior_data_folder(remote_session)
+        # remote_session002 = fu.create_fake_session_folder(self.remote_repo, date="1900-01-01")
+        # fu.create_fake_raw_behavior_data_folder(remote_session002)
+        # with mock.patch("builtins.input", side_effect=["001", "002"]):
+        #     with mock.patch("deploy.videopc.transfer_video_session.check_create_raw_session_flag", return_value=None):
+        #         transfer_video_session(self.local_repo, self.remote_repo)
+        # # --- Test clean up
+        # shutil.rmtree(local_session002)
+        # shutil.rmtree(self.remote_repo)
+        #
+        # # Test - 2 local sessions w/ transfer_me.flag 1900-01-01, 1 remote sessions w/ raw_behavior_data 1900-01-01
+        # self.local_session_path.joinpath("transfer_me.flag").touch()
+        # local_session002 = fu.create_fake_session_folder(self.local_repo, date="1900-01-01")
+        # fu.create_fake_raw_video_data_folder(local_session002)
+        # local_session002.joinpath("transfer_me.flag").touch()
+        # remote_session = fu.create_fake_session_folder(self.remote_repo)
+        # fu.create_fake_raw_behavior_data_folder(remote_session)
+        # with mock.patch("builtins.input", side_effect=["002"]):
+        #     with mock.patch("deploy.videopc.transfer_video_session.check_create_raw_session_flag", return_value=None):
+        #         transfer_video_session(self.local_repo, self.remote_repo)
+        # # --- Test clean up
+        # shutil.rmtree(local_session002)
+        # shutil.rmtree(self.remote_repo)
