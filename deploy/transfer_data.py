@@ -74,7 +74,10 @@ def main(local=None, remote=None):
             success = rsync_paths(session.with_name(collection), remote_session / collection)
             assert success
             # log.info(f"{src} -> {dst} - {data_name} transfer success")
-        session_params.aggregate_device(remote_file, remote_session / '_ibl_experiment.description.yaml')
+        session_params.aggregate_device(remote_file, remote_session / '_ibl_experiment.description.yaml', unlink=True)
+        if not any(remote_session.joinpath('_devices').glob('*.*')):
+            file_list = list(remote_session.rglob('*.*.*'))
+            flags.write_flag_file(remote_session.joinpath('raw_session.flag'), file_list=file_list)
         flags.write_flag_file(session.with_name('transferred.flag'), file_list=collections)
 
 
