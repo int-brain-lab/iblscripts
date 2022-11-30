@@ -7,9 +7,9 @@ import tempfile
 from pathlib import Path
 
 import yaml
-from iblutil.util import get_logger
+from iblutil.util import setup_logger
 
-log = get_logger(name="fiber_photometry_form", file=True)
+log = setup_logger(name="fiber_photometry_form", file=True, level=20)
 
 with open("fp_params.yml") as file:
     fp_params = yaml.safe_load(file)

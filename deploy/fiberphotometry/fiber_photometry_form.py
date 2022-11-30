@@ -26,11 +26,11 @@ from dateutil.relativedelta import relativedelta
 from ibllib.atlas import BrainRegions
 from ibllib.io.extractors import fibrephotometry as fp_extractor
 from ibllib.pipes.misc import rsync_paths
-from iblutil.util import get_logger
+from iblutil.util import setup_logger
 
 from fiber_photometry_util import convert_ui_file_to_py, create_data_dirs
 
-log = get_logger(name="fiber_photometry_form", file=True)
+log = setup_logger(name="fiber_photometry_form", file=True, level=20)
 try:  # specify ui file(s) output by Qt Designer, call function to convert to py for runtime efficiency and ease of imports
     # main ui file
     main_ui_file = "fiber_photometry_form.ui"

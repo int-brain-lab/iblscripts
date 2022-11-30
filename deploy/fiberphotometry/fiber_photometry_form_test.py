@@ -4,11 +4,7 @@ import unittest
 from datetime import date
 from pathlib import Path
 
-from iblutil.util import get_logger
-
-from fiber_photometry_util import convert_ui_file_to_py, create_data_dirs
-
-log = get_logger(name="fiber_photometry_form", file=True)
+from fiber_photometry_util import convert_ui_file_to_py, create_data_dirs, log
 
 
 class TestFiberPhotometryForm(unittest.TestCase):

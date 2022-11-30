@@ -287,8 +287,8 @@ class TestEphysPipeline(base.IntegrationTest):
         # also check that the behaviour criterion was set
         self.assertTrue('behavior' in extended)
         # check that new DLC qc is added properly
-        self.assertEqual(extended['_dlcLeft_pupil_diameter_snr'], [True, 12.066])
-        self.assertEqual(extended['_dlcRight_pupil_diameter_snr'], [True, 6.53])
+        self.assertEqual(extended['_dlcLeft_pupil_diameter_snr'], ['PASS', 12.066])
+        self.assertEqual(extended['_dlcRight_pupil_diameter_snr'], ['PASS', 6.53])
         # check that the probes insertions have the json field labeled properly
         pis = one.alyx.rest('insertions', 'list', session=eid, no_cache=True)
         for pi in pis:
@@ -321,7 +321,7 @@ class TestEphysPipeline(base.IntegrationTest):
                                    'uuids', 'waveforms', 'waveformsChannels', 'metrics']
             self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters]).size == 1)
             self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
-            self.assertTrue(10 < np.nanmedian(clusters.amps) * 1e6 < 80)  # we expect Volts
+            self.assertTrue(10 < np.nanmedian(clusters.amps) * 1e6 < 200)  # we expect Volts
             self.assertTrue(0 < np.median(np.abs(clusters.peakToTrough)) < 5)  # we expect ms
 
             """Check the channels object"""

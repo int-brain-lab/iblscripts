@@ -66,8 +66,8 @@ class TestReadSpikeSorting(IntegrationTest):
     def test_display_spike_sorting(self):
         sl = SpikeSortingLoader(eid=self.eid, pname=self.pname, one=self.one)
         _logger.setLevel(0)
-        spikes, _, _ = sl.load_spike_sorting(spike_sorter='')
-        fig, ax = sl.raster(spikes)
+        spikes, _, channels = sl.load_spike_sorting(spike_sorter='')
+        fig, ax = sl.raster(spikes, channels)
         plt.close(fig)
 
     def test_read_spike_sorting(self):
@@ -203,27 +203,3 @@ class TestSessionLoader(IntegrationTest):
                 'INFO:ibllib:Loading pupil data',
                 'INFO:ibllib:Pupil diameter not available, trying to compute on the fly.'
             ], cm.output)
-
-
-class TestLoadTrials(IntegrationTest):
-
-    def setUp(self) -> None:
-        self.root_path = self.data_path.joinpath('ephys', 'choice_world_init')
-        self.session_path = self.root_path.joinpath('KS022', '2019-12-10', '001')
-        print('Building ONE cache from filesystem...')
-        self.one = One.setup(self.root_path, silent=True)
-
-    def test_load_trials_df(self):
-        eid = self.one.to_eid(self.session_path)
-        trials = bbone.load_trials_df(eid, one=self.one)
-        expected = [
-            'choice', 'probabilityLeft', 'feedbackType', 'feedback_times', 'contrastLeft',
-            'contrastRight', 'goCue_times', 'stimOn_times', 'trial_start', 'trial_end'
-        ]
-        self.assertCountEqual(trials.columns, expected)
-        trials = bbone.load_trials_df(eid, one=self.one, ret_wheel=True)
-        self.assertIn('wheel_velocity', trials)
-
-    def tearDown(self) -> None:
-        for file in self.root_path.glob('*.pqt'):
-            file.unlink()
