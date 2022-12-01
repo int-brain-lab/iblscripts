@@ -21,10 +21,38 @@ Parameters:
     - TRANSFERS_PATH: Optional location of the experiment.description files, if not set,
      the DATA_FOLDER_PATH is searched.
     - TRANSFER_LABEL: A unique name for the remote experiment description stub.
+
+Workflow:
+    1. At the start of acquisition an incomplete experiment description file (a 'stub') is saved on
+     the local PC and in the lab server, in a session subfolder called '_devices'.  The filename
+     includes the PC's identifier so the copy script knows which stub was saved by which PC.
+    2. This copy script is run on each acquisition PC in any order.
+    3. The script iterates through the local sessions data (or optionally a separate 'transfers'
+     folder) that contain experiment.description stubs.
+    4. Session folders containing a 'transferred.flag' file are ignored.
+    5. For each session the stub file is read in and rsync is called for each 'collection'
+     contained.  If there is a local subfolder that isn't specified in a 'collection' key, it won't
+     be copied.
+    6. Once rsync succeeds, the remote stub file is merged with the remote experiment.description
+     file (or copied over if one doesn't already exist).  The remote stub is deleted.
+    7. A 'transferred.flag' file is created in the local session folder.
+    8. If no more remote stub files exist for a given session, the empty _devices subfolder is
+     deleted and a 'raw_session.flag' file is created in the remote session folder.
+
+Questions:
+    - Is this really more robust? Seems similar to our old method but with more points of failure.
+    - Dealing with session mismatches - should we include the exp ref in the experiment description
+     files?  Do we no longer need the prompts for mismatches?
+    - Should all collections defined in the experiment definition exist locally? If so the sync
+     should be on the FPGA computer, not the behaviour PC.
+    - What should the behaviour be if rsync fails? Error out or move onto the next session?
+
 """
 import argparse
+from functools import partial
 
 from one.alf.files import filename_parts
+from one.converters import ConversionMixin
 from iblutil.util import log_to_file
 import ibllib.io.flags as flags
 from ibllib.io import session_params
@@ -34,7 +62,7 @@ from ibllib.pipes.misc import \
 
 def main(local=None, remote=None):
     # logging configuration
-    log = log_to_file(filename=f'transfer_session.log', log='ibllib.pipes.misc')
+    log = log_to_file(filename='transfer_session.log', log='ibllib.pipes.misc')
 
     # Determine if user passed in arg for local/remote subject folder locations or pull in from
     # local param file or prompt user if missing
@@ -53,7 +81,9 @@ def main(local=None, remote=None):
     # Find all local folders that have an experiment description file
     local_sessions = transfers_path.rglob('_ibl_experiment.description*.yaml')
     # Remove sessions that have a transferred flag file
-    local_sessions = sorted(filter(lambda x: not any(x.parent.glob('transferred.flag')), local_sessions))
+    local_sessions = filter(lambda x: not any(x.parent.glob('transferred.flag')), local_sessions)
+    # Sort by date, number and subject name
+    local_sessions = sorted(local_sessions, key=partial(ConversionMixin.path2ref, as_dict=False))
 
     if local_sessions:
         log.info('The following local session(s) have yet to be transferred:')
@@ -62,26 +92,34 @@ def main(local=None, remote=None):
         log.info('No outstanding local sessions to transfer.')
         return
 
-    for session in local_sessions:
+    ok = [True] * len(local_sessions)
+    for i, session in enumerate(local_sessions):
         session_parts = session.parent.as_posix().split('/')[-3:]
         remote_session = remote_subject_folder.joinpath(*session_parts)
-        remote_filename = f'{filename_parts(session.name)[3]}.yaml'
-        remote_file = remote_session.joinpath('_devices', remote_filename)
+        remote_file = session_params.get_remote_stub_name(remote_session, filename_parts(session.name)[3])
         assert remote_file.exists()
         exp_pars = session_params.read_params(session)
-        collections = list(session_params.get_collections(exp_pars).values())
+        collections = set(session_params.get_collections(exp_pars).values())
         for collection in collections:
-            success = rsync_paths(session.with_name(collection), remote_session / collection)
-            assert success
-            # log.info(f"{src} -> {dst} - {data_name} transfer success")
-        session_params.aggregate_device(remote_file, remote_session / '_ibl_experiment.description.yaml', unlink=True)
-        if not any(remote_session.joinpath('_devices').glob('*.*')):
-            file_list = list(remote_session.rglob('*.*.*'))
-            flags.write_flag_file(remote_session.joinpath('raw_session.flag'), file_list=file_list)
-        flags.write_flag_file(session.with_name('transferred.flag'), file_list=collections)
+            if not session.with_name(collection).exists():
+                log.error(f'Collection {session.with_name(collection)} doesn\'t exist')
+                ok[i] = False
+                continue
+            log.debug(f'transferring {session_parts} - {collection}')
+            ok[i] &= rsync_paths(session.with_name(collection), remote_session / collection)
+
+        if ok[i]:
+            main_experiment_file = remote_session / '_ibl_experiment.description.yaml'
+            session_params.aggregate_device(remote_file, main_experiment_file, unlink=True)
+            if not any(remote_session.joinpath('_devices').glob('*.*')):
+                file_list = list(map(str, remote_session.rglob('*.*.*')))
+                flags.write_flag_file(remote_session.joinpath('raw_session.flag'), file_list=file_list)
+            flags.write_flag_file(session.with_name('transferred.flag'), file_list=list(collections))
+            log.info(f'{session_parts} transfer success')
+    return local_sessions, ok
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Transfer raw data folder(s) to IBL local server')
     parser.add_argument('-l', '--local', default=False, required=False, help='Local iblrig_data/Subjects folder')
     parser.add_argument('-r', '--remote', default=False, required=False, help='Remote iblrig_data/Subjects folder')

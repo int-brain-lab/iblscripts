@@ -21,28 +21,23 @@ class TestDynamicPipeline(base.IntegrationTest):
         self.one = ONE(**base.TEST_DB)
         path, self.eid = RegistrationClient(self.one).create_new_session('ZM_1743')
         # need to create a session here
-        session_path = FIXTURES_PATH.joinpath('ephys_NP3B')
+        session_path = FIXTURES_PATH.joinpath('ephys_NP3B_custom')
         self.pipeline = dynamic.make_pipeline(session_path, one=self.one, eid=str(self.eid))
         self.expected_pipeline = dynamic.load_pipeline_dict(session_path)
 
     def test_alyx_task_dicts(self):
-
         pipeline_list = self.pipeline.create_tasks_list_from_pipeline()
-
         self.compare_dicts(pipeline_list, self.expected_pipeline, id=False)
 
     def test_alyx_task_creation_pipeline(self):
-
         alyx_tasks_from_pipe = self.pipeline.create_alyx_tasks()
         alyx_tasks_from_dict = self.pipeline.create_alyx_tasks(self.pipeline.create_tasks_list_from_pipeline())
-
         self.compare_dicts(alyx_tasks_from_pipe, alyx_tasks_from_dict)
 
     def test_alyx_task_creation_task_dict(self):
         # Now do the other way around to the tasks are made from the task_list first
         alyx_tasks_from_dict = self.pipeline.create_alyx_tasks(self.pipeline.create_tasks_list_from_pipeline())
         alyx_tasks_from_pipe = self.pipeline.create_alyx_tasks()
-
         self.compare_dicts(alyx_tasks_from_dict, alyx_tasks_from_pipe)
 
     def compare_dicts(self, dict1, dict2, id=True):
@@ -170,18 +165,16 @@ class TestExperimentDescription(base.IntegrationTest):
         self.experiment_description = sess_params.read_params(file)
 
     def test_params_reading(self):
-        assert sess_params.get_sync(self.experiment_description) == 'nidq'
+        self.assertEqual(sess_params.get_sync(self.experiment_description), 'nidq')
+        self.assertEqual(sess_params.get_sync_extension(self.experiment_description), 'bin')
+        self.assertEqual(sess_params.get_sync_namespace(self.experiment_description), 'spikeglx')
+        self.assertEqual(sess_params.get_sync_collection(self.experiment_description), 'raw_ephys_data')
+        self.assertEqual(sess_params.get_cameras(self.experiment_description), ['body', 'left', 'right'])
+        self.assertEqual(sess_params.get_task_collection(self.experiment_description, 'ephysChoiceWorld'), 'raw_behavior_data')
+        self.assertEqual(sess_params.get_task_protocol(self.experiment_description, 'raw_behavior_data'), 'ephysChoiceWorld')
+        self.assertEqual(sess_params.get_task_protocol(self.experiment_description, 'raw_passive_data'), 'passiveChoiceWorld')
 
-        assert sess_params.get_sync_extension(self.experiment_description) == 'bin'
-
-        assert sess_params.get_sync_namespace(self.experiment_description) == 'spikeglx'
-
-        assert sess_params.get_sync_collection(self.experiment_description) == 'raw_ephys_data'
-
-        assert sess_params.get_cameras(self.experiment_description) == ['body', 'left', 'right']
-
-        assert sess_params.get_task_collection(self.experiment_description) == "raw_behavior_data"
-
-        assert sess_params.get_task_protocol(self.experiment_description, 'raw_behavior_data') == "ephysChoiceWorld"
-
-        assert sess_params.get_task_protocol(self.experiment_description, 'raw_passive_data') == "passiveChoiceWorld"
+        collections = sess_params.get_task_collection(self.experiment_description)
+        self.assertCountEqual({'raw_behavior_data', 'raw_passive_data'}, collections)
+        protocols = sess_params.get_task_protocol(self.experiment_description)
+        self.assertCountEqual({'ephysChoiceWorld', 'passiveChoiceWorld'}, protocols)
