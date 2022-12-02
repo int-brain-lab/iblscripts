@@ -61,6 +61,7 @@ Content of the `local_example.yml` file
 * Modules:
   * https://docs.ansible.com/ansible/latest/collections/ansible/builtin/apt_module.html
   * https://docs.ansible.com/ansible/latest/collections/ansible/builtin/file_module.html
+  * https://docs.ansible.com/ansible/latest/collections/ansible/builtin/git_module.html
   * https://docs.ansible.com/ansible/latest/collections/ansible/posix/mount_module.html
   * https://docs.ansible.com/ansible/latest/collections/ansible/builtin/shell_module.html
   * https://docs.ansible.com/ansible/latest/collections/ansible/builtin/user_module.html

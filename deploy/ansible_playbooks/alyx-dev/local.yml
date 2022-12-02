@@ -21,6 +21,7 @@
           - postgresql
           - python3-certbot-apache
           - python3-pip
+          - python3-venv
         update_cache: yes
         state: latest
         autoclean: yes
@@ -56,23 +57,22 @@
         - "{{ certbot_log_path }}"
 
     # Alyx Config Tasks
-    - name: Set apache_alyx_path as a safe git dir
-      command: git config --global --add safe.directory {{ apache_alyx_path }}
-      args:
-        creates: "{{ os_user_home_dir }}/.alyx_safe_dir_registered.flag"  #creates flag to ensure this is only ever run once
-      notify: Create git safe dir flag
-    - name: git clone alyx repo
+    - name: Git clone alyx repo
       git:
         repo: https://github.com/cortex-lab/alyx.git
-        dest: "{{ apache_alyx_path }}"
-        clone: yes
-        update: yes
-        force: yes
+        dest: "{{ git_alyx_path }}"
+    - name: Update apache alyx dir
+      copy:
+        src: "{{ git_alyx_path }}"
+        dest: /var/www
+        owner: "{{ apache_user }}"
+        group: "{{ apache_group }}"
       become: true
-    - name: Ensure alyx requirement python packages are installed
-      pip:
-        requirements: "{{ apache_alyx_path }}/requirements.txt"
-      become_user: "{{ apache_user }}"
+    - name: Ensure alyx python package requirements are installed into venv
+      shell: |
+        /usr/bin/python3 -m venv {{ apache_alyx_path }}/venv
+        {{ apache_alyx_path }}/venv/bin/pip install --requirement {{ apache_alyx_path }}/requirements.txt
+      become: true
     - name: Ensure alyx settings files exist
       copy:
         src: "{{ item.src }}"
@@ -111,14 +111,12 @@
       become: true
 
     # iblalyx Config Tasks
-    - name: git clone iblalyx repo
+    - name: Git clone iblalyx repo
       git:
         repo: https://github.com/int-brain-lab/iblalyx.git
-        dest: "{{ iblalyx_path }}"
+        dest: "{{ git_iblalyx_path }}"
         clone: yes
         update: yes
-        force: yes
-      become: true
     - name: symlink iblalyx reports
       file:
         src: "{{ item.src }}"
@@ -126,8 +124,8 @@
         state: link
       become: true
       with_items:
-        - { src: "{{ iblalyx_path }}/management/ibl_reports", dest: "{{ apache_alyx_path }}/alyx/ibl_reports" }
-        - { src: "{{ iblalyx_path }}/management/ibl_reports/templates",
+        - { src: "{{ git_iblalyx_path }}/management/ibl_reports", dest: "{{ apache_alyx_path }}/alyx/ibl_reports" }
+        - { src: "{{ git_iblalyx_path }}/management/ibl_reports/templates",
             dest: "{{ apache_alyx_path }}/alyx/templates/ibl_reports" }
 
     # Ensure remaining apache config files are in place with correct owner
@@ -166,7 +164,7 @@
         - { src: "{{ conf_file_path }}/fullchain.pem-{{ os_host_name }}", dest: "{{ cert_fullchain_path }}" }
         - { src: "{{ conf_file_path }}/privkey.pem-{{ os_host_name }}", dest: "{{ cert_privkey_path }}" }
     - name: Certbot Init
-      command: /bin/bash {{ iblalyx_path }}/crons/renew_docker_certs.sh {{ os_host_name }}  # script restarts apache service
+      command: /bin/bash {{ git_iblalyx_path }}/crons/renew_docker_certs.sh {{ os_host_name }}  # script restarts apache service
       args:
         creates: "{{ os_user_home_dir }}/.certbot_init.flag"
       become: true
