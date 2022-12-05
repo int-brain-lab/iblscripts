@@ -9,6 +9,7 @@
     - name: Ensure hostname is set
       hostname:
         name: "{{ os_host_name }}"
+
     - name: Ensure required apt packages are present
       apt:
         pkg:
@@ -21,11 +22,12 @@
           - postgresql
           - python3-certbot-apache
           - python3-pip
-          - python3-venv
+          - python3-virtualenv
         update_cache: yes
         state: latest
         autoclean: yes
       become: true
+
     - name: Enable apache2 modules
       apache2_module:
         name: "{{ item }}"
@@ -35,6 +37,7 @@
         - wsgi
       become: true
 
+
     # Logging Tasks
     - name: Ensure IBL log directory exists
       file:
@@ -43,6 +46,7 @@
         owner: "{{ os_user }}"
         group: "{{ os_group }}"
         mode: 0775
+
     - name: Ensure log files exist
       file:
         path: "{{ item }}"
@@ -56,23 +60,25 @@
         - "{{ ansible_log_path }}"
         - "{{ certbot_log_path }}"
 
+
     # Alyx Config Tasks
     - name: Git clone alyx repo
       git:
         repo: https://github.com/cortex-lab/alyx.git
         dest: "{{ git_alyx_dir }}"
+
     - name: Update apache alyx dir
       copy:
         src: "{{ git_alyx_dir }}"
         dest: /var/www
-        owner: "{{ apache_user }}"
-        group: "{{ apache_group }}"
       become: true
-    - name: Ensure alyx python package requirements are installed into venv
-      shell: |
-        /usr/bin/python3 -m venv {{ apache_alyx_dir }}/venv
-        {{ apache_alyx_dir }}/venv/bin/pip install --requirement {{ apache_alyx_dir }}/requirements.txt
+
+    - name: Ensure alyx python package requirements are installed inside virtualenv
+      pip:
+        virtualenv: "{{ apache_alyx_dir }}/venv"
+        requirements: "{{ apache_alyx_dir }}/requirements.txt"
       become: true
+
     - name: Ensure alyx settings files exist
       copy:
         src: "{{ item.src }}"
@@ -80,7 +86,6 @@
         owner: "{{ apache_user }}"
         group: "{{ apache_group }}"
         mode: 0775
-      become: true
       with_items:
         - { src: "{{ conf_file_dir }}/settings.py-{{ os_host_name }}",
             dest: "{{ apache_alyx_dir }}/alyx/alyx/settings.py" }
@@ -88,6 +93,8 @@
             dest: "{{ apache_alyx_dir }}/alyx/alyx/settings_secret.py" }
         - { src: "{{ conf_file_dir }}/settings_lab.py-{{ os_host_name }}",
             dest: "{{ apache_alyx_dir }}/alyx/alyx/settings_lab.py" }
+      become: true
+
     - name: Ensure alyx backup directories exist
       file:
         path: "{{ item }}"
@@ -99,6 +106,7 @@
       with_items:
         - /backups/tables
         - /backups/uploaded
+
     - name: Ensure alyx log file exists
       file:
         path: "{{ alyx_log_path }}"
@@ -110,6 +118,35 @@
         access_time: preserve
       become: true
 
+    - name: Ensure apache alyx directory ownership
+      file:
+        path: "{{ apache_alyx_dir }}"
+        owner: "{{ apache_user }}"
+        group: "{{ apache_group }}"
+        recurse: yes
+      become: true
+
+    - name: Ensure alyx venv has been added to system-wide $PATH.
+      copy:
+        dest: /etc/profile.d/custom-path.sh
+        content: "PATH=$PATH:{{ alyx_virt_env }}/bin"
+      become: true
+
+    - name: Ensure system wide environment variables exist
+      lineinfile:
+        path: /etc/environment
+        line: "{{ item }}"
+      become: true
+      with_items:
+        - VIRTUAL_ENV={{ alyx_virt_env }}
+        - APACHE_RUN_USER={{ apache_user }}
+        - APACHE_RUN_GROUP={{ apache_group }}
+        - APACHE_LOCK_DIR={{ apache_lock_dir }}
+        - APACHE_LOG_DIR={{ apache_log_dir }}
+        - APACHE_PID_FILE={{ apache_pid_path }}
+        - APACHE_SERVER_NAME={{ apache_server_name }}
+
+
     # iblalyx Config Tasks
     - name: Git clone iblalyx repo
       git:
@@ -117,6 +154,7 @@
         dest: "{{ git_iblalyx_dir }}"
         clone: yes
         update: yes
+
     - name: symlink iblalyx reports
       file:
         src: "{{ item.src }}"
@@ -127,6 +165,7 @@
         - { src: "{{ git_iblalyx_dir }}/management/ibl_reports", dest: "{{ apache_alyx_dir }}/alyx/ibl_reports" }
         - { src: "{{ git_iblalyx_dir }}/management/ibl_reports/templates",
             dest: "{{ apache_alyx_dir }}/alyx/templates/ibl_reports" }
+
 
     # Ensure remaining apache config files are in place with correct owner
     - name: Ensure apache settings files exist
@@ -141,6 +180,7 @@
         - { src: "{{ conf_file_dir }}/apache-conf-{{ os_host_name }}", dest: /etc/apache2/apache2.conf }
         - { src: "{{ conf_file_dir }}/000-default-conf-{{ os_host_name }}", dest: /etc/apache2/sites-available/000-default.conf }
         - { src: "{{ conf_file_dir }}/ip-whitelist-conf", dest: /etc/apache2/sites-available/ip_whitelist.conf }
+
     - name: Set owners to alyx
       file:
         dest: "{{ apache_alyx_dir }}"
@@ -149,12 +189,14 @@
         recurse: yes
       become: yes
 
+
     # Certbot Config Tasks
     - name: Ensure Apache SSL directory exists
       file:
         path: /etc/apache2/ssl/
         state: directory
       become: true
+
     - name: Ensure certbot files exist
       copy:
         src: "{{ item.src }}"
@@ -163,6 +205,7 @@
       with_items:
         - { src: "{{ conf_file_dir }}/fullchain.pem-{{ os_host_name }}", dest: "{{ cert_fullchain_path }}" }
         - { src: "{{ conf_file_dir }}/privkey.pem-{{ os_host_name }}", dest: "{{ cert_privkey_path }}" }
+
     - name: Certbot Init
       command: /bin/bash {{ git_iblalyx_dir }}/crons/renew_docker_certs.sh {{ os_host_name }}  # script restarts apache service
       args:
@@ -171,13 +214,7 @@
       notify: Create certbot init flag
 
   handlers:
-    # Flag handlers
-    - name: Create git safe dir flag
-      file:
-        path: "{{ os_user_home_dir }}/.alyx_safe_dir_registered.flag"
-        state: touch
-        modification_time: preserve
-        access_time: preserve
+    # Flag handler
     - name: Create certbot init flag
       file:
         path: "{{ os_user_home_dir }}/.certbot_init.flag"

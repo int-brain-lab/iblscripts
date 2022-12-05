@@ -20,6 +20,11 @@ cert_privkey_path: "/etc/apache2/ssl/privkey.pem"
 apache_user: "www-data"
 apache_group: "www-data"
 apache_alyx_dir: "/var/www/alyx"
+apache_lock_dir: "/var/lock/apache2"
+apache_log_dir: "/var/log/apache2"
+apache_pid_path: "/var/run/apache2/apache2.pid"
+apache_server_name: "dev.alyx.internationalbrainlab.org"
+alyx_virt_env: "{{ apache_alyx_dir }}/venv"
 
 # git path
 git_alyx_dir: "{{ os_user_home_dir }}/alyx"

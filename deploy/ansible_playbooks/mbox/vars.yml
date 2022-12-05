@@ -1,0 +1,13 @@
+---
+# System
+os_user: "ubuntu"
+os_group: "ubuntu"
+os_user_home_dir: "/home/{{ os_user }}"
+os_host_name: "mbox"
+
+# Logs
+ibl_log_dir: "{{ os_user_home_dir }}/logs"
+ansible_log_path: "{{ ibl_log_dir }}/ansible_pull.log"
+
+# git path
+git_alyx_dir: "{{ os_user_home_dir }}/alyx"
