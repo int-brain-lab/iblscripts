@@ -19,15 +19,11 @@ cert_privkey_path: "/etc/apache2/ssl/privkey.pem"
 # Apache
 apache_user: "www-data"
 apache_group: "www-data"
-apache_alyx_path: "/var/www/alyx"
-apache_lock_path: "/var/lock/apache2"
-apache_pid_file_path: "/var/run/apache2/apache2.pid"
-apache_ssl_path: "/etc/apache2/ssl"
-apache_server_name: "dev.alyx.internationalbrainlab.org"
+apache_alyx_dir: "/var/www/alyx"
 
 # git path
-git_alyx_path: "{{ os_user_home_dir }}/alyx"
-git_iblalyx_path: "{{ os_user_home_dir }}/iblalyx"
+git_alyx_dir: "{{ os_user_home_dir }}/alyx"
+git_iblalyx_dir: "{{ os_user_home_dir }}/iblalyx"
 
 # Conf
-conf_file_path: "{{ os_user_home_dir }}/conf_files"
+conf_file_dir: "{{ os_user_home_dir }}/conf_files"

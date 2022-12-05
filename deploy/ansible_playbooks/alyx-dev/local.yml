@@ -60,18 +60,18 @@
     - name: Git clone alyx repo
       git:
         repo: https://github.com/cortex-lab/alyx.git
-        dest: "{{ git_alyx_path }}"
+        dest: "{{ git_alyx_dir }}"
     - name: Update apache alyx dir
       copy:
-        src: "{{ git_alyx_path }}"
+        src: "{{ git_alyx_dir }}"
         dest: /var/www
         owner: "{{ apache_user }}"
         group: "{{ apache_group }}"
       become: true
     - name: Ensure alyx python package requirements are installed into venv
       shell: |
-        /usr/bin/python3 -m venv {{ apache_alyx_path }}/venv
-        {{ apache_alyx_path }}/venv/bin/pip install --requirement {{ apache_alyx_path }}/requirements.txt
+        /usr/bin/python3 -m venv {{ apache_alyx_dir }}/venv
+        {{ apache_alyx_dir }}/venv/bin/pip install --requirement {{ apache_alyx_dir }}/requirements.txt
       become: true
     - name: Ensure alyx settings files exist
       copy:
@@ -82,12 +82,12 @@
         mode: 0775
       become: true
       with_items:
-        - { src: "{{ conf_file_path }}/settings.py-{{ os_host_name }}",
-            dest: "{{ apache_alyx_path }}/alyx/alyx/settings.py" }
-        - { src: "{{ conf_file_path }}/settings_secret.py-{{ os_host_name }}",
-            dest: "{{ apache_alyx_path }}/alyx/alyx/settings_secret.py" }
-        - { src: "{{ conf_file_path }}/settings_lab.py-{{ os_host_name }}",
-            dest: "{{ apache_alyx_path }}/alyx/alyx/settings_lab.py" }
+        - { src: "{{ conf_file_dir }}/settings.py-{{ os_host_name }}",
+            dest: "{{ apache_alyx_dir }}/alyx/alyx/settings.py" }
+        - { src: "{{ conf_file_dir }}/settings_secret.py-{{ os_host_name }}",
+            dest: "{{ apache_alyx_dir }}/alyx/alyx/settings_secret.py" }
+        - { src: "{{ conf_file_dir }}/settings_lab.py-{{ os_host_name }}",
+            dest: "{{ apache_alyx_dir }}/alyx/alyx/settings_lab.py" }
     - name: Ensure alyx backup directories exist
       file:
         path: "{{ item }}"
@@ -114,7 +114,7 @@
     - name: Git clone iblalyx repo
       git:
         repo: https://github.com/int-brain-lab/iblalyx.git
-        dest: "{{ git_iblalyx_path }}"
+        dest: "{{ git_iblalyx_dir }}"
         clone: yes
         update: yes
     - name: symlink iblalyx reports
@@ -124,9 +124,9 @@
         state: link
       become: true
       with_items:
-        - { src: "{{ git_iblalyx_path }}/management/ibl_reports", dest: "{{ apache_alyx_path }}/alyx/ibl_reports" }
-        - { src: "{{ git_iblalyx_path }}/management/ibl_reports/templates",
-            dest: "{{ apache_alyx_path }}/alyx/templates/ibl_reports" }
+        - { src: "{{ git_iblalyx_dir }}/management/ibl_reports", dest: "{{ apache_alyx_dir }}/alyx/ibl_reports" }
+        - { src: "{{ git_iblalyx_dir }}/management/ibl_reports/templates",
+            dest: "{{ apache_alyx_dir }}/alyx/templates/ibl_reports" }
 
     # Ensure remaining apache config files are in place with correct owner
     - name: Ensure apache settings files exist
@@ -138,12 +138,12 @@
         mode: 0775
       become: true
       with_items:
-        - { src: "{{ conf_file_path }}/apache-conf-{{ os_host_name }}", dest: /etc/apache2/apache2.conf }
-        - { src: "{{ conf_file_path }}/000-default-conf-{{ os_host_name }}", dest: /etc/apache2/sites-available/000-default.conf }
-        - { src: "{{ conf_file_path }}/ip-whitelist-conf", dest: /etc/apache2/sites-available/ip_whitelist.conf }
+        - { src: "{{ conf_file_dir }}/apache-conf-{{ os_host_name }}", dest: /etc/apache2/apache2.conf }
+        - { src: "{{ conf_file_dir }}/000-default-conf-{{ os_host_name }}", dest: /etc/apache2/sites-available/000-default.conf }
+        - { src: "{{ conf_file_dir }}/ip-whitelist-conf", dest: /etc/apache2/sites-available/ip_whitelist.conf }
     - name: Set owners to alyx
       file:
-        dest: "{{ apache_alyx_path }}"
+        dest: "{{ apache_alyx_dir }}"
         owner: "{{ apache_user }}"
         group: "{{ apache_group }}"
         recurse: yes
@@ -161,10 +161,10 @@
         dest: "{{ item.dest }}"
       become: true
       with_items:
-        - { src: "{{ conf_file_path }}/fullchain.pem-{{ os_host_name }}", dest: "{{ cert_fullchain_path }}" }
-        - { src: "{{ conf_file_path }}/privkey.pem-{{ os_host_name }}", dest: "{{ cert_privkey_path }}" }
+        - { src: "{{ conf_file_dir }}/fullchain.pem-{{ os_host_name }}", dest: "{{ cert_fullchain_path }}" }
+        - { src: "{{ conf_file_dir }}/privkey.pem-{{ os_host_name }}", dest: "{{ cert_privkey_path }}" }
     - name: Certbot Init
-      command: /bin/bash {{ git_iblalyx_path }}/crons/renew_docker_certs.sh {{ os_host_name }}  # script restarts apache service
+      command: /bin/bash {{ git_iblalyx_dir }}/crons/renew_docker_certs.sh {{ os_host_name }}  # script restarts apache service
       args:
         creates: "{{ os_user_home_dir }}/.certbot_init.flag"
       become: true
