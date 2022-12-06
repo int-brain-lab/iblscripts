@@ -26,3 +26,4 @@ tasks:
 - trainingChoiceWorld:
     collection: raw_behavior_data
     sync_label: bpod
+version: 1.0.0

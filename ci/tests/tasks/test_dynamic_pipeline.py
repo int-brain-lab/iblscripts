@@ -178,3 +178,17 @@ class TestExperimentDescription(base.IntegrationTest):
         self.assertCountEqual({'raw_behavior_data', 'raw_passive_data'}, collections)
         protocols = sess_params.get_task_protocol(self.experiment_description)
         self.assertCountEqual({'ephysChoiceWorld', 'passiveChoiceWorld'}, protocols)
+
+    def test_compatibility(self):
+        """Test for ibllib.io.session_params._patch_file.
+
+        This checks whether a description file is old and modified the dict to be compatible with
+        the most recent spec.
+        """
+        files = sorted(FIXTURES_PATH.joinpath('old').glob('_ibl_experiment.description*.yaml'))
+        for file in files:
+            with self.subTest(file.stem.rsplit('_')[-1]):
+                exp_dec = sess_params.read_params(file)
+                self.assertIsInstance(exp_dec['tasks'], list, 'failed to convert tasks key to list')
+                expected = ('passiveChoiceWorld', 'ephysChoiceWorld')
+                self.assertCountEqual(expected, (next(iter(x.keys())) for x in exp_dec['tasks']))
