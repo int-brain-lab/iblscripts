@@ -12,8 +12,6 @@ from ci.tests import base
 
 _logger = logging.getLogger('ibllib')
 
-FIXTURES_PATH = Path(__file__).parent.joinpath('fixtures_acquisition_descriptions')
-
 
 class TestDynamicPipeline(base.IntegrationTest):
 
@@ -21,7 +19,7 @@ class TestDynamicPipeline(base.IntegrationTest):
         self.one = ONE(**base.TEST_DB)
         path, self.eid = RegistrationClient(self.one).create_new_session('ZM_1743')
         # need to create a session here
-        session_path = FIXTURES_PATH.joinpath('ephys_NP3B_custom')
+        session_path = self.data_path.joinpath('dynamic_pipeline', 'ephys_NP3B')
         self.pipeline = dynamic.make_pipeline(session_path, one=self.one, eid=str(self.eid))
         self.expected_pipeline = dynamic.load_pipeline_dict(session_path)
 
@@ -59,7 +57,7 @@ class TestDynamicPipeline(base.IntegrationTest):
 class TestStandardPipelines(base.IntegrationTest):
     def setUp(self) -> None:
 
-        self.folder_path = FIXTURES_PATH
+        self.folder_path = self.data_path.joinpath('dynamic_pipeline')
         self.temp_dir = Path(tempfile.TemporaryDirectory().name)
         self.session_path = self.temp_dir.joinpath('mars', '2054-07-13', '001')
 
@@ -88,7 +86,8 @@ class TestStandardPipelines(base.IntegrationTest):
         self.check_pipeline()
 
     def test_photometry(self):
-        shutil.copytree(self.folder_path.joinpath('photometry'), self.session_path)
+        src = self.folder_path.joinpath('photometry', 'server_data', 'ZFM-03448', '2022-09-06', '001')
+        shutil.copytree(src, self.session_path)
         self.check_pipeline()
 
     def check_pipeline(self):
@@ -127,7 +126,7 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
 
         self.session_path.joinpath('raw_session.flag').touch()
         shutil.copy(
-            FIXTURES_PATH.joinpath('training', '_ibl_experiment.description.yaml'),
+            self.data_path.joinpath('dynamic_pipeline', 'training', '_ibl_experiment.description.yaml'),
             self.session_path.joinpath('_ibl_experiment.description.yaml')
         )
         # also need to make an experiment description file
@@ -161,7 +160,7 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
 
 class TestExperimentDescription(base.IntegrationTest):
     def setUp(self) -> None:
-        file = FIXTURES_PATH.joinpath('ephys_NP3B', '_ibl_experiment.description.yaml')
+        file = self.data_path.joinpath('dynamic_pipeline', 'ephys_NP3B', '_ibl_experiment.description.yaml')
         self.experiment_description = sess_params.read_params(file)
 
     def test_params_reading(self):
@@ -185,7 +184,7 @@ class TestExperimentDescription(base.IntegrationTest):
         This checks whether a description file is old and modified the dict to be compatible with
         the most recent spec.
         """
-        files = sorted(FIXTURES_PATH.joinpath('old').glob('_ibl_experiment.description*.yaml'))
+        files = sorted(self.data_path.joinpath('dynamic_pipeline', 'old').glob('_ibl_experiment.description*.yaml'))
         for file in files:
             with self.subTest(file.stem.rsplit('_')[-1]):
                 exp_dec = sess_params.read_params(file)
