@@ -287,8 +287,8 @@ class TestEphysPipeline(base.IntegrationTest):
         # also check that the behaviour criterion was set
         self.assertTrue('behavior' in extended)
         # check that new DLC qc is added properly
-        self.assertEqual(extended['_dlcLeft_pupil_diameter_snr'], [True, 12.066])
-        self.assertEqual(extended['_dlcRight_pupil_diameter_snr'], [True, 6.53])
+        self.assertEqual(extended['_dlcLeft_pupil_diameter_snr'], ['PASS', 12.066])
+        self.assertEqual(extended['_dlcRight_pupil_diameter_snr'], ['PASS', 6.53])
         # check that the probes insertions have the json field labeled properly
         pis = one.alyx.rest('insertions', 'list', session=eid, no_cache=True)
         for pi in pis:
