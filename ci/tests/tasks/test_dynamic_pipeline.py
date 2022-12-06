@@ -135,7 +135,6 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
         """
         This runs the full suite of tasks on a TrainingChoiceWorld task
         """
-
         dsets = job_creator(self.session_path, one=self.one)
         assert len(dsets) == 0
 

@@ -20,8 +20,6 @@ from deploy.transfer_data import main as transfer_data
 
 from ci.tests import base
 
-FIXTURES_PATH = Path(__file__).parent.joinpath('tasks', 'fixtures_acquisition_descriptions')
-
 
 def make_session(session_path, stype='training'):
     flags.write_flag_file(session_path.joinpath("transfer_me.flag"))
@@ -458,9 +456,11 @@ class TestCheckCompleteCopy(base.IntegrationTest):
 
         self.remote_session_path = fu.create_fake_session_folder(self.remote_repo)
 
+        self.fixtures_path = self.data_path / 'dynamic_pipeline'
+
     def test_copy_logic_ephys(self):
 
-        shutil.copy(FIXTURES_PATH.joinpath('ephys_NP3B', '_ibl_experiment.description.yaml'),
+        shutil.copy(self.fixtures_path.joinpath('ephys_NP3B', '_ibl_experiment.description.yaml'),
                     self.remote_session_path.joinpath('_ibl_experiment.description.yaml'))
 
         ephys_flag = self.remote_session_path.joinpath('ephys_data_transferred.flag')
@@ -488,7 +488,7 @@ class TestCheckCompleteCopy(base.IntegrationTest):
 
     def test_widefield_copy_logic(self):
 
-        shutil.copy(FIXTURES_PATH.joinpath('widefield', '_ibl_experiment.description.yaml'),
+        shutil.copy(self.fixtures_path.joinpath('widefield', '_ibl_experiment.description.yaml'),
                     self.remote_session_path.joinpath('_ibl_experiment.description.yaml'))
 
         widefield_flag = self.remote_session_path.joinpath('widefield_data_transferred.flag')
