@@ -42,81 +42,112 @@
         modification_time: preserve
         access_time: preserve
 
-#- name: Ensure a job that runs at 2 and 5 exists. Creates an entry like "0 5,2 * * ls -alh > /dev/null"
-#  ansible.builtin.cron:
-#    name: "check dirs"
-#    minute: "0"
-#    hour: "5,2"
-#    job: "ls -alh > /dev/null"
-#
-#- name: 'Ensure an old job is no longer present. Removes any job that is prefixed by "#Ansible: an old job" from the crontab'
-#  ansible.builtin.cron:
-#    name: "an old job"
-#    state: absent
-#
-#- name: Creates an entry like "@reboot /some/job.sh"
-#  ansible.builtin.cron:
-#    name: "a job for reboot"
-#    special_time: reboot
-#    job: "/some/job.sh"
-#
-#- name: Creates an entry like "PATH=/opt/bin" on top of crontab
-#  ansible.builtin.cron:
-#    name: PATH
-#    env: yes
-#    job: /opt/bin
 
-## every minute, htop and append to log file
-## disabled on 2022-03-21, more thorough logging now being managed by aws cloudwatch agent
-## * * * * * ~/iblalyx/crons/monitor_cpu.sh
-#
-## every Friday at 12
-#0 12 * * 2,5 ~/iblalyx/crons/ftp_delete_local.sh
-#
-## every day at 12:00
-#0 12 * * * ~/iblalyx/crons/histology_report.sh
-#
-## every 6 hours
-#0 */6 * * * ~/iblalyx/crons/monitor_dlc.sh
-#
-## every day at 11:00
-#0 11 * * * ~/iblalyx/crons/monitor_spikesorting.sh
-#
-## [Cyrille 6/5/2021] Deprecate notifications for now
-## 0  * * * * /bin/bash ~/10_notif.sh
-#
-## every day at 23:00
-#0 23 * * * /bin/bash ~/iblalyx/crons/06_ucl_import.sh > /var/log/alyx_ucl_import.log 2>&1
-#
-## every dat at 23:15
-#15 23 * * * ~/iblalyx/crons/alyx-test/00_rebuild_from_cache.sh
-## every day at 00:00
-#0  0 * * * /bin/bash ~/04_backup_config.sh
-#0  0 * * * /bin/bash ~/iblalyx/crons/monitor_table_size.sh
-#
-## every day at 00:15
-#15  0 * * * /bin/bash ~/iblalyx/crons/01_backup_ibl.sh > /var/log/alyx_backup.log 2>&1
-#
-## every 6 hours
-#0 */6 * * * /bin/bash ~/iblalyx/crons/01c_generate_cache.sh > /var/log/alyx_cache_gen.log 2>&1
-#
-## every 2 hours starting at 01:00
-##0 1-23/2 * * * /bin/bash ~/aws_sync_cron.sh 2 # Now run on flatiron
-#
-## every day at 02:00
-#0  2 * * * /bin/bash ~/iblalyx/crons/02a_globus_sync_UTC.sh > /var/log/alyx_globus.log 2>&1
-#
-## every day at 07:00
-#0  7 * * * /bin/bash ~/iblalyx/crons/02b_globus_sync_EST.sh >> /var/log/alyx_globus.log 2>&1
-#
-## every day at 10:00
-#0 10 * * * /bin/bash ~/iblalyx/crons/02c_globus_sync_PT.sh >> /var/log/alyx_globus.log 2>&1
-#
-## every day at 22:00
-#0 22 * * * /bin/bash ~/iblalyx/crons/07_histology.sh
-#
-## Everyday at 23:30, parse alyx_json.log
-#30 23 * * * /usr/bin/python3 ~/iblalyx/crons/parse_alyx_json_log.py >> /var/log/alyx_json_parser_cron.log 2>&1
-#
-## On 1st and 15th of each month @ 01:30
-#30 1 1,15 * * /bin/bash ~/iblalyx/crons/renew_certs.sh sg-0e21a23cf76d78537 > /var/log/cert_renew.log 2>&1
+    # Git Tasks
+    - name: Git clone iblalyx repo
+      git:
+        repo: https://github.com/int-brain-lab/iblalyx.git
+        dest: "{{ git_iblalyx_dir }}"
+        clone: yes
+        update: yes
+
+
+    # Cron Tasks
+    - name: Ensure ftp_delete_local cron exists
+      cron:
+        name: ftp_delete_local
+        minute: "0"
+        hour: "12"
+        weekday: "2,5"
+        job: "{{ git_iblalyx_dir }}/crons/ftp_delete_local.sh"
+
+    - name: Ensure histology_report cron exists
+      cron:
+        name: histology_report
+        minute: "0"
+        hour: "12"
+        job: "{{ git_iblalyx_dir }}/crons/histology_report.sh"
+
+    - name: Ensure monitor_dlc cron exists
+      cron:
+        name: monitor_dlc
+        minute: "0"
+        hour: "*/6"
+        job: "{{ git_iblalyx_dir }}/crons/monitor_dlc.sh"
+
+    - name: Ensure monitor_spikesorting cron exists
+      cron:
+        name: monitor_spikesorting
+        minute: "0"
+        hour: "11"
+        job: "{{ git_iblalyx_dir }}/crons/monitor_spikesorting.sh"
+
+    - name: Ensure ucl_import cron exists
+      cron:
+        name: ucl_import
+        minute: "0"
+        hour: "23"
+        job: "{{ git_iblalyx_dir }}/crons/06_ucl_import.sh > {{ ibl_log_dir }}/alyx_ucl_import.log 2>&1"
+
+    - name: Ensure rebuild_from_cache cron exists
+      cron:
+        name: rebuild_from_cache
+        minute: "15"
+        hour: "23"
+        job: "{{ git_iblalyx_dir }}/crons/alyx-test/00_rebuild_from_cache.sh"
+
+    - name: Ensure backup_config cron exists
+      cron:
+        name: backup_config
+        minute: "0"
+        hour: "0"
+        job: "/bin/bash {{ os_user_home_dir }}/04_backup_config"  # TODO: file is not in iblalyx, figure out what this is for
+
+    - name: Ensure monitor_table_size cron exists
+      cron:
+        name: monitor_table_size
+        minute: "0"
+        hour: "0"
+        job: "/bin/bash {{ git_iblalyx_dir }}/crons/monitor_table_size.sh"
+
+    - name: Ensure backup_ibl cron exists
+      cron:
+        name: backup_ibl
+        minute: "15"
+        hour: "0"
+        job: "/bin/bash {{ git_iblalyx_dir }}/crons/01_backup_ibl.sh > {{ ibl_log_dir }}/alyx_backup.log 2>&1"
+
+    - name: Ensure generate_cache cron exists
+      cron:
+        name: generate_cache
+        minute: "0"
+        hour: "*/6"
+        job: "/bin/bash {{ git_iblalyx_dir }}/crons/01c_generate_cache.sh > {{ ibl_log_dir }}/alyx_cache_gen.log 2>&1"
+
+    - name: Ensure 02a_globus_sync_UTC cron exists
+      cron:
+        name: 02a_globus_sync_UTC
+        minute: "0"
+        hour: "2"
+        job: "/bin/bash {{ git_iblalyx_dir }}/crons/02a_globus_sync_UTC.sh > {{ ibl_log_dir }}/alyx_globus.log 2>&1"
+
+    - name: Ensure 02b_globus_sync_EST cron exists
+      cron:
+        name: 02b_globus_sync_EST
+        minute: "0"
+        hour: "7"
+        job: "/bin/bash {{ git_iblalyx_dir }}/crons/02b_globus_sync_EST.sh > {{ ibl_log_dir }}/alyx_globus.log 2>&1"
+
+    - name: Ensure 02c_globus_sync_PT cron exists
+      cron:
+        name: 02c_globus_sync_PT
+        minute: "0"
+        hour: "10"
+        job: "/bin/bash {{ git_iblalyx_dir }}/crons/02c_globus_sync_PT.sh > {{ ibl_log_dir }}/alyx_globus.log 2>&1"
+
+    - name: Ensure histology cron exists
+      cron:
+        name: histology
+        minute: "0"
+        hour: "22"
+        job: "/bin/bash {{ git_iblalyx_dir }}/crons/07_histology.sh"
