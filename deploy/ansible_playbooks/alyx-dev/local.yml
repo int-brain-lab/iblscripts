@@ -133,18 +133,17 @@
       become: true
 
     - name: Ensure system wide environment variables exist
-      lineinfile:
+      blockinfile:
         path: /etc/environment
-        line: "{{ item }}"
+        block: |
+          VIRTUAL_ENV={{ alyx_virt_env }}
+          APACHE_RUN_USER={{ apache_user }}
+          APACHE_RUN_GROUP={{ apache_group }}
+          APACHE_LOCK_DIR={{ apache_lock_dir }}
+          APACHE_LOG_DIR={{ apache_log_dir }}
+          APACHE_PID_FILE={{ apache_pid_path }}
+          APACHE_SERVER_NAME={{ apache_server_name }}
       become: true
-      with_items:
-        - VIRTUAL_ENV={{ alyx_virt_env }}
-        - APACHE_RUN_USER={{ apache_user }}
-        - APACHE_RUN_GROUP={{ apache_group }}
-        - APACHE_LOCK_DIR={{ apache_lock_dir }}
-        - APACHE_LOG_DIR={{ apache_log_dir }}
-        - APACHE_PID_FILE={{ apache_pid_path }}
-        - APACHE_SERVER_NAME={{ apache_server_name }}
 
 
     # iblalyx Config Tasks

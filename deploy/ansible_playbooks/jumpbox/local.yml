@@ -1,0 +1,137 @@
+---
+- name: jumpbox playbook
+  hosts: localhost
+  connection: local
+  vars_files:
+    - vars.yml
+  tasks:
+    # OS Tasks
+    - name: Ensure hostname is set
+      hostname:
+        name: "{{ os_host_name }}"
+
+    - name: Ensure required apt packages are present
+      apt:
+        pkg:
+          - autossh
+        update_cache: yes
+        state: latest
+        autoclean: yes
+      become: true
+
+
+    # Logging Tasks
+    - name: Ensure IBL log directory exists
+      file:
+        path: "{{ ibl_log_dir }}"
+        state: directory
+        owner: "{{ os_user }}"
+        group: "{{ os_group }}"
+        mode: 0775
+
+    - name: Ensure log files exist
+      file:
+        path: "{{ ansible_log_path }}"
+        state: touch
+        owner: "{{ os_user }}"
+        group: "{{ os_group }}"
+        mode: 0664
+        modification_time: preserve
+        access_time: preserve
+
+    - name: Ensure aliases exist for reverse ssh targets
+      blockinfile:
+        path: "{{ os_user_home_dir }}/.bashrc"
+        block: |
+          # Local lab servers reverse ssh
+          alias cortexlab="ssh -p 6666 experiment@localhost"
+          alias mainenlab="ssh -p 6667 ibladmin@localhost"
+          alias steinmetzlab="ssh -p 6668 ibladmin@localhost"
+          alias floferlab="ssh -p 6669 ibladmin@localhost"
+          alias wittenlab="ssh -p 6670 ibladmin@localhost"
+          alias danlab="ssh -p 6671 ibladmin@localhost"
+          alias angelakilab="ssh -p 6672 ibladmin@localhost"
+          alias churchlandlab="ssh -p 6673 ibladmin@localhost"
+          alias churchlandlab_ucla="ssh -p 6674 ibl@localhost"
+          alias zadorlab="ssh -p 6675 ibladmin@localhost"
+          alias hausserlab="ssh -p 6676 ibladmin@localhost"
+          alias parede="ssh -p 6677 ibladmin@localhost"
+          alias whiterussian="ssh -p 6678 ibladmin@localhost"
+          alias churchlandlab_ucla2="ssh -p 6679 ibl@localhost"
+          # Dockerized servers
+          alias ssh-openalyx="ssh -i ~/.ssh/openalyx.pem ubuntu@ec2-35-176-98-252.eu-west-2.compute.amazonaws.com" # ec2 Public IPv4 addresses
+          alias ssh-alyx-prod="ssh -i ~/.ssh/alyx_prod.pem ubuntu@alyx.internationalbrainlab.org"
+
+    - name: Ensure authorized ssh keys are present
+      blockinfile:
+        path: "{{ os_user_home_dir }}/.ssh/authorized_keys"
+        block: |
+          # alyx london
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDTK742tGMT0MFksi523o5OIxbDr5y1BnZ4N1BBBYx3SW2x2mK8DoPhBiArmNXMQ/wdMg/kF7E3f1sFOD92upOPv/YG+7CW/Ndi1AoLrtQIzncW8SnyXH+/db7zO7BtMp5RbJLNhcbrBuYS+MBvCq0TUjz3JP+YjpdFGyw05Zt2IAtdXtPA8ok0YCtKK9HoBkR33juz2myYpFpiwkRxY4UDE3MovAOTqU6e1MtWms4YXRUlvPZR1Jf7QyKx2Dk2DQQfUbaof3xvz7hewuYq0BF06AUeeOYiRie8QRa5qpTCPk6kj1DmjpT1I9NesF7CMNtbVhkfKhCzzDvUxA61Z6P1 ubuntu@ip-172-31-1-209
+          # olivier:
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCdOFPc6hyyZEMGzk2fBKZzhyXzY3nZcKzlYziOgJM2pyCfBR6Wy4NZN9bpCzSbZHsmaWsjFE2ASzKxgUaiMmLWBe0olwvU91l421oA/7k8eG74SjsSK73Rchq4+6QCBq3c/P5pDi7DuMMZZ/y+vIpcKjH1BHLw56kVu3NE27d02wXKBqnspdqVytMJ8avqvtwszjRwSjy2XktfWyK0+XXESs061u2i/1UMi7NP1oDVti9b8foE7sxNA+RHtvsSaxk+cLFTu/Rr+Vpyn6mtqItw+EZ+0HVVv0+v0+dHvKGBL++rXfpFSPNWKj7uY+HdfRn5+97WcjELpRidPCOqc57z olivier@laptop
+          # cyrille:
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDF3b6uFhx97IPn4I0n0rJrcTQAYUN6bHmKukfqPwfO7pwfzp8fZa7XlFp+axno0ATTC5shCn2gpEX0tgjDRMoNf8Ncl5AyFZKs82t0eRdbPRho2aXaIzbtsE24Z1gRhvIpe6YPHbw2BXcE5FYWVId8p9jYgJls+KeOpEKn1e5P2n7Pw93vSx9dxDcgw55RVSpdnFe+gMlVkW2VjCShU6LkB67k2OHrcz041Plz+bpVgPqE2rBDVO2A8W/rzPphG/wajlztONGdrOIf6bXZWmM+9pF15KOoj7V+1hUTQ4lafdvBGIRzLklzp3dFmawhhbwoFy/hDDB5ssP8uAwQRAzf cyrille@scan
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsyZdUbLhCkXWBWpb95bpTHJcUR1QmSrm5OMU8I1NIdYFGYwmOJlicJQyK1Kza7Mtw1YbMQ9cHJZnixkZ+uWljDnIII1ECwf/NPShepmmyRMDxggcHYeZTXoZfb96vE6ZYj31cv/yvS3qmB3r8Wv9Bu7d/+jK3+ZQ0oEcs1ysrZ6lsUXOO4SpgBwmeccELe+DA1IJ2tX2VydXcTGUO3VExEIW3NVHMQTzaBMeqH4Eu7eOD96tONbbkXWEvtlKd0/QUoGKAx5VdP964H4oDSgl3ooh9lujyyjkrP6Hpf+zHsTt77i9D8d6ddt70h6o4T3Ej1pHfOqfcS+iUkM4LaNQd cyrille@carves
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4r1/gLciuAN3mWPEKEZ7EjJC9QXasERwpdboRwLBix/XKi/ORonTKQF6DIS9wk60cpdyQNrjJMzC32J9RZZ5p+52+mj75K+xG8lyhHlDIPOu5bCffgMEgqGbsPd2lhN+WX9yNFDqUI5uVlZZZ5csgJPYI7zJYLk51MP7SpTt/5Q714CK/kwDDLLB8yCJISJeI5ZHhaRryoOQd6FqhYLpJBxBuhC7a7x9XT9qdVzicaIcQA746fI0pg5K3Ay7KNlYIgs6oLjCUuJaEaiT1Cl2208IdaQ0SiJ+0ibtC5O2XZ8kZyIyDbzbtL/SmJInrVItBVUkvxZeC/H8aVUzOOiCXA7sSxuUtNPfuNA0luCeGhFC9f8LBobF05JUFUY8H+lcmPaaaN8xC/IbAHKA9kbBo1qkPwjdW4N2jNlDxUzCWpvBPSq9JNXaJTbj8M+ao6kUNgaDv6v5FW3OgOD9lahxp6K11QqTW3Ghervg1D2wtJZf9PYu34R+Brq1trykxAZc= cyrille@macbook
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDs1jO4ECJqwJjHdqTOjfuTsaot5+bd9BQJyAMQC8+7sGqcUypeP9g2ZZ5mpT3D3o2s2IzDMoslYg+8Pp3nIidEBGdL4i4HbcPYYsUsC/NO1etnX3DKXNipib881qWczHQRCQNAB1u6muhfaUzbrdxj8lg1youRVMcui73gA7VhoIeW3Aq7I/o9Xy5d1ZySpzr0c0ap0Uanb72tXxuT06L/7eAtr8LaMH50Xar75hwl6h5ktJigSL5FcWPedFXAWCQ0XbOrsQuwBULqMcqCilLTv7O9S8C0EliMcAIUP2vPxNcJMPGS5MwytgcEgT27V1WxCtQjjH/cId2MBRDLIz3Hbcr24joOuU06EsfqiyTgvFXRk1tdD/63VevUjt3XEyhb/lw7i3iY2aVRidrvJ+dQluGaACxOUBkVQq+caVHdLEEwmX38R6ayV7JrwilX5HGzcbE4F7WSrvRs0KqBaVB2gfF56E6qf1ItVzgbDXQUXnj/ui53oq2RY7rNeRt0Q50= cyrille@macbookpro
+          # gaelle:
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDTpm3rYdQpLufKtK2RJRSU2H12isgjitTT1VrpeyFex6krLKi/RWU0uTEuifNQNxrU5EAmBQD0liEDSvrWeT3HBLkuRD5AfEKM0OUDvF2Y4YRkeAb2vfJO8tz1/XjiA5CT3xAJzSQV+masv/3+WjlTnqGToivvhF5q8JpK7cGuX+Dm1cQSGs+GtaK8/wJrHGOi0pSKjQZbkazF7X/mKBQHhMog3s0+puHZV8GPn6PInLinnPEevKq3aQH/tqxD+GJMc2SRhQrSSN8U36CzqwBdHFuvIVkSpwEQvLEte+9fFFAqwxJkIeWZu41r9fAXH76lMwF35JAbsR0aBIDSTn2euXAIyPw1rnn1pa8ZGggnhkNPhUvyGdtrQOkRMtWXrR0zlGEVwt2+3uSQvNBmqZeuutnXUcMzcu926+b0kRKBAj3MH/271+ZAjkLVq2NYFiu/9rri3RiIpYYE2ZDaLHcp86tsnhpVCunpeyCG6PVPlFiovPoBNh5jFyirt+PMaMM= gaelle@macbook-pro-de-gaelle.home
+          # nicco:
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDtHv/HxjCUQ1nRrdlTHbIQHwBh4H4GI5PQ1ZlM7kU0FispzIsjc6SvdMMmF5O59UVOh2MgGBi6IvwkEF6n2KXsQY8FynEgHT4aiMv+JrMPsx0B0h6MqUjH1VeOaRpvvXUgfTC77FrOqPyWdZgJhdhg/Shcy4M6zNdRBTPvwH1Q1xYIs30YAhTsMBmmGXSlTldxc36TgjeeZV+ARw2BTsW1JnfqfMyUiX1KDV9u1IpVTefJPtOBdU+VRa3KetaNdS466g9yiEI5JWUnUc6lzRNheQxvt2SPqmrQnZe+aa2vzkl4A/5zg78Zj/z9bsZw9DYAYBWCRTO3foPYkSeCagMnH3/XNj6FaDL6jO22iTU5PnAfFvNevmmjyc+4Sq6ORuxeA78dafPhUf0XbQF/5btZ6dQi8wWLcO7DMD32kpUAO0mphJHIxQAz9xaU8neR8ueXNCxcXqgBTRsLZ79K5aP2EOK6l4ZZWMqj+8IzB8OJRQ9FwRkkxMDy8ZrhSnCeNKU= nico@pfc
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCs44hPCZtcezp3qTe7xj2whgVeFXN1g8gjSKs6r2SV+QWTW+g4gHy5TwNtyZpuop0yxLFtjV5dK8uoEr56IhXQIf0F7cA4iTyDZ+pxFGb9Q0a1Pc9m3helFo2dBuToG7c1let30VshxyR//o2FgsOqb4MYqYIp6SOfBAjW0ahgkfGp2zJap7zwVIObcwgzjQuyUPLDqPDpVwbJ+/FAe9w/Rfkk29T0dw2rCkfmGEPVcyz1GI0KWC/pjOv7UOuvJiEwzv2UWcrA2ecdZKn/pAKdHYQeEGHhwpm1ihvxIBepGQxjuTReEQYlDryNmSqOygCU7PsLyFAxCUGuLFfcZC+3 nicco@tux
+          # mayo:
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCBgSSRVRG+GMChVssT+wzytg7rI6NiQslUJnLn4Aq7uPNeFh7tMwgWq8hrmcQJ7PTh183KUL1MxXECw3wTARXNk/+SvvueI3svmAz3sHCobykNKdJQ2+jX5SSTdOjnSfh5v2dgqZfKsNERbEw8BcetswrvYoq/GvCy1wMH0Z4tI2Aid4e+hwWTg8F2pSlFXAfdvcKyC3UzAXCAKamWywGCtjRO2Xn71MlTTF2ZtE/Hn7ObaI/p0JEtO59m2+53SGW1HlB7Hs+b6Q8whIoA8721Cjzjiof+74KEEntCoRDjZ9narYqIqCzZEL+k6oKFCJDLVAF44TguGdCbwJVwZz0N
+          # miles:
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCSLNfiKlrSRWP0PlTfKXeV+5iYB9oT9pGwVE4x/6ezSCX2IxW2dUz8ZoF16Six+giwylq7sWrQIJHJgHeyMcq4z++J8rzdC41g1jbFIkMVdQILk/YBG4rAE2gDA6eJa4u/tFjDfBs9j+2PokwaYhIY+lkwqWfMNTTvxLoR0yuHiuQAr2DC+V4FzQh+WBMPy54arybdIaB1eNafhn03zYTUuyOXAByl1R/VlHYgRcMEABtfmGY6oGS2/y+hXsOGf9CRZ4LyrpNwS6DVlIgWhPTboImcYX0acTWHdrFHgroqBjuef/9DRfS7Dv3fnHNdTauuxlmv0CKKbOFslH/WmZ/5
+          # julia:
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCUeHqz/1g4JBBPxjM8KdrV9LgkeqxFB8gyzql1x9Gxp3qJNOuCmEjh1U0KCBBQ7xq9x7tRqNMJrgZf94kQ/7SsbHxqPDvppAlPlROG3oPBbczBVI2Yncv4Ac/RGkgl0eQyp76t2TMNA3jau4nltMg/TRDt8WIJMZShZtEVhTx0GbyzLYYWB8eeayOAFiQGObYI3upx04dGJRLaknjvZhPq+uzpOA+McaN7Zk7SoeuM+O46SRhPnNqFSwy+hN2rcWO/S8fXqPouqZDMPKEqX7+QQtY14enLkB3N49nQ0rsXWxC8LYBEQv8ap0ZknE37uyJnmEXGvwVFy20959pcf7/B
+          # michele
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC2qDB5WfiacWI+SPCtAyA8rJUhoAT88ijBj6Do/IPWXo3VB0mB8Qu/GdIoi6dnkBTfI4C12xSsQG2HiuDLJRMoBSRsL7VnaFm0sZPgyRkNvlai9fThdXFlSdDLA5mTv2uOOzDFhl1f6Mmxqcu+5DOxCitiwWDcgddjyPFypfCX4KrFUmvnArZTubc6AkVYjmhZdlVmyHfdX2T6HgywlIMUOL6DHsLYzqiSZ7MnMY3iXYhvvionrQPePoVaBXU1fEIkzLbMd/g4i/ejWuOZPpU37pVSXArPuGaFrd9nR+BNsZDa2NA26xbSJ7B8WkcGH0WoaoAeDvSOC0RHk1MlhxOZzOoR8Bi4JC474MWwu+O/reQrnPSu8VPC2POJwctCC2GkCq1kRb6gD4g7BqfTMxDBtvmAYpN3S6pJ2+qgI59nfTThrNk6hEnJj85BilINXmQry+0cXNmePF4Ugrc0cXt1RHR4+EryBh1r0+80iu0lcJ/FaXFMmlzKnHEyufHZ2oc= dirigibles@plot
+          # cortexlab:
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCu9TEIosuKvC662q4lVMTpKDtoLoPXNZrSKnb8IFk9B8ptdsx+ZzF5li54q5cGgczQO4vKoNWzShC3za15v2eTQTT2zAIFEmsRqcA+09asdwZi+jbZSuiRcnX8qjNAroy0ehjQyOm6aKXsIgMzHx89wsHStEZBVmwI0UvTGx5Escz8eHxMaO+ddNf+DffJp6h47RpchqQSxkX7awpG/nrmrWPi5KRIBEAd5l2YogInEg+K35q9Srke9cPtAEWlHH+f/6TzMCZ5/lCDl/9erFqZEaePVPZ25+6Vfc6mKp1Y6GP3kDlQVk55Yz9FN4YxCVT7sZq1hDasNhBkHT2fibqX experiment@experiment-Z390-AORUS-PRO
+          # mainenlab
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC8XqFkEX1ZZ0Sr8ZdYvRmlhMki15SCmMOxOAcT0FiwgdGot3O4UrZPZm1qBwjGpFM/r++D8eo0gM3X/HJ73aTp4tPGUBKxK1P5FZUBV3yn48e3/b5jI8zv4Oz09xZhwaTIu4vuy2UCSBw9O91dfzcNB1kv6rTpgpbJc1+9QMeHOwxT/c3LGiMYknMTEJx3WL+EyPF0t9z+GlPalqq8pYlV/12J8All6p4AXLeny1dmma1JAr+PYMYrjgL94itb0uK7UuAxM+Yv2zC/XoonzQueKshUujDyO+iIz9BWJhT594bIEJ3QNJPIW7qLFn+qcwIJ7Ss3k1u/DKwiiGQeVF4B ibladmin@iblserver
+          # steinmetzlab
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC92Gaxe6OP1ZwhM4G5YxowtYlMqzjqcUvNesF8z1Tfn+h2LrHYIavB2bNH5ZzspvWWcZtCyU4A/oEplQMTKvB4GcZMNKf0iNiPccIPfxjGClxBL9qKjztMOhHh1Poe9NZz3vbva/PYg+Mi6sfjjb8Ag9LsgqkPff+OiEf8ojEde7XirOxhZd1wClRU6X1O+zCBFmsJCXRdpFPmDqxK3j3DUxbW4S/891bl0frCbD9sALCnIQlLfIbGdZphKTJcPA6pvdwWdzSS0Ubqi0tuoRL8qcXtwAZT//ExGnOBbBFQW178czES71asLFVnrQ5UL3BIYrERexqV/bkRC4dcDlaD ibladmin@iblserver
+          # floferlab
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDMd/09t996pIXKYNS0gMVf3n4cYyHV2BCbXQ63sNayL3OY9nGrPWA56O7DRAiJLIp252DY2kkXcugzV9eN6CcII9lX2ImFQtGoiFhu2Hszk1eeePoHqlk9yskwcVPd64taJd7NM8D6bUIBpKL2kHVSHqAV3rzYYKOWDlWpmUhUA1LyDRBcsECidTZDhCp/WRcFg5Mb6qPNvuQjN8iy+OUSSro6Vxllp9QkCjTwjBAqV7XjjvRnxusui3th8b7+OltKDc/vzYgcb2RJgLYkGNTtTqMvNUGe6VXdBrjhqCx5qPRbw3P3tK9BbDTYXgUripPZnps55O0r95lxYCRDdrrZ ibladmin@iblserver
+          # wittenlab
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCrhedUkG/Kj3V3WJf/VjHE3uagqBYckTm8SBCrRg2AQuvJ69tHChsBzSN6BIDFf7kQY7p3jQeQYd8dji8JVTCqPqsqvDKRqB1zi8UrrxDQWAPmIyYSh9LRK8XKSYIuwWXuACWiaU1RdUEk+YImiG8YKH+zr+TeiNYmcTX6Zl9TzhH7sGFBvvNtXAaOYxna49QG3m2hViqKk/NNnH4mx/WhXwKbQNRytuh4U42XdQQU7McF+WMXb1ilGqn05HxZNBm5i4dSWa3/DMUqMQZD7+/anuuPoBgdIXXP5Loony9dgda7HWBjIAsRGoJ/pkP3fYcfiftdQkd+PxSL4C0gG0It ibladmin@iblserver
+          # danlab
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCi60aKzqRFgrmGNmWWfTij1kmlOK6cxre+ybm/7sNYpRD7jIbOOdwv09/fkcFGDrUB1RKR5kXVaGpl5/KJwZYfy1dCRhKnBC6pLT3qKrGTEFH4PShzc03Eo59kgPrNcClNxx+/qSw5mmJgnTvYJsOFdP5ukXD4VqZeI4aY/mEWCDr5iLIYtCOxnKqxdXszXMmgw+21ram/p4a+jBaQ4CE4oowkevX4/zVsthkrl5uLSGgIRHwFdodfI+HXoDBxNKOikcWkpw4QQ5vJaeIdiBBtM7H8w7iKyXWg/W/YdAgY8pouAZvLnbia7eozG4g/dgImZ5oMtGpgKpChjcn5qWxOg6sfax17fges9G36aE2F8fm15PfpAmeVsiwdlGF+SmdgeG11xXEZK9BJAQiuazttQAcqH0wcabgfwYEd1b7Sipq3VKhI4DBCdFu/mjokKhyNqsoqUR/hrM/AOqGeXG21Onp3J9dvlO7qsEkkvXwCeb0epZ3ZdJD9Bso+4Ml/qsM= ibladmin@iblserver
+          # churchlandlab
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDCvuaMEkC5Rc51vniDETFfqcGWpPhgnBKyy1Kd6y0wERi5ugxqscUdYBlALHvfQTpq9H0mbTXmVrNpeTsc86+7Oi/lPJ/4j6urFAQe4UtIqO61c3U6Tsrz0lfwdaV1P1MlcwJfajMXhIV9pFXECp5A4GoPllJc4P331NO2sLlmswZjojiano3/kQuHRlTeVVzCIXoAolj7jCfYBjNiV9XEp8KqCTi8iqhDW/q0yceDcVlx+GyQHLsMV9MXlVl6GaFuMPMSKIsqfaL8i+HksMkiAFXGHORmIL0ohFRL6Pm1i//EdcPZE8ua2ZjUMXCW5+14jxpdq8VmylSqU9ItCWsD ibladmin@iblserver
+          # zadorlab
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDNKWlEWg7sbqK81CXBYhop9FyqN5o8bstZpy2CdiRuBnXlOVK9ilKLr5e8ZzZs/qkBGV2X6i/UuPD2bNDTOAWq7Q9nA7aqrhU7UfAhaCmvCCVeleowsmkhURbeUdue8kyvFZ/95NyhKtQIp+Z1TWy8+n8XKS1+N+RFjSCuO/ibBJAf+sX7bBlEPM8ES/Wt2/aKpB6SN8ApWodoiiK8WA6gPOwSmq4W8kZcirHqeMJ/mig55559XkqoR10rz0dX74QiUCSgwQBDHkgG2EHemyb1frupRzz3f2hpoYuGElQX++hQvMnFGq9W9jgCM313RJYi8naIglOCNe9sO8xMwBpl ibladmin@zador-iblserver
+          # hauserlab
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC8VDg/12JmFyexU2lVgs/WjOMpZ7G9YkhoklWfmoRzhKtSj3MKRVFGv+gCf9Mo4u8bbbEUvcX98C/mJYwlOAu/FhJAC0wtrPQvmaHeuKucEwSDLQy35+r7JrwdbNb8Dopr+eWR74ydcFwBSPNJSe1bGmwcpcnPEwOO/SVpDtcIBn+9wLar7hf1zdfKv7xZD7yxobNiPOV/ZpsKvSw1SVdxr05afPbWr0Bu2FkEKDQKn1XUg6POo9OWu5Kn4B0tqIeAPzTyjG+9l1Gqj3csrI4DsoSfEQcy66nnYcuKleVgBfofyjRDC9pbYTo/HI7kVHN+KIP6NGf9Ip64ghkHnl89 ibladmin@iblserver
+          # angelakilab
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7l+AjlPo9a/6FctXfxPjh7Uu2/sHCQJPqSpNDDudYi9rsLnsVmD3AbmfgWnSi/IDfmt/ONk8N29WPGaSAJxuUR9NcPQe2emmF7LpC4k+hz+WsKBacALhEVA6DcQRk3Dbf/h688AHJWmKDx6tLAi1xYk0/HgoAImJHRcw/oz60iY4DK2HrmV7xp99KPuXUv7c1Af1+DxlP+PU5B6s19Flw77hkWwlk2GyrpTEN36NcGlE5eyWEz6rLpufalpFgNgjSCe27RfLU7caaCTLmvIxHnYXXudOxhyqtS5HlVXV1R4RdKv2E7/BsfnTvdBMUkwS733C7N3XJKDuBNpWARicF ibladmin@iblserver
+          # churchlandlab_ucla
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC9kbEsJq7sCzpD7Z1J6oAiKkoNqQzPmlZjXLTOh+l+DSk81MeejJuqbKMJvZ6Ub+iNwdXwQrgglrXLf3xL2U6tGz2+fttw41VBb/JvADII1KcPf/K6Aqbe3yglNOOXrmiy95iWj89TwPJORx2UD0Pmy1+x0zoJoVoI3tv4AYQYxm+xsroQxcFiEaeWvRI2ydPMwunLnteDRSkbg1DFdLbuS46LuSXnZBnVnGgmODvJ+irR+VxLfnme+rEr1vdg1A6Z3LcmAL+6VMHwG6y7dLpFOXpxzrI2+o+8IjPqGr4bh5gNkH9a6bhWheIJWE32sQkcQkXwg0fxl/DRRt//zesCUzCv75u8LSQbOz0ilwS/ogAAIeQuPGk6oeY9EXrXxDdakyEXbHuGGZVz3+JW9l+p2CqiRtAsIfBJTjvdtzoGP4cruQMLTubStkr8ZbtwXTg0Hy8YMpq+XYeesjowyiyiBxXT7z6zkgSasXqdg5oh5zzHYPOJQPJhVW4xrwTqiRE= ibl@ibl-churchland
+          # mic-parede
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQChjLIJhjsm9KsdHoqMvTlMPpM54CTz7YAad6UBOQv9VvtzVTDmkgfWpm0ZkesH+ixqgRmqN/5pb3f1GWGrtQm8i40dlgL7Zeo1vDDgirwP46OYwRhae+8sgY2+9MeSFsuFV7yJuaqbGVIeHjYIFy8g22Ufs+a/HL3Z2m28FHu3sf1sGysXIph7De0fwJtaeqM3EV6dRu9m2Bi90EwJ+kO481K5DQmPgmWUkQyFwUi4pi5zWW2cvGgDXt6WdKIVjIFysEtpnWHwndAVOKRqFNEtDXRL52CIrM9FVpLrHd83Pb2V/7WSHHPgkcMhSPrB/+uWjj/whzfI9LMwftsZa8tIPHUNGNPzO6iEtCd+tMFa0fzkp1VHlr+Ph0KaGCWIcyAy/11wJlGxZHHJkjlormmmD0jtCI7mSj4OGR+uuAHcXlCfHHkc3/Sm6QsxARNEUJNZI7GFcA9w6wtTfCRahdStrh/9pES4T5LKE4XG45vJagMx1LybS9jYTElPYmzxrJU= ibladmin@micIBL
+          # whiterussian
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCeCb5J6yndYgYAzFTRAqSgdduKWroYUFUx0nCeL86/EST48RXuZXxIbGUZPaT3Wi0O1ozIrj6XGhK/kJtXFHVe0BnLV+Fv6iNRxV1fn3evKybTzpPmrZ5/eeCEkFzCzXjlC7xbZGdxJ6lnMEPLYcIRg9UKMu6XaVjleGMRyI9UjezZZT6my754P32C4D4nbfHJjnuoqRkVnrIs1CEDh6QqZnQGmWMP5nUpFtTsHN3gALCx9CwK7R+htO4pftR/WUDh6+0cbDxZOJZo2bxOKENSy9SeqYijpzxou3falGndu8aCGFijo9vCFgnVJx2U9fjaSFW5o/bjcrw3eNNILo9T ibladmin@iblserver          
+          # churchlandlab_ucla2
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDscOZXtdq8TBDWVK+9cgqIFEQqn4u6D3CRWmUWHlzpA43rikHsKjITrL2OhYu4FFQdeNNicClwHnMn3HfTs6XQe2RbMmq7qo04o/pEu6+v/xLksgymn2XNcPY/bmq2sU/9FG9zYlKDrt9VK3YFcwGo9EJGjABAbFfdxH0zhKjGZN0Wwk33iFPvBbhRYDKzc7Uhcy5dX/XOoZcSNjEz+y9V9SlkFL8G2/85r0vkGrfKlMbjn4pd5PmALKmVURa6WON8D9OCsnXL5rjegz8+VN+Degw7KKuOlx5gAYvYJ3cxjMuGQ1NT16dCOPzmLE+WtFpLz23rliitb08J1iAyZ8wXbmesMKLGStjledEz5O+75ISLB7Bsj0gkJ0x8IKBe/wxUu6Bb/0zKaq59w+RA4IIWsQq4njLL8rH/arL1j3ApS3LDtyi/uy6XxaWUV+UXq15b0TCw6mlX7fOfHJaFkELkFJ421FyJLx8zUi42+vLJcQvCIoxdK+KJKKzy8ZKalxM= ibl@iblserver2
+
+    - name: Copy using inline content
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/autossh-tunnel.service
+        content: |
+          [Unit]
+          Description=AutoSSH tunnel service for mbox on local port on 6667
+          After=network.target   
+          [Service]
+          User=ibladmin
+          Environment=SSH_USER=ibladmin
+          Environment=SSH_MBOX_PORT=6667
+          Environment="SSH_KEY_NAME=mbox"
+          Environment="AUTOSSH_GATETIME=0"
+          ExecStart=/usr/bin/autossh -M 0 -N -o "PubkeyAuthentication=yes" -o "PasswordAuthentication=no" -o "ServerAliveInterval 60" -o "ServerAliveCountMax 3" -i /home/${SSH_USER}/.ssh/${SSH_KEY_NAME} -R ${SSH_MBOX_PORT}:localhost:22 ubuntu@mbox.internationalbrainlab.org -p 22 &
+          [Install]
+          WantedBy=multi-user.target
+      become: true
+
