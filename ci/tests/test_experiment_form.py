@@ -11,16 +11,15 @@ import yaml
 from one.api import ONE
 from ibllib import __file__ as ibllib_init  # for use of the experiment description fixture
 from ci.tests.base import IntegrationTest, TEST_DB
-try:
-    from deploy.project_procedure_gui.experiment_form import MainWindow
+from deploy.project_procedure_gui.experiment_form import MainWindow
 
-    from PyQt5.QtWidgets import QApplication, QMessageBox  # noqa
-    from PyQt5.QtTest import QTest  # noqa
-    from PyQt5.QtCore import Qt, QSettings  # noqa
+raise unittest.SkipTest('Import / Instantiation of PyQt5 app failed')
 
-    app = QApplication(sys.argv)
-except Exception:
-    raise unittest.SkipTest('Import / Instantiation of PyQt5 app failed')
+from PyQt5.QtWidgets import QApplication, QMessageBox  # noqa
+from PyQt5.QtTest import QTest  # noqa
+from PyQt5.QtCore import Qt, QSettings  # noqa
+
+app = QApplication(sys.argv)
 
 
 class TestMainForm(IntegrationTest):
@@ -82,7 +81,7 @@ class TestMainForm(IntegrationTest):
         text = self.form.plainTextEdit.toPlainText()
         text_broken = text + '\nfoobar'  # Add invalid YAML syntax
         self.form.plainTextEdit.setPlainText(text_broken)  # Set textbox text
-        # Use mock to capture extected call to critical message box
+        # Use mock to capture expected call to critical message box
         with unittest.mock.patch(
                 'deploy.project_procedure_gui.experiment_form.QtWidgets.QMessageBox.critical'
         ) as message_box:
