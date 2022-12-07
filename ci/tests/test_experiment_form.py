@@ -11,13 +11,14 @@ import yaml
 from one.api import ONE
 from ibllib import __file__ as ibllib_init  # for use of the experiment description fixture
 from ci.tests.base import IntegrationTest, TEST_DB
-from deploy.project_procedure_gui.experiment_form import MainWindow
+try:
+    from deploy.project_procedure_gui.experiment_form import MainWindow
 
-raise unittest.SkipTest('Import / Instantiation of PyQt5 app failed')
-
-from PyQt5.QtWidgets import QApplication, QMessageBox  # noqa
-from PyQt5.QtTest import QTest  # noqa
-from PyQt5.QtCore import Qt, QSettings  # noqa
+    from PyQt5.QtWidgets import QApplication, QMessageBox  # noqa
+    from PyQt5.QtTest import QTest  # noqa
+    from PyQt5.QtCore import Qt, QSettings  # noqa
+except ImportError:
+    raise unittest.SkipTest('Import / Instantiation of PyQt5 app failed')
 
 app = QApplication(sys.argv)
 

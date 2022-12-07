@@ -295,7 +295,6 @@ class MainWindow(QtWidgets.QMainWindow):
                                           acquisition_description=self.session_info)
 
 
-
 if __name__ == '__main__':
     """Experimental session parameter GUI.
     A GUI for managing the devices, procedures and projects associated with a given session.

@@ -17,6 +17,7 @@ from deploy.videopc.transfer_video_session import main as transfer_video_session
 from deploy.widefieldpc.transfer_widefield import main as transfer_widefield
 from deploy.transfer_data_folder import main as transfer_data_folder
 from deploy.transfer_data import main as transfer_data
+from deploy.consolidate_sessions import main as consolidate_sessions
 
 from ci.tests import base
 
@@ -603,3 +604,48 @@ class TestTransferData(base.IntegrationTest):
         _, (msg, ) = log
         self.assertRegex(msg, 'raw_ephys_data doesn\'t exist')
         self.assertFalse(transferred_flag.exists(), 'unexpected transferred flag file')
+
+
+class TestConsolidateSessions(base.IntegrationTest):
+
+    def setUp(self) -> None:
+        # Data emulating local rig data
+        self.root_test_folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.root_test_folder.cleanup)
+        self.local_repo = Path(self.root_test_folder.name).joinpath('local_repo')
+        self.session_1 = self.local_repo.joinpath('Subjects', 'subject', '2022-01-01', '001')
+        self.session_2 = self.session_1.with_name('002')
+        task = 'ephysCW'
+        behaviour_path = fu.create_fake_raw_behavior_data_folder(self.session_1, task=task, write_pars_stub=True)
+        fu.populate_task_settings(
+            behaviour_path.joinpath('_iblrig_taskSettings.raw.json'), patch={'PYBPOD_PROTOCOL': task}
+        )
+        task = 'passiveCW'
+        behaviour_path = fu.create_fake_raw_behavior_data_folder(self.session_2, task=task, write_pars_stub=True)
+        fu.populate_task_settings(
+            behaviour_path.joinpath('_iblrig_taskSettings.raw.json'), patch={'PYBPOD_PROTOCOL': task}
+        )
+
+    def test_consolidate(self):
+        consolidate_sessions(self.session_1)
+        self._test_outcome()
+
+    def test_without_exp_stubs(self):
+        """Tests the script when there are no experiment.description stub files present"""
+        for file in self.local_repo.rglob('_ibl_experiment.description*'):
+            file.unlink()
+        consolidate_sessions(self.session_1)
+        self._test_outcome()
+
+    def _test_outcome(self):
+        self.assertFalse(self.session_2.exists(), 'failed to remove consolidated sessions')
+        expected = ('raw_task_data_00', 'raw_task_data_01')
+        self.assertCountEqual(expected, map(lambda x: x.name, self.session_1.glob('raw_task_data_*')))
+        params = read_params(self.session_1)
+        self.assertIsNotNone(params)
+        tasks = params.get('tasks', [])
+        self.assertEqual(2, len(tasks))
+        from itertools import chain
+        self.assertSequenceEqual(('ephysCW', 'passiveCW'), list(chain(*map(dict.keys, tasks))))
+        collections = [next(iter(x.values())).get('collection') for x in tasks]
+        self.assertSequenceEqual(expected, collections)
