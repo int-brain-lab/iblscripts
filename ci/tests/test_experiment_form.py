@@ -17,7 +17,7 @@ try:
     from PyQt5.QtWidgets import QApplication, QMessageBox  # noqa
     from PyQt5.QtTest import QTest  # noqa
     from PyQt5.QtCore import Qt, QSettings  # noqa
-except ImportError:
+except Exception:
     raise unittest.SkipTest('Import / Instantiation of PyQt5 app failed')
 
 app = QApplication(sys.argv)
