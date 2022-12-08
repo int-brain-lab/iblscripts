@@ -1,6 +1,8 @@
 from pathlib import Path
 import warnings
 import argparse
+import shutil
+import tempfile
 
 from ibllib.io import session_params, raw_data_loaders
 from ibllib.pipes.misc import create_basic_transfer_params
@@ -67,10 +69,15 @@ def main(*args):
         if i != 0:
             main_acq_desc = next(dst_session.glob('_ibl_experiment.description*.yaml'))
             session_params.aggregate_device(yaml_file, main_acq_desc, unlink=True)
-            for file in session.rglob('*'):
-                warnings.warn(f'Deleting {file.relative_to(session.parents[2])}')
-                file.unlink()
-            session.rmdir()
+            if any(session.rglob('*')):
+                # If directory is not empty, move it to tmp
+                dst = Path(tempfile.gettempdir()).joinpath('deleted_local_sessions', *session.parts[-3:-1])
+                dst.mkdir(parents=True, exist_ok=True)
+                if dst.exists():
+                    shutil.rmtree(dst)
+                shutil.move(session, dst)
+            else:
+                session.rmdir()
 
 
 if __name__ == '__main__':
