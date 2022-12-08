@@ -122,16 +122,37 @@
         dest: /etc/systemd/system/autossh-tunnel.service
         content: |
           [Unit]
-          Description=AutoSSH tunnel service for mbox on local port on 6667
+          Description=AutoSSH tunnel service for {{ os_host_name }} on local port on 6667
           After=network.target   
           [Service]
           User=ibladmin
           Environment=SSH_USER=ibladmin
-          Environment=SSH_MBOX_PORT=6667
-          Environment="SSH_KEY_NAME=mbox"
+          Environment=SSH_JUMPBOX_PORT=6667
+          Environment="SSH_KEY_NAME={{ os_host_name }}"
           Environment="AUTOSSH_GATETIME=0"
-          ExecStart=/usr/bin/autossh -M 0 -N -o "PubkeyAuthentication=yes" -o "PasswordAuthentication=no" -o "ServerAliveInterval 60" -o "ServerAliveCountMax 3" -i /home/${SSH_USER}/.ssh/${SSH_KEY_NAME} -R ${SSH_MBOX_PORT}:localhost:22 ubuntu@mbox.internationalbrainlab.org -p 22 &
+          ExecStart=/usr/bin/autossh -M 0 -N -o "PubkeyAuthentication=yes" -o "PasswordAuthentication=no" -o "ServerAliveInterval 60" -o "ServerAliveCountMax 3" -i /home/${SSH_USER}/.ssh/${SSH_KEY_NAME} -R ${SSH_MBOX_PORT}:localhost:22 ubuntu@{{ os_host_name }}.internationalbrainlab.org -p 22 &
           [Install]
           WantedBy=multi-user.target
       become: true
 
+    - name: Ensure system wide environment variables exist
+      blockinfile:
+        path: /etc/environment
+        block: |
+          SSH_USER=ibladmin
+          SSH_JUMPBOX_PORT=6667
+      become: true
+
+    - name: Start service autossh-tunnel, if not started
+      service:
+        name: autossh-tunnel
+        state: started
+      become: true
+
+    - name: Ensure autossh-tunnel service restart cron exists
+      cron:
+        name: autossh-tunnel service restart
+        minute: "0"
+        hour: "0"
+        job: systemctl restart autossh-tunnel.service
+      become: true

@@ -16,6 +16,7 @@
           - awscli
           - git
           - python3-pip
+          - python3-venv
           - python3-virtualenv
         update_cache: yes
         state: latest
@@ -50,6 +51,14 @@
         dest: "{{ git_iblalyx_dir }}"
         clone: yes
         update: yes
+
+    # Globus Tasks
+    - name: Ensure globus is installed/configured
+      shell: |
+        virtualenv {{ os_user_home_dir }}/venv
+        source {{ os_user_home_dir }}/venv/bin/activate
+        pip install globus-cli
+        # globus login  # Need a automated way to login to globus
 
 
     # Cron Tasks
