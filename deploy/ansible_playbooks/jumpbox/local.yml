@@ -39,7 +39,9 @@
         modification_time: preserve
         access_time: preserve
 
-    - name: Ensure aliases exist for reverse ssh targets
+
+    # Reverse SSH Tasks
+    - name: Ensure bashrc aliases exist for reverse ssh targets
       blockinfile:
         path: "{{ os_user_home_dir }}/.bashrc"
         block: |
@@ -117,8 +119,8 @@
           # churchlandlab_ucla2
           ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDscOZXtdq8TBDWVK+9cgqIFEQqn4u6D3CRWmUWHlzpA43rikHsKjITrL2OhYu4FFQdeNNicClwHnMn3HfTs6XQe2RbMmq7qo04o/pEu6+v/xLksgymn2XNcPY/bmq2sU/9FG9zYlKDrt9VK3YFcwGo9EJGjABAbFfdxH0zhKjGZN0Wwk33iFPvBbhRYDKzc7Uhcy5dX/XOoZcSNjEz+y9V9SlkFL8G2/85r0vkGrfKlMbjn4pd5PmALKmVURa6WON8D9OCsnXL5rjegz8+VN+Degw7KKuOlx5gAYvYJ3cxjMuGQ1NT16dCOPzmLE+WtFpLz23rliitb08J1iAyZ8wXbmesMKLGStjledEz5O+75ISLB7Bsj0gkJ0x8IKBe/wxUu6Bb/0zKaq59w+RA4IIWsQq4njLL8rH/arL1j3ApS3LDtyi/uy6XxaWUV+UXq15b0TCw6mlX7fOfHJaFkELkFJ421FyJLx8zUi42+vLJcQvCIoxdK+KJKKzy8ZKalxM= ibl@iblserver2
 
-    - name: Copy using inline content
-      ansible.builtin.copy:
+    - name: Ensure autossh-tunnel service file exists
+      copy:
         dest: /etc/systemd/system/autossh-tunnel.service
         content: |
           [Unit]
@@ -149,7 +151,7 @@
         state: started
       become: true
 
-    - name: Ensure autossh-tunnel service restart cron exists
+    - name: Ensure autossh-tunnel service restart cron exists  # Needed?
       cron:
         name: autossh-tunnel service restart
         minute: "0"

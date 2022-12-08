@@ -1,0 +1,100 @@
+---
+# Cron Tasks
+- name: Ensure ftp_delete_local cron exists
+  cron:
+    name: ftp_delete_local
+    minute: "0"
+    hour: "12"
+    weekday: "2,5"
+    job: "{{ git_iblalyx_dir }}/crons/ftp_delete_local.sh"
+
+- name: Ensure histology_report cron exists
+  cron:
+    name: histology_report
+    minute: "0"
+    hour: "12"
+    job: "{{ git_iblalyx_dir }}/crons/histology_report.sh"
+
+- name: Ensure monitor_dlc cron exists
+  cron:
+    name: monitor_dlc
+    minute: "0"
+    hour: "*/6"
+    job: "{{ git_iblalyx_dir }}/crons/monitor_dlc.sh"
+
+- name: Ensure monitor_spikesorting cron exists
+  cron:
+    name: monitor_spikesorting
+    minute: "0"
+    hour: "11"
+    job: "{{ git_iblalyx_dir }}/crons/monitor_spikesorting.sh"
+
+- name: Ensure ucl_import cron exists
+  cron:
+    name: ucl_import
+    minute: "0"
+    hour: "23"
+    job: "{{ git_iblalyx_dir }}/crons/06_ucl_import.sh > {{ ibl_log_dir }}/alyx_ucl_import.log 2>&1"
+
+- name: Ensure rebuild_from_cache cron exists
+  cron:
+    name: rebuild_from_cache
+    minute: "15"
+    hour: "23"
+    job: "{{ git_iblalyx_dir }}/crons/alyx-test/00_rebuild_from_cache.sh"
+
+- name: Ensure backup_config cron exists
+  cron:
+    name: backup_config
+    minute: "0"
+    hour: "0"
+    job: "/bin/bash {{ os_user_home_dir }}/04_backup_config"  # TODO: file is not in iblalyx, figure out what this is for
+
+- name: Ensure monitor_table_size cron exists
+  cron:
+    name: monitor_table_size
+    minute: "0"
+    hour: "0"
+    job: "/bin/bash {{ git_iblalyx_dir }}/crons/monitor_table_size.sh"
+
+- name: Ensure backup_ibl cron exists
+  cron:
+    name: backup_ibl
+    minute: "15"
+    hour: "0"
+    job: "/bin/bash {{ git_iblalyx_dir }}/crons/01_backup_ibl.sh > {{ ibl_log_dir }}/alyx_backup.log 2>&1"
+
+- name: Ensure generate_cache cron exists
+  cron:
+    name: generate_cache
+    minute: "0"
+    hour: "*/6"
+    job: "/bin/bash {{ git_iblalyx_dir }}/crons/01c_generate_cache.sh > {{ ibl_log_dir }}/alyx_cache_gen.log 2>&1"
+
+- name: Ensure 02a_globus_sync_UTC cron exists
+  cron:
+    name: 02a_globus_sync_UTC
+    minute: "0"
+    hour: "2"
+    job: "/bin/bash {{ git_iblalyx_dir }}/crons/02a_globus_sync_UTC.sh > {{ ibl_log_dir }}/alyx_globus.log 2>&1"
+
+- name: Ensure 02b_globus_sync_EST cron exists
+  cron:
+    name: 02b_globus_sync_EST
+    minute: "0"
+    hour: "7"
+    job: "/bin/bash {{ git_iblalyx_dir }}/crons/02b_globus_sync_EST.sh > {{ ibl_log_dir }}/alyx_globus.log 2>&1"
+
+- name: Ensure 02c_globus_sync_PT cron exists
+  cron:
+    name: 02c_globus_sync_PT
+    minute: "0"
+    hour: "10"
+    job: "/bin/bash {{ git_iblalyx_dir }}/crons/02c_globus_sync_PT.sh > {{ ibl_log_dir }}/alyx_globus.log 2>&1"
+
+- name: Ensure histology cron exists
+  cron:
+    name: histology
+    minute: "0"
+    hour: "22"
+    job: "/bin/bash {{ git_iblalyx_dir }}/crons/07_histology.sh"
