@@ -10,7 +10,7 @@ from one.converters import ConversionMixin
 import ibllib.tests.fixtures.utils as fu
 import ibllib.io.flags as flags
 from ibllib.pipes import transfer_rig_data
-from ibllib.io.session_params import read_params
+from ibllib.io.session_params import read_params, write_yaml
 from ibllib.pipes.misc import check_create_raw_session_flag
 
 from deploy.videopc.transfer_video_session import main as transfer_video_session
@@ -584,7 +584,7 @@ class TestTransferData(base.IntegrationTest):
 
         # Check main experiment.description file complete
         exp_pars = read_params(self.remote_repo.joinpath(*self.session))
-        keys = ('devices', 'procedures', 'projects', 'sync', 'tasks', 'version')
+        keys = ('devices', 'procedures', 'projects', 'tasks', 'version')
         self.assertCountEqual(exp_pars.keys(), keys)
         self.assertCountEqual(exp_pars['devices'].keys(), ('cameras', 'microphone'))
 
@@ -597,6 +597,11 @@ class TestTransferData(base.IntegrationTest):
     def test_failures(self):
         # --- Test 4 --- error log on missing collection, multiple sync keys
         transferred_flag = self.local_repo_1.joinpath('Subjects', *self.session, 'transferred.flag')
+        # Add a collection key that does not exist locally
+        yaml_path = next(self.local_repo_1.joinpath('Subjects', *self.session).glob('*experiment*'))
+        params = read_params(self.local_repo_1.joinpath('Subjects', *self.session))
+        params['sync'] = {'collection': 'raw_ephys_data'}
+        write_yaml(yaml_path, params)
         with self.assertLogs('ibllib.pipes.misc', logging.ERROR) as log:  # Missing collection log
             _, (ok, ) = transfer_data(local=self.local_repo_1, remote=self.remote_repo)
         self.assertFalse(ok)
