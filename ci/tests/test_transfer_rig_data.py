@@ -642,6 +642,16 @@ class TestConsolidateSessions(base.IntegrationTest):
         consolidate_sessions(self.session_1)
         self._test_outcome()
 
+    def test_relative_input(self):
+        """Tests the script with two relative paths as input"""
+        # e.g. ['subject/2022-01-01/001', 'subject/2022-01-01/002']
+        sessions = ['/'.join(self.session_1.parts[-3:]), '/'.join(self.session_2.parts[-3:])]
+        pars = {'DATA_FOLDER_PATH': self.local_repo / 'Subjects', 'TRANSFER_LABEL': 'hostname_9876'}
+        to_patch = 'deploy.consolidate_sessions.create_basic_transfer_params'
+        with unittest.mock.patch(to_patch, return_value=pars):
+            consolidate_sessions(*sessions)
+        self._test_outcome()
+
     def _test_outcome(self):
         self.assertFalse(self.session_2.exists(), 'failed to remove consolidated sessions')
         expected = ('raw_task_data_00', 'raw_task_data_01')
