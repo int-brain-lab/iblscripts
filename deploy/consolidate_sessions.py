@@ -69,7 +69,7 @@ def replace_device_collection(params, old_collection, new_collections):
     return params
 
 
-def main(*args):
+def main(*args, stub=None):
     transfer_pars = create_basic_transfer_params()
     skipped = 0  # number of sessions that were skipped due to missing behaviour data
     if not args:
@@ -87,6 +87,12 @@ def main(*args):
     if not sessions:
         warnings.warn('No sessions found')
         return
+    if stub:  # If a stub file was given, copy it into each session
+        if (stub := Path(stub)).is_dir():
+            stub = next(stub.glob('*experiment.description*'))
+        for session in sessions:
+            if not next(session.glob('*experiment.description*'), False):
+                shutil.copy(stub, session)
     dst_session = sessions[0]
     for i, session in enumerate(sessions):
         if (raw_behaviour_data := session.joinpath('raw_behavior_data')).exists():
@@ -136,9 +142,10 @@ if __name__ == '__main__':
     >>> python .\consolidate_sessions.py --session subject/2022-01-01/001 subject/2022-01-01/003
     >>> python .\consolidate_sessions.py --session subject/2022-01-01/001
     >>> python .\consolidate_sessions.py --session subject/2022-01-01
+    >>> python .\consolidate_sessions.py --session subject/2022-01-01 --stub /path/to/_ibl_experiment.description.yaml
     """
     parser = argparse.ArgumentParser(description='Consolidate sessions')
     parser.add_argument('--session', action='extend', nargs='+', type=str, help='One or more sessions to consolidate')
-    parser.add_argument('-', '--hostname', type=str)
+    parser.add_argument('--stub', type=str, help='A path to a stub experiment.description file to copy into each session')
     args = parser.parse_args()
-    main(*args.session)
+    main(*args.session, stub=args.stub)
