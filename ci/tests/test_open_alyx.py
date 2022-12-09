@@ -2,12 +2,10 @@ import tempfile
 import unittest
 import logging
 
-import numpy as np
-
 from one.api import ONE
 from ibllib.atlas import AllenAtlas
 from brainbox.io.one import SpikeSortingLoader
-from brainbox.io.spikeglx import Streamer, stream
+from brainbox.io.spikeglx import Streamer
 
 
 _logger = logging.getLogger('ibllib')
@@ -60,16 +58,3 @@ class TestStreamData(unittest.TestCase):
             assert (raw_.shape == (2500, 385))
             assert sr.target_dir.exists()
             assert sr.geometry.keys()
-            """
-            Test deprecation if this fails here it means the grace period expired.
-            -   remove all the lines below
-            -   remove the function brainbox.io.spikeglx.stream
-            """
-            # ########################## delete from here
-            import datetime
-            if datetime.datetime.now() > datetime.datetime(2022, 11, 26):
-                raise NotImplementedError
-            raw, t0out = stream(pid, t0, nsecs=1, one=tmp_one, remove_cached=False, typ='lf')
-            assert (raw.shape == (2500, 385))
-            assert np.all(raw[:, :] == raw_)
-            # ########################## end delete from here

@@ -6,18 +6,20 @@ from pathlib import Path
 import json
 import shutil
 
+from one.converters import ConversionMixin
 import ibllib.tests.fixtures.utils as fu
 import ibllib.io.flags as flags
 from ibllib.pipes import transfer_rig_data
+from ibllib.io.session_params import read_params, write_yaml
 from ibllib.pipes.misc import check_create_raw_session_flag
 
 from deploy.videopc.transfer_video_session import main as transfer_video_session
 from deploy.widefieldpc.transfer_widefield import main as transfer_widefield
 from deploy.transfer_data_folder import main as transfer_data_folder
+from deploy.transfer_data import main as transfer_data
+from deploy.consolidate_sessions import main as consolidate_sessions
 
 from ci.tests import base
-
-FIXTURES_PATH = Path(__file__).parent.joinpath('tasks', 'fixtures_acquisition_descriptions')
 
 
 def make_session(session_path, stype='training'):
@@ -455,9 +457,11 @@ class TestCheckCompleteCopy(base.IntegrationTest):
 
         self.remote_session_path = fu.create_fake_session_folder(self.remote_repo)
 
+        self.fixtures_path = self.data_path / 'dynamic_pipeline'
+
     def test_copy_logic_ephys(self):
 
-        shutil.copy(FIXTURES_PATH.joinpath('ephys_NP3B', '_ibl_experiment.description.yaml'),
+        shutil.copy(self.fixtures_path.joinpath('ephys_NP3B', '_ibl_experiment.description.yaml'),
                     self.remote_session_path.joinpath('_ibl_experiment.description.yaml'))
 
         ephys_flag = self.remote_session_path.joinpath('ephys_data_transferred.flag')
@@ -485,7 +489,7 @@ class TestCheckCompleteCopy(base.IntegrationTest):
 
     def test_widefield_copy_logic(self):
 
-        shutil.copy(FIXTURES_PATH.joinpath('widefield', '_ibl_experiment.description.yaml'),
+        shutil.copy(self.fixtures_path.joinpath('widefield', '_ibl_experiment.description.yaml'),
                     self.remote_session_path.joinpath('_ibl_experiment.description.yaml'))
 
         widefield_flag = self.remote_session_path.joinpath('widefield_data_transferred.flag')
@@ -512,3 +516,151 @@ class TestCheckCompleteCopy(base.IntegrationTest):
         self.assertTrue(raw_session_flag.exists())
         self.assertFalse(widefield_flag.exists())
         self.assertFalse(video_flag.exists())
+
+
+class TestTransferData(base.IntegrationTest):
+    """A test for transfer_data.py.
+
+    This tests the main script for transferring any session data using the experiment description
+    file.
+    """
+    def setUp(self):
+        # Data emulating local rig data
+        self.root_test_folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.root_test_folder.cleanup)
+
+        self.remote_repo = Path(self.root_test_folder.name).joinpath('remote_repo', 'fakelab', 'Subjects')
+        self.remote_repo.mkdir(parents=True)
+
+        self.local_repo_1 = Path(self.root_test_folder.name).joinpath('local_repo_1')
+        self.session = ('subject', '2022-01-01', '001')
+        self.local_repo_2 = Path(self.root_test_folder.name).joinpath('local_repo_2')
+        session_1 = self.local_repo_1.joinpath('Subjects', *self.session)
+        session_2 = self.local_repo_2.joinpath('Subjects', *self.session)
+        exp_ref = ConversionMixin.dict2ref(ConversionMixin.path2ref(session_1))
+
+        # Change location of transfer list
+        label = 'hostname_9876'
+        self.pars = {'REMOTE_DATA_FOLDER_PATH': self.remote_repo,
+                     'DATA_FOLDER_PATH': self.local_repo_1,
+                     'TRANSFER_LABEL': f'{label}_0'
+                     }
+        self.patch = unittest.mock.patch('deploy.transfer_data.create_basic_transfer_params',
+                                         return_value=self.pars)
+        self.patch.start()
+        self.addCleanup(self.patch.stop)
+
+        # Create some empty files to transfer
+        self.behaviour_session_path = \
+            fu.create_fake_raw_behavior_data_folder(session_1, write_pars_stub=f'{label}_0')
+        self.video_session_path = \
+            fu.create_fake_raw_video_data_folder(session_2, write_pars_stub=f'{label}_1')
+
+        # Copy local repo stubs to remote repo folder
+        stub_name = f'{exp_ref}@{label}'
+        for i, src in enumerate(Path(self.root_test_folder.name).rglob('*_ibl_experiment.description*')):
+            dst = self.remote_repo.joinpath(*self.session, '_devices', f'{stub_name}_{i}.yaml')
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(src, dst)
+
+    def test_transfers(self):
+        # --- Test 1 --- without the TRANSFERS_PATH param
+        # Make missing collections folder
+        self.local_repo_1.joinpath('Subjects', *self.session, 'raw_ephys_data').mkdir()
+        transferred_flag = self.local_repo_1.joinpath('Subjects', *self.session, 'transferred.flag')
+        transfer_data()
+        self.assertTrue(transferred_flag.exists(), 'failed to create transferred flag file')
+        yaml_stub = any(self.remote_repo.rglob(self.pars['TRANSFER_LABEL']))
+        self.assertFalse(yaml_stub, 'failed to remove experiment description stub')
+
+        # --- Test 2 --- TRANSFERS_PATH param, raw_session.flag creation
+        self.pars['TRANSFERS_PATH'] = self.local_repo_2
+        self.pars['TRANSFER_LABEL'] = self.pars['TRANSFER_LABEL'][:-1] + '1'
+        transfer_data()
+        transferred_flag = self.local_repo_2.joinpath('Subjects', *self.session, 'transferred.flag')
+        self.assertTrue(transferred_flag.exists(), 'failed to create transferred flag file')
+        yaml_stub = any(self.remote_repo.rglob('_devices'))
+        self.assertFalse(yaml_stub, 'failed to remove experiment description stub')
+
+        # Check main experiment.description file complete
+        exp_pars = read_params(self.remote_repo.joinpath(*self.session))
+        keys = ('devices', 'procedures', 'projects', 'tasks', 'version')
+        self.assertCountEqual(exp_pars.keys(), keys)
+        self.assertCountEqual(exp_pars['devices'].keys(), ('cameras', 'microphone'))
+
+        # --- Test 3 --- Filters local sessions with transferred flag
+        with self.assertLogs('ibllib.pipes.misc', logging.INFO) as log:
+            transfer_data()
+        _, (*_, msg) = log
+        self.assertRegex(msg, 'No outstanding local sessions')
+
+    def test_failures(self):
+        # --- Test 4 --- error log on missing collection, multiple sync keys
+        transferred_flag = self.local_repo_1.joinpath('Subjects', *self.session, 'transferred.flag')
+        # Add a collection key that does not exist locally
+        yaml_path = next(self.local_repo_1.joinpath('Subjects', *self.session).glob('*experiment*'))
+        params = read_params(self.local_repo_1.joinpath('Subjects', *self.session))
+        params['sync'] = {'collection': 'raw_ephys_data'}
+        write_yaml(yaml_path, params)
+        with self.assertLogs('ibllib.pipes.misc', logging.ERROR) as log:  # Missing collection log
+            _, (ok, ) = transfer_data(local=self.local_repo_1, remote=self.remote_repo)
+        self.assertFalse(ok)
+        self.assertEqual(1, len(log.records))
+        _, (msg, ) = log
+        self.assertRegex(msg, 'raw_ephys_data doesn\'t exist')
+        self.assertFalse(transferred_flag.exists(), 'unexpected transferred flag file')
+
+
+class TestConsolidateSessions(base.IntegrationTest):
+
+    def setUp(self) -> None:
+        # Data emulating local rig data
+        self.root_test_folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.root_test_folder.cleanup)
+        self.local_repo = Path(self.root_test_folder.name).joinpath('local_repo')
+        self.session_1 = self.local_repo.joinpath('Subjects', 'subject', '2022-01-01', '001')
+        self.session_2 = self.session_1.with_name('002')
+        task = 'ephysCW'
+        behaviour_path = fu.create_fake_raw_behavior_data_folder(self.session_1, task=task, write_pars_stub=True)
+        fu.populate_task_settings(
+            behaviour_path.joinpath('_iblrig_taskSettings.raw.json'), patch={'PYBPOD_PROTOCOL': task}
+        )
+        task = 'passiveCW'
+        behaviour_path = fu.create_fake_raw_behavior_data_folder(self.session_2, task=task, write_pars_stub=True)
+        fu.populate_task_settings(
+            behaviour_path.joinpath('_iblrig_taskSettings.raw.json'), patch={'PYBPOD_PROTOCOL': task}
+        )
+
+    def test_consolidate(self):
+        consolidate_sessions(self.session_1)
+        self._test_outcome()
+
+    def test_without_exp_stubs(self):
+        """Tests the script when there are no experiment.description stub files present"""
+        for file in self.local_repo.rglob('_ibl_experiment.description*'):
+            file.unlink()
+        consolidate_sessions(self.session_1)
+        self._test_outcome()
+
+    def test_relative_input(self):
+        """Tests the script with two relative paths as input"""
+        # e.g. ['subject/2022-01-01/001', 'subject/2022-01-01/002']
+        sessions = ['/'.join(self.session_1.parts[-3:]), '/'.join(self.session_2.parts[-3:])]
+        pars = {'DATA_FOLDER_PATH': self.local_repo / 'Subjects', 'TRANSFER_LABEL': 'hostname_9876'}
+        to_patch = 'deploy.consolidate_sessions.create_basic_transfer_params'
+        with unittest.mock.patch(to_patch, return_value=pars):
+            consolidate_sessions(*sessions)
+        self._test_outcome()
+
+    def _test_outcome(self):
+        self.assertFalse(self.session_2.exists(), 'failed to remove consolidated sessions')
+        expected = ('raw_task_data_00', 'raw_task_data_01')
+        self.assertCountEqual(expected, map(lambda x: x.name, self.session_1.glob('raw_task_data_*')))
+        params = read_params(self.session_1)
+        self.assertIsNotNone(params)
+        tasks = params.get('tasks', [])
+        self.assertEqual(2, len(tasks))
+        from itertools import chain
+        self.assertSequenceEqual(('ephysCW', 'passiveCW'), list(chain(*map(dict.keys, tasks))))
+        collections = [next(iter(x.values())).get('collection') for x in tasks]
+        self.assertSequenceEqual(expected, collections)

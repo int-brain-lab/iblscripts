@@ -10,7 +10,9 @@ import argparse
 
 import yaml
 from iblutil.io import params
+from ibllib.io import session_params
 from one.api import ONE
+from one.alf.files import get_alf_path
 from PyQt5 import QtWidgets, QtCore, uic
 from PyQt5.QtCore import Qt
 
@@ -288,11 +290,9 @@ class MainWindow(QtWidgets.QMainWindow):
             print(self.session_info)
             warnings.warn('File not written: no session path set')
             return
-        session_path = Path(self.session_path)
-        session_path.mkdir(parents=True, exist_ok=True)
-        print(f'Saving experiment description file to {session_path}')
-        with open(session_path / '_ibl_experiment.description.yaml', 'w') as fp:
-            yaml.safe_dump(self.session_info, fp)
+        print('Saving experiment description file')
+        session_params.prepare_experiment(get_alf_path(self.session_path),
+                                          acquisition_description=self.session_info)
 
 
 if __name__ == '__main__':

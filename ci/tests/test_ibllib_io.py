@@ -3,6 +3,7 @@ import logging
 import time
 
 import numpy as np
+import numpy.testing
 
 import ibllib.io.video as vidio
 from one.api import ONE
@@ -111,8 +112,12 @@ class Read_DAQ_tdms(base.IntegrationTest):
 
     def test_read_tdms_digital_only(self):
         data = load_channels_tdms(self.file_tdms_digital)
-        self.assertEqual(set(data.keys()), set(f'DI{i}' for i in range(2)))
-        self.assertEqual(set(data[k].size for k in data.keys()), {2540244})
+        self.assertEqual(set(data.keys()), set([f'DI{i}' for i in range(2)]))
+        self.assertEqual(set([data[k].size for k in data.keys()]), set([2540244]))
+        chmap = {'bpod': 'DI0', 'frame2ttl': 'DI1'}
+        data2 = load_channels_tdms(self.file_tdms_digital, chmap=chmap)
+        np.testing.assert_equal(data2['bpod'], data['DI0'])
+        np.testing.assert_equal(data2['frame2ttl'], data['DI1'])
 
 
 if __name__ == '__main__':
