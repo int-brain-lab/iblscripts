@@ -89,8 +89,25 @@ class MainWindow(QtWidgets.QMainWindow):
         self.subjectLabel.setText(subject)
         self.projectList.itemChanged.connect(partial(self.on_item_clicked, 'projects'))
         self.procedureList.itemChanged.connect(partial(self.on_item_clicked, 'procedures'))
+        self.deviceList.itemChanged.connect(self.on_device_clicked)
         self.populate_lists(self.projectList, self.projects, prev_projects)
         self.populate_lists(self.procedureList, PROCEDURES, prev_procedures)
+        device_stub_folders = Path(__file__).parent.parent.rglob('device_stubs')
+        task_stub_folders = Path(__file__).parent.parent.rglob('task_stubs')
+        self.device_stub_files = dict()
+        for fold in device_stub_folders:
+            files = fold.glob('*')
+            for file in files:
+                self.device_stub_files[file.with_suffix('').name] = file
+
+        self.task_stub_files = dict()
+        for fold in task_stub_folders:
+            files = fold.glob('*')
+            for file in files:
+                self.task_stub_files[file.with_suffix('').name] = file
+
+        self.populate_lists(self.deviceList, [key for key, _ in self.device_stub_files.items()])
+        self.populate_lists(self.protocolList, [key for key, _ in self.task_stub_files.items()])
 
         # Load remote devices file
         p = (params.as_dict(params.read('transfer_params', {})) or {}).get('REMOTE_DATA_FOLDER_PATH', None)
@@ -161,6 +178,63 @@ class MainWindow(QtWidgets.QMainWindow):
         list_widget = self.projectList if list_name == 'projects' else self.procedureList
         self.session_info[list_name] = self.get_selected_items(list_widget)
         self.validate_yaml(data=self.session_info)
+
+    def on_protocol_clicked(self, selected_item):
+        # if the selected_item has been deselected
+        task = selected_item.text().split('_')[-1]
+        if selected_item.checkState() == Qt.Unchecked:
+            idx = [i for i, task in self.session_info['tasks'] if task.key() == task]
+            self.session_info['tasks'].pop(idx[0])
+        else:
+            items = self.get_selected_items(self.protocolList)
+            if not self.session_info.get('devices', False):
+                self.session_info['devices'] = {}
+            self.session_info['devices'][device] = stub[device]
+
+    def on_device_clicked(self, selected_item):
+
+        # if the selected_item has been deselected
+        if selected_item.checkState() == Qt.Unchecked:
+            device = selected_item.text().split('_')[0]
+            if device == 'sync':
+                self.session_info.pop(device, None)
+            else:
+                self.session_info['devices'].pop(device, None)
+        else:
+
+            self.deselect_same_device(selected_item)
+
+            items = self.get_selected_items(self.deviceList)
+            for item in items:
+                device = item.split('_')[0]
+
+                with open(self.stub_files[item], 'r') as fp:
+                    stub = yaml.safe_load(fp)
+
+                if device == 'sync':
+                    self.session_info[device] = stub[device]
+                else:
+                    if not self.session_info.get('devices', False):
+                        self.session_info['devices'] = {}
+                    self.session_info['devices'][device] = stub[device]
+
+        self.validate_yaml(data=self.session_info)
+
+    def deselect_same_device(self, selected_item):
+        """Makes sure only one checkbox for each device can be selected"""
+        device = selected_item.text().split('_')[0]
+        n_items = self.deviceList.count()
+
+        # temporarily block signals to device list widget
+        self.deviceList.blockSignals(True)
+        for i in range(n_items):
+            item = self.deviceList.item(i)
+            if item == selected_item:
+                continue
+            elif device in item.text() and item.checkState() == Qt.Checked:
+                item.setCheckState(Qt.Unchecked)
+        # unblock signals
+        self.deviceList.blockSignals(False)
 
     def on_table_changed(self):
         """Callback for when remote devices table is edited"""
