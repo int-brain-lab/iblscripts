@@ -1,4 +1,0 @@
-tasks:
-  ephysChoiceWorld:
-    collection: raw_behavior_data
-    sync_label: bpod

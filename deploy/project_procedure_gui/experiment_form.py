@@ -10,7 +10,7 @@ import argparse
 
 import yaml
 from iblutil.io import params
-from one.api import ONE
+from one.webclient import AlyxClient
 from PyQt5 import QtWidgets, QtCore, uic
 from PyQt5.QtCore import Qt
 
@@ -57,9 +57,10 @@ class MainWindow(QtWidgets.QMainWindow):
         prev_procedures = self.session_info.get('procedures', [])
 
         try:
-            one = one or ONE(mode='remote')
-            users = list({user, one.alyx.user})
-            projects = one.alyx.rest('projects', 'list')
+            # one = one or ONE(mode='remote')
+            alyx = AlyxClient()
+            users = list({user, alyx.user})
+            projects = alyx.rest('projects', 'list')
             self.projects = [p['name'] for p in projects]
             self.user_projects = [p['name'] for p in projects if any(u in p['users'] for u in users)]
             self.settings.setValue('projects', self.projects)
@@ -93,21 +94,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.populate_lists(self.projectList, self.projects, prev_projects)
         self.populate_lists(self.procedureList, PROCEDURES, prev_procedures)
         device_stub_folders = Path(__file__).parent.parent.rglob('device_stubs')
-        task_stub_folders = Path(__file__).parent.parent.rglob('task_stubs')
         self.device_stub_files = dict()
         for fold in device_stub_folders:
             files = fold.glob('*')
             for file in files:
                 self.device_stub_files[file.with_suffix('').name] = file
 
-        self.task_stub_files = dict()
-        for fold in task_stub_folders:
-            files = fold.glob('*')
-            for file in files:
-                self.task_stub_files[file.with_suffix('').name] = file
-
         self.populate_lists(self.deviceList, [key for key, _ in self.device_stub_files.items()])
-        self.populate_lists(self.protocolList, [key for key, _ in self.task_stub_files.items()])
 
         # Load remote devices file
         p = (params.as_dict(params.read('transfer_params', {})) or {}).get('REMOTE_DATA_FOLDER_PATH', None)
@@ -179,18 +172,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.session_info[list_name] = self.get_selected_items(list_widget)
         self.validate_yaml(data=self.session_info)
 
-    def on_protocol_clicked(self, selected_item):
-        # if the selected_item has been deselected
-        task = selected_item.text().split('_')[-1]
-        if selected_item.checkState() == Qt.Unchecked:
-            idx = [i for i, task in self.session_info['tasks'] if task.key() == task]
-            self.session_info['tasks'].pop(idx[0])
-        else:
-            items = self.get_selected_items(self.protocolList)
-            if not self.session_info.get('devices', False):
-                self.session_info['devices'] = {}
-            self.session_info['devices'][device] = stub[device]
-
     def on_device_clicked(self, selected_item):
 
         # if the selected_item has been deselected
@@ -208,7 +189,7 @@ class MainWindow(QtWidgets.QMainWindow):
             for item in items:
                 device = item.split('_')[0]
 
-                with open(self.stub_files[item], 'r') as fp:
+                with open(self.device_stub_files[item], 'r') as fp:
                     stub = yaml.safe_load(fp)
 
                 if device == 'sync':
