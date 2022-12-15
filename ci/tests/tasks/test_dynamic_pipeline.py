@@ -48,7 +48,7 @@ class TestDynamicPipeline(base.IntegrationTest):
             assert d1['level'] == d2['level']
             assert d1['name'] == d2['name']
             assert d1['graph'] == d2['graph']
-            assert d1['arguments'] == d1['arguments']
+            assert d1['arguments'] == d2['arguments']
 
     def tearDown(self) -> None:
         self.one.alyx.rest('sessions', 'delete', id=self.eid)
@@ -90,6 +90,12 @@ class TestStandardPipelines(base.IntegrationTest):
         shutil.copytree(src, self.session_path)
         self.check_pipeline()
 
+    def test_chained(self):
+        shutil.copytree(self.folder_path.joinpath('chained'), self.session_path)
+        shutil.copytree(self.folder_path.joinpath('ephys_NP3B', 'raw_ephys_data'),
+                        self.session_path.joinpath('raw_ephys_data'))
+        self.check_pipeline()
+
     def check_pipeline(self):
         pipe = dynamic.make_pipeline(self.session_path)
         dy_pipe = dynamic.make_pipeline_dict(pipe, save=False)
@@ -102,6 +108,7 @@ class TestStandardPipelines(base.IntegrationTest):
             assert d1['executable'] == d2['executable'], f'{d1["executable"]} != {d2["executable"]}'
             assert d1['parents'] == d2['parents']
             assert d1['name'] == d2['name']
+            assert d1['arguments'] == d2['arguments']
 
     def tearDown(self) -> None:
         shutil.rmtree(self.temp_dir)
@@ -145,7 +152,7 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
 
         for t in self.one.alyx.rest('tasks', 'list', session=self.eid, no_cache=True):
             with self.subTest(name=t['name']):
-                if t['name'] == 'TrainingStatus_trainingChoiceWorld':
+                if t['name'].startswith('TrainingStatus_trainingChoiceWorld'):
                     continue
                 self.assertEqual(t['status'], 'Complete')
 
