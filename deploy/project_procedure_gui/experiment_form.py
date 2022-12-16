@@ -12,7 +12,6 @@ import yaml
 from iblutil.io import params
 from one.webclient import AlyxClient
 from ibllib.io import session_params
-from one.api import ONE
 from one.alf.files import get_alf_path
 from PyQt5 import QtWidgets, QtCore, uic
 from PyQt5.QtCore import Qt
