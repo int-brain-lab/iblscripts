@@ -7,12 +7,13 @@ from pathlib import Path
 from functools import partial
 import warnings
 import argparse
+import datetime
 
 import yaml
 from iblutil.io import params
 from one.webclient import AlyxClient
 from ibllib.io import session_params
-from one.api import ONE
+from one.alf.io import next_num_folder
 from one.alf.files import get_alf_path
 from PyQt5 import QtWidgets, QtCore, uic
 from PyQt5.QtCore import Qt
@@ -43,21 +44,33 @@ class MainWindow(QtWidgets.QMainWindow):
             av.setWindowTitle(title)
         return av
 
-    def __init__(self, subject, user, session_path=None, one=None):
+    def __init__(self, subject, user=None, session_path=None, computer=None, one=None):
+
         if not subject or not isinstance(subject, str):
             raise ValueError(f'Invalid subject: "{subject}"')
         super(MainWindow, self).__init__()
         uic.loadUi(Path(__file__).parent.joinpath('project_protocol_form.ui'), self)
-        self.settings = QtCore.QSettings('int-brain-lab', 'project_protocol_form')
-        self.subject_settings = QtCore.QSettings('int-brain-lab', f'project_protocol_form_{subject}')
-        self.session_path = session_path
+
+        # Load in the remote and local paths from the transfer_params dict
+        self.remote_data_path = (params.as_dict(params.read('transfer_params', {})) or {}).get('REMOTE_DATA_FOLDER_PATH', None)
+        self.local_data_path = (params.as_dict(params.read('transfer_params', {})) or {}).get('DATA_FOLDER_PATH', None)
+
+        # If the params are not setup we cannot continue
+        if not self.remote_data_path or not self.local_data_path:
+            raise IOError('No local data path found.  Please run ibllib.pipes.misc.create_basic_transfer_params')
+
+        # Get subject and session path
         self.subject = subject
+        self.session_path = session_path or self.get_session_path(self.subject, Path(self.local_data_path))
 
         # Load the previous experiment description file for this subject
+        self.settings = QtCore.QSettings('int-brain-lab', 'project_protocol_form')
+        self.subject_settings = QtCore.QSettings('int-brain-lab', f'project_protocol_form_{self.subject}')
         self.previously_selected_description_path = self.subject_settings.value('selected_description_path') or ''
         self.session_info = self.subject_settings.value('selected_description') or {}
         prev_projects = self.session_info.get('projects', [])
         prev_procedures = self.session_info.get('procedures', [])
+        prev_devices = self.subject_settings.value('selected_devices') or ()
 
         try:
             # one = one or ONE(mode='remote')
@@ -83,35 +96,48 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.projects = DEFAULT_PROJECTS
 
         self.descriptionPath.setText(self.previously_selected_description_path)
-
         self.descriptionPath.editingFinished.connect(self.validate_description_path)
         self.saveButton.accepted.connect(self.on_save_button_pressed)
         self.filterprojectButton.clicked.connect(self.on_filter_button_pressed)
         self.browseButton.clicked.connect(self.on_browse_button_pressed)
         self.loadButton.clicked.connect(self.on_load_button_pressed)
         self.validateButton.clicked.connect(self.validate_yaml)
+        self.clearButton.clicked.connect(self.on_clear_button_pressed)
         self.subjectLabel.setText(subject)
         self.projectList.itemChanged.connect(partial(self.on_item_clicked, 'projects'))
         self.procedureList.itemChanged.connect(partial(self.on_item_clicked, 'procedures'))
         self.deviceList.itemChanged.connect(self.on_device_clicked)
         self.populate_lists(self.projectList, self.projects, prev_projects)
         self.populate_lists(self.procedureList, PROCEDURES, prev_procedures)
-        device_stub_folders = Path(__file__).parent.parent.rglob('device_stubs')
+
+        if computer and Path(__file__).parent.parent.joinpath(f'{computer}pc').exists():
+            device_stub_folders = Path(__file__).parent.parent.joinpath(f'{computer}pc').glob('device_stubs')
+        else:
+            device_stub_folders = Path(__file__).parent.parent.rglob('device_stubs')
+
         self.device_stub_files = dict()
         for fold in device_stub_folders:
             files = fold.glob('*')
             for file in files:
                 self.device_stub_files[file.with_suffix('').name] = file
 
-        self.populate_lists(self.deviceList, [key for key, _ in self.device_stub_files.items()])
+        self.populate_lists(self.deviceList, [key for key, _ in self.device_stub_files.items()], prev_devices)
 
         # Load remote devices file
-        p = (params.as_dict(params.read('transfer_params', {})) or {}).get('REMOTE_DATA_FOLDER_PATH', None)
-        self.populate_table(p)
-        self.remoteDeviceTable.itemChanged.connect(self.on_table_changed)
+        if Path(self.remote_data_path).joinpath('remote_devices.yaml').exists():
+            self.populate_table(self.remote_data_path)
+            self.remoteDeviceTable.itemChanged.connect(self.on_table_changed)
+        else:
+            self.centralLayout.removeWidget(self.remoteWidget)
 
         # Update experiment description text field with previous data
         self.validate_yaml(data=self.session_info)
+
+    @staticmethod
+    def get_session_path(subject, local_path):
+        date = datetime.datetime.now().date().isoformat()
+        num = next_num_folder(local_path.joinpath(subject, date))
+        return local_path.joinpath(subject, date, num)
 
     @staticmethod
     def populate_lists(listView, options, defaults=()):
@@ -174,6 +200,17 @@ class MainWindow(QtWidgets.QMainWindow):
         list_widget = self.projectList if list_name == 'projects' else self.procedureList
         self.session_info[list_name] = self.get_selected_items(list_widget)
         self.validate_yaml(data=self.session_info)
+
+    @staticmethod
+    def clear_list(list):
+        n_items = list.count()
+        # temporarily block signals to device list widget
+        list.blockSignals(True)
+        for i in range(n_items):
+            item = list.item(i)
+            item.setCheckState(Qt.Unchecked)
+        # unblock signals
+        list.blockSignals(False)
 
     def on_device_clicked(self, selected_item):
 
@@ -261,6 +298,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.validate_yaml()  # Check the YAML is OK, update session_info field
         self.save_to_yaml()
         self.subject_settings.setValue('selected_description', self.session_info)
+        self.subject_settings.setValue('selected_devices', self.get_selected_items(self.deviceList))
         # TODO save updated URIs to remote file?
 
         # Should this be the case?
@@ -269,6 +307,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def validate_description_path(self):
         """Callback for when experiment description path has been edited"""
         self.previously_selected_description_path = self.descriptionPath.text()
+
+    def on_clear_button_pressed(self):
+        self.session_info = {}
+        self.validate_yaml(data=self.session_info)
+        self.clear_list(self.projectList)
+        self.clear_list(self.procedureList)
+        self.clear_list(self.deviceList)
 
     def on_browse_button_pressed(self):
         prev_path = self.previously_selected_description_path  # From single line editor
@@ -322,8 +367,10 @@ class MainWindow(QtWidgets.QMainWindow):
         with open(file_path, 'r') as fp:
             self.validate_yaml(data=fp)
         self.update_lists_from_loaded()
+        self.clear_list(self.deviceList)
         self.subject_settings.setValue('selected_description_path', str(file_path))
         self.subject_settings.setValue('selected_description', self.session_info)
+        self.subject_settings.setValue('selected_devices', [])
 
     def validate_yaml(self, *_, data=None):
         """Validate and update yaml data"""
@@ -347,8 +394,9 @@ class MainWindow(QtWidgets.QMainWindow):
             warnings.warn('File not written: no session path set')
             return
         print('Saving experiment description file')
-        session_params.prepare_experiment(get_alf_path(self.session_path),
-                                          acquisition_description=self.session_info)
+        session_params.prepare_experiment(Path(get_alf_path(self.session_path)),
+                                          acquisition_description=self.session_info, local=Path(self.local_data_path),
+                                          remote=Path(self.remote_data_path))
 
 
 if __name__ == '__main__':
@@ -363,12 +411,13 @@ if __name__ == '__main__':
     # Parse parameters
     parser = argparse.ArgumentParser(description='Integration tests for ibllib.')
     parser.add_argument('subject', help='subject name')
-    parser.add_argument('user', help='an Alyx username')
+    parser.add_argument('--user', '--u', help='an Alyx username')
+    parser.add_argument('--computer', '--c', help='Computer e.g behavior, video, ephys')
     parser.add_argument('--session-path', '-p',
                         help='a session path in which to save the experiment description file')
     args = parser.parse_args()
 
     app = QtWidgets.QApplication([])
-    mainapp = MainWindow(args.subject, args.user, session_path=args.session_path)
+    mainapp = MainWindow(args.subject, user=args.user, session_path=args.session_path, computer=args.computer)
     mainapp.show()
     app.exec_()
