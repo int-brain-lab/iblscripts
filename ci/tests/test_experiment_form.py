@@ -81,7 +81,7 @@ class TestMainForm(IntegrationTest):
         text = self.form.plainTextEdit.toPlainText()
         text_broken = text + '\nfoobar'  # Add invalid YAML syntax
         self.form.plainTextEdit.setPlainText(text_broken)  # Set textbox text
-        # Use mock to capture extected call to critical message box
+        # Use mock to capture expected call to critical message box
         with unittest.mock.patch(
                 'deploy.project_procedure_gui.experiment_form.QtWidgets.QMessageBox.critical'
         ) as message_box:

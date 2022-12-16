@@ -12,8 +12,6 @@ from ci.tests import base
 
 _logger = logging.getLogger('ibllib')
 
-FIXTURES_PATH = Path(__file__).parent.joinpath('fixtures_acquisition_descriptions')
-
 
 class TestDynamicPipeline(base.IntegrationTest):
 
@@ -21,28 +19,23 @@ class TestDynamicPipeline(base.IntegrationTest):
         self.one = ONE(**base.TEST_DB)
         path, self.eid = RegistrationClient(self.one).create_new_session('ZM_1743')
         # need to create a session here
-        session_path = FIXTURES_PATH.joinpath('ephys_NP3B')
+        session_path = self.data_path.joinpath('dynamic_pipeline', 'ephys_NP3B')
         self.pipeline = dynamic.make_pipeline(session_path, one=self.one, eid=str(self.eid))
         self.expected_pipeline = dynamic.load_pipeline_dict(session_path)
 
     def test_alyx_task_dicts(self):
-
         pipeline_list = self.pipeline.create_tasks_list_from_pipeline()
-
         self.compare_dicts(pipeline_list, self.expected_pipeline, id=False)
 
     def test_alyx_task_creation_pipeline(self):
-
         alyx_tasks_from_pipe = self.pipeline.create_alyx_tasks()
         alyx_tasks_from_dict = self.pipeline.create_alyx_tasks(self.pipeline.create_tasks_list_from_pipeline())
-
         self.compare_dicts(alyx_tasks_from_pipe, alyx_tasks_from_dict)
 
     def test_alyx_task_creation_task_dict(self):
         # Now do the other way around to the tasks are made from the task_list first
         alyx_tasks_from_dict = self.pipeline.create_alyx_tasks(self.pipeline.create_tasks_list_from_pipeline())
         alyx_tasks_from_pipe = self.pipeline.create_alyx_tasks()
-
         self.compare_dicts(alyx_tasks_from_dict, alyx_tasks_from_pipe)
 
     def compare_dicts(self, dict1, dict2, id=True):
@@ -64,7 +57,7 @@ class TestDynamicPipeline(base.IntegrationTest):
 class TestStandardPipelines(base.IntegrationTest):
     def setUp(self) -> None:
 
-        self.folder_path = FIXTURES_PATH
+        self.folder_path = self.data_path.joinpath('dynamic_pipeline')
         self.temp_dir = Path(tempfile.TemporaryDirectory().name)
         self.session_path = self.temp_dir.joinpath('mars', '2054-07-13', '001')
 
@@ -93,7 +86,8 @@ class TestStandardPipelines(base.IntegrationTest):
         self.check_pipeline()
 
     def test_photometry(self):
-        shutil.copytree(self.folder_path.joinpath('photometry'), self.session_path)
+        src = self.folder_path.joinpath('photometry', 'server_data', 'ZFM-03448', '2022-09-06', '001')
+        shutil.copytree(src, self.session_path)
         self.check_pipeline()
 
     def check_pipeline(self):
@@ -132,7 +126,7 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
 
         self.session_path.joinpath('raw_session.flag').touch()
         shutil.copy(
-            FIXTURES_PATH.joinpath('training', '_ibl_experiment.description.yaml'),
+            self.data_path.joinpath('dynamic_pipeline', 'training', '_ibl_experiment.description.yaml'),
             self.session_path.joinpath('_ibl_experiment.description.yaml')
         )
         # also need to make an experiment description file
@@ -141,7 +135,6 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
         """
         This runs the full suite of tasks on a TrainingChoiceWorld task
         """
-
         dsets = job_creator(self.session_path, one=self.one)
         assert len(dsets) == 0
 
@@ -166,22 +159,34 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
 
 class TestExperimentDescription(base.IntegrationTest):
     def setUp(self) -> None:
-        file = FIXTURES_PATH.joinpath('ephys_NP3B', '_ibl_experiment.description.yaml')
+        file = self.data_path.joinpath('dynamic_pipeline', 'ephys_NP3B', '_ibl_experiment.description.yaml')
         self.experiment_description = sess_params.read_params(file)
 
     def test_params_reading(self):
-        assert sess_params.get_sync(self.experiment_description) == 'nidq'
+        self.assertEqual(sess_params.get_sync(self.experiment_description), 'nidq')
+        self.assertEqual(sess_params.get_sync_extension(self.experiment_description), 'bin')
+        self.assertEqual(sess_params.get_sync_namespace(self.experiment_description), 'spikeglx')
+        self.assertEqual(sess_params.get_sync_collection(self.experiment_description), 'raw_ephys_data')
+        self.assertEqual(sess_params.get_cameras(self.experiment_description), ['body', 'left', 'right'])
+        self.assertEqual(sess_params.get_task_collection(self.experiment_description, 'ephysChoiceWorld'), 'raw_behavior_data')
+        self.assertEqual(sess_params.get_task_protocol(self.experiment_description, 'raw_behavior_data'), 'ephysChoiceWorld')
+        self.assertEqual(sess_params.get_task_protocol(self.experiment_description, 'raw_passive_data'), 'passiveChoiceWorld')
 
-        assert sess_params.get_sync_extension(self.experiment_description) == 'bin'
+        collections = sess_params.get_task_collection(self.experiment_description)
+        self.assertCountEqual({'raw_behavior_data', 'raw_passive_data'}, collections)
+        protocols = sess_params.get_task_protocol(self.experiment_description)
+        self.assertCountEqual({'ephysChoiceWorld', 'passiveChoiceWorld'}, protocols)
 
-        assert sess_params.get_sync_namespace(self.experiment_description) == 'spikeglx'
+    def test_compatibility(self):
+        """Test for ibllib.io.session_params._patch_file.
 
-        assert sess_params.get_sync_collection(self.experiment_description) == 'raw_ephys_data'
-
-        assert sess_params.get_cameras(self.experiment_description) == ['body', 'left', 'right']
-
-        assert sess_params.get_task_collection(self.experiment_description) == "raw_behavior_data"
-
-        assert sess_params.get_task_protocol(self.experiment_description, 'raw_behavior_data') == "ephysChoiceWorld"
-
-        assert sess_params.get_task_protocol(self.experiment_description, 'raw_passive_data') == "passiveChoiceWorld"
+        This checks whether a description file is old and modified the dict to be compatible with
+        the most recent spec.
+        """
+        files = sorted(self.data_path.joinpath('dynamic_pipeline', 'old').glob('_ibl_experiment.description*.yaml'))
+        for file in files:
+            with self.subTest(file.stem.rsplit('_')[-1]):
+                exp_dec = sess_params.read_params(file)
+                self.assertIsInstance(exp_dec['tasks'], list, 'failed to convert tasks key to list')
+                expected = ('passiveChoiceWorld', 'ephysChoiceWorld')
+                self.assertCountEqual(expected, (next(iter(x.keys())) for x in exp_dec['tasks']))

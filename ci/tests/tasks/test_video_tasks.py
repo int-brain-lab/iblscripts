@@ -78,7 +78,7 @@ class TestVideoConvert(base.IntegrationTest):
         self.avi_file = self.orig_video_path.joinpath(self.orig_video.name)
         shutil.copy(self.orig_video, self.avi_file)
 
-    def test_videoconvert(self):
+    def test_video_convert(self):
         task = VideoConvert(self.session_path, device_collection='raw_video_data', cameras=['left'])
         status = task.run()
         self.assertEqual(status, 0)

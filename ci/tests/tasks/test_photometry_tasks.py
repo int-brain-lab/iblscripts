@@ -76,4 +76,5 @@ class TestTaskFibrePhotometryPreprocess(BasePhotometryTaskTest):
         self.assertEqual(set(fp_table.keys()), set(list(['Region1G', 'Region3G', 'color', 'name', 'times', 'wavelength'])))
 
     def tearDown(self) -> None:
-        shutil.rmtree(self.session_path.joinpath('alf'))
+        if self.session_path.joinpath('alf').exists():
+            shutil.rmtree(self.session_path.joinpath('alf'))
