@@ -1,0 +1,5 @@
+sync:
+  nidq:
+    collection: raw_sync_data
+    extension: bin
+    acquisition_software: spikeglx
