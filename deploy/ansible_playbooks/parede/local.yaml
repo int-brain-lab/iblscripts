@@ -3,7 +3,7 @@
   connection: local
   become: true
   vars_files:
-    - vars.yml
+    - vars.yaml
   pre_tasks:
     - name: Create directories for logs
       file:

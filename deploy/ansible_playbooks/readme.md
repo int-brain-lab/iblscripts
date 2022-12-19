@@ -21,26 +21,26 @@ for our server configurations:
 Tested for Ubuntu 22.04 OS:
 ```bash
 sudo apt install ansible
-ansible-pull --url https://github.com/int-brain-lab/iblscripts.git deploy/ansible_playbooks/`server_name`/local.yml
+ansible-pull --url https://github.com/int-brain-lab/iblscripts.git deploy/ansible_playbooks/`server_name`/local.yaml
 ```
 * `server_name` is the name of the server that is currently being configured, i.e. `parede`
 * run a `sudo crontab -l` command to verify that an ansible-pull cron job entry was created
 
 If working on a test branch, simply add the checkout argument:
 ```bash
-ansible-pull --checkout `branch_name` --url https://github.com/int-brain-lab/iblscripts.git deploy/ansible_playbooks/`server_name`/local.yml
+ansible-pull --checkout `branch_name` --url https://github.com/int-brain-lab/iblscripts.git deploy/ansible_playbooks/`server_name`/local.yaml
 ```
 i.e. something along the lines of 
-`ansible-pull --checkout ansible_init --url https://github.com/int-brain-lab/iblscripts.git deploy/ansible_playbooks/alyx-dev/local.yml`
+`ansible-pull --checkout ansible_init --url https://github.com/int-brain-lab/iblscripts.git deploy/ansible_playbooks/alyx-dev/local.yaml`
 
 ## How to develop an ansible playbook
 When developing a playbook, it is often useful to use a vm or ec2 instance in conjunction with snapshots to quickly revert to a 
 known state. It is also useful to create and modify a playbook locally prior to utilizing the `ansible-pull` command detailed 
 above.  
 
-To run a playbook locally, run a command like `ansible-playbook local_example.yml`
+To run a playbook locally, run a command like `ansible-playbook local_example.yaml`
 
-Content of the `local_example.yml` file
+Content of the `local_example.yaml` file
 ```yaml
 ---
   - name: "Local playbook example"

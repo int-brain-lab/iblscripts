@@ -3,7 +3,7 @@
   hosts: localhost
   connection: local
   vars_files:
-    - vars.yml
+    - vars.yaml
   tasks:
     # OS and Apache Mod Tasks
     - name: Ensure hostname is set

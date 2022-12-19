@@ -3,7 +3,7 @@
   hosts: localhost
   connection: local
   vars_files:
-    - vars.yml
+    - vars.yaml
   tasks:
     # OS Tasks
     - name: Ensure hostname is set
@@ -59,4 +59,4 @@
         pip install globus-cli
         # globus login  # Need a automated way to login to globus
 
-    - import_tasks: crons.yml
+    - import_tasks: crons.yaml
