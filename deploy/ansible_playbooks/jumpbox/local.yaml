@@ -3,7 +3,7 @@
   hosts: localhost
   connection: local
   vars_files:
-    - vars.yml
+    - vars.yaml
   tasks:
     # OS Tasks
     - name: Ensure hostname is set
@@ -14,6 +14,9 @@
       apt:
         pkg:
           - autossh
+          - git
+          - nodejs
+          - npm
         update_cache: yes
         state: latest
         autoclean: yes
@@ -158,3 +161,19 @@
         hour: "0"
         job: systemctl restart autossh-tunnel.service
       become: true
+
+    # Git Tasks
+    - name: Git clone localtunnel repo
+      git:
+        repo: https://github.com/localtunnel/server.git
+        dest: "{{ git_localtunnel_dir }}"
+        clone: yes
+        update: false
+
+    # localtunnel setup
+    - name: localtunnel setup
+      shell: |
+        cd {{ git_localtunnel_dir }}
+        npm install
+        npm install esm@3
+        node -r esm ./bin/server --port 1234 &

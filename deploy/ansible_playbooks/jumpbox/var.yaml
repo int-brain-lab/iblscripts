@@ -8,3 +8,6 @@ os_host_name: "jumpbox"
 # Logs
 ibl_log_dir: "{{ os_user_home_dir }}/logs"
 ansible_log_path: "{{ ibl_log_dir }}/ansible_pull.log"
+
+# Git
+git_localtunnel_dir: "{{ os_user_home_dir }}/localtunnel"
