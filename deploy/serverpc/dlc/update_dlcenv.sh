@@ -16,7 +16,7 @@ fi
 
 # Check if any pip libraries are out of date if yes, update
 source ~/Documents/PYTHON/envs/dlcenv/bin/activate
-outdated=$(pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1)
+outdated=$(pip list --outdated | awk 'NR>2 {print $1}')
 
 # Check if pip needs update
 update=$(echo $outdated | grep -o "pip" | cut -d = -f 1)
