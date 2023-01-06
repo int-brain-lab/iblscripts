@@ -137,10 +137,10 @@ if __name__ == '__main__':
     """
     Examples
     --------
-    >>> python .\consolidate_sessions.py --session subject/2022-01-01/001 subject/2022-01-01/003
-    >>> python .\consolidate_sessions.py --session subject/2022-01-01/001
-    >>> python .\consolidate_sessions.py --session subject/2022-01-01
-    >>> python .\consolidate_sessions.py --session subject/2022-01-01 --stub /path/to/_ibl_experiment.description.yaml
+    >>> python consolidate_sessions.py --session subject/2022-01-01/001 subject/2022-01-01/003
+    >>> python consolidate_sessions.py --session subject/2022-01-01/001
+    >>> python consolidate_sessions.py --session subject/2022-01-01
+    >>> python consolidate_sessions.py --session subject/2022-01-01 --stub /path/to/_ibl_experiment.description.yaml
     """
     parser = argparse.ArgumentParser(description='Consolidate sessions')
     parser.add_argument('--session', action='extend', nargs='+', type=str, help='One or more sessions to consolidate')
