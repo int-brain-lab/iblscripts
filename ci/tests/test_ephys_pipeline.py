@@ -138,6 +138,7 @@ class TestEphysPipeline(base.IntegrationTest):
         self.session_path.joinpath('raw_session.flag').touch()
 
     @mock.patch('ibllib.qc.camera.CameraQC')
+    @mock.patch('ibllib.pipes.ephys_preprocessing.tasks.Task.is_locked', return_value=False)
     def test_pipeline_with_alyx(self, _):
         """
         Test the ephys pipeline exactly as it is supposed to run on the local servers
