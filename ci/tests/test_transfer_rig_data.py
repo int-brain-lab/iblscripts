@@ -2,7 +2,7 @@ import tempfile
 import logging
 import unittest
 from unittest import mock
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import json
 import shutil
 
@@ -622,14 +622,21 @@ class TestConsolidateSessions(base.IntegrationTest):
         self.session_2 = self.session_1.with_name('002')
         task = 'ephysCW'
         behaviour_path = fu.create_fake_raw_behavior_data_folder(self.session_1, task=task, write_pars_stub=True)
-        fu.populate_task_settings(
-            behaviour_path.joinpath('_iblrig_taskSettings.raw.json'), patch={'PYBPOD_PROTOCOL': task}
-        )
+        settings_path = behaviour_path.joinpath('_iblrig_taskSettings.raw.json')
+        settings = {'PYBPOD_PROTOCOL': task,
+                    'SETTINGS_FILE_PATH': str(PureWindowsPath(settings_path)),
+                    'SESSION_NUMBER': '001',
+                    'SESSION_DATE': '2022-01-01',
+                    'SESSION_RAW_DATA_FOLDER': str(PureWindowsPath(behaviour_path))}
+        fu.populate_task_settings(settings_path, patch=settings)
         task = 'passiveCW'
         behaviour_path = fu.create_fake_raw_behavior_data_folder(self.session_2, task=task, write_pars_stub=True)
-        fu.populate_task_settings(
-            behaviour_path.joinpath('_iblrig_taskSettings.raw.json'), patch={'PYBPOD_PROTOCOL': task}
-        )
+        settings_path = behaviour_path.joinpath('_iblrig_taskSettings.raw.json')
+        settings.update({'PYBPOD_PROTOCOL': task,
+                         'SETTINGS_FILE_PATH': str(PureWindowsPath(settings_path)),
+                         'SESSION_NUMBER': '002',
+                         'SESSION_RAW_DATA_FOLDER': str(PureWindowsPath(behaviour_path))})
+        fu.populate_task_settings(settings_path, patch=settings)
 
     def test_consolidate(self):
         consolidate_sessions(self.session_1)
@@ -664,3 +671,12 @@ class TestConsolidateSessions(base.IntegrationTest):
         self.assertSequenceEqual(('ephysCW', 'passiveCW'), list(chain(*map(dict.keys, tasks))))
         collections = [next(iter(x.values())).get('collection') for x in tasks]
         self.assertSequenceEqual(expected, collections)
+        # Check settings patched
+        for collection in expected:
+            with self.subTest(settings_collection=collection):
+                settings_path = next(self.session_1.joinpath(collection).glob('*Settings*'), None)
+                self.assertIsNotNone(settings_path)
+                with open(settings_path, 'r') as fp:
+                    settings = fp.readlines()
+                self.assertFalse(any('raw_behavior_data' in ln for ln in settings))
+                self.assertFalse(any('002' in ln for ln in settings))

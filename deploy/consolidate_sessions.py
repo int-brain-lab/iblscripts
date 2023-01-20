@@ -12,6 +12,7 @@ import tempfile
 
 from ibllib.io import session_params, raw_data_loaders
 from ibllib.pipes.misc import create_basic_transfer_params
+from ibllib.io.raw_data_loaders import patch_settings
 from one.alf.io import iter_sessions
 from one.alf.files import get_session_path
 
@@ -95,22 +96,25 @@ def main(*args, stub=None):
                 shutil.copy(stub, session)
     dst_session = sessions[0]
     for i, session in enumerate(sessions):
+        collection = f'raw_task_data_{i - skipped:02}'
         if (raw_behaviour_data := session.joinpath('raw_behavior_data')).exists():
             # Rename raw_behaviour_data folder
-            new_name = dst_session.joinpath(f'raw_task_data_{i - skipped:02}')
+            new_name = dst_session.joinpath(collection)
             raw_behaviour_data = raw_behaviour_data.rename(new_name)
         else:
             warnings.warn(f'Skipping session {session}: no raw_behavior_data folder')
             skipped += 1
             continue
+        # Patch the settings file with the new paths
+        new_settings = patch_settings(dst_session, collection,
+                                      new_collection=collection, number=dst_session.parts[-1])
 
         # Aggregate experiment description file
         yaml_name = f'_ibl_experiment.description_{transfer_pars["TRANSFER_LABEL"]}.yaml'
         yaml_file = next(session.glob('_ibl_experiment.description*'), session / yaml_name)
         # If experiment.description doesn't exist, create one and insert task name from settings
         if not yaml_file.exists():
-            settings = raw_data_loaders.load_settings(dst_session, task_collection=raw_behaviour_data.name) or {}
-            task = settings.get('PYBPOD_PROTOCOL')
+            task = new_settings.get('PYBPOD_PROTOCOL')
             # If settings exist and contain task, insert into experiment description
             params = {'tasks': [{task: {}}], 'version': '1.0.0'} if task else {}
         else:
