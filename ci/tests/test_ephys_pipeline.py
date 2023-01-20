@@ -139,7 +139,7 @@ class TestEphysPipeline(base.IntegrationTest):
 
     @mock.patch('ibllib.qc.camera.CameraQC')
     @mock.patch('ibllib.pipes.ephys_preprocessing.tasks.Task.is_locked', return_value=False)
-    def test_pipeline_with_alyx(self, _):
+    def test_pipeline_with_alyx(self, *_):
         """
         Test the ephys pipeline exactly as it is supposed to run on the local servers
         We stub the QC as it requires a video file and loading frames takes a while.
