@@ -10,9 +10,9 @@ import argparse
 import shutil
 import tempfile
 
-from ibllib.io import session_params, raw_data_loaders
-from ibllib.pipes.misc import create_basic_transfer_params
+from ibllib.io import session_params
 from ibllib.io.raw_data_loaders import patch_settings
+from ibllib.pipes.misc import create_basic_transfer_params
 from one.alf.io import iter_sessions
 from one.alf.files import get_session_path
 
