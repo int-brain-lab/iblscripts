@@ -638,10 +638,12 @@ class TestConsolidateSessions(base.IntegrationTest):
                          'SESSION_RAW_DATA_FOLDER': str(PureWindowsPath(behaviour_path))})
         fu.populate_task_settings(settings_path, patch=settings)
 
+    @base.disable_log(level=logging.WARNING, quiet=True)  # Suppress missing version tag warning
     def test_consolidate(self):
         consolidate_sessions(self.session_1)
         self._test_outcome()
 
+    @base.disable_log(level=logging.WARNING, quiet=True)
     def test_without_exp_stubs(self):
         """Tests the script when there are no experiment.description stub files present"""
         for file in self.local_repo.rglob('_ibl_experiment.description*'):
@@ -649,6 +651,7 @@ class TestConsolidateSessions(base.IntegrationTest):
         consolidate_sessions(self.session_1)
         self._test_outcome()
 
+    @base.disable_log(level=logging.WARNING, quiet=True)
     def test_relative_input(self):
         """Tests the script with two relative paths as input"""
         # e.g. ['subject/2022-01-01/001', 'subject/2022-01-01/002']
