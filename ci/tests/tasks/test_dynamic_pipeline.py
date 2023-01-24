@@ -151,8 +151,6 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
 
         for t in self.one.alyx.rest('tasks', 'list', session=self.eid, no_cache=True):
             with self.subTest(name=t['name']):
-                if t['name'].startswith('TrainingStatus_trainingChoiceWorld'):
-                    continue
                 self.assertEqual(t['status'], 'Complete')
 
         self.assertEqual(len(all_dsets), 28)
