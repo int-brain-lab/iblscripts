@@ -41,12 +41,12 @@ class BasePhotometryTaskTest(base.IntegrationTest):
         self.one = ONE(**base.TEST_DB, cache_dir=cache_dir, cache_rest=None)
         try:
             self.one.alyx.rest('subjects', 'delete', id='ZFM-03448')
-        except BaseException:
+        except Exception:
             pass
         self.one.alyx.rest('subjects', 'create', data={
             'nickname': 'ZFM-03448', 'responsible_user': 'root', 'birth_date': '2022-02-02', 'lab': 'mainenlab'})
         self.acquisition_description = read_params(self.session_path)
-        sdict = RegistrationClient(self.one).create_session(self.session_path)
+        sdict, _ = RegistrationClient(self.one).register_session(self.session_path, file_list=False)
         self.kwargs = self.acquisition_description['devices']['photometry']
         self.eid = sdict['id']
 
@@ -58,8 +58,7 @@ class TestTaskPhotometryRegisterRaw(BasePhotometryTaskTest):
 
     def test_register_raw(self):
         task = photometry_tasks.TaskFibrePhotometryRegisterRaw(self.session_path, one=self.one, **self.kwargs)
-        status = task.run()
-        assert status == 0
+        self.assertEqual(0, task.run())
         # Even if we run the task again we should get the same output
         task.run()
 
@@ -68,12 +67,11 @@ class TestTaskFibrePhotometryPreprocess(BasePhotometryTaskTest):
 
     def test_extract_fp_data(self):
         task = photometry_tasks.TaskFibrePhotometryPreprocess(self.session_path, one=self.one, **self.kwargs)
-        status = task.run()
-        assert status == 0
+        self.assertEqual(0, task.run())
         # Even if we run the task again we should get the same output
         task.run()
         fp_table = pd.read_parquet(task.outputs)
-        self.assertEqual(set(fp_table.keys()), set(list(['Region1G', 'Region3G', 'color', 'name', 'times', 'wavelength'])))
+        self.assertEqual(set(fp_table.keys()), {'Region1G', 'Region3G', 'color', 'name', 'times', 'wavelength'})
 
     def tearDown(self) -> None:
         if self.session_path.joinpath('alf').exists():
