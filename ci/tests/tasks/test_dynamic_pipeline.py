@@ -1,6 +1,7 @@
 import logging
 import shutil
 import tempfile
+import yaml
 from pathlib import Path
 from one.registration import RegistrationClient
 from one.api import ONE
@@ -96,6 +97,19 @@ class TestStandardPipelines(base.IntegrationTest):
                         self.session_path.joinpath('raw_ephys_data'))
         self.check_pipeline()
 
+    def test_extractors(self):
+        shutil.copytree(self.folder_path.joinpath('extractors'), self.session_path)
+        shutil.copytree(self.folder_path.joinpath('ephys_NP24', 'raw_ephys_data'),
+                        self.session_path.joinpath('raw_ephys_data'))
+        self.check_pipeline()
+        # Tests that an error is raised if sync and extractor aren't matching
+        with open(self.session_path.joinpath('_ibl_experiment.description.yaml'), 'r') as f:
+            exp_desc = yaml.safe_load(f)
+        exp_desc['sync'] = {'bpod': exp_desc['sync']['nidq']}
+        with open(self.session_path.joinpath('_ibl_experiment.description.yaml'), 'w') as f:
+            yaml.dump(exp_desc, f)
+        self.assertRaises(ValueError, self.check_pipeline)
+
     def check_pipeline(self):
         pipe = dynamic.make_pipeline(self.session_path)
         dy_pipe = dynamic.make_pipeline_dict(pipe, save=False)
@@ -140,6 +154,53 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
     def test_run_dynamic_pipeline_full(self):
         """
         This runs the full suite of tasks on a TrainingChoiceWorld task
+        """
+        dsets = job_creator(self.session_path, one=self.one)
+        assert len(dsets) == 0
+
+        tasks = self.one.alyx.rest('tasks', 'list', session=self.eid, no_cache=True)
+        assert len(tasks) == 8
+
+        all_dsets = tasks_runner(self.temp_dir, tasks, one=self.one, count=10, max_md5_size=1024 * 1024 * 20)
+
+        for t in self.one.alyx.rest('tasks', 'list', session=self.eid, no_cache=True):
+            with self.subTest(name=t['name']):
+                self.assertEqual(t['status'], 'Complete')
+
+        self.assertEqual(len(all_dsets), 28)
+        self.assertIn('_ibl_experiment.description.yaml', [d['name'] for d in all_dsets])
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.temp_dir)
+        self.one.alyx.rest('sessions', 'delete', id=self.eid)
+
+
+class TestExtractorsDynamicPipelineWithAlyx(base.IntegrationTest):
+    def setUp(self) -> None:
+        self.one = ONE(**base.TEST_DB)
+        self.folder_path = self.data_path.joinpath('Subjects_init', 'ZM_1085', '2019-02-12', '002')
+
+        self.temp_dir = Path(tempfile.TemporaryDirectory().name)
+        path, self.eid = RegistrationClient(self.one).create_new_session('ZM_1085')
+        self.session_path = self.temp_dir.joinpath(path.relative_to(self.one.cache_dir))
+        self.session_path.mkdir(exist_ok=True, parents=True)
+
+        for ff in self.folder_path.rglob('*.*'):
+            link = self.session_path.joinpath(ff.relative_to(self.folder_path))
+            if 'alf' in link.parts:
+                continue
+            link.parent.mkdir(exist_ok=True, parents=True)
+            link.symlink_to(ff)
+
+        self.session_path.joinpath('raw_session.flag').touch()
+        shutil.copy(
+            self.data_path.joinpath('dynamic_pipeline', 'extractors_pipe', '_ibl_experiment.description.yaml'),
+            self.session_path.joinpath('_ibl_experiment.description.yaml')
+        )
+
+    def test_run_extractors_dynamic_pipeline_full(self):
+        """
+        This runs the full suite of tasks on a TrainingChoiceWorld task with extractors passed explicitly
         """
         dsets = job_creator(self.session_path, one=self.one)
         assert len(dsets) == 0
