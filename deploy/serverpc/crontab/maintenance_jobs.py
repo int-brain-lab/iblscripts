@@ -11,9 +11,8 @@ import spikeglx
 
 import ibllib.io.raw_data_loaders as raw
 from ibllib.ephys import spikes
-from ibllib.pipes.local_server import get_lab
 from ibllib.pipes.ephys_preprocessing import SpikeSorting, EphysCellsQc
-from ibllib.oneibl.registration import register_dataset
+from ibllib.oneibl.registration import register_dataset, get_lab
 from ibllib.pipes.local_server import _get_volume_usage
 import ibllib.io.session_params as session_params
 from ibllib.pipes.dynamic_pipeline import acquisition_description_legacy_session
@@ -69,7 +68,7 @@ def correct_passive_in_wrong_folder():
     has not been moved and got the correct file structure
     """
     one = ONE(cache_rest=None)
-    lab = get_lab(one)
+    lab = get_lab(one.alyx)
     if lab[0] == 'wittenlab':
 
         for flag in ROOT_PATH.rglob('passive_data_for_ephys.flag'):
