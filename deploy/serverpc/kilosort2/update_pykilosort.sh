@@ -18,7 +18,7 @@ fi
 source ~/anaconda3/etc/profile.d/conda.sh
 conda deactivate
 conda activate pyks2
-outdated=$(pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1)
+outdated=$(pip list --outdated | awk 'NR>2 {print $1}')
 
 # Check if pip needs update
 update=$(echo $outdated | grep -o "pip" | cut -d = -f 1)
