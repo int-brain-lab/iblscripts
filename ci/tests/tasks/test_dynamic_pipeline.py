@@ -39,16 +39,13 @@ class TestDynamicPipeline(base.IntegrationTest):
         self.compare_dicts(alyx_tasks_from_dict, alyx_tasks_from_pipe)
 
     def compare_dicts(self, dict1, dict2, id=True):
-        assert len(dict1) == len(dict2)
+        self.assertEqual(len(dict2), len(dict1))
         for d1, d2 in zip(dict1, dict2):
             if id:
-                assert d1['id'] == d2['id']
-            assert d1['executable'] == d2['executable']
-            assert d1['parents'] == d2['parents']
-            assert d1['level'] == d2['level']
-            assert d1['name'] == d2['name']
-            assert d1['graph'] == d2['graph']
-            assert d1['arguments'] == d2['arguments']
+                self.assertEqual(d2['id'], d1['id'])
+            for k in ('executable', 'parents', 'name', 'level', 'graph', 'arguments'):
+                with self.subTest(key=k):
+                    self.assertEqual(d2[k], d1[k])
 
     def tearDown(self) -> None:
         self.one.alyx.rest('sessions', 'delete', id=self.eid)
