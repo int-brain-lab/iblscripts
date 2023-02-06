@@ -7,6 +7,7 @@ from one.api import ONE
 from ibllib.pipes.local_server import job_creator, tasks_runner
 import ibllib.pipes.dynamic_pipeline as dynamic
 import ibllib.io.session_params as sess_params
+from ibllib.io.raw_data_loaders import patch_settings
 
 from ci.tests import base
 
@@ -132,17 +133,19 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
             self.data_path.joinpath('dynamic_pipeline', 'training', '_ibl_experiment.description.yaml'),
             self.session_path.joinpath('_ibl_experiment.description.yaml')
         )
-        # also need to make an experiment description file
+        # Patch the settings file
+        subject, date, number = self.session_path.parts[-3:]
+        patch_settings(self.session_path, subject=subject, date=date, number=path.parts[-1])
 
     def test_run_dynamic_pipeline_full(self):
         """
         This runs the full suite of tasks on a TrainingChoiceWorld task
         """
         dsets = job_creator(self.session_path, one=self.one)
-        assert len(dsets) == 0
+        self.assertEqual(0, len(dsets))
 
         tasks = self.one.alyx.rest('tasks', 'list', session=self.eid, no_cache=True)
-        assert len(tasks) == 8
+        self.assertEqual(8, len(tasks))
 
         all_dsets = tasks_runner(self.temp_dir, tasks, one=self.one, count=10, max_md5_size=1024 * 1024 * 20)
 
