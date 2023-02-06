@@ -31,6 +31,8 @@ from ibllib.io.extractors.video_motion import MotionAlignment
 from ibllib.io.extractors.ephys_fpga import get_main_probe_sync
 import ibllib.io.extractors.camera as camio
 import ibllib.io.raw_data_loaders as raw
+from ibllib.io import session_params
+from ibllib.pipes.dynamic_pipeline import acquisition_description_legacy_session
 import ibllib.qc.camera as camQC
 from ibllib.qc.camera import CameraQC
 from ibllib.qc.base import CRITERIA
@@ -634,6 +636,35 @@ class TestCameraQC(base.IntegrationTest):
             '_videoLeft_wheel_alignment': ('WARNING', -95)
         }
         self.assertEqual(expected, extended)
+
+    def test_load_sess_params(self):
+        """Test that the session description file is used in the load_data method."""
+        # First, copy files to new collection
+        _, session_path = self.ephys
+        task_collection = 'raw_task_data_00'
+        shutil.copytree(session_path.joinpath('raw_behavior_data'),
+                        session_path.joinpath(task_collection))
+        self.addCleanup(shutil.rmtree, session_path.joinpath(task_collection))
+        # Second, create and experiment description file
+        sess_params = acquisition_description_legacy_session(session_path, save=False)
+        video_meta = {'fps': 80, 'width': 640, 'height': 512}
+        sess_params['devices']['cameras']['left'].update(video_meta)
+        sess_params['sync'] = {'bpod': {'collection': task_collection}}  # Change to bpod sync
+        self.addCleanup(session_params.write_params(session_path, sess_params).unlink)
+        # Check load data method
+        qc = CameraQC(session_path, camera='left', stream=False, one=self.one, n_samples=0)
+        qc.load_data(load_video=False)
+        self.assertCountEqual(video_meta, qc.video_meta['training']['left'])
+        self.assertEqual('training', qc.type)
+        self.assertEqual('bpod', qc.sync)
+        self.assertEqual(task_collection, qc.sync_collection)
+        # Override with kwargs
+        qc = CameraQC(session_path, camera='left', stream=False, one=self.one, n_samples=0,
+                      sync_type='nidq', sync_collection='raw_ephys_data')
+        qc.load_data(load_video=False)
+        self.assertEqual('ephys', qc.type)
+        self.assertEqual('nidq', qc.sync)
+        self.assertEqual('raw_ephys_data', qc.sync_collection)
 
     def side_effect(self):
         for frame in self.frames:
