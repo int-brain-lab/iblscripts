@@ -126,7 +126,7 @@ class TestRegistration(IntegrationTest):
         subj = self.client.one.alyx.rest('subjects', 'read', id=self.subject)
         self.assertEqual(2, len(subj['weighings']))
         actual = [x['date_time'] for x in subj['weighings']]
-        self.assertEqual(['2019-02-12T10:14:20.047259', '2019-02-12T11:22:23.047259'], actual)
+        self.assertCountEqual(['2019-02-12T10:14:20.047259', '2019-02-12T11:22:23.047259'], actual)
         self.assertCountEqual({x['weight'] for x in subj['weighings']}, [22.35])
 
         # Check water restrictions

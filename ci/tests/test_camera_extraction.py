@@ -655,6 +655,7 @@ class TestCameraQC(base.IntegrationTest):
         qc = CameraQC(session_path, camera='left', stream=False, one=self.one, n_samples=0)
         qc.load_data(load_video=False)
         self.assertCountEqual(video_meta, qc.video_meta['training']['left'])
+        self.assertNotEqual(qc.video_meta['training']['left'], CameraQC.video_meta['training']['left'])
         self.assertEqual('training', qc.type)
         self.assertEqual('bpod', qc.sync)
         self.assertEqual(task_collection, qc.sync_collection)
