@@ -164,7 +164,7 @@ class TestExperimentDescription(base.IntegrationTest):
         self.experiment_description = sess_params.read_params(file)
 
     def test_params_reading(self):
-        self.assertEqual(sess_params.get_sync(self.experiment_description), 'nidq')
+        self.assertEqual(sess_params.get_sync_label(self.experiment_description), 'nidq')
         self.assertEqual(sess_params.get_sync_extension(self.experiment_description), 'bin')
         self.assertEqual(sess_params.get_sync_namespace(self.experiment_description), 'spikeglx')
         self.assertEqual(sess_params.get_sync_collection(self.experiment_description), 'raw_ephys_data')
