@@ -116,22 +116,26 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
         self.one = ONE(**base.TEST_DB)
         self.folder_path = self.data_path.joinpath('Subjects_init', 'ZM_1085', '2019-02-12', '002')
 
-        self.temp_dir = Path(tempfile.TemporaryDirectory().name)
+        self.temp_dir = tempfile.TemporaryDirectory()
         path, self.eid = RegistrationClient(self.one).create_new_session('ZM_1085')
-        self.session_path = self.temp_dir.joinpath(path.relative_to(self.one.cache_dir))
+        self.session_path = Path(self.temp_dir.name).joinpath(path.relative_to(self.one.cache_dir))
         self.session_path.mkdir(exist_ok=True, parents=True)
 
         for ff in self.folder_path.rglob('*.*'):
             link = self.session_path.joinpath(ff.relative_to(self.folder_path))
             if 'alf' in link.parts:
                 continue
-            link.parent.mkdir(exist_ok=True, parents=True)
-            link.symlink_to(ff)
+            if link.name == '_iblrig_taskSettings.raw.json':
+                shutil.copy(ff, link)  # Copy settings as we'll modify them
+            else:
+                link.parent.mkdir(exist_ok=True, parents=True)
+                link.symlink_to(ff)
 
         self.session_path.joinpath('raw_session.flag').touch()
         shutil.copy(
             self.data_path.joinpath('dynamic_pipeline', 'training', '_ibl_experiment.description.yaml'),
-            self.session_path.joinpath('_ibl_experiment.description.yaml')
+            self.session_path.joinpath('_ibl_experiment.description.yaml'),
+            follow_symlinks=False
         )
         # Patch the settings file
         subject, date, number = self.session_path.parts[-3:]
@@ -147,7 +151,7 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
         tasks = self.one.alyx.rest('tasks', 'list', session=self.eid, no_cache=True)
         self.assertEqual(8, len(tasks))
 
-        all_dsets = tasks_runner(self.temp_dir, tasks, one=self.one, count=10, max_md5_size=1024 * 1024 * 20)
+        all_dsets = tasks_runner(self.temp_dir.name, tasks, one=self.one, count=10, max_md5_size=1024 * 1024 * 20)
 
         for t in self.one.alyx.rest('tasks', 'list', session=self.eid, no_cache=True):
             with self.subTest(name=t['name']):
@@ -157,7 +161,7 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
         self.assertIn('_ibl_experiment.description.yaml', [d['name'] for d in all_dsets])
 
     def tearDown(self) -> None:
-        shutil.rmtree(self.temp_dir)
+        self.temp_dir.cleanup()
         self.one.alyx.rest('sessions', 'delete', id=self.eid)
 
 
