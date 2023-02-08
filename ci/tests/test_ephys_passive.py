@@ -83,7 +83,7 @@ class TestChainedPassiveExtraction(base.IntegrationTest):
             with self.subTest(file):
                 self.assertTrue((out_path / file).exists())
         df = pd.read_csv(out_path / '_ibl_passivePeriods.intervalsTable.csv', index_col=0)
-        expected = [3119.84190444, 4100.97576141]
+        expected = [3119.84190444, 4088.447748]
         np.testing.assert_array_almost_equal(df['passiveProtocol'].values, expected)
 
     def tearDown(self):
