@@ -1,0 +1,4 @@
+widefield:
+  widefield:
+      collection: raw_widefield_data
+      sync_label: frame_trigger

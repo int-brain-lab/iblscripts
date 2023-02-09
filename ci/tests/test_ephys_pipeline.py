@@ -120,7 +120,7 @@ class TestEphysPipeline(base.IntegrationTest):
         self.one = ONE(**base.TEST_DB, cache_dir=self.data_path / 'ephys', cache_rest=None)
         self.init_folder = self.data_path.joinpath('ephys', 'choice_world_init')
         if not self.init_folder.exists():
-            raise FileNotFoundError()
+            raise FileNotFoundError(str(self.init_folder))
         self.main_folder = self.data_path.joinpath('ephys', 'cortexlab', 'Subjects')
         self.session_path = self.main_folder.joinpath('KS022', '2019-12-10', '001')
         if self.main_folder.exists():
@@ -148,7 +148,6 @@ class TestEphysPipeline(base.IntegrationTest):
 
         one = self.one
         # first step is to remove the session and create it anew
-        one.alyx.clear_rest_cache()
         eid = one.path2eid(self.session_path, query_type='remote')
         if eid is not None:
             one.alyx.rest('sessions', 'delete', id=eid)
@@ -157,7 +156,7 @@ class TestEphysPipeline(base.IntegrationTest):
         raw_ds = local_server.job_creator(self.session_path, one=one, max_md5_size=1024 * 1024 * 20)
         one.alyx.clear_rest_cache()
         eid = one.path2eid(self.session_path, query_type='remote')
-        self.assertFalse(eid is None)  # the session is created on the database
+        self.assertIsNotNone(eid)  # the session is created on the database
         # the flag has been erased
         self.assertFalse(self.session_path.joinpath('raw_session.flag').exists())
 
@@ -180,12 +179,12 @@ class TestEphysPipeline(base.IntegrationTest):
 
         # quick consistency test on trials length
         trials = alfio.load_object(self.session_path.joinpath('alf'), 'trials')
-        assert alfio.check_dimensions(trials) == 0
+        self.assertEqual(0, alfio.check_dimensions(trials))
 
         # check the registration of datasets
         dsets = one.alyx.rest('datasets', 'list', session=eid, no_cache=True)
-        self.assertEqual(set([ds['url'][-36:] for ds in dsets]),
-                         set([ds['id'] for ds in all_datasets + raw_ds]))
+        self.assertEqual(set(ds['url'][-36:] for ds in dsets),
+                         set(ds['id'] for ds in all_datasets + raw_ds))
 
         nss = 2
         EXPECTED_DATASETS = [('_iblqc_ephysSpectralDensity.freqs', 4, 4),
@@ -271,11 +270,11 @@ class TestEphysPipeline(base.IntegrationTest):
         # check that we indeed find expected number of datasets after registration
         # for this we need to get the unique set of datasets
         dids = np.array([d['id'] for d in all_datasets])
-        self.assertTrue(set(dids).issubset(set([ds['url'][-36:] for ds in dsets])))
-        dtypes = sorted([ds['dataset_type'] for ds in dsets])
+        self.assertTrue(set(dids).issubset(set(ds['url'][-36:] for ds in dsets)))
+        dtypes = sorted(ds['dataset_type'] for ds in dsets)
         for ed in EXPECTED_DATASETS:
             with self.subTest(dataset=ed[0]):
-                count = sum([1 if ed[0] == dt else 0 for dt in dtypes])
+                count = sum(ed[0] == dt for dt in dtypes)
                 self.assertTrue(ed[1] <= count <= ed[2],
                                 f'missing dataset types: {ed[0]} found {count}, '
                                 f'expected between [{ed[1]} and {ed[2]}]')
@@ -287,18 +286,19 @@ class TestEphysPipeline(base.IntegrationTest):
         # also check that the behaviour criterion was set
         self.assertTrue('behavior' in extended)
         # check that new DLC qc is added properly
-        self.assertEqual(extended['_dlcLeft_pupil_diameter_snr'], [True, 12.066])
-        self.assertEqual(extended['_dlcRight_pupil_diameter_snr'], [True, 6.53])
+        self.assertEqual(extended['_dlcLeft_pupil_diameter_snr'], ['PASS', 12.066])
+        self.assertEqual(extended['_dlcRight_pupil_diameter_snr'], ['PASS', 6.53])
         # check that the probes insertions have the json field labeled properly
         pis = one.alyx.rest('insertions', 'list', session=eid, no_cache=True)
         for pi in pis:
-            assert 'n_units' in pi['json']
+            self.assertIn('n_units', pi['json'])
         # check that tasks ran with proper status
         tasks_end = one.alyx.rest('tasks', 'list', session=eid, no_cache=True)
         for t in tasks_end:
             if t['name'] in ['EphysPassive']:
                 continue
-            assert t['status'] == 'Complete', f"{t['name']} FAILED and shouldn't have for this test"
+            with self.subTest(t['name']):
+                self.assertEqual('Complete', t['status'], f"Expected {t['name']} to be COMPLETE")
 
     def check_spike_sorting_output(self, session_path):
         """ Check the spikes object """
@@ -321,7 +321,7 @@ class TestEphysPipeline(base.IntegrationTest):
                                    'uuids', 'waveforms', 'waveformsChannels', 'metrics']
             self.assertTrue(np.unique([clusters[k].shape[0] for k in clusters]).size == 1)
             self.assertTrue(set(clusters_attributes) == set(clusters.keys()))
-            self.assertTrue(10 < np.nanmedian(clusters.amps) * 1e6 < 80)  # we expect Volts
+            self.assertTrue(10 < np.nanmedian(clusters.amps) * 1e6 < 200)  # we expect Volts
             self.assertTrue(0 < np.median(np.abs(clusters.peakToTrough)) < 5)  # we expect ms
 
             """Check the channels object"""

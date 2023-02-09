@@ -7,14 +7,16 @@ import shutil
 import numpy as np
 from one.api import ONE
 from one.alf.files import get_session_path
+import spikeglx
 
 import ibllib.io.raw_data_loaders as raw
 from ibllib.ephys import spikes
-from ibllib.pipes.local_server import _get_lab
-from ibllib.io import spikeglx
 from ibllib.pipes.ephys_preprocessing import SpikeSorting, EphysCellsQc
-from ibllib.oneibl.registration import register_dataset
+from ibllib.oneibl.registration import register_dataset, get_lab
 from ibllib.pipes.local_server import _get_volume_usage
+import ibllib.io.session_params as session_params
+from ibllib.pipes.dynamic_pipeline import acquisition_description_legacy_session
+
 
 ROOT_PATH = Path('/mnt/s0/Data/Subjects')
 
@@ -66,7 +68,7 @@ def correct_passive_in_wrong_folder():
     has not been moved and got the correct file structure
     """
     one = ONE(cache_rest=None)
-    lab = _get_lab(one)
+    lab = get_lab(one.alyx)
     if lab[0] == 'wittenlab':
 
         for flag in ROOT_PATH.rglob('passive_data_for_ephys.flag'):
@@ -322,10 +324,44 @@ def remove_old_spike_sortings_outputs():
     _logger.info(f'remove old spike sorting outputs removed {siz / 1024 ** 3} Go')
 
 
+def glob_sessions_fast(pattern, root_path=ROOT_PATH):
+    for sub_dir in root_path.glob('*'):
+        if not sub_dir.is_dir():
+            continue
+        for date_dir in sub_dir.glob('20*'):
+            if not date_dir.is_dir():
+                continue
+            for session_path in date_dir.glob('0*'):
+                if not session_path.is_dir():
+                    continue
+                for fn in session_path.glob(pattern):
+                    yield fn
+
+
+def dynamic_pipeline_transition_photometry():
+    """
+    Looks for a _device/photometry_00.yaml file if found create an acquisition description file and add
+    a raw_session_flag
+    """
+    for photometry_yaml in glob_sessions_fast("_device/photometry_00.yaml"):
+        session_path = get_session_path(photometry_yaml)
+        if session_path.joinpath('_ibl_experiment.description.yaml').exists():
+            continue
+        print(f"Found photometry yaml: {photometry_yaml}, create acquisition description file and raw session flag")
+        fp_description = session_params.read_params(photometry_yaml)
+        description = acquisition_description_legacy_session(session_path)
+        description['devices']['photometry'] = fp_description['devices']['photometry']
+        description['procedures'] = list(set(description['procedures'] + ['Fiber photometry']))
+        session_params.write_params(session_path, description)
+        session_path.joinpath('raw_session.flag').touch()
+
+
 if __name__ == "__main__":
     correct_flags_biased_in_ephys_rig()
-    correct_ephys_manual_video_copies()
-    spike_amplitude_patching()
+    # correct_ephys_manual_video_copies()
+    # remove_iti_duration()
+    # spike_amplitude_patching()
     # upload_ks2_output()
     correct_passive_in_wrong_folder()
     # remove_old_spike_sortings_outputs()
+    dynamic_pipeline_transition_photometry()

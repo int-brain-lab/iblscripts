@@ -37,7 +37,7 @@ fi
 source ~/Documents/PYTHON/envs/iblenv/bin/activate
 
 # Collect outdated pip packages
-outdated=$(pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1)
+outdated=$(pip list --outdated | awk 'NR>2 {print $1}')
 
 # Check if pip or phylib needs update
 for lib in "pip" "phylib"

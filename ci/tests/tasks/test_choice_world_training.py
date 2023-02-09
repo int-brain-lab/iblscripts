@@ -35,3 +35,18 @@ class TestTrialRegisterRaw(TrainingTemplate):
         status = wf.run()
         assert status == 0
         wf.assert_expected_outputs()
+
+
+class TestTrainingTrialsBpodSavePath(TrainingTemplate):
+
+    def test_task(self):
+        shutil.move(self.session_path.joinpath('raw_behavior_data'), self.session_path.joinpath('raw_lala_data'))
+        wf = btasks.ChoiceWorldTrialsBpod(self.session_path, collection='raw_lala_data')
+        # force output collection
+        wf.output_collection = 'alf/task00'
+        self.assertIsNone(wf.protocol_number)
+        status = wf.run(update=False)
+        assert status == 0
+        wf.assert_expected_outputs()
+        wf.assert_expected_inputs()
+        self.assertTrue(wf.outputs[0].parent, self.session_path.joinpath(wf.output_collection))

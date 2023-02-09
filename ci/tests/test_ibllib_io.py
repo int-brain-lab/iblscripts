@@ -1,13 +1,18 @@
 import unittest
 import logging
 import time
+import tempfile
+import shutil
+from pathlib import Path
 
 import numpy as np
+import numpy.testing
 
 import ibllib.io.video as vidio
 from one.api import ONE
 from ci.tests import base
 from ibllib.io.raw_daq_loaders import load_channels_tdms
+from ibllib.io.raw_data_loaders import patch_settings, load_settings
 
 
 class TestVideoIO(base.IntegrationTest):
@@ -96,18 +101,63 @@ class Read_DAQ_tdms(base.IntegrationTest):
 
     def setUp(self) -> None:
         root = self.data_path  # Path to integration data
-        self.tdms_file = root.joinpath(
-            "personal_projects/biased_photometry/fip_16/2021-04-21/001/raw_photometry_data/20210421_1027.tdms")
+        self.file_tdms_analog = root.joinpath('io/tdms_reader/20210421_daqami_analog.tdms')
+        self.file_tdms_digital = root.joinpath('io/tdms_reader/20221102_daqami_digital.tdms')
 
-    def test_read_tdms(self):
-        data = load_channels_tdms(self.tdms_file)
-        self.assertEqual(set(data.keys()), set([f'AI{i}' for i in range(8)]))
-        _, fs = load_channels_tdms(self.tdms_file, return_fs=True)
+    def test_read_tdms_analog_only(self):
+        data = load_channels_tdms(self.file_tdms_analog)
+        self.assertEqual(set(data.keys()), set(f'AI{i}' for i in range(8)))
+        _, fs = load_channels_tdms(self.file_tdms_analog, return_fs=True)
         self.assertEqual(fs, 1000)
         chmap = {'titi': 'AI0', 'tata': 'AI1'}
-        dch, fs = load_channels_tdms(self.tdms_file, chmap=chmap, return_fs=True)
+        dch, fs = load_channels_tdms(self.file_tdms_analog, chmap=chmap, return_fs=True)
         np.testing.assert_array_equal(dch['tata'], data['AI1'])
         self.assertEqual(fs, 1000)
+
+    def test_read_tdms_digital_only(self):
+        data = load_channels_tdms(self.file_tdms_digital)
+        self.assertEqual(set(data.keys()), set(f'DI{i}' for i in range(2)))
+        self.assertEqual(set(data[k].size for k in data.keys()), {2540244})
+        chmap = {'bpod': 'DI0', 'frame2ttl': 'DI1'}
+        data2 = load_channels_tdms(self.file_tdms_digital, chmap=chmap)
+        np.testing.assert_equal(data2['bpod'], data['DI0'])
+        np.testing.assert_equal(data2['frame2ttl'], data['DI1'])
+
+
+class TestPatchSettings(base.IntegrationTest):
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        src_path = self.data_path.joinpath('Subjects_init', 'ZM_1085', '2019-02-12', '003', 'raw_task_data_00')
+        path = shutil.copytree(src_path, Path(self.tempdir.name).joinpath(*src_path.parts[-4:]))
+        self.settings_file = next(path.glob('*Settings.raw*'))
+        self.addCleanup(self.tempdir.cleanup)
+
+    def test_patch_settings(self):
+        """Test for ibllib.io.raw_data_loaders.patch_settings"""
+        session_path = self.settings_file.parents[1]
+        collection = self.settings_file.parts[-2]
+        self.assertRaises(IOError, patch_settings, session_path, 'foobar')
+        # # Get the old subject name
+        settings = load_settings(session_path, collection)
+        new_data = dict(subject='SUB_00', date='2020-01-01', number=9, new_collection='raw_task_data_04')
+        new_settings = patch_settings(session_path, collection, **new_data)
+
+        # Check output
+        actual = (
+            new_settings['SUBJECT_NAME'],
+            new_settings['SESSION_DATE'],
+            int(new_settings['SESSION_NUMBER']),
+            new_settings['SESSION_RAW_DATA_FOLDER'].split('\\')[-1])
+        self.assertCountEqual(new_data.values(), actual)
+        self.assertNotIn('PYBPOD_SUBJECT_EXTRA', new_settings)
+
+        # Checkout saved file
+        with open(self.settings_file, 'r') as fp:
+            new_raw_settings = fp.readlines()
+        new_path = '\\\\'.join(map(lambda x: str(x).zfill(3), list(new_data.values())[:-1]))
+        self.assertEqual(7, sum(new_path in ln for ln in new_raw_settings))
+        old_path = '\\\\'.join([settings['SUBJECT_NAME'], settings['SESSION_DATE'], settings['SESSION_NUMBER']])
+        self.assertFalse(any(old_path in ln for ln in new_raw_settings))
 
 
 if __name__ == '__main__':
