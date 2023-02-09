@@ -16,6 +16,7 @@ tasks:
   ephysChoiceWorld:
     collection: raw_behavior_data
     sync_label: bpod
+    extractors: [TrialRegisterRaw, TimelineTrials, TrainingStatus]
   passiveChoiceWorld:
     collection: raw_passive_data
     sync_label: bpod
