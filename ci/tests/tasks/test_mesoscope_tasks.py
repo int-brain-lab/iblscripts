@@ -68,14 +68,16 @@ class TesMesoscopeSync(base.IntegrationTest):
     alf_folder = None
 
     def setUp(self) -> None:
-        self.session_path = self.default_data_root().joinpath('mesoscope', 'SP026', '2022-06-29', '001')
+        # self.session_path = self.default_data_root().joinpath('mesoscope', 'SP026', '2022-06-29', '001')
+        self.session_path = self.default_data_root().joinpath('mesoscope', 'test', '2023-01-31', '001')
 
     def test_sync(self):
         # # NB: For now we're testing individual functions before we have complete data
         # task = MesoscopeSync(self.session_path, sync_collection='raw_mesoscope_data', sync_namespace='timeline')
         # status = task.run()
         # assert status == 0
-
+        from ibllib.pipes.dynamic_pipeline import make_pipeline
+        pipe = make_pipeline(self.session_path)
         timeline_trials = mesoscope.TimelineTrials(self.session_path)
         # Check that we can extract the wheel as it's from a counter channel, instead of raw analogue input
         wheel, moves = timeline_trials.get_wheel_positions()

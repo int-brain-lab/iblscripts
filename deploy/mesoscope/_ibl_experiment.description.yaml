@@ -13,11 +13,11 @@ sync:
     collection: raw_sync_data
     extension: npy
 tasks:
-  ephysChoiceWorld:
+- ephysChoiceWorld:
     collection: raw_behavior_data
     sync_label: bpod
-    extractors: [TrialRegisterRaw, TimelineTrials, TrainingStatus]
-  passiveChoiceWorld:
+    extractors: [TrialRegisterRaw, ChoiceWorldTrialsTimeline, TrainingStatus]
+- passiveChoiceWorld:
     collection: raw_passive_data
     sync_label: bpod
-version: 0.1.0
+version: 1.0.0
