@@ -28,7 +28,8 @@ class TestVideoRegisterRaw(base.IntegrationTest):
 class TestVideoEphysCompress(base.IntegrationTest):
     def setUp(self) -> None:
         self.folder_path = self.data_path.joinpath('ephys', 'ephys_video_init', 'ZM_1735', '2019-08-01', '001', 'raw_video_data')
-        self.temp_dir = Path(tempfile.TemporaryDirectory().name)
+        self.td = tempfile.TemporaryDirectory()
+        self.temp_dir = Path(self.td.name)
         self.session_path = self.temp_dir.joinpath('ZM_1735', '2019-08-01', '001')
         shutil.copytree(self.folder_path, self.session_path.joinpath('raw_video_data'))
         # files in this folder are not named correctly so rename
@@ -45,13 +46,15 @@ class TestVideoEphysCompress(base.IntegrationTest):
         task.assert_expected_outputs()
 
     def tearDown(self) -> None:
+        self.td.cleanup()
         shutil.rmtree(self.temp_dir)
 
 
 class TestVideoCompress(base.IntegrationTest):
     def setUp(self) -> None:
         self.folder_path = self.data_path.joinpath('Subjects_init', 'ZM_1085', '2019-02-12', '002', 'raw_video_data')
-        self.temp_dir = Path(tempfile.TemporaryDirectory().name)
+        self.td = tempfile.TemporaryDirectory()
+        self.temp_dir = Path(self.td.name)
         self.session_path = self.temp_dir.joinpath('ZM_1085', '2019-02-12', '002')
         shutil.copytree(self.folder_path, self.session_path.joinpath('raw_video_data'))
 
@@ -62,6 +65,7 @@ class TestVideoCompress(base.IntegrationTest):
         task.assert_expected_outputs()
 
     def tearDown(self) -> None:
+        self.td.cleanup()
         shutil.rmtree(self.temp_dir)
 
 
@@ -69,7 +73,8 @@ class TestVideoConvert(base.IntegrationTest):
     def setUp(self) -> None:
         self.folder_path = self.data_path.joinpath('widefield', 'widefieldChoiceWorld', 'JC076', '2022-02-04', '002',
                                                    'raw_video_data')
-        self.temp_dir = Path(tempfile.TemporaryDirectory().name)
+        self.td = tempfile.TemporaryDirectory()
+        self.temp_dir = Path(self.td.name)
         self.session_path = self.temp_dir.joinpath('JC076', '2022-02-04', '002')
         shutil.copytree(self.folder_path, self.session_path.joinpath('raw_video_data'))
         self.orig_video = next(self.session_path.joinpath('raw_video_data').glob('*.avi'))
@@ -108,11 +113,15 @@ class TestVideoConvert(base.IntegrationTest):
         #         frame_mp4 = get_video_frame(mp4_file, fr)
         #         np.testing.assert_array_almost_equal(frame_avi, frame_mp4)
 
+    def tearDown(self) -> None:
+        self.td.cleanup()
+
 
 class TestVideoSyncQCBpod(base.IntegrationTest):
     def setUp(self) -> None:
         self.folder_path = self.data_path.joinpath('Subjects_init', 'ZM_1085', '2019-02-12', '002')
-        self.temp_dir = Path(tempfile.TemporaryDirectory().name)
+        self.td = tempfile.TemporaryDirectory()
+        self.temp_dir = Path(self.td.name)
         self.session_path = self.temp_dir.joinpath('ZM_1085', '2019-02-12', '002')
         shutil.copytree(self.folder_path, self.session_path)
         task = VideoCompress(self.session_path, device_collection='raw_video_data', cameras=['left'])
@@ -127,11 +136,15 @@ class TestVideoSyncQCBpod(base.IntegrationTest):
         self.assertEqual(status, 0)
         task.assert_expected_outputs()
 
+    def tearDown(self) -> None:
+        self.td.cleanup()
+
 
 class TestVideoSyncQcCamlog(base.IntegrationTest):
     def setUp(self) -> None:
         data_path = self.data_path.joinpath('widefield', 'widefieldChoiceWorld', 'FD_01', '2022-08-04', '001')
-        self.temp_dir = Path(tempfile.TemporaryDirectory().name)
+        self.td = tempfile.TemporaryDirectory()
+        self.temp_dir = Path(self.td.name)
         self.session_path = self.temp_dir.joinpath('FD_01', '2022-08-04', '002')
         shutil.copytree(data_path.joinpath('raw_video_data'), self.session_path.joinpath('raw_video_data'))
         shutil.copytree(data_path.joinpath('raw_sync_data'), self.session_path.joinpath('raw_sync_data'))
@@ -161,6 +174,7 @@ class TestVideoSyncQcCamlog(base.IntegrationTest):
         np.testing.assert_array_equal(times, left_cam_times)
 
     def tearDown(self):
+        self.td.cleanup()
         shutil.rmtree(self.temp_dir)
         self.patch.stop()
 
@@ -169,7 +183,8 @@ class TestVideoSyncQCNidq(base.IntegrationTest):
     def setUp(self) -> None:
 
         self.folder_path = self.data_path.joinpath('ephys', 'choice_world_init', 'KS022', '2019-12-10', '001')
-        self.temp_dir = Path(tempfile.TemporaryDirectory().name)
+        self.td = tempfile.TemporaryDirectory()
+        self.temp_dir = Path(self.td.name)
         self.session_path = self.temp_dir.joinpath('KS022', '2019-12-10', '001')
 
         for ff in self.folder_path.rglob('*.*'):
@@ -192,4 +207,5 @@ class TestVideoSyncQCNidq(base.IntegrationTest):
         task.assert_expected_outputs()
 
     def tearDown(self) -> None:
+        self.td.cleanup()
         shutil.rmtree(self.temp_dir)
