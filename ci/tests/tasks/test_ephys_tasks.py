@@ -21,8 +21,7 @@ class EphysTemplate(base.IntegrationTest):
 
     def setUp(self) -> None:
         self.data_path = self.data_path.joinpath('ephys', 'ephys_np2', 'raw_ephys_data')
-        self.td = tempfile.TemporaryDirectory()
-        self.temp_dir = Path(self.td.name)
+        self.temp_dir = Path(tempfile.TemporaryDirectory().name)
         self.session_path = self.temp_dir.joinpath('mars', '2054-07-13', '001')
         self.session_path.mkdir(parents=True)
         self.probe = 'probe00'
@@ -105,7 +104,6 @@ class EphysTemplate(base.IntegrationTest):
                 assert file in task.outputs
 
     def tearDown(self) -> None:
-        self.td.cleanup()
         shutil.rmtree(self.temp_dir)
 
 

@@ -13,8 +13,7 @@ _logger = logging.getLogger('ibllib')
 class TestAudioCompress(base.IntegrationTest):
     def setUp(self) -> None:
         self.data_path = self.data_path.joinpath('ephys', 'ephys_video_init', 'ZM_1735', '2019-08-01', '001', 'raw_behavior_data')
-        self.td = tempfile.TemporaryDirectory()
-        self.temp_dir = Path(self.td.name)
+        self.temp_dir = Path(tempfile.TemporaryDirectory().name)
         self.session_path = self.temp_dir.joinpath('ZM_1735', '2019-08-01', '001')
         shutil.copytree(self.data_path, self.session_path.joinpath('raw_behavior_data'))
 
@@ -27,15 +26,14 @@ class TestAudioCompress(base.IntegrationTest):
         self.assertTrue(next(self.session_path.rglob('*.flac')) == task.outputs[0])
 
     def tearDown(self) -> None:
-        self.td.cleanup()
+        shutil.rmtree(self.temp_dir)
 
 
 class TestAudioSync(base.IntegrationTest):
 
     def setUp(self) -> None:
         self.data_path = self.data_path.joinpath('ephys', 'ephys_video_init', 'ZM_1735', '2019-08-01', '001', 'raw_behavior_data')
-        self.td = tempfile.TemporaryDirectory()
-        self.temp_dir = Path(self.td.name)
+        self.temp_dir = Path(tempfile.TemporaryDirectory().name)
         self.session_path = self.temp_dir.joinpath('ZM_1735', '2019-08-01', '001')
         shutil.copytree(self.data_path, self.session_path.joinpath('raw_behavior_data'))
 
@@ -61,4 +59,4 @@ class TestAudioSync(base.IntegrationTest):
             assert file in task.outputs
 
     def tearDown(self) -> None:
-        self.td.cleanup()
+        shutil.rmtree(self.temp_dir)

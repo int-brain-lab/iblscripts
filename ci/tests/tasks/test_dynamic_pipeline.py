@@ -147,6 +147,7 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
     def setUp(self) -> None:
         self.one = ONE(**base.TEST_DB)
         self.folder_path = self.data_path.joinpath('Subjects_init', 'ZM_1085', '2019-02-12', '002')
+
         self.temp_dir = tempfile.TemporaryDirectory()
         path, self.eid = RegistrationClient(self.one).create_new_session('ZM_1085')
         self.session_path = Path(self.temp_dir.name).joinpath(path.relative_to(self.one.cache_dir))
