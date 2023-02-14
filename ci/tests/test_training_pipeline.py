@@ -38,14 +38,15 @@ class TestPipeline(base.IntegrationTest):
             ]
             for stub in session_stubs:
                 session_path = subjects_path.joinpath(stub)
-                create_pipeline(session_path, one)
+                self.create_pipeline(session_path, one)
                 nses += 1
 
             # execute the list of jobs with the simplest scheduler possible
             training_jobs = one.alyx.rest(
                 'tasks', 'list', status='Waiting',
                 graph='TrainingExtractionPipeline', no_cache=True)
-            self.assertEqual(nses * 6, len(training_jobs))
+            N_TASKS = 7
+            self.assertEqual(nses * N_TASKS, len(training_jobs))
             # one.alyx.rest('jobs', 'read', id='32c83da4-8a2f-465e-8227-c3b540e61142')
 
             local_server.tasks_runner(subjects_path, training_jobs, one=one, dry=True,
@@ -59,18 +60,17 @@ class TestPipeline(base.IntegrationTest):
                                          django='extended_qc__isnull,False', no_cache=True)
             self.assertTrue(len(session_dict) > 0)
 
-
-def create_pipeline(session_path, one):
-    # creates the session if necessary
-    # task_type = get_session_extractor_type(session_path)
-    session_path.joinpath('raw_session.flag').touch()
-    # delete the session if it exists
-    eid = one.path2eid(session_path, query_type='remote')
-    if eid is not None:
-        one.alyx.rest('sessions', 'delete', id=eid)
-    local_server.job_creator(session_path, one=one, max_md5_size=1024 * 1024 * 20)
-    eid = one.path2eid(session_path, query_type='remote')
-    assert eid
-    alyx_tasks = one.alyx.rest('tasks', 'list',
-                               session=eid, graph='TrainingExtractionPipeline', no_cache=True)
-    assert len(alyx_tasks) == 6
+    def create_pipeline(self, session_path, one):
+        # creates the session if necessary
+        # task_type = get_session_extractor_type(session_path)
+        session_path.joinpath('raw_session.flag').touch()
+        # delete the session if it exists
+        eid = one.path2eid(session_path, query_type='remote')
+        if eid is not None:
+            one.alyx.rest('sessions', 'delete', id=eid)
+        local_server.job_creator(session_path, one=one, max_md5_size=1024 * 1024 * 20)
+        eid = one.path2eid(session_path, query_type='remote')
+        self.assertIsNotNone(eid)
+        alyx_tasks = one.alyx.rest('tasks', 'list',
+                                   session=eid, graph='TrainingExtractionPipeline', no_cache=True)
+        self.assertEqual(7, len(alyx_tasks))

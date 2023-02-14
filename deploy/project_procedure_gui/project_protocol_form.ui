@@ -7,14 +7,14 @@
     <x>0</x>
     <y>0</y>
     <width>348</width>
-    <height>894</height>
+    <height>903</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QVBoxLayout" name="centralLayout">
     <item>
      <widget class="QWidget" name="widget_3" native="true">
       <layout class="QHBoxLayout" name="horizontalLayout" stretch="2,2,10">
@@ -117,7 +117,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Select protocol(s)</string>
+          <string>Select procedure(s)</string>
          </property>
         </widget>
        </item>
@@ -128,7 +128,34 @@
      </widget>
     </item>
     <item>
-     <widget class="QWidget" name="verticalWidget" native="true">
+     <widget class="QWidget" name="widget_6" native="true">
+      <layout class="QVBoxLayout" name="verticalLayout_6">
+       <item>
+        <widget class="QLabel" name="label_3">
+         <property name="font">
+          <font>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Select device(s)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QListWidget" name="deviceList">
+         <property name="selectionMode">
+          <enum>QAbstractItemView::SingleSelection</enum>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QWidget" name="remoteWidget" native="true">
       <layout class="QVBoxLayout" name="verticalLayout_5">
        <property name="leftMargin">
         <number>9</number>
@@ -263,6 +290,32 @@
        </item>
        <item>
         <widget class="QPlainTextEdit" name="plainTextEdit"/>
+       </item>
+       <item>
+        <widget class="QWidget" name="widget_7" native="true">
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <item>
+           <widget class="QPushButton" name="clearButton">
+            <property name="text">
+             <string>Clear</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_3">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </widget>
        </item>
       </layout>
      </widget>

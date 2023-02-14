@@ -108,6 +108,9 @@ class TestVideoConvert(base.IntegrationTest):
         #         frame_mp4 = get_video_frame(mp4_file, fr)
         #         np.testing.assert_array_almost_equal(frame_avi, frame_mp4)
 
+    def tearDown(self) -> None:
+        shutil.rmtree(self.temp_dir)
+
 
 class TestVideoSyncQCBpod(base.IntegrationTest):
     def setUp(self) -> None:
@@ -126,6 +129,9 @@ class TestVideoSyncQCBpod(base.IntegrationTest):
         self.assertEqual(mock_qc.call_count, 1)
         self.assertEqual(status, 0)
         task.assert_expected_outputs()
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.temp_dir)
 
 
 class TestVideoSyncQcCamlog(base.IntegrationTest):

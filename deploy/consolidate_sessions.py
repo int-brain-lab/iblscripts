@@ -93,7 +93,7 @@ def main(*args, stub=None):
             stub = next(stub.glob('*experiment.description*'))
         for session in sessions:
             if not next(session.glob('*experiment.description*'), False):
-                shutil.copy(stub, session)
+                shutil.copy(stub, session / '_ibl_experiment.description.yaml')
     dst_session = sessions[0]
     for i, session in enumerate(sessions):
         collection = f'raw_task_data_{i - skipped:02}'
