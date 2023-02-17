@@ -105,9 +105,8 @@ class Read_DAQ_tdms(base.IntegrationTest):
         self.file_tdms_digital = root.joinpath('io/tdms_reader/20221102_daqami_digital.tdms')
 
     def test_read_tdms_analog_only(self):
-        data = load_channels_tdms(self.file_tdms_analog)
+        data, fs = load_channels_tdms(self.file_tdms_analog)
         self.assertEqual(set(data.keys()), set(f'AI{i}' for i in range(8)))
-        _, fs = load_channels_tdms(self.file_tdms_analog, return_fs=True)
         self.assertEqual(fs, 1000)
         chmap = {'titi': 'AI0', 'tata': 'AI1'}
         dch, fs = load_channels_tdms(self.file_tdms_analog, chmap=chmap, return_fs=True)
@@ -115,11 +114,11 @@ class Read_DAQ_tdms(base.IntegrationTest):
         self.assertEqual(fs, 1000)
 
     def test_read_tdms_digital_only(self):
-        data = load_channels_tdms(self.file_tdms_digital)
+        data, _ = load_channels_tdms(self.file_tdms_digital)
         self.assertEqual(set(data.keys()), set(f'DI{i}' for i in range(2)))
         self.assertEqual(set(data[k].size for k in data.keys()), {2540244})
         chmap = {'bpod': 'DI0', 'frame2ttl': 'DI1'}
-        data2 = load_channels_tdms(self.file_tdms_digital, chmap=chmap)
+        data2, _ = load_channels_tdms(self.file_tdms_digital, chmap=chmap)
         np.testing.assert_equal(data2['bpod'], data['DI0'])
         np.testing.assert_equal(data2['frame2ttl'], data['DI1'])
 
