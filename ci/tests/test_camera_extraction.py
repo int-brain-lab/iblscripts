@@ -798,5 +798,5 @@ class TestWheelMotionNRG(base.IntegrationTest):
             self.assertEqual(227, n_frames)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main(exit=False, verbosity=2)
