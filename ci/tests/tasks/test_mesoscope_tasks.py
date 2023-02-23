@@ -7,8 +7,9 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 from iblutil.util import Bunch
 import one.alf.io as alfio
+from one.api import ONE
 
-# from ibllib.pipes.mesoscope_tasks import MesoscopeSync, MesoscopeRegisterRaw
+from ibllib.pipes.mesoscope_tasks import MesoscopeSync, MesoscopeFOV
 from ibllib.io.extractors.ephys_fpga import get_wheel_positions
 from ibllib.io.extractors import mesoscope
 
@@ -21,6 +22,7 @@ class TesMesoscopeSync(base.IntegrationTest):
     session_path = None
 
     def setUp(self) -> None:
+        self.one = ONE(**base.TEST_DB)
         self.session_path_0 = self.default_data_root().joinpath('mesoscope', 'SP026', '2022-06-29', '001')
         self.session_path_1 = self.default_data_root().joinpath('mesoscope', 'test', '2023-01-31', '003')
         # A new test session with Bpod channel fix'd in timeline
@@ -31,7 +33,7 @@ class TesMesoscopeSync(base.IntegrationTest):
         # status = task.run()
         # assert status == 0
         from ibllib.pipes.dynamic_pipeline import make_pipeline
-        pipe = make_pipeline(self.session_path_2)
+        pipe = make_pipeline(self.session_path_2, one=self.one)
         # TODO Rename raw_timeline_data -> raw_sync_data
         # TODO rename TimelineHW.json -> _timeline_DAQdata.meta.json
         status = pipe.tasks['ChoiceWorldTrialsTimeline_00'].run()
@@ -109,3 +111,16 @@ class TesMesoscopeSync(base.IntegrationTest):
             'belly_camera': 15,
             'audio': 16}
         self.assertDictEqual(expected, chmap)
+
+
+class TesMesoscopeFOV(base.IntegrationTest):
+    session_path = None
+
+    def setUp(self) -> None:
+        self.one = ONE(**base.TEST_DB)
+        self.session_path = self.default_data_root().joinpath('mesoscope', 'test', '2023-02-17', '002')
+
+    def test_mesoscope_fov(self):
+        task = MesoscopeFOV(self.session_path, device_collection='raw_imaging_data', one=self.one)
+        status = task.run()
+        assert status == 0
