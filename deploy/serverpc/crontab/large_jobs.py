@@ -13,7 +13,7 @@ sleep_time = 3600
 
 try:
     one = ONE(cache_rest=None)
-    waiting_tasks = task_queue(mode='large', lab=None, one=one)
+    waiting_tasks = task_queue(mode='large', lab=None, alyx=one.alyx)
 
     if len(waiting_tasks) == 0:
         _logger.info(f"No large tasks in the queue, retrying in {int(sleep_time / 60)} min")

@@ -171,7 +171,7 @@ class TestEphysPipeline(base.IntegrationTest):
             subject_path, tasks_dict, one=one, max_md5_size=1024 * 1024 * 20, count=20)
 
         # check the trajectories and probe info
-        self.assertTrue(len(one.alyx.rest('insertions', 'list', session=eid, no_cache=True)) == 2)
+        self.assertEqual(2, len(one.alyx.rest('insertions', 'list', session=eid, no_cache=True)))
         # traj = one.alyx.rest('trajectories', 'list', session=eid, provenance='Micro-manipulator', no_cache=True)
         # self.assertEqual(len(traj), 2)
         # check the spike sorting output on disk

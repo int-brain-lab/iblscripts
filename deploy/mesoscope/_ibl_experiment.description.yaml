@@ -3,6 +3,20 @@ devices:
     mesoscope:
       collection: raw_imaging_data
       sync_label: chrono
+  cameras:
+    belly:
+      collection: raw_video_data
+      sync_label: frame2ttl
+      width: 640
+      height: 512
+      fps: 30
+    left:
+      collection: raw_video_data
+      sync_label: frame2ttl
+    right:
+      collection: raw_video_data
+      sync_label: frame2ttl
+
 procedures:
 - Mesoscope recording
 projects:
