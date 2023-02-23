@@ -13,10 +13,10 @@ sleep_time = 3600
 
 try:
     one = ONE(cache_rest=None)
-    waiting_tasks = task_queue(mode='large', lab=None, one=one)
+    waiting_tasks = task_queue(mode='large', lab=None, alyx=one.alyx)
 
     if len(waiting_tasks) == 0:
-        _logger.info(f"No large tasks in the queue, retrying in {int(sleep_time / 60)} min")
+        _logger.info(f'No large tasks in the queue, retrying in {int(sleep_time / 60)} min')
         # Query again only in 60min if queue is empty
         time.sleep(sleep_time)
     else:
@@ -26,6 +26,6 @@ try:
         session_path = Path(subjects_path).joinpath(
             Path(ses['subject'], ses['start_time'][:10], str(ses['number']).zfill(3)))
         run_alyx_task(tdict=tdict, session_path=session_path, one=one)
-except BaseException:
-    _logger.error(f"Error running large task queue \n {traceback.format_exc()}")
+except Exception:
+    _logger.error(f'Error running large task queue \n {traceback.format_exc()}')
     time.sleep(int(sleep_time / 2))
