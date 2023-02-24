@@ -18,7 +18,7 @@ from ci.tests import base
 _logger = logging.getLogger('ibllib')
 
 
-class TesMesoscopeSync(base.IntegrationTest):
+class TestTimelineTrials(base.IntegrationTest):
     session_path = None
 
     def setUp(self) -> None:
@@ -29,7 +29,7 @@ class TesMesoscopeSync(base.IntegrationTest):
         self.session_path_2 = self.default_data_root().joinpath('mesoscope', 'test', '2023-02-17', '002')
 
     def test_sync(self):
-        # task = MesoscopeSync(self.session_path, sync_collection='raw_mesoscope_data', sync_namespace='timeline')
+        # task = ChoiceWorldTrialsTimeline(self.session_path, sync_collection='raw_mesoscope_data', sync_namespace='timeline')
         # status = task.run()
         # assert status == 0
         from ibllib.pipes.dynamic_pipeline import make_pipeline
@@ -113,7 +113,7 @@ class TesMesoscopeSync(base.IntegrationTest):
         self.assertDictEqual(expected, chmap)
 
 
-class TesMesoscopeFOV(base.IntegrationTest):
+class TestMesoscopeFOV(base.IntegrationTest):
     session_path = None
 
     def setUp(self) -> None:
@@ -122,5 +122,18 @@ class TesMesoscopeFOV(base.IntegrationTest):
 
     def test_mesoscope_fov(self):
         task = MesoscopeFOV(self.session_path, device_collection='raw_imaging_data', one=self.one)
+        status = task.run()
+        assert status == 0
+
+
+class TestMesoscopeSync(base.IntegrationTest):
+    session_path = None
+
+    def setUp(self) -> None:
+        self.one = ONE(**base.TEST_DB)
+        self.session_path = self.default_data_root().joinpath('mesoscope', 'test', '2023-02-17', '002')
+
+    def test_mesoscope_sync(self):
+        task = MesoscopeSync(self.session_path, device_collection='raw_imaging_data', one=self.one)
         status = task.run()
         assert status == 0

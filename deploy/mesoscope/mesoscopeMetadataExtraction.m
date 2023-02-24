@@ -81,11 +81,19 @@ fInfo = imfinfo(filename);
 
 % these should be the same across all frames apart from timestamps and
 % framenumbers in the ImageDescription field
-meta.rawScanImageMeta.Artist = fInfo(1).Artist;
+meta.rawScanImageMeta.Artist = jsondecode(fInfo(1).Artist);
 meta.rawScanImageMeta.ImageDescription = fInfo(1).ImageDescription;
 meta.rawScanImageMeta.Software = fInfo(1).Software;
+meta.rawScanImageMeta.Format = fInfo(1).Format;
+meta.rawScanImageMeta.Width = fInfo(1).Width;
+meta.rawScanImageMeta.Height = fInfo(1).Height;
+meta.rawScanImageMeta.BitDepth = fInfo(1).BitDepth;
+meta.rawScanImageMeta.ByteOrder = fInfo(1).ByteOrder;
+meta.rawScanImageMeta.XResolution = fInfo(1).XResolution;
+meta.rawScanImageMeta.YResolution = fInfo(1).YResolution;
+meta.rawScanImageMeta.ResolutionUnit = fInfo(1).ResolutionUnit;
 
-fArtist = jsondecode(meta.rawScanImageMeta.Artist);
+fArtist = meta.rawScanImageMeta.Artist;
 
 fSoftware = splitlines(meta.rawScanImageMeta.Software);
 % this will generate an SI structure, be careful not to overwrite things
@@ -194,13 +202,13 @@ fovStartIdx = [1; cumsum(nLines(1:end-1) + nLinesPerGap) + 1];
 fovEndIdx = fovStartIdx + nLines - 1;
 
 % Save timestamps per FOV
-% for iFOV = 1:nFOVs
-%     meta.FOV(iFOV).lineIdx = [fovStartIdx(iFOV):fovEndIdx(iFOV)]';
-%     fovTimeShift = (fovStartIdx(iFOV) - 1)*SI.hRoiManager.linePeriod;
-%     meta.FOV(iFOV).FPGATimestamps = [imageDescription.frameTimestamps_sec]' + fovTimeShift; 
-%     meta.FOV(iFOV).lineTimeShifts = [0:nLines(iFOV)-1]'*SI.hRoiManager.linePeriod;
-%     %     meta.FOV(iFOV).timeShifts = fovStartIdx(iFOV)*SI.hRoiManager.linePeriod;
-% end
+for iFOV = 1:nFOVs
+    meta.FOV(iFOV).lineIdx = [fovStartIdx(iFOV):fovEndIdx(iFOV)]';
+    fovTimeShift = (fovStartIdx(iFOV) - 1)*SI.hRoiManager.linePeriod;
+    meta.FOV(iFOV).FPGATimestamps = [imageDescription.frameTimestamps_sec]' + fovTimeShift; 
+    meta.FOV(iFOV).lineTimeShifts = [0:nLines(iFOV)-1]'*SI.hRoiManager.linePeriod;
+    %     meta.FOV(iFOV).timeShifts = fovStartIdx(iFOV)*SI.hRoiManager.linePeriod;
+end
 
 % Save raw FPGA timestamps array
 timestamps_filename = fullfile(ff, 'rawImagingData.times_scanImage.npy');
