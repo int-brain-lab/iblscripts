@@ -14,7 +14,7 @@ count = 20  # How many tasks to run at a time (max) before re-querying the datab
 
 try:
     one = ONE(cache_rest=None)
-    waiting_tasks = task_queue(mode='small', lab=None, one=one)
+    waiting_tasks = task_queue(mode='small', lab=None, alyx=one.alyx)
 
     if len(waiting_tasks) == 0:
         _logger.info(f"No small tasks in the queue, retrying in {int(sleep_time / 60)} min")
@@ -37,6 +37,6 @@ try:
             task, dsets = run_alyx_task(tdict=tdict, session_path=session_path, one=one)
             if dsets:
                 c += 1  # i.e. only tasks that output datasets are counted towards count
-except BaseException:
-    _logger.error(f"Error running small task queue \n {traceback.format_exc()}")
+except Exception:
+    _logger.error(f'Error running small task queue \n {traceback.format_exc()}')
     time.sleep(int(sleep_time / 2))

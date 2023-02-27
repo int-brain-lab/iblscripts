@@ -41,7 +41,7 @@ class TestTrainingStatus(base.IntegrationTest):
         df = training_status.load_existing_dataframe(self.subj_path)
         missing_dates = training_status.check_up_to_date(self.subj_path, df)
         expected_dates = [date_path.stem for date_path in self.subj_path.glob('2021*')]
-        assert np.array_equal(missing_dates.date.unique(), expected_dates)
+        self.assertCountEqual(missing_dates.date.unique(), expected_dates)
 
         # Add some new sessions
         shutil.copytree(self.session_path, self.new_session1)
@@ -51,7 +51,7 @@ class TestTrainingStatus(base.IntegrationTest):
         missing_dates = training_status.check_up_to_date(self.subj_path, df)
         expected_dates = [self.new_session1.parent.stem, self.new_session2.parent.stem]
 
-        assert np.array_equal(missing_dates.date.unique(), expected_dates)
+        self.assertCountEqual(missing_dates.date.unique(), expected_dates)
 
     def test_recompute_date(self):
         training_status.load_existing_dataframe(self.subj_path)

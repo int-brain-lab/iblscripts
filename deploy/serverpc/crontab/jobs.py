@@ -78,7 +78,7 @@ def run_tasks(subjects_path, dry=False, lab=None, count=20):
     :return:
     """
     one = ONE(cache_rest=None)
-    waiting_tasks = task_queue(mode='all', lab=lab, one=one)
+    waiting_tasks = task_queue(mode='all', lab=lab, alyx=one.alyx)
     tasks_runner(subjects_path, waiting_tasks, one=one, count=count, time_out=3600, dry=dry)
 
 
@@ -91,7 +91,7 @@ def run_tasks_small(subjects_path, dry=False, lab=None, count=20):
     :return:
     """
     one = ONE(cache_rest=None)
-    waiting_tasks = task_queue(mode='small', lab=lab, one=one)
+    waiting_tasks = task_queue(mode='small', lab=lab, alyx=one.alyx)
     tasks_runner(subjects_path, waiting_tasks, one=one, count=count, time_out=3600, dry=dry)
 
 

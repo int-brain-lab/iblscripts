@@ -78,7 +78,7 @@ class TestVideoConvert(base.IntegrationTest):
         self.avi_file = self.orig_video_path.joinpath(self.orig_video.name)
         shutil.copy(self.orig_video, self.avi_file)
 
-    def test_videoconvert(self):
+    def test_video_convert(self):
         task = VideoConvert(self.session_path, device_collection='raw_video_data', cameras=['left'])
         status = task.run()
         self.assertEqual(status, 0)
@@ -108,6 +108,9 @@ class TestVideoConvert(base.IntegrationTest):
         #         frame_mp4 = get_video_frame(mp4_file, fr)
         #         np.testing.assert_array_almost_equal(frame_avi, frame_mp4)
 
+    def tearDown(self) -> None:
+        shutil.rmtree(self.temp_dir)
+
 
 class TestVideoSyncQCBpod(base.IntegrationTest):
     def setUp(self) -> None:
@@ -126,6 +129,9 @@ class TestVideoSyncQCBpod(base.IntegrationTest):
         self.assertEqual(mock_qc.call_count, 1)
         self.assertEqual(status, 0)
         task.assert_expected_outputs()
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.temp_dir)
 
 
 class TestVideoSyncQcCamlog(base.IntegrationTest):

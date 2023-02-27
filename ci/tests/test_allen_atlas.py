@@ -1,9 +1,9 @@
 import numpy as np
-import numpy.testing
 import matplotlib.pyplot as plt
 import unittest
 from ibllib.atlas import AllenAtlas, FlatMap, BrainRegions
 from ibllib.atlas.flatmaps import plot_swanson, annotate_swanson
+from ibllib.atlas.genes import allen_gene_expression
 
 
 class TestAtlasSlicesConversion(unittest.TestCase):
@@ -12,6 +12,11 @@ class TestAtlasSlicesConversion(unittest.TestCase):
     def setUpClass(self):
         self.ba = AllenAtlas(25)
         self.ba.compute_surface()
+
+    def test_compute_volume(self):
+        self.ba.compute_regions_volume()
+        # 'AAA' aid 23, index 594 1921, one sided volume should be around 1/4 of a sq. mm
+        np.testing.assert_allclose(self.ba.regions.volume[594], 0.247453125)
 
     def test_simple(self):
         ba = self.ba
@@ -100,3 +105,11 @@ class TestSwanson(unittest.TestCase):
         fig, ax = plt.subplots()
         plot_swanson(br=br, annotate=True)
         plt.close('all')
+
+
+class TestGeneExpression(unittest.TestCase):
+
+    def test_load(self):
+        df_genes, gene_expression = allen_gene_expression()
+        self.assertEqual(df_genes.shape[0], gene_expression.shape[0])
+        self.assertEqual(gene_expression.shape[1:], (58, 41, 67))
