@@ -12,19 +12,19 @@ class TestUpdateCraniotomy(IntegrationTest):
     def setUp(self) -> None:
         self.alyx = AlyxClient(**TEST_DB)
         self.subject = 'algernon'
-        self.surgeries = [
-            self.alyx.rest('surgeries', 'create', data={'subject': self.subject})
-        ]
+        # UUID of surgery that should be updated
+        self.uuid = 'd46ceb42-ab57-4a5c-967e-feaf07a7d991'
+        self.alyx.json_field_delete('surgeries', self.uuid, 'json')
 
     def test_update_craniotomy_coordinates(self):
         """Test update_craniotomy_coordinates function."""
         record = update_craniotomy_coordinates(self.subject, 2.7, 1, alyx=self.alyx)
         expected = {'craniotomy_00': [2.7, 1.]}
-        self.assertEqual(expected, record)
+        self.assertEqual(record['id'], self.uuid)
+        self.assertEqual(expected, record['json'])
 
     def tearDown(self) -> None:
-        for s in self.surgeries or []:
-            self.alyx.rest('surgeries', 'delete', id=s['id'])
+        self.alyx.json_field_delete('surgeries', self.uuid, 'json')
 
 
 if __name__ == '__main__':

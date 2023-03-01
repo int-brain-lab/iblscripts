@@ -36,10 +36,8 @@ def update_craniotomy_coordinates(subject, ml, ap, name='craniotomy_00', lambda_
     # Check subject exists
     if not any(alyx.rest('subjects', 'list', nickname=subject)):
         raise alferr.AlyxSubjectNotFound(subject)
-    # TODO filter based on procedure too
-    surgeries = alyx.rest('surgeries', 'list', subject=subject)
-    # TODO explicitly sort surgeries Alyx-side
-    surgeries = sorted(surgeries, key=lambda x: x['start_time'], reverse=True)
+    surgeries = alyx.rest('surgeries', 'list', subject=subject, procedure='craniotomy')
+    # surgeries = sorted(surgeries, key=lambda x: x['start_time'], reverse=True)
     if not surgeries:
         raise alferr.ALFError(f'Surgery not found for subject "{subject}"')
 
