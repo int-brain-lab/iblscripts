@@ -100,7 +100,7 @@ class TestTimelineTrials(base.IntegrationTest):
     def test_timeline2sync(self):
         """Test for ibllib.io.extractors.mesoscope._timeline2sync."""
         timeline = alfio.load_object(self.session_path_2 / 'raw_sync_data', 'DAQdata')
-        sync, chmap = mesoscope._timeline2sync(timeline)
+        sync, chmap = mesoscope.timeline2sync(timeline)
         self.assertIsInstance(sync, dict)
         self.assertCountEqual(('times', 'channels', 'polarities'), sync.keys())
         expected = {
@@ -137,3 +137,16 @@ class TestMesoscopeSync(base.IntegrationTest):
         task = MesoscopeSync(self.session_path, device_collection='raw_imaging_data', one=self.one)
         status = task.run()
         assert status == 0
+
+        # Check output
+        nROIs = 9
+        ROI_folders = list(self.session_path.joinpath('alf').rglob('ROI*'))
+        self.assertEqual(nROIs, len(ROI_folders))
+        ROI_times = list(self.session_path.joinpath('alf').rglob('mpci.times.npy'))
+        self.assertEqual(nROIs, len(ROI_times))
+        expected = [1.106, 1.304, 1.503, 1.701, 1.899]
+        np.testing.assert_array_almost_equal(np.load(ROI_times[0])[:5], expected)
+        ROI_shifts = list(self.session_path.joinpath('alf').rglob('mpciStack.timeshift.npy'))
+        self.assertEqual(nROIs, len(ROI_shifts))
+        expected = [0., 4.157940e-05, 8.315880e-05, 1.247382e-04, 1.663176e-04]
+        np.testing.assert_array_almost_equal(np.load(ROI_shifts[0])[:5], expected)
