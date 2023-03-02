@@ -74,7 +74,7 @@ class TestTimelineTrials(base.IntegrationTest):
         """Test for ibllib.io.extractors.mesoscope.plot_timeline."""
         ax = MagicMock()
         plt_mock.subplots.return_value = (MagicMock(), [ax] * 19)
-        timeline = alfio.load_object(self.session_path_2 / 'raw_sync_data', 'DAQdata')
+        timeline = alfio.load_object(self.session_path_2 / 'raw_sync_data', 'DAQData')
         fig, axes = mesoscope.plot_timeline(timeline)
         plt_mock.subplots.assert_called_with(19, 1)
         self.assertIs(ax, axes[0], 'failed to return figure axes')
@@ -99,11 +99,12 @@ class TestTimelineTrials(base.IntegrationTest):
 
     def test_timeline2sync(self):
         """Test for ibllib.io.extractors.mesoscope._timeline2sync."""
-        timeline = alfio.load_object(self.session_path_2 / 'raw_sync_data', 'DAQdata')
+        timeline = alfio.load_object(self.session_path_2 / 'raw_sync_data', 'DAQData')
         sync, chmap = mesoscope.timeline2sync(timeline)
         self.assertIsInstance(sync, dict)
         self.assertCountEqual(('times', 'channels', 'polarities'), sync.keys())
         expected = {
+            'neural_frames': 3,
             'bpod': 10,
             'frame2ttl': 12,
             'left_camera': 13,
@@ -140,13 +141,14 @@ class TestMesoscopeSync(base.IntegrationTest):
 
         # Check output
         nROIs = 9
-        ROI_folders = list(self.session_path.joinpath('alf').rglob('ROI*'))
+        alf_path = self.session_path.joinpath('alf')
+        ROI_folders = list(alf_path.rglob('ROI*'))
         self.assertEqual(nROIs, len(ROI_folders))
-        ROI_times = list(self.session_path.joinpath('alf').rglob('mpci.times.npy'))
+        ROI_times = list(alf_path.rglob('mpci.times.npy'))
         self.assertEqual(nROIs, len(ROI_times))
         expected = [1.106, 1.304, 1.503, 1.701, 1.899]
         np.testing.assert_array_almost_equal(np.load(ROI_times[0])[:5], expected)
-        ROI_shifts = list(self.session_path.joinpath('alf').rglob('mpciStack.timeshift.npy'))
+        ROI_shifts = list(alf_path.rglob('mpciStack.timeshift.npy'))
         self.assertEqual(nROIs, len(ROI_shifts))
         expected = [0., 4.157940e-05, 8.315880e-05, 1.247382e-04, 1.663176e-04]
         np.testing.assert_array_almost_equal(np.load(ROI_shifts[0])[:5], expected)
