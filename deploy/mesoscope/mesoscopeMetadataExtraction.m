@@ -140,7 +140,7 @@ meta.scanImageParams.hStackManager = struct(...
 
 % center of the craniotomy in ScanImage coordinates (in mm)
 % here assuming first coord is x and second is y, to be confirmed
-meta.centerMM.x = SI.hDisplay.circleOffset(1)/1000; % I think it is defined in microns
+meta.centerMM.x = SI.hDisplay.circleOffset(1)/1000; % defined in microns
 meta.centerMM.y = SI.hDisplay.circleOffset(2)/1000;
 meta.centerDeg.x = SI.hDisplay.circleOffset(1)/SI.objectiveResolution;
 meta.centerDeg.y = SI.hDisplay.circleOffset(2)/SI.objectiveResolution;
@@ -173,13 +173,15 @@ TF = pinv([posML, 1; posAP, 1; 0, 0, 1]) *...
 meta.coordsTF = TF;
 
 %% process individual FOVs
+si_rois_all = fArtist.RoiGroups.imagingRoiGroup.rois;
+si_rois = si_rois_all(logical([si_rois_all.enable])); %only consider the rois that were 'enabled'
 
-nFOVs = numel(fArtist.RoiGroups.imagingRoiGroup.rois);
+nFOVs = numel(si_rois);
 nLines = nan(nFOVs, 1);
 for iFOV = 1:nFOVs
-    cXY = fArtist.RoiGroups.imagingRoiGroup.rois(iFOV).scanfields.centerXY';
-    sXY = fArtist.RoiGroups.imagingRoiGroup.rois(iFOV).scanfields.sizeXY';
-    nXnY = fArtist.RoiGroups.imagingRoiGroup.rois(iFOV).scanfields(1).pixelResolutionXY';
+    cXY = si_rois(iFOV).scanfields.centerXY';
+    sXY = si_rois(iFOV).scanfields.sizeXY';
+    nXnY = si_rois(iFOV).scanfields(1).pixelResolutionXY';
 
     meta.FOV(iFOV).nXnYnZ = [nXnY, 1];
     meta.FOV(iFOV).topLeftDeg = cXY + sXY.*[-1, -1]/2;
