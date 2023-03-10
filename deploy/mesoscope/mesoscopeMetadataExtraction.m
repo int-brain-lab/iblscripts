@@ -103,7 +103,17 @@ end
 
 nFiles = numel(fileList);
 nFramesAccum = 0;
+fprintf('Extracting metadata from tiff nr. ');
 for iFile = 1:nFiles
+    
+    %display a iFile/nFiles counter (and replace previous entry)
+    if iFile>1 
+        for k=0:log10(iFile-1), fprintf('\b'); end
+        for kk=0:log10(nFiles-1), fprintf('\b'); end
+        fprintf('\b')
+    end
+    fprintf('%d/%d', iFile, nFiles);
+    
     fInfo = imfinfo(fullfile(fileList(iFile).folder, fileList(iFile).name));
     nFrames = numel(fInfo);
     for iFrame = 1:nFrames
@@ -116,6 +126,7 @@ for iFile = 1:nFiles
     end
     nFramesAccum = nFramesAccum + nFrames;
 end
+fprintf('\n')
 meta.acquisitionStartTime = imageDescription(1).epoch;
 
 %% useful SI parameters
@@ -177,7 +188,7 @@ si_rois_all = fArtist.RoiGroups.imagingRoiGroup.rois;
 si_rois = si_rois_all(logical([si_rois_all.enable])); %only consider the rois that were 'enabled'
 
 nFOVs = numel(si_rois);
-nLines = nan(nFOVs, 1);
+nLines_allFOVs = nan(nFOVs, 1);
 for iFOV = 1:nFOVs
     cXY = si_rois(iFOV).scanfields.centerXY';
     sXY = si_rois(iFOV).scanfields.sizeXY';
@@ -195,22 +206,48 @@ for iFOV = 1:nFOVs
     meta.FOV(iFOV).bottomLeftMM = [meta.FOV(iFOV).bottomLeftDeg - centerDegXY, 1]*TF;
     meta.FOV(iFOV).bottomRightMM = [meta.FOV(iFOV).bottomRightDeg - centerDegXY, 1]*TF;
 
-    nLines(iFOV) = meta.FOV(iFOV).nXnYnZ(2);
+    nLines_allFOVs(iFOV) = meta.FOV(iFOV).nXnYnZ(2);
+end
+nValidLines_allFOVs = sum(nLines_allFOVs);
+
+%deal with z-stacks where each FOV is a discrete plane
+%(TO DO deal with non-discrete planes: check SI.hStackManager.numFramesPerVolume) 
+nZs=1; Zidxs=ones(1,nFOVs); 
+if all([si_rois.discretePlaneMode])
+    Zs = [si_rois.zs];
+    Zvals = unique(Zs);
+    nZs = length(Zvals);
+    for i = 1:length(Zs)
+        Zidxs(i)=find(Zvals==Zs(i));
+    end
+end
+%maxnFOVsPerZ = ceil(nFOVs/nZs); %might be useful if nFOVs per Z isn't equal across Zs
+
+%get FOV info for each slice in the z-stack
+nLines = {};
+for iZ = 1:nZs
+    nFOVs(iZ) = sum(Zidxs==iZ);
+    nValidLines(iZ) = sum(nLines_allFOVs(Zidxs==iZ));
+    nLines{iZ} = nLines_allFOVs(Zidxs==iZ);
 end
 
-nValidLines = sum(nLines);
-nLinesPerGap = (fInfo(1).Height - nValidLines) / (nFOVs - 1);
-fovStartIdx = [1; cumsum(nLines(1:end-1) + nLinesPerGap) + 1];
-fovEndIdx = fovStartIdx + nLines - 1;
-
-% Save timestamps per FOV
-for iFOV = 1:nFOVs
-    meta.FOV(iFOV).lineIdx = [fovStartIdx(iFOV):fovEndIdx(iFOV)]';
-    fovTimeShift = (fovStartIdx(iFOV) - 1)*SI.hRoiManager.linePeriod;
-    meta.FOV(iFOV).FPGATimestamps = [imageDescription.frameTimestamps_sec]' + fovTimeShift; 
-    meta.FOV(iFOV).lineTimeShifts = [0:nLines(iFOV)-1]'*SI.hRoiManager.linePeriod;
-    %     meta.FOV(iFOV).timeShifts = fovStartIdx(iFOV)*SI.hRoiManager.linePeriod;
+%find which lines correspond to which FOV in each slice in the z-stack
+%WARNING: this works for adjacent FOVs with the same nr of lines, but hasn't been tested yet for multi-plane data with unequal FOV sizes
+for iZ = 1:nZs
+    nLinesPerGap = (fInfo(1).Height - nValidLines(iZ)) / (nFOVs(iZ) - 1);
+    fovStartIdx = [1; cumsum(nLines{iZ}(1:end-1) + nLinesPerGap) + 1];
+    fovEndIdx = fovStartIdx + nLines{iZ} - 1;
+    iFOVs = find(Zidxs==iZ);
+    % Save line indexes and timestamps per FOV per z-slice
+    for ii = 1:nFOVs(iZ)
+        iFOV = iFOVs(ii);
+        meta.FOV(iFOV).lineIdx = [fovStartIdx(ii):fovEndIdx(ii)]';
+        fovTimeShift = (fovStartIdx(ii) - 1)*SI.hRoiManager.linePeriod; 
+        meta.FOV(iFOV).FPGATimestamps = [imageDescription.frameTimestamps_sec]' + fovTimeShift;
+        meta.FOV(iFOV).lineTimeShifts = [0:nLines{iZ}(ii)-1]'*SI.hRoiManager.linePeriod;
+    end
 end
+%TO DO: figure out how to work with 'volume frames' for multi-plane data!
 
 % Save raw FPGA timestamps array
 timestamps_filename = fullfile(ff, 'rawImagingData.times_scanImage.npy');
