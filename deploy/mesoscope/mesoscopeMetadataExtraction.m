@@ -7,8 +7,8 @@ end
 if nargin < 2
     options = struct;
     % from surgery - centre of the window in mm in AP/ML coordinates
-    options.centerMM.ML = 3;
-    options.centerMM.AP = -5;
+    options.centerMM.ML = 2.6;
+    options.centerMM.AP = -2.6;
     % image orientations and seen in ScanImage window relative to AP/ML axes
     options.positiveML = [0, -1]; %'up'; [0,0] is top left corner, right and down are positive
     options.positiveAP = [-1, 0]; %'left';
@@ -75,17 +75,25 @@ meta.FOV.laserPowerW = [];
 
 
 %%
-% keyboard;
+keyboard;
 %%
 fInfo = imfinfo(filename);
 
 % these should be the same across all frames apart from timestamps and
 % framenumbers in the ImageDescription field
-meta.rawScanImageMeta.Artist = fInfo(1).Artist;
+meta.rawScanImageMeta.Artist = jsondecode(fInfo(1).Artist);
 meta.rawScanImageMeta.ImageDescription = fInfo(1).ImageDescription;
 meta.rawScanImageMeta.Software = fInfo(1).Software;
+meta.rawScanImageMeta.Format = fInfo(1).Format;
+meta.rawScanImageMeta.Width = fInfo(1).Width;
+meta.rawScanImageMeta.Height = fInfo(1).Height;
+meta.rawScanImageMeta.BitDepth = fInfo(1).BitDepth;
+meta.rawScanImageMeta.ByteOrder = fInfo(1).ByteOrder;
+meta.rawScanImageMeta.XResolution = fInfo(1).XResolution;
+meta.rawScanImageMeta.YResolution = fInfo(1).YResolution;
+meta.rawScanImageMeta.ResolutionUnit = fInfo(1).ResolutionUnit;
 
-fArtist = jsondecode(meta.rawScanImageMeta.Artist);
+fArtist = meta.rawScanImageMeta.Artist;
 
 fSoftware = splitlines(meta.rawScanImageMeta.Software);
 % this will generate an SI structure, be careful not to overwrite things
@@ -197,13 +205,13 @@ for iFOV = 1:nFOVs
     meta.FOV(iFOV).topRightMM = [meta.FOV(iFOV).topRightDeg - centerDegXY, 1]*TF;
     meta.FOV(iFOV).bottomLeftMM = [meta.FOV(iFOV).bottomLeftDeg - centerDegXY, 1]*TF;
     meta.FOV(iFOV).bottomRightMM = [meta.FOV(iFOV).bottomRightDeg - centerDegXY, 1]*TF;
-
+    
     nLines_allFOVs(iFOV) = meta.FOV(iFOV).nXnYnZ(2);
 end
 nValidLines_allFOVs = sum(nLines_allFOVs);
 
 %deal with z-stacks where each FOV is a discrete plane
-%(TO DO deal with non-discrete planes: check SI.hStackManager.numFramesPerVolume) 
+%(TO DO deal with non-discrete planes too! Check SI.hStackManager.numFramesPerVolume) 
 nZs=1; Zidxs=ones(1,nFOVs); 
 if all([si_rois.discretePlaneMode])
     Zs = [si_rois.zs];
@@ -237,6 +245,7 @@ for iZ = 1:nZs
         fovTimeShift = (fovStartIdx(ii) - 1)*SI.hRoiManager.linePeriod; 
         meta.FOV(iFOV).FPGATimestamps = [imageDescription.frameTimestamps_sec]' + fovTimeShift;
         meta.FOV(iFOV).lineTimeShifts = [0:nLines{iZ}(ii)-1]'*SI.hRoiManager.linePeriod;
+        % meta.FOV(iFOV).timeShifts = fovStartIdx(iFOV)*SI.hRoiManager.linePeriod;
     end
 end
 %TO DO: figure out how to work with 'volume frames' for multi-plane data!

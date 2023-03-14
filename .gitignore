@@ -3,6 +3,7 @@ __pycache__/
 \.sonarlint/
 __pycache__
 *.pyc
+*.asv
 *.*~
 deploy/videopc/bonsai/bin/
 deploy/serverpc/dlc/weights/

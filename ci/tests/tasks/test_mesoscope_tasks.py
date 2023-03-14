@@ -7,8 +7,9 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 from iblutil.util import Bunch
 import one.alf.io as alfio
+from one.api import ONE
 
-# from ibllib.pipes.mesoscope_tasks import MesoscopeSync, MesoscopeRegisterRaw
+from ibllib.pipes.mesoscope_tasks import MesoscopeSync, MesoscopeFOV
 from ibllib.io.extractors.ephys_fpga import get_wheel_positions
 from ibllib.io.extractors import mesoscope
 
@@ -17,21 +18,22 @@ from ci.tests import base
 _logger = logging.getLogger('ibllib')
 
 
-class TesMesoscopeSync(base.IntegrationTest):
+class TestTimelineTrials(base.IntegrationTest):
     session_path = None
 
     def setUp(self) -> None:
+        self.one = ONE(**base.TEST_DB)
         self.session_path_0 = self.default_data_root().joinpath('mesoscope', 'SP026', '2022-06-29', '001')
         self.session_path_1 = self.default_data_root().joinpath('mesoscope', 'test', '2023-01-31', '003')
         # A new test session with Bpod channel fix'd in timeline
         self.session_path_2 = self.default_data_root().joinpath('mesoscope', 'test', '2023-02-17', '002')
 
     def test_sync(self):
-        # task = MesoscopeSync(self.session_path, sync_collection='raw_mesoscope_data', sync_namespace='timeline')
+        # task = ChoiceWorldTrialsTimeline(self.session_path, sync_collection='raw_mesoscope_data', sync_namespace='timeline')
         # status = task.run()
         # assert status == 0
         from ibllib.pipes.dynamic_pipeline import make_pipeline
-        pipe = make_pipeline(self.session_path_2)
+        pipe = make_pipeline(self.session_path_2, one=self.one)
         # TODO Rename raw_timeline_data -> raw_sync_data
         # TODO rename TimelineHW.json -> _timeline_DAQdata.meta.json
         status = pipe.tasks['ChoiceWorldTrialsTimeline_00'].run()
@@ -98,7 +100,7 @@ class TesMesoscopeSync(base.IntegrationTest):
     def test_timeline2sync(self):
         """Test for ibllib.io.extractors.mesoscope._timeline2sync."""
         timeline = alfio.load_object(self.session_path_2 / 'raw_sync_data', 'DAQdata')
-        sync, chmap = mesoscope._timeline2sync(timeline)
+        sync, chmap = mesoscope.timeline2sync(timeline)
         self.assertIsInstance(sync, dict)
         self.assertCountEqual(('times', 'channels', 'polarities'), sync.keys())
         expected = {
@@ -109,3 +111,42 @@ class TesMesoscopeSync(base.IntegrationTest):
             'belly_camera': 15,
             'audio': 16}
         self.assertDictEqual(expected, chmap)
+
+
+class TestMesoscopeFOV(base.IntegrationTest):
+    session_path = None
+
+    def setUp(self) -> None:
+        self.one = ONE(**base.TEST_DB)
+        self.session_path = self.default_data_root().joinpath('mesoscope', 'test', '2023-02-17', '002')
+
+    def test_mesoscope_fov(self):
+        task = MesoscopeFOV(self.session_path, device_collection='raw_imaging_data', one=self.one)
+        status = task.run()
+        assert status == 0
+
+
+class TestMesoscopeSync(base.IntegrationTest):
+    session_path = None
+
+    def setUp(self) -> None:
+        self.one = ONE(**base.TEST_DB)
+        self.session_path = self.default_data_root().joinpath('mesoscope', 'test', '2023-02-17', '002')
+
+    def test_mesoscope_sync(self):
+        task = MesoscopeSync(self.session_path, device_collection='raw_imaging_data', one=self.one)
+        status = task.run()
+        assert status == 0
+
+        # Check output
+        nROIs = 9
+        ROI_folders = list(self.session_path.joinpath('alf').rglob('ROI*'))
+        self.assertEqual(nROIs, len(ROI_folders))
+        ROI_times = list(self.session_path.joinpath('alf').rglob('mpci.times.npy'))
+        self.assertEqual(nROIs, len(ROI_times))
+        expected = [1.106, 1.304, 1.503, 1.701, 1.899]
+        np.testing.assert_array_almost_equal(np.load(ROI_times[0])[:5], expected)
+        ROI_shifts = list(self.session_path.joinpath('alf').rglob('mpciStack.timeshift.npy'))
+        self.assertEqual(nROIs, len(ROI_shifts))
+        expected = [0., 4.157940e-05, 8.315880e-05, 1.247382e-04, 1.663176e-04]
+        np.testing.assert_array_almost_equal(np.load(ROI_shifts[0])[:5], expected)

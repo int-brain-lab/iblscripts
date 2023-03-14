@@ -3,7 +3,7 @@
 # @Author: Miles
 """
 Expects mesoscope data to be in the following folder structure:
-DATA_FOLDER_PATH/subject/yyyy-mm-dd/nnn/raw_mesoscope_data
+DATA_FOLDER_PATH/subject/yyyy-mm-dd/nnn/raw_imaging_data
 
 For now let's assume the snapshot data are in DATA_FOLDER_PATH/subject/yyyy-mm-dd/000.
 """
@@ -17,7 +17,7 @@ from ibllib.pipes.misc import create_basic_transfer_params, subjects_data_folder
 
 
 def main(local=None, remote=None, rename_files=False):
-    DATA_FOLDER = 'raw_mesoscope_data'
+    DATA_FOLDER = 'raw_imaging_data'
     # logging configuration
     log = log_to_file('transfer_mesoscope_session.log', log='ibllib.pipes.misc')
 
@@ -31,7 +31,7 @@ def main(local=None, remote=None, rename_files=False):
     log.info(f'Local subjects folder: {local_subject_folder}')
     log.info(f'Remote subjects folder: {remote_subject_folder}')
 
-    # Find all local folders that have 'raw_mesoscope_data'
+    # Find all local folders that have 'raw_imaging_data'
     local_sessions = local_subject_folder.rglob(DATA_FOLDER)
     # Remove sessions that have a transferred flag file
     local_sessions = filter(lambda x: not any(x.glob('transferred.flag')), local_sessions)
