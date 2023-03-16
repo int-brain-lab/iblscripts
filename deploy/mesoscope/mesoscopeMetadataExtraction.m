@@ -62,7 +62,6 @@ meta.FOV.topRightMM = [NaN, NaN, NaN];
 meta.FOV.bottomLeftMM = [NaN, NaN, NaN];
 meta.FOV.bottomRightMM = [NaN, NaN, NaN];
 % these are the valid lines that hold the data (sans black stripes)
-meta.FOV.FPGATimestamps = []; % [nFrames, 1] - also save as a separate npy file
 meta.FOV.lineIdx = NaN; % which lines belong to this FOV in a single tiff frame
 meta.FOV.lineTimeShifts = NaN; % [nLines, nPixels] line acquisition time shift relative to the beginning of a tiff frame
 
@@ -243,7 +242,6 @@ for iZ = 1:nZs
         iFOV = iFOVs(ii);
         meta.FOV(iFOV).lineIdx = [fovStartIdx(ii):fovEndIdx(ii)]';
         fovTimeShift = (fovStartIdx(ii) - 1)*SI.hRoiManager.linePeriod; 
-        meta.FOV(iFOV).FPGATimestamps = [imageDescription.frameTimestamps_sec]' + fovTimeShift;
         meta.FOV(iFOV).lineTimeShifts = [0:nLines{iZ}(ii)-1]'*SI.hRoiManager.linePeriod;
     end
 end
