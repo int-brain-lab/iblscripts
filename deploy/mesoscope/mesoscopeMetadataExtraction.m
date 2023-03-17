@@ -1,7 +1,8 @@
 function meta = mesoscopeMetadataExtraction(filename, options)
 
 if nargin < 1
-    filename = 'D:\Subjects\test\2023-01-31\1\2023-01-31_1_test_2P_00001_00001.tif';
+    %filename = 'D:\Subjects\test\2023-01-31\1\2023-01-31_1_test_2P_00001_00001.tif';
+    filename = 'M:\Subjects\SP035\2023-03-03\001\raw_imaging_data_01\2023-03-03_1_SP035_2P_00001_00001.tif';
 end
 % TODO only default fill fields that do not exist in the options structure
 if nargin < 2
