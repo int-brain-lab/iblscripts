@@ -32,10 +32,19 @@ class TestTimelineTrials(base.IntegrationTest):
         # task = ChoiceWorldTrialsTimeline(self.session_path, sync_collection='raw_mesoscope_data', sync_namespace='timeline')
         # status = task.run()
         # assert status == 0
+        session_path = self.default_data_root().joinpath('mesoscope', 'SP037', '2023-02-20', '001')
         from ibllib.pipes.dynamic_pipeline import make_pipeline
-        pipe = make_pipeline(self.session_path_2, one=self.one)
+        pipe = make_pipeline(session_path, one=self.one)
         # TODO Rename raw_timeline_data -> raw_sync_data
         # TODO rename TimelineHW.json -> _timeline_DAQdata.meta.json
+        # TODO Assert somewhere that the protocol matches the exp description field
+        # from ibllib.io.extractors.mesoscope import plot_timeline
+        # timeline = alfio.load_object(session_path / 'raw_sync_data', 'DAQData')
+        # channels = [k for k in mesoscope.DEFAULT_MAPS['mesoscope']['timeline']
+        #             if k not in ('neural_frames',)]
+        # plot_timeline(timeline, channels, raw=False)
+        #bpod_t[1987]
+        # Out[20]: 2764.5935 (< 0.0005)
         status = pipe.tasks['ChoiceWorldTrialsTimeline_00'].run()
         self.assertFalse(status)
 
