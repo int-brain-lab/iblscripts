@@ -1,14 +1,15 @@
 function meta = mesoscopeMetadataExtraction(filename, options)
 
 if nargin < 1
-    filename = 'D:\Subjects\test\2023-01-31\1\2023-01-31_1_test_2P_00001_00001.tif';
+    %filename = 'D:\Subjects\test\2023-01-31\1\2023-01-31_1_test_2P_00001_00001.tif';
+    filename = 'M:\Subjects\SP035\2023-03-03\001\raw_imaging_data_01\2023-03-03_1_SP035_2P_00001_00001.tif';
 end
 % TODO only default fill fields that do not exist in the options structure
 if nargin < 2
     options = struct;
     % from surgery - centre of the window in mm in AP/ML coordinates
-    options.centerMM.ML = 3;
-    options.centerMM.AP = -5;
+    options.centerMM.ML = 2.6;
+    options.centerMM.AP = -2.6;
     % image orientations and seen in ScanImage window relative to AP/ML axes
     options.positiveML = [0, -1]; %'up'; [0,0] is top left corner, right and down are positive
     options.positiveAP = [-1, 0]; %'left';
@@ -74,7 +75,7 @@ meta.FOV.laserPowerW = [];
 
 
 %%
-% keyboard;
+keyboard;
 %%
 fInfo = imfinfo(filename);
 
@@ -204,13 +205,13 @@ for iFOV = 1:nFOVs
     meta.FOV(iFOV).topRightMM = [meta.FOV(iFOV).topRightDeg - centerDegXY, 1]*TF;
     meta.FOV(iFOV).bottomLeftMM = [meta.FOV(iFOV).bottomLeftDeg - centerDegXY, 1]*TF;
     meta.FOV(iFOV).bottomRightMM = [meta.FOV(iFOV).bottomRightDeg - centerDegXY, 1]*TF;
-
+    
     nLines_allFOVs(iFOV) = meta.FOV(iFOV).nXnYnZ(2);
 end
 nValidLines_allFOVs = sum(nLines_allFOVs);
 
 %deal with z-stacks where each FOV is a discrete plane
-%(TO DO deal with non-discrete planes: check SI.hStackManager.numFramesPerVolume) 
+%(TO DO deal with non-discrete planes too! Check SI.hStackManager.numFramesPerVolume) 
 nZs=1; Zidxs=ones(1,nFOVs); 
 if all([si_rois.discretePlaneMode])
     Zs = [si_rois.zs];
@@ -239,7 +240,12 @@ for iZ = 1:nZs
     % Save line indexes and timestamps per FOV per z-slice
     for ii = 1:nFOVs(iZ)
         iFOV = iFOVs(ii);
+        % fovTimeShift = (fovStartIdx(ii) - 1)*SI.hRoiManager.linePeriod; 
+        % meta.FOV(iFOV).FPGATimestamps = [imageDescription.frameTimestamps_sec]' + fovTimeShift;
+        % meta.FOV(iFOV).lineTimeShifts = [0:nLines{iZ}(ii)-1]'*SI.hRoiManager.linePeriod;
+        % meta.FOV(iFOV).timeShifts = fovStartIdx(iFOV)*SI.hRoiManager.linePeriod;
         meta.FOV(iFOV).lineIdx = (fovStartIdx(ii):fovEndIdx(ii))';
+        
     end
 end
 %TODO: figure out how to work with 'volume frames' for multi-plane data!
