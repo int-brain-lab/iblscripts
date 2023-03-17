@@ -62,7 +62,6 @@ meta.FOV.topRightMM = [NaN, NaN, NaN];
 meta.FOV.bottomLeftMM = [NaN, NaN, NaN];
 meta.FOV.bottomRightMM = [NaN, NaN, NaN];
 % these are the valid lines that hold the data (sans black stripes)
-meta.FOV.FPGATimestamps = []; % [nFrames, 1] - also save as a separate npy file
 meta.FOV.lineIdx = NaN; % which lines belong to this FOV in a single tiff frame
 meta.FOV.lineTimeShifts = NaN; % [nLines, nPixels] line acquisition time shift relative to the beginning of a tiff frame
 
@@ -223,17 +222,16 @@ if all([si_rois.discretePlaneMode])
 end
 %maxnFOVsPerZ = ceil(nFOVs/nZs); %might be useful if nFOVs per Z isn't equal across Zs
 
-%get FOV info for each slice in the z-stack
-nLines = {};
+%find which lines correspond to which FOV in each slice in the z-stack
+%WARNING: this works for adjacent FOVs with the same nr of lines, but hasn't been tested yet for multi-plane data with unequal FOV sizes
+nLines = cell(1, nZs);
+nValidLines = zeros(1, nZs);
 for iZ = 1:nZs
+    % get FOV info for each slice in the z-stack
     nFOVs(iZ) = sum(Zidxs==iZ);
     nValidLines(iZ) = sum(nLines_allFOVs(Zidxs==iZ));
     nLines{iZ} = nLines_allFOVs(Zidxs==iZ);
-end
 
-%find which lines correspond to which FOV in each slice in the z-stack
-%WARNING: this works for adjacent FOVs with the same nr of lines, but hasn't been tested yet for multi-plane data with unequal FOV sizes
-for iZ = 1:nZs
     nLinesPerGap = (fInfo(1).Height - nValidLines(iZ)) / (nFOVs(iZ) - 1);
     fovStartIdx = [1; cumsum(nLines{iZ}(1:end-1) + nLinesPerGap) + 1];
     fovEndIdx = fovStartIdx + nLines{iZ} - 1;
@@ -241,13 +239,10 @@ for iZ = 1:nZs
     % Save line indexes and timestamps per FOV per z-slice
     for ii = 1:nFOVs(iZ)
         iFOV = iFOVs(ii);
-        meta.FOV(iFOV).lineIdx = [fovStartIdx(ii):fovEndIdx(ii)]';
-        fovTimeShift = (fovStartIdx(ii) - 1)*SI.hRoiManager.linePeriod; 
-        meta.FOV(iFOV).FPGATimestamps = [imageDescription.frameTimestamps_sec]' + fovTimeShift;
-        meta.FOV(iFOV).lineTimeShifts = [0:nLines{iZ}(ii)-1]'*SI.hRoiManager.linePeriod;
+        meta.FOV(iFOV).lineIdx = (fovStartIdx(ii):fovEndIdx(ii))';
     end
 end
-%TO DO: figure out how to work with 'volume frames' for multi-plane data!
+%TODO: figure out how to work with 'volume frames' for multi-plane data!
 
 % Save raw FPGA timestamps array
 timestamps_filename = fullfile(ff, 'rawImagingData.times_scanImage.npy');
