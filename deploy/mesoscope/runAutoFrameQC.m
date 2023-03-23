@@ -132,7 +132,7 @@ fprintf('\n');
 if plot_flag
     
     %plot max, mean and median traces
-    figure;
+    figure('Name',[fileList(1).name(1:end-16) ', average traces']);
     set(gcf,'Units','normalized','Position',[0.05 0.65 0.05+0.05*nFiles 0.3]);
     
     ax(1) = subplot(3,1,1);
@@ -167,7 +167,7 @@ if plot_flag
     boxSize = 100;
     k=0;
     stacksplotted = round(linspace(1,nFiles,6)); %plot first, last and 4 in between
-        figure;
+    figure('Name',[fileList(1).name(1:end-16) ', mean images']);
     set(gcf,'Units','normalized','Position',[0.05 0.05 0.05+0.05*length(stacksplotted) 0.05+0.08*nrois]);
     for i=1:nrois
         sz = size(meanImg_eachFOV{i});
@@ -255,7 +255,7 @@ if sum(outliers>0)
     
     if plot_flag & sum(outliers>0)
         
-        figure('Units','normalized','Position',[0.45 0.6 0.5 0.3]);
+        figure('Name',[fileList(1).name(1:end-16) ', Frame QC'],'Units','normalized','Position',[0.45 0.6 0.5 0.3]);
         h(1) = plot(fr,tr,'Color',[.5 .5 .5],'DisplayName','MedianTrace');
         hold on
         h(2) = plot(fr(outliers),tr(outliers),"x",'DisplayName','outliers');
