@@ -146,6 +146,8 @@ meta.scanImageParams.hStackManager = struct(...
   'zsRelative', SI.hStackManager.zsRelative,...
   'zsAllActuators', SI.hStackManager.zsAllActuators);
 
+meta.FOV.channelIdx = SI.hChannels.channelSave; %these were the channels being saved
+
 %% Coordinate transformation from ScanImage to stereotactic coords
 
 % center of the craniotomy in ScanImage coordinates (in mm)
