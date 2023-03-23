@@ -114,9 +114,15 @@ for iFile = 1:nFiles
         stackFOV = stack_full(irow(1,i):irow(2,i),:,:);
         meanImgFOV = squeeze(mean(stackFOV,3));
         stackFOV_flat = single(reshape(stackFOV,[size(stackFOV,1)*size(stackFOV,2),size(stackFOV,3)]));
-        traceFOV_median(i,:) = nanmedian(stackFOV_flat,1);
-        traceFOV_mean(i,:) = nanmean(stackFOV_flat,1);
-        traceFOV_max(i,:) = nanmax(stackFOV_flat,[],1);
+        try
+            traceFOV_median(i,:) = nanmedian(stackFOV_flat,1);
+            traceFOV_mean(i,:) = nanmean(stackFOV_flat,1);
+            traceFOV_max(i,:) = nanmax(stackFOV_flat,[],1);
+        catch
+            traceFOV_median(i,:) = median(stackFOV_flat,1);
+            traceFOV_mean(i,:) = mean(stackFOV_flat,1);
+            traceFOV_max(i,:) = max(stackFOV_flat,[],1);
+        end
         meanImg_eachFOV{i} = cat(3,meanImg_eachFOV{i},meanImgFOV);
     end
     medianTrace_eachFOV = [medianTrace_eachFOV traceFOV_median];
@@ -198,7 +204,7 @@ end
 %% run metrics
 
 %define QC types
-frameQC_names = {'ok','PMT off','galvos fault'};
+frameQC_names = {'ok','PMT off','galvos fault','high signal'};
 frameQC_frames = zeros(1,TotNumFrames);
 badframes = []; %by default there are no badframes and all frames are 'ok'
 
@@ -243,6 +249,20 @@ for i = 1:size(outlierEpochs,2)
     end
 end
 
+%high outlier frames with abnormally high median are 'high signal'
+vals = outliers_high;
+vals(end) = false; %just so outliers at end of recording have an epoch 'end'
+outlierEpochs = [find(diff([0,vals])>0); find(diff([0,vals])<0)];
+outlierEpochs_fr = [fr(diff([0,vals])>0); fr(diff([0,vals])<0)];
+for i = 1:size(outlierEpochs,2)
+    iO = vals([outlierEpochs(1,i):outlierEpochs(2,i)]);
+    QCblock_start = max([1,outlierEpochs_fr(1,i)-st]); %one strideLength before auto-detected outlier start (with exception for first frame)
+    QCblock_end = min([fr(end),outlierEpochs_fr(2,i)+st]); %one strideLength after auto-detected outlier start (with exception for final frame)
+    if any(iO)
+        frameQC_frames(QCblock_start:QCblock_end) = 3;
+    end
+end
+
 %SOME MORE IDEAS:
 %find frames with sudden high signal ('light artefact')
 %find slow drift in fluorescence: meanTrace drifting
@@ -261,7 +281,7 @@ if sum(outliers>0)
         h(2) = plot(fr(outliers),tr(outliers),"x",'DisplayName','outliers');
         frQC_vals = unique(frameQC_frames);
         for i=1:length(unique(frameQC_frames))
-            h(2+i) = plot(fr_all(frameQC_frames==frQC_vals(i)),zeros(1,sum(frameQC_frames==frQC_vals(i))),'o','DisplayName',frameQC_names{i});
+            h(2+i) = plot(fr_all(frameQC_frames==frQC_vals(i)),zeros(1,sum(frameQC_frames==frQC_vals(i))),'o','DisplayName',frameQC_names{frQC_vals(i)+1});
         end
         yline(U,':','U Threshold');
         yline(L',':','L Threshold');

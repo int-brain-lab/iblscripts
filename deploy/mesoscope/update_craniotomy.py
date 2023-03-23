@@ -75,7 +75,7 @@ if __name__ == '__main__':
                         help='The distance from the midline in mm of the craniotomy centre.')
     parser.add_argument('ap', type=float,
                         help='The anterio-posterior distance from the lambda of the craniotomy centre, in mm.')
-    parser.add_argument('--name', '-n', type=str, help='The name of the craniotomy.')
+    parser.add_argument('--name', '-n', type=str, default='craniotomy_00', help='The name of the craniotomy.')
     parser.add_argument('--base-url', '-D', type=str, help='An Alyx database URL.')
     parser.add_argument('--user', '-u', type=str, help='The Alyx username to login as.')
     parser.add_argument('--lambda', dest='lmda', type=float, nargs='+',
