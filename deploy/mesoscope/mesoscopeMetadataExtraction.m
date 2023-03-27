@@ -9,28 +9,71 @@ if nargin < 2
     % from surgery - centre of the window in mm in AP/ML coordinates
     options.centerMM.ML = 3;
     options.centerMM.AP = -5;
-    % image orientations and seen in ScanImage window relative to AP/ML axes
+    % image orientations as seen in ScanImage window relative to AP/ML axes
     options.positiveML = [0, -1]; %'up'; [0,0] is top left corner, right and down are positive
     options.positiveAP = [-1, 0]; %'left';
 end
-[ff, fn, fext] = fileparts(filename);
-% we will need the whole list of files to extract FPGA frametimes for each frame
-% here assuming the files are sorted, and only relevant .tif files are
-% present in the folder
-% TODO to fool proof this with pattern matching
-fileList = dir(fullfile(ff, ['*', fext]));
+
+%% figue out file paths and parse animal name
+
+%these are the regular expressions we expect
+reg_expref = '(?<date>^[0-9\-]+)_(?<seq>\w+)_(?<subject>\w+)';
+reg_tiff = [reg_expref '_(?<type>\w+)_(?<acq>\d+)_(?<file>\d+)'];
+
+%try as full tiff file-path
+if isfile(filename)
+    [ff, fn, fext] = fileparts(filename);
+    parsed = regexp(fn, reg_tiff, 'names');
+    subj = parsed.subject;
+    % we will need the whole list of files to extract FPGA frametimes for each frame
+    % here assuming the files are sorted, and only relevant .tif files are
+    % present in the folder
+    % TODO to fool proof this with pattern matching
+    fileList = dir(fullfile(ff, ['*', fext]));
+else
+    %try as a final data path
+    fileList = dir(fullfile(filename,'*.tif'));
+    try
+        if isempty(fileList)
+            %then as animal name (take latest ExpRef)
+            if dat.subjectExists(filename)
+                subj = filename;
+                ExpRefs = dat.listExps(subj);
+                ExpRef = ExpRefs{end};
+                %then as ExpRef
+            elseif ~contains(exptName,'\') && dat.expExists(filename)
+                ExpRef = exptName;
+                subj = dat.parseExpRef(ExpRef);
+            else
+                error('%s is not a valid animal name, expRef, or tiff data path.',filename)
+            end
+            datPath = dat.expPath(ExpRef,'local');
+            datPath = datPath{1};
+        else
+            datPath = fileList(1).folder;
+            fn = fileList(1).name;    
+            parsed = regexp(fn, reg_tiff, 'names');
+            subj = parsed.subject;
+        end
+    catch
+        error('Cannot parse the data path %s.',filename)
+    end
+end
 
 %% Generate the skeleton of the output struct
 meta = struct();
 
 % rig based
-meta.channelID.green = [1, 2]; % information about channel numbers (red/green main/dual plain)
-meta.channelID.red = [3, 4]; % information about channel numbers (red/green main/dual plain)
+meta.channelID.green = [1, 2]; % information about channel numbers (red/green)
+meta.channelID.red = [3, 4]; % information about channel numbers (red/green)
+meta.channelID.primary = [2, 4]; % information about channel numbers (primary/secondary path)
+meta.channelID.secondary = [1, 3]; % information about channel numbers (primary/secondary path)
 meta.laserPowerCalibration.V = linspace(0, 5, 101); % calibration data imaging/dual etc.
 meta.laserPowerCalibration.Prcnt = linspace(0, 100, 101); % calibration data imaging/dual etc.
 meta.laserPowerCalibration.mW = linspace(0, 1200, 101); % calibration data imaging/dual etc.
 meta.laserPowerCalibration.dualV = linspace(0, 2, 101); % calibration data imaging/dual etc.
 meta.laserPowerCalibration.dualPrc = linspace(0, 100, 101); % calibration data imaging/dual etc.
+
 % once per rig configuration (i.e. flipping axes, rotating animal)
 meta.imageOrientation.positiveML = options.positiveML;
 meta.imageOrientation.positiveAP = options.positiveAP;
@@ -41,13 +84,20 @@ meta.centerDeg.x = NaN; % Centre of the reference circle in ScanImage coordinate
 meta.centerDeg.y = NaN; % Centre of the ref circle - in ScanImage coordinates
 meta.centerMM.x = NaN; % in mm, but still in SI coords
 meta.centerMM.y = NaN; % in mm, but still in SI coords
-% the following should be extracted from Alyx
-meta.centerMM.ML = options.centerMM.ML; % from surgery - centre of the window
-meta.centerMM.AP = options.centerMM.AP; % from surgery -  - centre of the window
+
+% extracted from Alyx (if possible)
+try
+    [meta.centerMM.ML, meta.centerMM.AP] = getCraniotomyCoordinates(subj); % from surgery - centre of the window
+catch
+    meta.centerMM.ML = options.centerMM.ML;
+    meta.centerMM.AP = options.centerMM.AP;
+    warning('Could not find craniotomy coordinates in alyx, please upload using update_craniotomy.py.\nWriting dummy coordinates.');
+    %TO DO input manually here? Abort script if not found?
+end
 
 % per single experiment
 meta.rawScanImageMeta = struct; % SI config and all the header info from tiff
-meta.PMTGain = []; %
+meta.PMTGain = []; %TO DO input manually
 
 % for each FOV
 % extracted directly from the header
