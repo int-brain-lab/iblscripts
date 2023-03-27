@@ -1,7 +1,7 @@
 devices:
   mesoscope:
     mesoscope:
-      collection: raw_imaging_data
+      collection: raw_imaging_data*
       sync_label: chrono
   cameras:
     belly:
@@ -16,11 +16,10 @@ devices:
     right:
       collection: raw_video_data
       sync_label: frame2ttl
-
 procedures:
 - Mesoscope recording
 projects:
-- ibl_neuropixel_brainwide_01
+- ibl_mesoscope_active
 sync:
   nidq:
     acquisition_software: timeline
@@ -34,4 +33,5 @@ tasks:
 - passiveChoiceWorld:
     collection: raw_passive_data
     sync_label: bpod
+    extractors: [PassiveRegisterRaw, PassiveTaskTimeline]
 version: 1.0.0
