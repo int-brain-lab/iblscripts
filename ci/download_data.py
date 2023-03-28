@@ -140,7 +140,7 @@ if logger.level == logging.DEBUG:
     try:
         for info in gtc.task_successful_transfers(task_id):
             src_file = info['source_path'].replace(SRC_DIR + '/', '')
-            dst_file = info["destination_path"].replace(dst_directory + '/', '')
+            dst_file = info['destination_path'].replace(dst_directory + '/', '')
             logger.debug(f'{src_file} -> {dst_file}')
     except TransferAPIError:
         logger.debug('Failed to query transferred files')
