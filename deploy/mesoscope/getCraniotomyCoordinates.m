@@ -1,7 +1,7 @@
 function [ml, ap] = getCraniotomyCoordinates(subject, varargin)
 %getCraniotomyCoordinates Get a subject's MLAP craniotomy coordinates.
 %   Query Alyx surgeries endpoint for the subject's craniotomy coordinates.
-%  
+%
 %   Inputs (Positional):
 %     subject (char) - The subject name.
 %
@@ -21,7 +21,7 @@ function [ml, ap] = getCraniotomyCoordinates(subject, varargin)
 %     [ml, ap] = getCraniotomyCoordinates('SP035')
 %
 %   Example 1: Fetch specific craniotomy coordinates
-%     [ml, ap] = getCraniotomyCoordinates('SP035', 'name', 'craniotomy_01
+%     [ml, ap] = getCraniotomyCoordinates('SP035', 'name', 'craniotomy_01')
 
 % User parameters
 p = inputParser;
@@ -42,5 +42,4 @@ name = p.Results.name;
 assert(ismember(name, fieldnames(json)), '"%s" not in surgery JSON', name)
 ml = json.(name)(1);
 ap = json.(name)(2);
-
 end
