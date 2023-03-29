@@ -69,6 +69,10 @@ class TestRegistrationUtils(IntegrationTest):
         n_trials, n_correct = reg._get_session_performance(self.settings[0], self.data[0])
         self.assertEqual(919, n_trials)
         self.assertEqual(789, n_correct)
+        # Test with a empty session data
+        n_trials, n_correct = reg._get_session_performance(self.settings, [self.data[0], None])
+        self.assertEqual(919, n_trials)
+        self.assertEqual(789, n_correct)
         # Test with habituation choice world
         settings = [self.settings[0].copy(), self.settings[1]]
         settings[0]['PYBPOD_PROTOCOL'] = 'habituationChoiceWorld'

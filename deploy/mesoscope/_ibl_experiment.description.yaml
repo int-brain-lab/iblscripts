@@ -17,7 +17,7 @@ devices:
       collection: raw_video_data
       sync_label: frame2ttl
 procedures:
-- Mesoscope recording
+- Imaging
 projects:
 - ibl_mesoscope_active
 sync:
