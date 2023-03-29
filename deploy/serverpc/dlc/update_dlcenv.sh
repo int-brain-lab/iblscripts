@@ -17,4 +17,4 @@ fi
 # Check if any pip libraries are out of date if yes, update
 source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 echo "Updating ibllib mesoscope"
-pip install git+https://github.com/int-brain-lab/ibllib.git@mesoscope --upgrade-strategy eager ;
+pip install --upgrade git+https://github.com/int-brain-lab/ibllib.git@mesoscope --upgrade-strategy eager ;
