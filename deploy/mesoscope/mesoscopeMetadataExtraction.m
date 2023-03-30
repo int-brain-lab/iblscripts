@@ -177,6 +177,8 @@ for iFile = 1:nFiles
 end
 fprintf('\n')
 meta.acquisitionStartTime = imageDescription(1).epoch;
+meta.nFrames = nFramesAccum;
+%TO DO add nVolumeFrames (for multi-channel / multi-depth data)
 
 %% useful SI parameters
 meta.scanImageParams = struct('objectiveResolution', SI.objectiveResolution);
