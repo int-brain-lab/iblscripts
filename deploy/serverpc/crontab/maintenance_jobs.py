@@ -108,7 +108,8 @@ def correct_passive_params():
                 info = ('SUBJECT_NAME', 'SESSION_DATE', 'SESSION_NUMBER')
                 patched = ['/'.join([*map(s.get, info), s.get('SESSION_RAW_DATA_FOLDER').split('\\')[-1]])
                            for s in (settings, new_settings)]
-                _logger.info('SETTINGS PATCHED: %s -> %s', *patched)
+                if patched[0] != patched[1]:
+                    _logger.info('SETTINGS PATCHED: %s -> %s', *patched)
 
 
 def spike_amplitude_patching():
