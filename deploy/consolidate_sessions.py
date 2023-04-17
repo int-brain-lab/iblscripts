@@ -75,14 +75,16 @@ def main(*args, stub=None):
     skipped = 0  # number of sessions that were skipped due to missing behaviour data
     if not args:
         raise ValueError('Please provide at least one session path to consolidate')
-    sessions = ensure_absolute(args, transfer_pars)
-    if len(sessions) == 1:
-        if session_path := get_session_path(sessions[0]):
+    elif len(args) == 1:
+        if session_path := get_session_path(args[0]):
             # e.g. subject/date/num or subject/date/num/collection
-            sessions = list(iter_sessions(session_path.parent))
+            sessions = iter_sessions(session_path.parent)
         else:
             # e.g. subject/date or subject
-            sessions = list(iter_sessions(sessions[0]))
+            sessions = iter_sessions(args[0])
+    else:
+        sessions = args
+    sessions = ensure_absolute(sessions, transfer_pars)
     if not sessions:
         warnings.warn('No sessions found')
         return

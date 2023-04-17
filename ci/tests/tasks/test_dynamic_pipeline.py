@@ -182,7 +182,7 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
         """
         This runs the full suite of tasks on a TrainingChoiceWorld task
         """
-        dsets = job_creator(self.session_path, one=self.one)
+        pipes, dsets = job_creator(self.session_path, one=self.one)
         self.assertEqual(0, len(dsets))
 
         tasks = self.one.alyx.rest('tasks', 'list', session=self.eid, no_cache=True)
