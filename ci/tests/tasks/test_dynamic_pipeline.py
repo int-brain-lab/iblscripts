@@ -46,7 +46,10 @@ class TestDynamicPipeline(base.IntegrationTest):
                 self.assertEqual(d2['id'], d1['id'])
             for k in ('executable', 'parents', 'name', 'level', 'graph', 'arguments'):
                 with self.subTest(key=k):
-                    self.assertEqual(d2[k], d1[k])
+                    if d2[k] is list:
+                        self.assertCountEqual(d2[k], d1[k])
+                    else:
+                        self.assertEqual(d2[k], d1[k])
 
     def tearDown(self) -> None:
         self.one.alyx.rest('sessions', 'delete', id=self.eid)
