@@ -13,14 +13,12 @@ import one.alf.io as alfio
 
 from ci.tests import base
 
-TRIAL_KEYS_ge5 = ['goCue_times', 'probabilityLeft', 'intervals', 'stimOnTrigger_times',
-                  'goCueTrigger_times', 'response_times', 'feedbackType', 'contrastLeft',
-                  'feedback_times', 'rewardVolume', 'included', 'choice', 'contrastRight',
-                  'stimOn_times', 'firstMovement_times']
-TRIAL_KEYS_lt5 = ['goCue_times', 'probabilityLeft', 'intervals',
-                  'goCueTrigger_times', 'response_times', 'feedbackType', 'contrastLeft',
-                  'feedback_times', 'rewardVolume', 'choice', 'contrastRight', 'stimOn_times',
-                  'firstMovement_times']
+TRIAL_KEYS_lt5 = ['goCue_times', 'probabilityLeft', 'intervals', 'goCueTrigger_times', 'quiescencePeriod',
+                  'response_times', 'feedbackType', 'contrastLeft', 'feedback_times',
+                  'rewardVolume', 'choice', 'contrastRight', 'stimOn_times', 'firstMovement_times']
+
+TRIAL_KEYS_ge5 = TRIAL_KEYS_lt5 + ['stimOnTrigger_times', 'included']
+
 WHEEL_KEYS = ['position', 'timestamps']
 
 
@@ -48,24 +46,27 @@ class TestSessions(base.IntegrationTest):
             subjects_path = Path(tdir).joinpath('Subjects')
             shutil.copytree(self.INIT_FOLDER, subjects_path)
             for fil in subjects_path.rglob('_iblrig_taskData.raw*.jsonable'):
+                # read task settings and determine iblrig version to throw into subtests
                 session_path = fil.parents[1]
-                # task running part
-                job = TrainingTrials(session_path, one=self.one)
-                job.run()
-                # check the trials objects
-                trials = alfio.load_object(session_path / 'alf', 'trials')
-                self.assertTrue(alfio.check_dimensions(trials) == 0)
                 settings = rawio.load_settings(session_path)
-                if parse_version(settings['IBLRIG_VERSION_TAG']) >= parse_version('5.0.0'):
-                    tkeys = TRIAL_KEYS_ge5
-                else:
-                    tkeys = TRIAL_KEYS_lt5
-                self.assertTrue(set(trials.keys()) == set(tkeys))
-                # check the wheel object if the extraction didn't fail
-                if job.status != -1:
-                    wheel = alfio.load_object(session_path / 'alf', 'wheel')
-                    self.assertTrue(alfio.check_dimensions(wheel) == 0)
-                    self.assertTrue(set(wheel.keys()) == set(WHEEL_KEYS))
+                iblrig_version = parse_version(settings['IBLRIG_VERSION_TAG'])
+                with self.subTest(file=fil, iblrig_version=iblrig_version):
+                    # task running part
+                    job = TrainingTrials(session_path, one=self.one)
+                    job.run()
+                    # check the trials objects
+                    trials = alfio.load_object(session_path / 'alf', 'trials')
+                    self.assertTrue(alfio.check_dimensions(trials) == 0)
+                    if iblrig_version >= parse_version('5.0.0'):
+                        tkeys = TRIAL_KEYS_ge5
+                    else:
+                        tkeys = TRIAL_KEYS_lt5
+                    self.assertEqual(set(trials.keys()), set(tkeys))
+                    # check the wheel object if the extraction didn't fail
+                    if job.status != -1:
+                        wheel = alfio.load_object(session_path / 'alf', 'wheel')
+                        self.assertTrue(alfio.check_dimensions(wheel) == 0)
+                        self.assertEqual(set(wheel.keys()), set(WHEEL_KEYS))
             """
             For this session only the downgoing front of a trial was detected, resulting in
              an error for the gocuetime. The fix was to extract the downgoing front and
