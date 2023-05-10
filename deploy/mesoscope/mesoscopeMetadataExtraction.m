@@ -118,7 +118,7 @@ meta.FOV.lineTimeShifts = NaN; % [nLines, nPixels] line acquisition time shift r
 
 meta.FOV.nXnYnZ = [NaN, NaN, 1]; % number of pixels in the images
 % use meta.channelConfig to figure out correct indices
-meta.FOV.channelIdx = []; % {[1, 3], [2, 4], [1, 2], [3, 4], [1,2,3,4]} - GreenChannels == 1,2, RedChannels = 3,4
+% meta.FOV.channelIdx = []; % {[1, 3], [2, 4], [1, 2], [3, 4], [1,2,3,4]} - GreenChannels == 1,2, RedChannels = 3,4
 meta.FOV.imagingLaserPowerPrc = [];
 meta.FOV.dualPlaneLaserPowerPrc = [];
 meta.FOV.laserPowerW = [];

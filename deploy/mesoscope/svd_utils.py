@@ -71,6 +71,7 @@ def block_and_svd(mov_reg, n_comp, block_shape= (1, 128, 128), block_overlaps=(0
         log_cb("Sending batch %d to dask" % batch_idx, 2)
         dask_tic = time.time()
         xx = darr.compute(to_compute)
+
         dask_toc = time.time() - dask_tic
         log_cb("Dask completed in %.3f sec" % dask_toc, 2)
 
@@ -83,10 +84,9 @@ def block_and_svd(mov_reg, n_comp, block_shape= (1, 128, 128), block_overlaps=(0
             rolling_mean_batch_time = full_toc
         else:
             alpha = 0.8
-            rolling_mean_batch_time = full_toc * \
-                (1-alpha) + rolling_mean_batch_time * alpha
-        est_remaining_time = ((n_batches - batch_idx)
-                              * rolling_mean_batch_time)
+            rolling_mean_batch_time = full_toc * (1 - alpha) + rolling_mean_batch_time * alpha
+            
+        est_remaining_time = (n_batches - batch_idx) * rolling_mean_batch_time
         est_time_str = time.strftime(
             "%Hh%Mm%Ss", time.gmtime(est_remaining_time))
         log_cb("Estimated time remaining for %d batches: %s" %
@@ -100,18 +100,19 @@ def reconstruct_movie(svd_dir, t_batch_size=None, return_blocks=False, block_chu
     svd_info = n.load(os.path.join(svd_dir, 'svd_info.npy'), allow_pickle=True).item()
     svd_dirs = svd_info['svd_dirs']
 
-    us,ss,vs = load_stack_usvs(svd_dirs, svd_info['n_comps'],stack_axis=0)
-    if old_func: 
+    us, ss, vs = load_stack_usvs(svd_dirs, svd_info['n_comps'], stack_axis=0)
+    if old_func:
         print("probably will go crazy")
-        blocks_dn = reconstruct_from_stack_old(us,ss,vs, time_chunks=t_batch_size)
-    else: 
-        blocks_dn = reconstruct_from_stack(us,ss,vs, n_comps, block_chunks, t_batch_size)
-        if return_blocks: return blocks_dn
+        blocks_dn = reconstruct_from_stack_old(us, ss, vs, time_chunks=t_batch_size)
+    else:
+        blocks_dn = reconstruct_from_stack(us, ss, vs, n_comps, block_chunks, t_batch_size)
+        if return_blocks:
+            return blocks_dn
         blocks_dn = darr.swapaxes(blocks_dn, 0, 1)
     if return_blocks:
         return blocks_dn
-    mov_dn = reshape_reconstructed_blocks(blocks_dn, svd_info['block_shape'], 
-                                            svd_info['mov_shape'], svd_info['grid_shape'],
+    mov_dn = reshape_reconstructed_blocks(blocks_dn, svd_info['block_shape'],
+                                          svd_info['mov_shape'], svd_info['grid_shape'],
                                           rechunk_ts=t_batch_size)
     return mov_dn
 
@@ -136,22 +137,26 @@ def reconstruct(u, s, v, n_comp=None, dtype=n.float32, dask=True, reshape=None, 
         usv = usv.reshape(reshape)
     return usv
 
+
 def reconstruct_from_stack(us, ss, vs, n_comp=None, block_chunks=1, time_chunks=None, dtype=n.float32):
-    if n_comp: n_comp = ss.shape[1]
-    us = us.rechunk((block_chunks, time_chunks, n_comp))[:,:,:n_comp]
-    ss = ss.rechunk((block_chunks, n_comp))[:,:n_comp]
-    vs = vs.rechunk((block_chunks, n_comp, None))[:,:n_comp]
-    vss = ss[:,:,n.newaxis] * vs
+    if n_comp:
+        n_comp = ss.shape[1]
+    us = us.rechunk((block_chunks, time_chunks, n_comp))[:, :, :n_comp]
+    ss = ss.rechunk((block_chunks, n_comp))[:, :n_comp]
+    vs = vs.rechunk((block_chunks, n_comp, None))[:, :n_comp]
+    vss = ss[:, :, n.newaxis] * vs
     usv = darr.matmul(us.astype(dtype), vss.astype(dtype))
     return usv
 
-def reconstruct_from_stack_old(us, ss, vs, rechunk_comps='max', n_comp_reconstruct=None, dtype=None, stack_axis=1, 
-                               time_chunks = None):
+
+def reconstruct_from_stack_old(us, ss, vs, rechunk_comps='max', n_comp_reconstruct=None, dtype=None, stack_axis=1,
+                               time_chunks=None):
     n_blocks, n_comp = ss.shape
     if rechunk_comps == 'max':
         rechunk_comps = n_comp
     mov3d = []
-    if time_chunks is not None: us = us.rechunk((time_chunks, None, None))
+    if time_chunks is not None:
+        us = us.rechunk((time_chunks, None, None))
     for i in range(n_blocks):
         mov_i = reconstruct(us[i], ss[i], vs[i], rechunk_comps=rechunk_comps, n_comp=n_comp_reconstruct)
         if dtype is not None:
@@ -160,29 +165,31 @@ def reconstruct_from_stack_old(us, ss, vs, rechunk_comps='max', n_comp_reconstru
     mov3d = darr.stack(mov3d, axis=stack_axis)
     return mov3d
 
-def reshape_reconstructed_blocks(blocks, block_shape, mov_shape, grid_shape, rechunk_ts = None):
+
+def reshape_reconstructed_blocks(blocks, block_shape, mov_shape, grid_shape, rechunk_ts=None):
     nz, nt, ny, nx = mov_shape
     bz, by, bx = block_shape
     gz, gy, gx = grid_shape
-    blocks = blocks.reshape(nt, gz, gy, gx, by,bx, limit='100GiB')
-    blocks = darr.swapaxes(blocks, 3,4)
+    blocks = blocks.reshape(nt, gz, gy, gx, by, bx, limit='100GiB')
+    blocks = darr.swapaxes(blocks, 3, 4)
     blocks = blocks.reshape(nt, nz, ny, nx, limit='100GiB')
     if rechunk_ts is not None:
         blocks = blocks.rechunk((rechunk_ts, nz, ny, nx))
-        
+
     return blocks
 
+
 def run_svd_on_block(block, n_comp, svd_dir=None, save_zarr=True):
-    u,s,v = darr.linalg.svd_compressed(block, k=n_comp, compute=False)
+    u, s, v = darr.linalg.svd_compressed(block, k=n_comp, compute=False)
     if not save_zarr:
-        return u,s,v
-    u = u.rechunk((-1,None))
+        return u, s, v
+    u = u.rechunk((-1, None))
     zarrs = {}
     temp_vals = []
-    for zarr_name, arr in zip(['u','s','v'], (u,s,v)):
+    for zarr_name, arr in zip(['u', 's', 'v'], (u, s, v)):
         zarr_path = os.path.join(svd_dir, '%s.zarr' % zarr_name)
         zarrs[zarr_name] = zarr.open(zarr_path, compressor=None, mode='w',
-                                        shape=arr.shape, chunks=arr.chunksize, dtype=arr.dtype)
+                                     shape=arr.shape, chunks=arr.chunksize, dtype=arr.dtype)
         temp_vals.append(arr.store(zarrs[zarr_name], compute=False, lock=False))
         
     return temp_vals
@@ -194,7 +201,7 @@ def make_blocks_1d(axis_size, block_size, overlap):
     # n_blocks >= (ax - bl) / (bl - ov)  + 1
     n_blocks = int(n.ceil((axis_size - block_size) /
                    (block_size - overlap) + 1))
-    block_starts = n.linspace(0, axis_size-block_size, n_blocks).astype(int)
+    block_starts = n.linspace(0, axis_size - block_size, n_blocks).astype(int)
     block_ends = block_starts + block_size
     blocks = n.stack([block_starts, block_ends], axis=1)
     return blocks
@@ -223,8 +230,7 @@ def make_blocks(img_shape, block_shape, overlaps=(0, 36, 36)):
         min_grid = make_blocks(img_shape, block_shape, (0, 0, 0))[
             0].shape[1:-1]
         n_min_blocks = n.product(min_grid)
-        print("%d blocks with overlap (%d without, %.2fx increase)" % (n_blocks,n_min_blocks, n_blocks/n_min_blocks))
-
+        print("%d blocks with overlap (%d without, %.2fx increase)" % (n_blocks, n_min_blocks, n_blocks / n_min_blocks))
 
     blocks = n.stack([z_blocks, y_blocks, x_blocks])
     grid_shape = blocks.shape[1:-1]
@@ -303,7 +309,7 @@ def vmap_from_usv(us, ss, vs, rechunk_for_var=True, intensity_thresh=None):
     assert intensity_thresh is None
     __, nz, nc = us.shape
     __, __, nyb, nxb = vs.shape
-    vs_flat = vs.reshape(nc, nz, nyb*nxb)
+    vs_flat = vs.reshape(nc, nz, nyb * nxb)
 
     vmaps = []
     for zidx in range(nz):

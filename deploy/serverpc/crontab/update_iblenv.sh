@@ -1,10 +1,30 @@
 #!/bin/bash
 set -e
+# Check if there are canary_branch files for ibllib or one
+# canary_branch is an optional text file containing the ibllib/iblscripts branch to be installed
+FILE=/mnt/s0/Data/Subjects/.canary_branch
+if [ -f "$FILE" ]; then
+    ibllib_branch="$(<$FILE)"
+    printf "\n$FILE exists. Setting ibllib to branch $ibllib_branch\n"
+else
+    ibllib_branch="master"
+fi
+
 # Check if iblscripts is up to date
 cd ~/Documents/PYTHON/iblscripts
-git checkout -f master -q
+git fetch --all -p
+# Attempt to checkout same branch name as ibllib; fallback to master
+# if ibllib commit is on master or branch doesn't exist in iblscripts...
+if [[ "$ibllib_branch" =~ ^(remotes\/origin\/)?master$ ]] || \
+   [[ "$ibllib_branch" =~ ^remotes\/origin\/HEAD$ ]] || \
+   ! git rev-parse -q --verify --end-of-options $ibllib_branch; then
+        echo "Checking out master branch of iblscripts"
+        git checkout -f master
+else
+        echo "Checking out $ibllib_branch of iblscripts"
+        git checkout -f $ibllib_branch
+fi
 git reset --hard -q
-git fetch
 LOCAL=$(git rev-parse @)
 REMOTE=$(git rev-parse "@{u}")
 if [ "$LOCAL" != "$REMOTE" ]; then
@@ -14,16 +34,6 @@ else
   echo "iblscripts is up-to-date"
 fi
 
-
-# Check if there are canary_branch files for ibllib or one
-# canary_branch is an optional text file containing the ibllib branch to be installed
-FILE=/mnt/s0/Data/Subjects/.canary_branch
-if [ -f "$FILE" ]; then
-    ibllib_branch="$(<$FILE)"
-    printf "\n$FILE exists. Setting ibllib to branch $ibllib_branch\n"
-else
-    ibllib_branch="master"
-fi
 # one_canary_branch is an optional text file containing the one branch to be installed
 FILE=/mnt/s0/Data/Subjects/.one_canary_branch
 if [ -f "$FILE" ]; then

@@ -13,6 +13,11 @@ class TestAtlasSlicesConversion(unittest.TestCase):
         self.ba = AllenAtlas(25)
         self.ba.compute_surface()
 
+    def test_compute_volume(self):
+        self.ba.compute_regions_volume()
+        # 'AAA' aid 23, index 594 1921, one sided volume should be around 1/4 of a sq. mm
+        np.testing.assert_allclose(self.ba.regions.volume[594], 0.247453125)
+
     def test_simple(self):
         ba = self.ba
         # extracts the top surface from the volume and make sure it's all populated
