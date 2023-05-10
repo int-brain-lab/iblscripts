@@ -98,6 +98,7 @@ end
 % per single experiment
 meta.rawScanImageMeta = struct; % SI config and all the header info from tiff
 meta.PMTGain = []; %TO DO input manually
+meta.channelSaved = [];
 
 % for each FOV
 % extracted directly from the header
@@ -198,7 +199,7 @@ meta.scanImageParams.hStackManager = struct(...
   'zsRelative', SI.hStackManager.zsRelative,...
   'zsAllActuators', SI.hStackManager.zsAllActuators);
 
-meta.FOV.channelIdx = SI.hChannels.channelSave; %these were the channels being saved
+meta.channelSaved = SI.hChannels.channelSave; %these were the channels being saved
 
 %% Coordinate transformation from ScanImage to stereotactic coords
 
@@ -258,6 +259,8 @@ for iFOV = 1:nFOVs
     meta.FOV(iFOV).topRightMM = [meta.FOV(iFOV).topRightDeg - centerDegXY, 1]*TF;
     meta.FOV(iFOV).bottomLeftMM = [meta.FOV(iFOV).bottomLeftDeg - centerDegXY, 1]*TF;
     meta.FOV(iFOV).bottomRightMM = [meta.FOV(iFOV).bottomRightDeg - centerDegXY, 1]*TF;
+    
+    meta.FOV(iFOV).channelIdx = meta.channelSaved; %this is now obsolete (keep for now)
 
     nLines_allFOVs(iFOV) = meta.FOV(iFOV).nXnYnZ(2);
 end
