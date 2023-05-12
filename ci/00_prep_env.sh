@@ -40,7 +40,7 @@ popd
 source /home/experiment/anaconda3/etc/profile.d/conda.sh
 #conda update conda --yes --quiet
 conda remove --name ci --all --yes
-conda create -n ci --yes --quiet python=3.8
+conda create -n ci --yes --quiet python=3.11
 
 conda activate ci
 
