@@ -45,7 +45,7 @@ acronyms_region_cov = ['AD', 'AHN', 'AUDpo', 'CL', 'COAa', 'FN', 'GPi', 'IO',
 ============================
 '''
 # Prepare SP volume
-sp_volume = np.load(Path(filepath_sp_vol_path))
+sp_volume = np.load(filepath_sp_vol_path)
 sp_volume[sp_volume == 0] = np.nan
 sp_volume = 2 * sp_volume
 # Remove areas from this volume # 20th April 2023 decision - Phys WG
