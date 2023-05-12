@@ -8,6 +8,7 @@ from needles2.probe_model import ProbeModel
 from pathlib import Path
 from one.remote import aws
 import pandas as pd
+import datetime
 
 # Instantiate brain atlas and one
 one = ONE()
@@ -20,14 +21,19 @@ label_beryl = ba.regions.mappings['Beryl'][ba.label]
 mapped_atlas_ac = br.acronym[label_beryl]  # TODO could be done faster by remapping list of brain reg to ID instead
 
 # Saving paths
-filepath_sp_vol = Path('/Users/gaelle/Desktop/Reports/Coverage/test/second_pass_volume.npy')
+filepath_sp_vol = Path('/Users/gaelle/Desktop/Reports/Coverage/volume_test/second_pass_volume.npy')
 filepath_coverage = Path('/Users/gaelle/Desktop/Reports/Coverage/test/coverage.npy')
 filepath_df_cov_val = filepath_coverage.parent.joinpath('df_cov_val.csv')
+filepath_sp_per012 = filepath_coverage.parent.joinpath('sp_per012.npy')
 
 if not filepath_sp_vol.exists():
     s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
     aws.s3_download_file('resources/physcoverage/second_pass_volume.npy',
                          filepath_sp_vol, s3=s3, bucket_name=bucket_name)
+
+# Compute date to input in df
+datenow = datetime.datetime.now()
+datefile = datenow.strftime('%Y-%m-%d')
 
 ##
 '''
@@ -86,8 +92,9 @@ pr.compute_best_for_provenance('Planned')
 
 trajs = pr.traj['Best']['traj']
 coverage, sp_per0, sp_per1, sp_per2 = pr.compute_coverage(trajs, dist_fcn=[dist, dist + 1], pl_voxels=sp_voxels)
-df_coverage_vals = pd.DataFrame.from_dict({"0": sp_per0[-1], "1": sp_per1[-1], "2": sp_per2[-1]})
-
+# Save aggregate for fastness of report later
+df_coverage_vals = pd.DataFrame.from_dict({"0": [sp_per0[-1]], "1": [sp_per1[-1]], "2": [sp_per2[-1]],
+                                           "date": [datefile]})
 ##
 '''
 ============================
@@ -121,11 +128,16 @@ sum_points[np.where(sum_points == 0)] = np.nan
 # Restrict to SP mask
 sum_points[np.isnan(sp_volume)] = np.nan
 
+##
 # Save locally
 np.save(filepath_coverage, sum_points)
+np.save(filepath_sp_per012, [sp_per0, sp_per1, sp_per2])
 df_coverage_vals.to_csv(filepath_df_cov_val)
-# Synch to AWS
+
+# Synch to AWS #Todo: use sync command instead if the base volume is not in same folder ?
 os.system(f"aws --profile ibl s3 cp {filepath_coverage} "
           f"s3://ibl-brain-wide-map-private/resources/physcoverage/{os.path.basename(filepath_coverage)}")
 os.system(f"aws --profile ibl s3 cp {filepath_df_cov_val} "
           f"s3://ibl-brain-wide-map-private/resources/physcoverage/{os.path.basename(filepath_df_cov_val)}")
+os.system(f"aws --profile ibl s3 cp {filepath_sp_per012} "
+          f"s3://ibl-brain-wide-map-private/resources/physcoverage/{os.path.basename(filepath_sp_per012)}")
