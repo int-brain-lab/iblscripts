@@ -24,7 +24,7 @@ local_data_path_coverage = Path('/Users/gaelle/Desktop/Reports/Coverage/coverage
 
 if not filepath_sp_vol_path.exists():
     s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
-    aws.s3_download_file('resources/physcoverage/coverage.npy',
+    aws.s3_download_file('resources/physcoverage/second_pass_volume.npy',
                          filepath_sp_vol_path, s3=s3, bucket_name=bucket_name)
 
 ##
