@@ -128,4 +128,4 @@ df_coverage_vals.to_csv(filepath_df_cov_val)
 os.system(f"aws --profile ibl s3 cp {filepath_coverage} "
           f"s3://ibl-brain-wide-map-private/resources/physcoverage/{os.path.basename(filepath_coverage)}")
 os.system(f"aws --profile ibl s3 cp {filepath_df_cov_val} "
-          f"s3://ibl-brain-wide-map-private/resources/physcoverage/df_cov_val.csv")
+          f"s3://ibl-brain-wide-map-private/resources/physcoverage/{os.path.basename(filepath_df_cov_val)}")
