@@ -7,6 +7,7 @@ from ibllib.atlas import atlas
 from needles2.probe_model import ProbeModel
 from pathlib import Path
 from one.remote import aws
+import pandas as pd
 
 # Instantiate brain atlas and one
 one = ONE()
@@ -19,13 +20,14 @@ label_beryl = ba.regions.mappings['Beryl'][ba.label]
 mapped_atlas_ac = br.acronym[label_beryl]  # TODO could be done faster by remapping list of brain reg to ID instead
 
 # Saving paths
-filepath_sp_vol_path = Path('/Users/gaelle/Documents/Work/Secondpass/Volume/second_pass_volume.npy')
-local_data_path_coverage = Path('/Users/gaelle/Desktop/Reports/Coverage/coverage.npy')
+filepath_sp_vol = Path('/Users/gaelle/Desktop/Reports/Coverage/test/second_pass_volume.npy')
+filepath_coverage = Path('/Users/gaelle/Desktop/Reports/Coverage/test/coverage.npy')
+filepath_df_cov_val = filepath_coverage.parent.joinpath('df_cov_val.csv')
 
-if not filepath_sp_vol_path.exists():
+if not filepath_sp_vol.exists():
     s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
     aws.s3_download_file('resources/physcoverage/second_pass_volume.npy',
-                         filepath_sp_vol_path, s3=s3, bucket_name=bucket_name)
+                         filepath_sp_vol, s3=s3, bucket_name=bucket_name)
 
 ##
 '''
@@ -45,7 +47,7 @@ acronyms_region_cov = ['AD', 'AHN', 'AUDpo', 'CL', 'COAa', 'FN', 'GPi', 'IO',
 ============================
 '''
 # Prepare SP volume
-sp_volume = np.load(filepath_sp_vol_path)
+sp_volume = np.load(filepath_sp_vol)
 sp_volume[sp_volume == 0] = np.nan
 sp_volume = 2 * sp_volume
 # Remove areas from this volume # 20th April 2023 decision - Phys WG
@@ -84,6 +86,7 @@ pr.compute_best_for_provenance('Planned')
 
 trajs = pr.traj['Best']['traj']
 coverage, sp_per0, sp_per1, sp_per2 = pr.compute_coverage(trajs, dist_fcn=[dist, dist + 1], pl_voxels=sp_voxels)
+df_coverage_vals = pd.DataFrame.from_dict({"0": sp_per0[-1], "1": sp_per1[-1], "2": sp_per2[-1]})
 
 ##
 '''
@@ -118,8 +121,11 @@ sum_points[np.where(sum_points == 0)] = np.nan
 # Restrict to SP mask
 sum_points[np.isnan(sp_volume)] = np.nan
 
-# Save volume matrix locally
-np.save(local_data_path_coverage, sum_points)
+# Save locally
+np.save(filepath_coverage, sum_points)
+df_coverage_vals.to_csv(filepath_df_cov_val)
 # Synch to AWS
-os.system(f"aws --profile ibl s3 cp {local_data_path_coverage} "
-          f"s3://ibl-brain-wide-map-private/resources/physcoverage/coverage.npy")
+os.system(f"aws --profile ibl s3 cp {filepath_coverage} "
+          f"s3://ibl-brain-wide-map-private/resources/physcoverage/{os.path.basename(filepath_coverage)}")
+os.system(f"aws --profile ibl s3 cp {filepath_df_cov_val} "
+          f"s3://ibl-brain-wide-map-private/resources/physcoverage/df_cov_val.csv")
