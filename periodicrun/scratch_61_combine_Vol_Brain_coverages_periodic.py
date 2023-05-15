@@ -25,6 +25,7 @@ filepath_sp_vol = Path('/Users/gaelle/Desktop/Reports/Coverage/volume_test/secon
 filepath_coverage = Path('/Users/gaelle/Desktop/Reports/Coverage/test/coverage.npy')
 filepath_df_cov_val = filepath_coverage.parent.joinpath('df_cov_val.csv')
 filepath_sp_per012 = filepath_coverage.parent.joinpath('sp_per012.npy')
+filepath_covearge_pinpoint = filepath_coverage.parent.joinpath('coverage_compressed_raw.bytes')
 
 if not filepath_sp_vol.exists():
     s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
@@ -133,6 +134,11 @@ sum_points[np.isnan(sp_volume)] = np.nan
 np.save(filepath_coverage, sum_points)
 np.save(filepath_sp_per012, [sp_per0, sp_per1, sp_per2])
 df_coverage_vals.to_csv(filepath_df_cov_val)
+# Save into format for Pinpoint
+coverage = sum_points.copy()
+coverage[np.isnan(coverage)] = 0
+with open(filepath_covearge_pinpoint, 'wb') as f:
+    f.write(coverage.astype(np.uint8).flatten().tobytes())
 
 # Synch to AWS #Todo: use sync command instead if the base volume is not in same folder ?
 os.system(f"aws --profile ibl s3 cp {filepath_coverage} "
@@ -141,3 +147,5 @@ os.system(f"aws --profile ibl s3 cp {filepath_df_cov_val} "
           f"s3://ibl-brain-wide-map-private/resources/physcoverage/{os.path.basename(filepath_df_cov_val)}")
 os.system(f"aws --profile ibl s3 cp {filepath_sp_per012} "
           f"s3://ibl-brain-wide-map-private/resources/physcoverage/{os.path.basename(filepath_sp_per012)}")
+os.system(f"aws --profile ibl s3 cp {filepath_covearge_pinpoint} "
+          f"s3://ibl-brain-wide-map-private/resources/physcoverage/{os.path.basename(filepath_covearge_pinpoint)}")
