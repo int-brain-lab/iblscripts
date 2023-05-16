@@ -149,3 +149,6 @@ os.system(f"aws --profile ibl s3 cp {filepath_sp_per012} "
           f"s3://ibl-brain-wide-map-private/resources/physcoverage/{os.path.basename(filepath_sp_per012)}")
 os.system(f"aws --profile ibl s3 cp {filepath_coverage_pinpoint} "
           f"s3://ibl-brain-wide-map-private/resources/physcoverage/{os.path.basename(filepath_coverage_pinpoint)}")
+# Add to public bucket too for Pinpoint access
+os.system(f"aws --profile ibl s3 cp {filepath_coverage_pinpoint} "
+          f"s3://ibl-brain-wide-map-public/phys-coverage-2023/{os.path.basename(filepath_coverage_pinpoint)}")
