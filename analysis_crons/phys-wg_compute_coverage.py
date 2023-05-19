@@ -1,17 +1,43 @@
-##
-import numpy as np
-from ibllib.atlas.regions import BrainRegions
-import os
-from one.api import ONE
-from ibllib.atlas import atlas
-from needles2.probe_model import ProbeModel
-from pathlib import Path
-from one.remote import aws
-import pandas as pd
+"""
+This script computes the coverage of the brain regions and upload to AWS for use in pinpoint
+requirements:
+-   ibllib
+-   iblapps
+"""
 import datetime
+import os
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from one.api import ONE
+from one.remote import aws
+from ibllib.atlas import atlas
+from ibllib.atlas.regions import BrainRegions
+from needles2.probe_model import ProbeModel
+
+##
+'''
+===========================
+   PARAMETERS
+===========================
+'''
+PATH_COVERAGE = Path('/datadisk/Coverage')
+
+'''
+===========================
+   BRAIN REGION COVERAGE
+===========================
+'''
+# Overwrite according to Nick's selection
+# https://docs.google.com/spreadsheets/d/1d6ghPpc2FT4D5t2n6eKYk8IcoOG4RgChaVLhazek04c/edit#gid=1168745718
+acronyms_region_cov = ['AD', 'AHN', 'AUDpo', 'CL', 'COAa', 'FN', 'GPi', 'IO',
+                       'PG', 'RE', 'STN', 'VTA']
+
 
 # Instantiate brain atlas and one
-one = ONE()
+one = ONE(base_url="https://alyx.internationalbrainlab.org")  # makes sure we're on the private database
 ba = atlas.AllenAtlas(25)
 ba.compute_surface()
 br = BrainRegions()
@@ -21,8 +47,8 @@ label_beryl = ba.regions.mappings['Beryl'][ba.label]
 mapped_atlas_ac = br.acronym[label_beryl]  # TODO could be done faster by remapping list of brain reg to ID instead
 
 # Saving paths
-filepath_sp_vol = Path('/Users/gaelle/Desktop/Reports/Coverage/volume_test/second_pass_volume.npy')
-filepath_coverage = Path('/Users/gaelle/Desktop/Reports/Coverage/test/coverage.npy')
+filepath_sp_vol = PATH_COVERAGE.joinpath('volume_test', 'second_pass_volume.npy')
+filepath_coverage = PATH_COVERAGE.joinpath('test', 'coverage.npy')
 filepath_df_cov_val = filepath_coverage.parent.joinpath('df_cov_val.csv')
 filepath_sp_per012 = filepath_coverage.parent.joinpath('sp_per012.npy')
 filepath_coverage_pinpoint = filepath_coverage.parent.joinpath('coverage_pinpoint.bytes')
@@ -36,16 +62,7 @@ if not filepath_sp_vol.exists():
 datenow = datetime.datetime.now()
 datefile = datenow.strftime('%Y-%m-%d')
 
-##
-'''
-===========================
-   BRAIN REGION COVERAGE
-===========================
-'''
-# Overwrite according to Nick's selection
-# https://docs.google.com/spreadsheets/d/1d6ghPpc2FT4D5t2n6eKYk8IcoOG4RgChaVLhazek04c/edit#gid=1168745718
-acronyms_region_cov = ['AD', 'AHN', 'AUDpo', 'CL', 'COAa', 'FN', 'GPi', 'IO',
-                       'PG', 'RE', 'STN', 'VTA']
+
 
 ##
 '''
@@ -129,8 +146,8 @@ sum_points[np.where(sum_points == 0)] = np.nan
 # Restrict to SP mask
 sum_points[np.isnan(sp_volume)] = np.nan
 
-##
-# Save locally
+## Save locally
+filepath_coverage.parent.mkdir(exist_ok=True, parents=True)
 np.save(filepath_coverage, sum_points)
 np.save(filepath_sp_per012, [sp_per0, sp_per1, sp_per2])
 df_coverage_vals.to_csv(filepath_df_cov_val)
@@ -140,15 +157,16 @@ coverage[np.isnan(coverage)] = 0
 with open(filepath_coverage_pinpoint, 'wb') as f:
     f.write(coverage.astype(np.uint8).flatten().tobytes())
 
-# Synch to AWS #Todo: use sync command instead if the base volume is not in same folder ?
+## upload to AWS  Synch to AWS
+
 os.system(f"aws --profile ibl s3 cp {filepath_coverage} "
-          f"s3://ibl-brain-wide-map-private/resources/physcoverage/{os.path.basename(filepath_coverage)}")
+          f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_coverage.name}")
 os.system(f"aws --profile ibl s3 cp {filepath_df_cov_val} "
-          f"s3://ibl-brain-wide-map-private/resources/physcoverage/{os.path.basename(filepath_df_cov_val)}")
+          f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_df_cov_val.name}")
 os.system(f"aws --profile ibl s3 cp {filepath_sp_per012} "
-          f"s3://ibl-brain-wide-map-private/resources/physcoverage/{os.path.basename(filepath_sp_per012)}")
+          f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_sp_per012.name}")
 os.system(f"aws --profile ibl s3 cp {filepath_coverage_pinpoint} "
-          f"s3://ibl-brain-wide-map-private/resources/physcoverage/{os.path.basename(filepath_coverage_pinpoint)}")
+          f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_coverage_pinpoint.name}")
 # Add to public bucket too for Pinpoint access
 os.system(f"aws --profile ibl s3 cp {filepath_coverage_pinpoint} "
-          f"s3://ibl-brain-wide-map-public/phys-coverage-2023/{os.path.basename(filepath_coverage_pinpoint)}")
+          f"s3://ibl-brain-wide-map-public/phys-coverage-2023/{filepath_coverage_pinpoint.name}")
