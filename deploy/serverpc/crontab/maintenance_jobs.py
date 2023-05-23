@@ -4,10 +4,11 @@ import os
 from datetime import datetime
 import shutil
 
+from pkg_resources import parse_version
 import numpy as np
 from one.api import ONE
-from one.alf.files import get_session_path
 from one.remote.globus import get_lab_from_endpoint_id
+from one.alf.files import get_session_path, session_path_parts
 import spikeglx
 
 import ibllib.io.raw_data_loaders as raw
@@ -22,26 +23,6 @@ from ibllib.pipes.dynamic_pipeline import acquisition_description_legacy_session
 ROOT_PATH = Path('/mnt/s0/Data/Subjects')
 
 _logger = logging.getLogger('ibllib')
-
-
-def correct_ephys_manual_video_copies():
-    """
-    FIXME What does this function do???
-    """
-    for flag in ROOT_PATH.rglob('ephys_data_transferred.flag'):
-        video = True
-        passive = True
-        behaviour = True
-        session_path = get_session_path(flag)
-        avi_files = list(session_path.joinpath('raw_video_data').glob('*.avi'))
-
-        if len(avi_files) < 3:
-            video = False
-        if not session_path.joinpath('raw_behavior_data').exists():
-            behaviour = False
-        if not session_path.joinpath('raw_passive_data').exists():
-            passive = False
-        _logger.info(f"{session_path} V{video}, B{behaviour}, P{passive}")
 
 
 def correct_flags_biased_in_ephys_rig():
@@ -105,6 +86,30 @@ def correct_passive_in_wrong_folder():
 
     else:
         return
+
+
+def correct_passive_params():
+    """Patch parameter files of passive sessions, renaming the session number and collection.
+
+    Note: This should only apply for sessions acquired on iblrig v7.2.4 or earlier.
+    """
+    for flag_file in ROOT_PATH.glob('**/raw_session.flag'):
+        session_path = flag_file.parent
+        if session_path.joinpath('raw_passive_data', '_iblrig_taskSettings.raw.json').exists():
+            settings = raw.load_settings(session_path, 'raw_passive_data')
+            version = settings.get('IBLRIG_VERSION', settings.get('IBLRIG_VERSION_TAG', '0.0.0'))
+            if parse_version(version) < parse_version('7.2.5'):
+                parts = session_path_parts(session_path, as_dict=True, assert_valid=True)
+                parts.pop('lab')
+                new_settings = raw.patch_settings(
+                    session_path, collection='raw_passive_data', new_collection='raw_passive_data', **parts
+                )
+                # Log changes just in case they were made in error
+                info = ('SUBJECT_NAME', 'SESSION_DATE', 'SESSION_NUMBER')
+                patched = ['/'.join([*map(s.get, info), s.get('SESSION_RAW_DATA_FOLDER').split('\\')[-1]])
+                           for s in (settings, new_settings)]
+                if patched[0] != patched[1]:
+                    _logger.info('SETTINGS PATCHED: %s -> %s', *patched)
 
 
 def spike_amplitude_patching():
@@ -364,5 +369,6 @@ if __name__ == "__main__":
     # spike_amplitude_patching()
     # upload_ks2_output()
     correct_passive_in_wrong_folder()
+    correct_passive_params()
     # remove_old_spike_sortings_outputs()
     dynamic_pipeline_transition_photometry()
