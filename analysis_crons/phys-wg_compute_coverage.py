@@ -63,7 +63,6 @@ datenow = datetime.datetime.now()
 datefile = datenow.strftime('%Y-%m-%d')
 
 
-
 ##
 '''
 ============================
@@ -99,7 +98,7 @@ pr.get_traj_for_provenance('Histology track', django=django_str)
 pr.get_traj_for_provenance('Ephys aligned histology track', django=django_str)
 pr.get_traj_for_provenance(provenance='Ephys aligned histology track',
                            django=django_str + ['probe_insertion__json__extended_qc__'
-                                  'alignment_resolved,True'], prov_dict='Resolved')
+                                                'alignment_resolved,True'], prov_dict='Resolved')
 pr.find_traj_is_best(provenance='Planned')
 pr.find_traj_is_best(provenance='Micro-manipulator')
 pr.find_traj_is_best(provenance='Histology track')
@@ -146,7 +145,7 @@ sum_points[np.where(sum_points == 0)] = np.nan
 # Restrict to SP mask
 sum_points[np.isnan(sp_volume)] = np.nan
 
-## Save locally
+# Save locally
 filepath_coverage.parent.mkdir(exist_ok=True, parents=True)
 np.save(filepath_coverage, sum_points)
 np.save(filepath_sp_per012, [sp_per0, sp_per1, sp_per2])
@@ -157,7 +156,7 @@ coverage[np.isnan(coverage)] = 0
 with open(filepath_coverage_pinpoint, 'wb') as f:
     f.write(coverage.astype(np.uint8).flatten().tobytes())
 
-## upload to AWS  Synch to AWS
+# upload to AWS  Sync to AWS
 
 os.system(f"aws --profile ibl s3 cp {filepath_coverage} "
           f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_coverage.name}")
