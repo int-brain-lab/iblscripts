@@ -12,18 +12,19 @@ BPOD_FILES = [
     '_ibl_trials.table.pqt',
     '_ibl_trials.goCueTrigger_times.npy',
     '_ibl_trials.intervals_bpod.npy',
+    '_ibl_trials.quiescencePeriod.npy'
 ]
 
 ALIGN_BPOD_FPGA_FILES = [
     '_ibl_trials.goCueTrigger_times.npy',
-    '_ibl_trials.response_times.npy',
+    '_ibl_trials.response_times.npy'
 ]
 
 
 class TestEphysTaskExtraction(base.IntegrationTest):
 
     def setUp(self) -> None:
-        self.root_folder = self.data_path.joinpath("ephys")
+        self.root_folder = self.data_path.joinpath('ephys')
         if not self.root_folder.exists():
             return
 
@@ -34,11 +35,11 @@ class TestEphysTaskExtraction(base.IntegrationTest):
             self._task_extraction_assertions(session_path)
 
     def test_task_extraction_problems(self):
-        init_folder = self.root_folder.joinpath("ephys_choice_world_task")
+        init_folder = self.root_folder.joinpath('ephys_choice_world_task')
         self.sessions = [
-            init_folder.joinpath("CSP004/2019-11-27/001"),  # normal session
-            init_folder.joinpath("ibl_witten_13/2019-11-25/001"),  # FPGA stops before bpod, custom sync
-            # init_folder.joinpath("ibl_witten_27/2021-01-21/001"),  # frame2ttl flicker
+            init_folder.joinpath('CSP004/2019-11-27/001'),  # normal session
+            init_folder.joinpath('ibl_witten_13/2019-11-25/001'),  # FPGA stops before bpod, custom sync
+            # init_folder.joinpath('ibl_witten_27/2021-01-21/001'),  # frame2ttl flicker
         ]
         for session_path in self.sessions:
             with self.subTest(msg=session_path):
@@ -55,7 +56,8 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         ephys_fpga.extract_all(session_path, save=True)
         # check that the output is complete
         for f in BPOD_FILES:
-            self.assertTrue(alf_path.joinpath(f).exists())
+            with self.subTest(file=f):
+                self.assertTrue(alf_path.joinpath(f).exists())
         # check dimensions after alf load
         alf_trials = alfio.load_object(alf_path, 'trials')
         self.assertTrue(alfio.check_dimensions(alf_trials) == 0)
@@ -64,7 +66,8 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         if any(bk_path.glob('*trials*')):
             alf_trials_old = alfio.load_object(alf_path.parent / 'alf.bk', 'trials')
             for k, v in alf_trials.items():
-                numpy.testing.assert_array_almost_equal(v, alf_trials_old[k])
+                if k in alf_trials_old:  # added quiescencePeriod from the old dataset
+                    numpy.testing.assert_array_almost_equal(v, alf_trials_old[k])
         # go deeper and check the internal fpga trials structure consistency
         sync, chmap = ephys_fpga.get_main_probe_sync(session_path)
         fpga_trials = ephys_fpga.extract_behaviour_sync(sync, chmap)
@@ -103,11 +106,11 @@ class TestEphysTaskExtraction(base.IntegrationTest):
 
         ok = True
         for k in res_ephys:
-            if k == "_task_response_feedback_delays":
+            if k == '_task_response_feedback_delays':
                 continue
             if np.abs(res_bpod[k] - res_ephys[k]) > .2:
                 ok = False
-                print(f"{k} bpod: {res_bpod[k]}, ephys: {res_ephys[k]}")
+                print(f'{k} bpod: {res_bpod[k]}, ephys: {res_ephys[k]}')
         assert ok
         shutil.rmtree(alf_path, ignore_errors=True)
 
@@ -118,8 +121,8 @@ class TestEphysTrialsFPGA(base.IntegrationTest):
         from ibllib.io.extractors import ephys_fpga
         from ibllib.qc.task_metrics import TaskQC
         from ibllib.qc.task_extractors import TaskQCExtractor
-        init_path = self.data_path.joinpath("ephys", "ephys_choice_world_task")
-        session_path = init_path.joinpath("ibl_witten_27/2021-01-21/001")
+        init_path = self.data_path.joinpath('ephys', 'ephys_choice_world_task')
+        session_path = init_path.joinpath('ibl_witten_27/2021-01-21/001')
         dsets, out_files = ephys_fpga.extract_all(session_path, save=True)
         # Run the task QC
         qc = TaskQC(session_path, one=ONE(mode='local'))
@@ -132,8 +135,8 @@ class TestEphysTrialsFPGA(base.IntegrationTest):
         # from ibllib.misc import pprint
         # pprint(myqc)
         assert myqc['_task_stimOn_delays'] > 0.9  # 0.6176
-        assert myqc["_task_stimFreeze_delays"] > 0.9
-        assert myqc["_task_stimOff_delays"] > 0.9
-        assert myqc["_task_stimOff_itiIn_delays"] > 0.9
-        assert myqc["_task_stimOn_delays"] > 0.9
-        assert myqc["_task_stimOn_goCue_delays"] > 0.9
+        assert myqc['_task_stimFreeze_delays'] > 0.9
+        assert myqc['_task_stimOff_delays'] > 0.9
+        assert myqc['_task_stimOff_itiIn_delays'] > 0.9
+        assert myqc['_task_stimOn_delays'] > 0.9
+        assert myqc['_task_stimOn_goCue_delays'] > 0.9
