@@ -11,7 +11,7 @@ import numpy.testing
 import ibllib.io.video as vidio
 from one.api import ONE
 from ci.tests import base
-from ibllib.io.raw_daq_loaders import load_channels_tdms
+from ibllib.io.raw_daq_loaders import load_channels_tdms, correct_counter_discontinuities
 from ibllib.io.raw_data_loaders import patch_settings, load_settings
 
 
@@ -157,6 +157,18 @@ class TestPatchSettings(base.IntegrationTest):
         self.assertEqual(7, sum(new_path in ln for ln in new_raw_settings))
         old_path = '\\\\'.join([settings['SUBJECT_NAME'], settings['SESSION_DATE'], settings['SESSION_NUMBER']])
         self.assertFalse(any(old_path in ln for ln in new_raw_settings))
+
+
+class TestDAQDiscontinuities(base.IntegrationTest):
+    def setUp(self) -> None:
+        src_path = self.data_path.joinpath('mesoscope', '2023-03-03_1_SP035-re_pos.npy')
+        self.re_pos = np.load(src_path)
+
+    def test_correct_counter_discontinuities(self):
+        """Test for ibllib.io.raw_daq_loaders.correct_counter_discontinuities"""
+        expected = self.re_pos.copy()
+        expected[10:] -= 4294967295
+        np.testing.assert_array_equal(expected, correct_counter_discontinuities(self.re_pos))
 
 
 if __name__ == '__main__':
