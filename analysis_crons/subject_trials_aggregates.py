@@ -49,8 +49,7 @@ collection = 'Subjects'
 file_name = '_ibl_subjectTrials.table.pqt'
 alyx_user = 'julia.huntenburg'
 version = 1.0
-dry = False
-force_overwrite =  True
+dry = True
 
 # Set up
 output_path.mkdir(exist_ok=True, parents=True)
@@ -148,15 +147,9 @@ for i, sub in enumerate(subjects):
                 out_file = output_path.joinpath(collection, sub.lab.name, sub.nickname, file_name)
             else:
                 out_file = output_path.joinpath(collection, sub.lab.name, sub.nickname, ds.first().revision, file_name)
-            # If force overwrite, we will overwrite the existing file without any checks
-            if force_overwrite:
-                logger.info(f'...force overwrite')
-                status_agg[f'{sub.id}'] = 'FORCE: force overwrite'
-                # Add the uuid to the out file to overwrite the current file
-                out_file = alfiles.add_uuid_string(out_file, ds.first().pk)
             # See if the file exists on disk (we are on SDSC so need to check with uuid in name)
             # If yes, create the expected hash and try to compare to the hash of the existing file
-            elif alfiles.add_uuid_string(out_file, ds.first().pk).exists():
+            if alfiles.add_uuid_string(out_file, ds.first().pk).exists():
                 try:
                     old_hash = ds.first().json['aggregate_hash']
                 except TypeError:
