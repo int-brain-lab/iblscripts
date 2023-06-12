@@ -9,6 +9,8 @@ from itertools import chain
 
 import numpy as np
 import pandas as pd
+import sparse
+
 import one.alf.io as alfio
 from one.alf.files import get_session_path
 from one.api import ONE
@@ -120,7 +122,7 @@ class TestTimelineTrials(base.IntegrationTest):
         """Test for ibllib.io.extractors.mesoscope.plot_timeline."""
         ax = MagicMock()
         plt_mock.subplots.return_value = (MagicMock(), [ax] * 19)
-        timeline = alfio.load_object(self.session_path / 'raw_sync_data', 'DAQData')
+        timeline = alfio.load_object(self.session_path / 'raw_sync_data', 'DAQdata')
         fig, axes = mesoscope.plot_timeline(timeline)
         plt_mock.subplots.assert_called_with(19, 1)
         self.assertIs(ax, axes[0], 'failed to return figure axes')
@@ -315,6 +317,16 @@ class TestMesoscopePreprocess(base.IntegrationTest):
             np.testing.assert_array_equal(expected, np.load(files[0].with_name(new)))
         # Check frame QC not saved
         self.assertFalse(any('mpciFrameQC' in f.name for f in files))
+        # Check sparse mask files
+        sparse_files = sorted(f for f in files if f.suffix == '.sparse_npz')
+        self.assertEqual(2, len(sparse_files))
+        arr = sparse.load_npz(sparse_files[0])
+        self.assertEqual((222, 512, 512), arr.shape)
+        # Check first 10 non-zero elements of the first ROI
+        mask = arr[0].todense()
+        expected = [1.9042398, 2.0305383, 3.5443015, 4.247522, 3.14291, 2.286991,
+                    3.8462281, 3.553623, 2.456772, 3.4159436]
+        np.testing.assert_array_almost_equal(expected, mask[np.nonzero(mask)][:10])
 
     def test_rename_with_qc(self):
         """Test MesoscopePreprocess._rename_outputs method with frame QC input."""
