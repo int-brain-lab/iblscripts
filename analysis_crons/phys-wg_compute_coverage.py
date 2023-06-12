@@ -16,14 +16,14 @@ from one.remote import aws
 from ibllib.atlas import atlas
 from ibllib.atlas.regions import BrainRegions
 from needles2.probe_model import ProbeModel
+from iblutil.util import setup_logger
 
-##
 '''
 ===========================
    PARAMETERS
 ===========================
 '''
-PATH_COVERAGE = Path('/datadisk/Coverage')
+PATH_COVERAGE = Path('/mnt/s1/coverage')
 
 '''
 ===========================
@@ -37,6 +37,8 @@ acronyms_region_cov = ['AD', 'AHN', 'AUDpo', 'CL', 'COAa', 'FN', 'GPi', 'IO',
 
 
 # Instantiate brain atlas and one
+log = setup_logger('ibllib', level='INFO')
+log.info('coverage computation: setup parameters')
 one = ONE(base_url="https://alyx.internationalbrainlab.org")  # makes sure we're on the private database
 ba = atlas.AllenAtlas(25)
 ba.compute_surface()
@@ -63,12 +65,12 @@ datenow = datetime.datetime.now()
 datefile = datenow.strftime('%Y-%m-%d')
 
 
-##
 '''
 ============================
     VOLUMETRIC COVERAGE
 ============================
 '''
+log.info('compute volumetric coverage')
 # Prepare SP volume
 sp_volume = np.load(filepath_sp_vol)
 sp_volume[sp_volume == 0] = np.nan
@@ -119,6 +121,7 @@ df_coverage_vals = pd.DataFrame.from_dict({"0": [sp_per0[-1]], "1": [sp_per1[-1]
 ============================
 
 '''
+log.info('combine coverages')
 # === VOLUMETRIC COVERAGE ===
 cov_points = coverage.copy()
 # Remove values outside SP mask and make sure all values for 2+ probes are 2
@@ -148,24 +151,32 @@ sum_points[np.isnan(sp_volume)] = np.nan
 # Save locally
 filepath_coverage.parent.mkdir(exist_ok=True, parents=True)
 np.save(filepath_coverage, sum_points)
+log.info(f"{filepath_coverage} saved to disk")
 np.save(filepath_sp_per012, [sp_per0, sp_per1, sp_per2])
+log.info(f"{filepath_sp_per012} saved to disk")
 df_coverage_vals.to_csv(filepath_df_cov_val)
+log.info(f"{filepath_df_cov_val} saved to disk")
 # Save into format for Pinpoint
 coverage = sum_points.copy()
 coverage[np.isnan(coverage)] = 0
 with open(filepath_coverage_pinpoint, 'wb') as f:
     f.write(coverage.astype(np.uint8).flatten().tobytes())
+log.info(f"{filepath_coverage_pinpoint} saved to disk")
 
-# upload to AWS  Sync to AWS
-
-os.system(f"aws --profile ibl s3 cp {filepath_coverage} "
-          f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_coverage.name}")
-os.system(f"aws --profile ibl s3 cp {filepath_df_cov_val} "
-          f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_df_cov_val.name}")
-os.system(f"aws --profile ibl s3 cp {filepath_sp_per012} "
-          f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_sp_per012.name}")
-os.system(f"aws --profile ibl s3 cp {filepath_coverage_pinpoint} "
-          f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_coverage_pinpoint.name}")
-# Add to public bucket too for Pinpoint access
-os.system(f"aws --profile ibl s3 cp {filepath_coverage_pinpoint} "
-          f"s3://ibl-brain-wide-map-public/phys-coverage-2023/{filepath_coverage_pinpoint.name}")
+# upload to AWS
+commands = [
+    f"aws --profile ibl s3 cp {filepath_coverage} "
+    f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_coverage.name}",
+    f"aws --profile ibl s3 cp {filepath_df_cov_val} "
+    f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_df_cov_val.name}",
+    f"aws --profile ibl s3 cp {filepath_sp_per012} "
+    f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_sp_per012.name}",
+    f"aws --profile ibl s3 cp {filepath_coverage_pinpoint} "
+    f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_coverage_pinpoint.name}",
+    # Add to public bucket too for Pinpoint access
+    f"aws --profile ibl s3 cp {filepath_coverage_pinpoint} "
+    f"s3://ibl-brain-wide-map-public/phys-coverage-2023/{filepath_coverage_pinpoint.name}"
+]
+for command in commands:
+    log.info(command)
+    os.system(command)
