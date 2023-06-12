@@ -66,8 +66,6 @@ datenow = datetime.datetime.now()
 datefile = datenow.strftime('%Y-%m-%d')
 
 
-
-##
 '''
 ============================
     VOLUMETRIC COVERAGE
@@ -103,7 +101,7 @@ pr.get_traj_for_provenance('Histology track', django=django_str)
 pr.get_traj_for_provenance('Ephys aligned histology track', django=django_str)
 pr.get_traj_for_provenance(provenance='Ephys aligned histology track',
                            django=django_str + ['probe_insertion__json__extended_qc__'
-                                  'alignment_resolved,True'], prov_dict='Resolved')
+                                                'alignment_resolved,True'], prov_dict='Resolved')
 pr.find_traj_is_best(provenance='Planned')
 pr.find_traj_is_best(provenance='Micro-manipulator')
 pr.find_traj_is_best(provenance='Histology track')
@@ -151,7 +149,7 @@ sum_points[np.where(sum_points == 0)] = np.nan
 # Restrict to SP mask
 sum_points[np.isnan(sp_volume)] = np.nan
 
-## Save locally
+# Save locally
 filepath_coverage.parent.mkdir(exist_ok=True, parents=True)
 np.save(filepath_coverage, sum_points)
 log.info(f"{filepath_coverage} saved to disk")
@@ -166,14 +164,19 @@ with open(filepath_coverage_pinpoint, 'wb') as f:
     f.write(coverage.astype(np.uint8).flatten().tobytes())
 log.info(f"{filepath_coverage_pinpoint} saved to disk")
 
-## upload to AWS  Synch to AWS
+# upload to AWS  Synch to AWS
 commands = [
-    f"aws --profile ibl s3 cp {filepath_coverage} s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_coverage.name}",
-    f"aws --profile ibl s3 cp {filepath_df_cov_val} s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_df_cov_val.name}",
-    f"aws --profile ibl s3 cp {filepath_sp_per012} s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_sp_per012.name}",
-    f"aws --profile ibl s3 cp {filepath_coverage_pinpoint} s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_coverage_pinpoint.name}",
-    f"aws --profile ibl s3 cp {filepath_coverage_pinpoint} s3://ibl-brain-wide-map-public/phys-coverage-2023/{filepath_coverage_pinpoint.name}"
-    ]
+    f"aws --profile ibl s3 cp {filepath_coverage} "
+    f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_coverage.name}",
+    f"aws --profile ibl s3 cp {filepath_df_cov_val} "
+    f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_df_cov_val.name}",
+    f"aws --profile ibl s3 cp {filepath_sp_per012} "
+    f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_sp_per012.name}",
+    f"aws --profile ibl s3 cp {filepath_coverage_pinpoint} "
+    f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_coverage_pinpoint.name}",
+    f"aws --profile ibl s3 cp {filepath_coverage_pinpoint} "
+    f"s3://ibl-brain-wide-map-public/phys-coverage-2023/{filepath_coverage_pinpoint.name}"
+]
 for command in commands:
     log.info(command)
     os.system(command)

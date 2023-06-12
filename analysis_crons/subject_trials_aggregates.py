@@ -1,27 +1,3 @@
-# Adapted from
-# https://github.com/int-brain-lab/ibldevtools/blob/master/olivier/archive/2022/2022-03-14_trials_tables.py
-# https://github.com/int-brain-lab/ibldevtools/blob/master/miles/2022-01-17-alyx_trials_table_patch.py
-# https://github.com/int-brain-lab/ibldevtools/blob/master/miles/2022-12-19_register-zainab-aggregates.py
-"""
-Generate per subject trials aggregate files for all culled subjects that have at least one session with an ibl project
-and ibl task protocol.
-1. Check if all sessions have trials tables. For those that don't, try to generate them.
-   Log if it's not possible and skip those sessions.
-2. Check for which subjects trial aggregate files need to be generated or updated
-   (using hash of individual dataset uuids and hashes)
-   a. If file exists and does not need updating, do nothing.
-   b. If this is the first version of the file, generate and register dataset, create file records, sync to AWS
-   c. If original file is protected, create and register new revision of dataset.
-   d. If original file is not protected, overwrite it, update hash and file size of dataset.
-3. Sync to AWS.
-"""
-
-'''
-===========
-SETTING UP
-===========
-'''
-
 from django.db.models import Count, Q
 from actions.models import Session
 from subjects.models import Subject
@@ -41,6 +17,31 @@ import globus_sdk as globus
 from one.alf import io as alfio, files as alfiles
 from iblutil.io import hashfile, params
 from ibllib.io.extractors.training_trials import PhasePosQuiescence, StimOnTriggerTimes
+
+"""
+Generate per subject trials aggregate files for all culled subjects that have at least one session with an ibl project
+and ibl task protocol.
+1. Check if all sessions have trials tables. For those that don't, try to generate them.
+   Log if it's not possible and skip those sessions.
+2. Check for which subjects trial aggregate files need to be generated or updated
+   (using hash of individual dataset uuids and hashes)
+   a. If file exists and does not need updating, do nothing.
+   b. If this is the first version of the file, generate and register dataset, create file records, sync to AWS
+   c. If original file is protected, create and register new revision of dataset.
+   d. If original file is not protected, overwrite it, update hash and file size of dataset.
+3. Sync to AWS.
+
+# Adapted from
+# https://github.com/int-brain-lab/ibldevtools/blob/master/olivier/archive/2022/2022-03-14_trials_tables.py
+# https://github.com/int-brain-lab/ibldevtools/blob/master/miles/2022-01-17-alyx_trials_table_patch.py
+# https://github.com/int-brain-lab/ibldevtools/blob/master/miles/2022-12-19_register-zainab-aggregates.py
+"""
+
+'''
+===========
+SETTING UP
+===========
+'''
 
 # Settings
 root_path = Path('/mnt/ibl')
@@ -129,7 +130,7 @@ for i, sub in enumerate(subjects):
                                          default_dataset=True)
         # If we don't have task data for each session, we that's a problem
         if task_ds.count() / 2 < trials_ds.count():
-            logger.info(f'...not all sessions have raw task data')
+            logger.info('...not all sessions have raw task data')
             status_agg[f'{sub.id}'] = 'ERROR: not all sessions have raw task data'
             continue
         else:
@@ -157,13 +158,13 @@ for i, sub in enumerate(subjects):
                     old_hash = None
                 # If the hash is the same we don't need to do anything
                 if old_hash == new_hash:
-                    logger.info(f'...aggregate exists and is up to date')
+                    logger.info('...aggregate exists and is up to date')
                     status_agg[f'{sub.id}'] = 'EXIST: aggregate exists, hash match'
                     continue
                 else:
                     # Otherwise check if the file is protected, if yes, create a revision, otherwise overwrite
                     if ds.first().is_protected:
-                        logger.info(f'...aggregate already exists but is protected, hash mismatch, creating revision')
+                        logger.info('...aggregate already exists but is protected, hash mismatch, creating revision')
                         status_agg[f'{sub.id}'] = 'REVISION: aggregate exists protected, hash mismatch'
                         # Make revision other than None and add revision to file path
                         revision, _ = Revision.objects.get_or_create(name=today_revision)
@@ -173,20 +174,20 @@ for i, sub in enumerate(subjects):
                             # If the current default is already a revision, remove the revision part of the path
                             out_file = out_file.parent.parent.joinpath(f"#{today_revision}#", out_file.name)
                     else:
-                        logger.info(f'...aggregate already exists but is not protected, hash mismatch, overwriting')
+                        logger.info('...aggregate already exists but is not protected, hash mismatch, overwriting')
                         status_agg[f'{sub.id}'] = 'OVERWRITE: aggregate exists not protected, hash mismatch'
                         # Add the uuid to the out file to overwrite the current file
                         out_file = alfiles.add_uuid_string(out_file, ds.first().pk)
             # If the dataset entry exist but the dataset cannot be found on disk, just recreate the dataset
             else:
-                logger.info(f'...dataset entry exists but file is missing on disk, creating new')
+                logger.info('...dataset entry exists but file is missing on disk, creating new')
                 status_agg[f'{sub.id}'] = 'CREATE: aggregate dataset entry exists, file missing'
                 # Here, too, update the file name with the uuid to create the file on disk
                 out_file = alfiles.add_uuid_string(out_file, ds.first().pk)
         # If no dataset exists yet, create it
         elif ds.count() == 0:
             out_file = output_path.joinpath(collection, sub.lab.name, sub.nickname, file_name)
-            logger.info(f'...aggregate does not yet exist, creating.')
+            logger.info('...aggregate does not yet exist, creating.')
             status_agg[f'{sub.id}'] = 'CREATE: aggregate does not exist'
 
         # If dry run, stop here
@@ -198,8 +199,7 @@ for i, sub in enumerate(subjects):
         for t in trials_ds:
             # load trials table
             alf_path = root_path.joinpath(sub.lab.name, 'Subjects', t.file_records.filter(
-                data_repository__name__startswith='flatiron').first().relative_path
-                                          ).parent
+                data_repository__name__startswith='flatiron').first().relative_path).parent
             trials = alfio.load_object(alf_path, 'trials', attribute='table', short_keys=True)
             trials = trials.to_df()
 
