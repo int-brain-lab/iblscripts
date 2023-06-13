@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
     Update the JSON field for a subject's most recent surgery with craniotomy coordinates.
     Optionally can the coordinates of lambda and bregma.
-    NB: If you specify an Alyx username your login token will not be saved for the next time. 
+    NB: If you specify an Alyx username your login token will not be saved for the next time.
 
     Examples:
       python update_craniotomy.py SP026 2.7 1 -D https://alyx.cortexlab.net -u samuel

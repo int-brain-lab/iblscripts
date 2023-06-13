@@ -6,6 +6,7 @@ __pycache__
 *.asv
 *.*~
 deploy/videopc/bonsai/bin/
+deploy/mesoscope/+ScanImageTiffReader/
 deploy/serverpc/dlc/weights/
 deploy/serverpc/kilosort2/task_ks2_matlab.sh
 deploy/serverpc/kilosort2/run_pykilosort.sh

@@ -107,10 +107,12 @@ def main(local=None, remote=None):
                 continue
             log.debug(f'transferring {session_parts} - {collection}')
             ok[i] &= rsync_paths(session.with_name(collection), remote_session / collection)
-
+        # if the transfer was successful, merge the stub file with the remote experiment description
         if ok[i]:
             main_experiment_file = remote_session / '_ibl_experiment.description.yaml'
             session_params.aggregate_device(remote_file, main_experiment_file, unlink=True)
+            # when there is not any remaining stub files, create a flag file in the session folder
+            # that indicates the copy is complete
             if not any(remote_session.joinpath('_devices').glob('*.*')):
                 file_list = list(map(str, remote_session.rglob('*.*.*')))
                 flags.write_flag_file(remote_session.joinpath('raw_session.flag'), file_list=file_list)

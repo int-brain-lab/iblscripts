@@ -1,5 +1,5 @@
 #### Entry point
-* Normal run: `fiber_photometry_form.py`
+* Normal run: `python fiber_photometry_form.py`
 * Test mode: `python fiber_photometry_form.py --test`
 
 #### Parameters

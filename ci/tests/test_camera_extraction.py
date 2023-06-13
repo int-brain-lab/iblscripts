@@ -161,8 +161,8 @@ class TestTrainingCameraExtractor(base.IntegrationTest):
         self.assertEqual(ts.size, self.n_frames, 'unexpected size')
         self.assertTrue(not np.isnan(ts).any(), 'nans in timestamps')
         self.assertTrue(np.all(np.diff(ts) > 0), 'timestamps not strictly increasing')
-        expected = np.array([1.27701818, 1.33762424, 1.36792727, 1.3982303, 1.42853333,
-                             1.45883636, 1.48913939, 1.51944242, 1.54974545, 1.58004848])
+        expected = [1.27701818, 1.33762424, 1.36792727, 1.3982303, 1.42853333,
+                    1.45883636, 1.48913939, 1.51944242, 1.54974545, 1.58004848]
         np.testing.assert_array_almost_equal(ts[:10], expected)
 
         # Test extraction parameters
@@ -177,18 +177,18 @@ class TestTrainingCameraExtractor(base.IntegrationTest):
         expected = {
             'assigned GPIO up state': 93,
             'unassigned GPIO up state': 1422,
-            'audio onset': 2391,
-            'assigned audio onset': 1515,
-            'audio TTLs': 6624,
+            'sync TTL onset': 2391,
+            'assigned TTL onset': 1515,
+            'sync TTLs': 6624,
             'GPIO': 126,
             'cam times': 107913,
-            'assigned audio TTL': 124
+            'assigned sync TTL': 124
         }
         self.assertEqual(actual, expected, 'unexpected plot')
 
         lines = figs[1].axes[0].lines
         actual = {ln._label: len(ln._xy) for ln in lines}
-        expected = {'GPIO': 107913, 'FPGA timestamps': 107913, 'audio TTL': 186}
+        expected = {'GPIO': 107913, 'DAQ timestamps': 107913, 'sync TTL': 186}
         self.assertEqual(actual, expected, 'unexpected plot')
 
         # Test behaviour when some Bpod input values are empty
@@ -394,16 +394,16 @@ class TestEphysCameraExtractor(base.IntegrationTest):
         lines = figs[0].axes[0].lines
         actual = {ln._label: len(ln._xy) for ln in lines}
         expected = {
-            'audio TTLs': 3400,
+            'sync TTLs': 3400,
             'GPIO': 3394,
             'cam times': 255617,
-            'assigned audio TTL': 3392
+            'assigned sync TTL': 3392
         }
         self.assertEqual(actual, expected, 'unexpected plot')
 
         lines = figs[1].axes[0].lines
         actual = {ln._label: len(ln._xy) for ln in lines}
-        expected = {'GPIO': 255617, 'FPGA timestamps': 255617, 'audio TTL': 5088}
+        expected = {'GPIO': 255617, 'DAQ timestamps': 255617, 'sync TTL': 5088}
         self.assertEqual(actual, expected, 'unexpected plot')
 
     @mock.patch('ibllib.io.extractors.camera.raw.load_embedded_frame_data')
@@ -666,6 +666,9 @@ class TestCameraQC(base.IntegrationTest):
         self.assertEqual('ephys', qc.type)
         self.assertEqual('nidq', qc.sync)
         self.assertEqual('raw_ephys_data', qc.sync_collection)
+        # Check unrecognised namespace
+        with mock.patch('ibllib.qc.camera.get_sync_namespace', return_value='foo'):
+            self.assertRaises(NotImplementedError, qc.load_data, load_video=False)
 
     def side_effect(self):
         for frame in self.frames:

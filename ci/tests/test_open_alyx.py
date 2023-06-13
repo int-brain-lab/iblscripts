@@ -39,22 +39,26 @@ class TestStreamData(unittest.TestCase):
     def test_streamer_object(self):
         pid = '675952a4-e8b3-4e82-a179-cc970d5a8b01'
         t0 = 50
-        with tempfile.TemporaryDirectory() as td:
-            tmp_one = ONE(
-                base_url='https://openalyx.internationalbrainlab.org',
-                password='international',
-                silent=True,
-                cache_dir=td)
-            sr = Streamer(pid=pid, one=tmp_one, typ='lf')
-            # read once to download the data
-            raw_ = sr[int(t0 * 2500):int((t0 + 1) * 2500), :]  # noqa
-            # second read to use the local cache
-            raw_ = sr[int(t0 * 2500):int((t0 + 1) * 2500), :]
-            sl_raw = sr[int(t0 * 2500):int((t0 + 1) * 2500), :-1]
-            assert sl_raw.shape == (2500, 384)
-            assert sr.nc == 385
-            assert sr.nsync == 1
-            assert sr.rl == 6085.7024
-            assert (raw_.shape == (2500, 385))
-            assert sr.target_dir.exists()
-            assert sr.geometry.keys()
+        self.td = tempfile.TemporaryDirectory()
+        tmp_one = ONE(
+            base_url='https://openalyx.internationalbrainlab.org',
+            password='international',
+            silent=True,
+            cache_dir=self.td.name)
+
+        sr = Streamer(pid=pid, one=tmp_one, typ='lf')
+        # read once to download the data
+        raw_ = sr[int(t0 * 2500):int((t0 + 1) * 2500), :]  # noqa
+        # second read to use the local cache
+        raw_ = sr[int(t0 * 2500):int((t0 + 1) * 2500), :]
+        sl_raw = sr[int(t0 * 2500):int((t0 + 1) * 2500), :-1]
+        assert sl_raw.shape == (2500, 384)
+        assert sr.nc == 385
+        assert sr.nsync == 1
+        assert sr.rl == 6085.7024
+        assert (raw_.shape == (2500, 385))
+        assert sr.target_dir.exists()
+        assert sr.geometry.keys()
+
+    def tearDown(self) -> None:
+        self.td.cleanup()

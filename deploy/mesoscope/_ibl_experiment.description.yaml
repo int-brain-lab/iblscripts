@@ -1,37 +1,37 @@
 devices:
   mesoscope:
     mesoscope:
-      collection: raw_imaging_data
+      collection: raw_imaging_data*
       sync_label: chrono
   cameras:
     belly:
       collection: raw_video_data
-      sync_label: frame2ttl
+      sync_label: audio
       width: 640
       height: 512
       fps: 30
     left:
       collection: raw_video_data
-      sync_label: frame2ttl
+      sync_label: audio
     right:
       collection: raw_video_data
-      sync_label: frame2ttl
-
+      sync_label: audio
 procedures:
-- Mesoscope recording
+- Imaging
 projects:
-- ibl_neuropixel_brainwide_01
+- ibl_mesoscope_active
 sync:
   nidq:
     acquisition_software: timeline
     collection: raw_sync_data
     extension: npy
 tasks:
-- ephysChoiceWorld:
-    collection: raw_behavior_data
+- _biasedChoiceWorld:
+    collection: raw_task_data_00
     sync_label: bpod
     extractors: [TrialRegisterRaw, ChoiceWorldTrialsTimeline, TrainingStatus]
 - passiveChoiceWorld:
-    collection: raw_passive_data
+    collection: raw_task_data_01
     sync_label: bpod
+    extractors: [PassiveRegisterRaw, PassiveTaskTimeline]
 version: 1.0.0
