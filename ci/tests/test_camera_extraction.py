@@ -662,10 +662,13 @@ class TestCameraQC(base.IntegrationTest):
         # Override with kwargs
         qc = CameraQC(session_path, camera='left', stream=False, one=self.one, n_samples=0,
                       sync_type='nidq', sync_collection='raw_ephys_data')
-        qc.load_data(load_video=False)
+        qc.load_data(load_video = False)
         self.assertEqual('ephys', qc.type)
         self.assertEqual('nidq', qc.sync)
         self.assertEqual('raw_ephys_data', qc.sync_collection)
+        # Check unrecognised namespace.
+        with mock.patch('ibllib.qc.camera.get_sync_namespace', return_value='foo'):
+            self.assertRaises(NotImplementedError, qc.load_data, load_video=False)
 
     def side_effect(self):
         for frame in self.frames:

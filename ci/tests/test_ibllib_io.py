@@ -109,7 +109,7 @@ class Read_DAQ_tdms(base.IntegrationTest):
         self.assertEqual(set(data.keys()), set(f'AI{i}' for i in range(8)))
         self.assertEqual(fs, 1000)
         chmap = {'titi': 'AI0', 'tata': 'AI1'}
-        dch, fs = load_channels_tdms(self.file_tdms_analog, chmap=chmap, return_fs=True)
+        dch, fs = load_channels_tdms(self.file_tdms_analog, chmap=chmap)
         np.testing.assert_array_equal(dch['tata'], data['AI1'])
         self.assertEqual(fs, 1000)
 

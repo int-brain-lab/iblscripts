@@ -4,6 +4,9 @@ import numpy as np
 import numpy.testing
 import one.alf.io as alfio
 from one.api import ONE
+
+from ibllib.qc.task_extractors import TaskQCExtractor
+from ibllib.qc.task_metrics import TaskQC
 from ibllib.io.extractors import ephys_fpga
 
 from ci.tests import base
@@ -53,7 +56,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
             shutil.move(alf_path, bk_path)
             self.addCleanup(shutil.move, str(bk_path), alf_path)
         # this gets the full output
-        ephys_fpga.extract_all(session_path, save=True)
+        fpga_trials, _ = ephys_fpga.extract_all(session_path, save=True)
         # check that the output is complete
         for f in BPOD_FILES:
             with self.subTest(file=f):
@@ -69,13 +72,12 @@ class TestEphysTaskExtraction(base.IntegrationTest):
                 if k in alf_trials_old:  # added quiescencePeriod from the old dataset
                     numpy.testing.assert_array_almost_equal(v, alf_trials_old[k])
         # go deeper and check the internal fpga trials structure consistency
-        sync, chmap = ephys_fpga.get_main_probe_sync(session_path)
-        fpga_trials = ephys_fpga.extract_behaviour_sync(sync, chmap)
+        fpga_trials = {k: v for k, v in fpga_trials.items() if 'wheel' not in k}
         # check dimensions
         self.assertEqual(alfio.check_dimensions(fpga_trials), 0)
         # check that the stimOn < stimFreeze < stimOff
         self.assertTrue(
-            np.all(fpga_trials['stimOn_times'][:-1] < fpga_trials['stimOff_times'][:-1]))
+            np.all(fpga_trials['table']['stimOn_times'][:-1] < fpga_trials['stimOff_times'][:-1]))
         self.assertTrue(
             np.all(fpga_trials['stimFreeze_times'][:-1] < fpga_trials['stimOff_times'][:-1]))
         # a trial is either an error-nogo or a reward
@@ -86,12 +88,10 @@ class TestEphysTaskExtraction(base.IntegrationTest):
 
         # do the task qc
         # tqc_ephys.extractor.settings['PYBPOD_PROTOCOL']
-        from ibllib.qc.task_extractors import TaskQCExtractor
         ex = TaskQCExtractor(session_path, lazy=True, one=None, bpod_only=False)
-        ex.data = fpga_trials
+        ex.data = fpga_trials  # FIXME This line is pointless
         ex.extract_data()
 
-        from ibllib.qc.task_metrics import TaskQC
         # '/mnt/s0/Data/IntegrationTests/ephys/ephys_choice_world_task/CSP004/2019-11-27/001'
         tqc_ephys = TaskQC(session_path, one=ONE(mode='local'))
         tqc_ephys.extractor = ex
@@ -118,9 +118,6 @@ class TestEphysTaskExtraction(base.IntegrationTest):
 class TestEphysTrialsFPGA(base.IntegrationTest):
 
     def test_frame2ttl_flicker(self):
-        from ibllib.io.extractors import ephys_fpga
-        from ibllib.qc.task_metrics import TaskQC
-        from ibllib.qc.task_extractors import TaskQCExtractor
         init_path = self.data_path.joinpath('ephys', 'ephys_choice_world_task')
         session_path = init_path.joinpath('ibl_witten_27/2021-01-21/001')
         dsets, out_files = ephys_fpga.extract_all(session_path, save=True)
