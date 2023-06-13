@@ -10,6 +10,8 @@ from pathlib import Path
 
 import ibllib
 from ibllib.pipes.misc import load_videopc_params
+from ibllib.pipes.dynamic_pipeline import get_acquisition_description
+import ibllib.io.session_params as sess_params
 from one.alf.io import next_num_folder
 from packaging.version import parse
 
@@ -99,7 +101,7 @@ def update_ibllib(env="iblenv"):
     )
 
 
-def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
+def main(mouse: str, training_session: bool = False, stub=None) -> None:
     SUBJECT_NAME = mouse
     PARAMS = load_videopc_params()
     DATA_FOLDER = Path(PARAMS["DATA_FOLDER_PATH"])
@@ -137,6 +139,16 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
     start = "--start"  # --start-no-debug
     noboot = "--no-boot"
     # noeditor = "--no-editor"
+
+    # Save the experiment description file (used for extraction and by the copy script)
+    if stub:
+        params = sess_params.read_params(stub)
+    else:
+        protocol = 'choice_world_training' if training_session else 'choice_world_recording'
+        params = dict(devices={})
+        params['devices']['cameras'] = get_acquisition_description(protocol)['devices']['cameras']
+    sess_params.prepare_experiment(f'{SUBJECT_NAME}/{DATE}/{NUM}', params)
+
     # Force trigger mode on all cams
     cams.disable_trigger_mode()
     here = os.getcwd()
@@ -199,11 +211,17 @@ if __name__ == "__main__":
         default=False,
         required=False,
         action="store_true",
-        help="Ignore ibllib and iblscripts checks",
+        help="Ignore ibllib and iblscripts checks.",
+    )
+    parser.add_argument(
+        "--stub",
+        type=Path,
+        required=False,
+        help="Path to an experiment description stub file.",
     )
     args = parser.parse_args()
     # print(args)
     # print(type(args.mouse), type(args.training))
     check_ibllib_version(ignore=args.ignore_checks)
     check_iblscripts_version(ignore=args.ignore_checks)
-    main(args.mouse, training_session=args.training)
+    main(args.mouse, training_session=args.training, stub=args.stub)
