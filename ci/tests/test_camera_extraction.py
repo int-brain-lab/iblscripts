@@ -666,7 +666,7 @@ class TestCameraQC(base.IntegrationTest):
         self.assertEqual('ephys', qc.type)
         self.assertEqual('nidq', qc.sync)
         self.assertEqual('raw_ephys_data', qc.sync_collection)
-        # Check unrecognised namespace.
+        # Check unrecognised namespace
         with mock.patch('ibllib.qc.camera.get_sync_namespace', return_value='foo'):
             self.assertRaises(NotImplementedError, qc.load_data, load_video=False)
 
