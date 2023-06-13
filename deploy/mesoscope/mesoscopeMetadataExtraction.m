@@ -1,8 +1,7 @@
 function meta = mesoscopeMetadataExtraction(filename, options)
 
 if nargin < 1
-    %filename = 'D:\Subjects\test\2023-01-31\1\2023-01-31_1_test_2P_00001_00001.tif';
-    filename = 'M:\Subjects\SP035\2023-03-03\001\raw_imaging_data_01\2023-03-03_1_SP035_2P_00001_00001.tif';
+    filename = 'D:\Subjects\test\2023-01-31\1\2023-01-31_1_test_2P_00001_00001.tif';
 end
 % TODO only default fill fields that do not exist in the options structure
 if nargin < 2
@@ -99,6 +98,7 @@ end
 % per single experiment
 meta.rawScanImageMeta = struct; % SI config and all the header info from tiff
 meta.PMTGain = []; %TO DO input manually
+meta.channelSaved = [];
 
 % for each FOV
 % extracted directly from the header
@@ -118,14 +118,14 @@ meta.FOV.lineTimeShifts = NaN; % [nLines, nPixels] line acquisition time shift r
 
 meta.FOV.nXnYnZ = [NaN, NaN, 1]; % number of pixels in the images
 % use meta.channelConfig to figure out correct indices
-meta.FOV.channelIdx = []; % {[1, 3], [2, 4], [1, 2], [3, 4], [1,2,3,4]} - GreenChannels == 1,2, RedChannels = 3,4
+% meta.FOV.channelIdx = []; % {[1, 3], [2, 4], [1, 2], [3, 4], [1,2,3,4]} - GreenChannels == 1,2, RedChannels = 3,4
 meta.FOV.imagingLaserPowerPrc = [];
 meta.FOV.dualPlaneLaserPowerPrc = [];
 meta.FOV.laserPowerW = [];
 
 
 %%
-keyboard;
+% keyboard;
 %%
 fInfo = imfinfo(filename);
 
@@ -178,6 +178,8 @@ for iFile = 1:nFiles
 end
 fprintf('\n')
 meta.acquisitionStartTime = imageDescription(1).epoch;
+meta.nFrames = nFramesAccum;
+%TO DO add nVolumeFrames (for multi-channel / multi-depth data)
 
 %% useful SI parameters
 meta.scanImageParams = struct('objectiveResolution', SI.objectiveResolution);
@@ -197,7 +199,7 @@ meta.scanImageParams.hStackManager = struct(...
   'zsRelative', SI.hStackManager.zsRelative,...
   'zsAllActuators', SI.hStackManager.zsAllActuators);
 
-meta.FOV.channelIdx = SI.hChannels.channelSave; %these were the channels being saved
+meta.channelSaved = SI.hChannels.channelSave; %these were the channels being saved
 
 %% Coordinate transformation from ScanImage to stereotactic coords
 
@@ -258,12 +260,14 @@ for iFOV = 1:nFOVs
     meta.FOV(iFOV).bottomLeftMM = [meta.FOV(iFOV).bottomLeftDeg - centerDegXY, 1]*TF;
     meta.FOV(iFOV).bottomRightMM = [meta.FOV(iFOV).bottomRightDeg - centerDegXY, 1]*TF;
     
+    meta.FOV(iFOV).channelIdx = meta.channelSaved; %this is now obsolete (keep for now)
+
     nLines_allFOVs(iFOV) = meta.FOV(iFOV).nXnYnZ(2);
 end
 nValidLines_allFOVs = sum(nLines_allFOVs);
 
 %deal with z-stacks where each FOV is a discrete plane
-%(TO DO deal with non-discrete planes too! Check SI.hStackManager.numFramesPerVolume) 
+%(TO DO deal with non-discrete planes: check SI.hStackManager.numFramesPerVolume) 
 nZs=1; Zidxs=ones(1,nFOVs); 
 if all([si_rois.discretePlaneMode])
     Zs = [si_rois.zs];
@@ -292,12 +296,7 @@ for iZ = 1:nZs
     % Save line indexes and timestamps per FOV per z-slice
     for ii = 1:nFOVs(iZ)
         iFOV = iFOVs(ii);
-        % fovTimeShift = (fovStartIdx(ii) - 1)*SI.hRoiManager.linePeriod; 
-        % meta.FOV(iFOV).FPGATimestamps = [imageDescription.frameTimestamps_sec]' + fovTimeShift;
-        % meta.FOV(iFOV).lineTimeShifts = [0:nLines{iZ}(ii)-1]'*SI.hRoiManager.linePeriod;
-        % meta.FOV(iFOV).timeShifts = fovStartIdx(iFOV)*SI.hRoiManager.linePeriod;
         meta.FOV(iFOV).lineIdx = (fovStartIdx(ii):fovEndIdx(ii))';
-        
     end
 end
 %TODO: figure out how to work with 'volume frames' for multi-plane data!

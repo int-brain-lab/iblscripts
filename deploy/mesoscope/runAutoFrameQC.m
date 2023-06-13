@@ -393,6 +393,7 @@ badframes = find(frameQC_frames>0)-1; %because of 0-indexing
 if sum(outliers>0)
     
     if plot_flag & sum(outliers>0)
+
         figure('Name',[fileList(1).name(1:end-16) ', Frame QC'],'Units','normalized','Position',[0.45 0.6 0.5 0.3]);
         h(1) = plot(fr,tr,'Color',[.5 .5 .5],'DisplayName','MedianTrace');
         hold on
