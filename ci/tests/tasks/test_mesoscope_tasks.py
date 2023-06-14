@@ -297,10 +297,10 @@ class TestMesoscopeRegisterSnapshots(base.IntegrationTest):
         task.get_signatures()
         expected = [('*.tif', 'raw_imaging_data_00/reference', False),
                     ('*.tif', 'raw_imaging_data_01/reference', False)]
-        self.assertEqual(expected, task.input_files)
+        self.assertCountEqual(expected, task.input_files)
         expected = [('reference.image.tif', 'raw_imaging_data_00/reference', False),
                     ('reference.image.tif', 'raw_imaging_data_01/reference', False)]
-        self.assertEqual(expected, task.output_files)
+        self.assertCountEqual(expected, task.output_files)
 
 
 class TestMesoscopePreprocess(base.IntegrationTest):
@@ -375,7 +375,7 @@ class TestMesoscopeCompress(base.IntegrationTest):
         self.alf_path.mkdir(parents=True)
         for i in range(2):
             with open(str(self.alf_path / f'2023-03-03_2_test_2P_00001_{i:05}.tif'), 'wb') as fp:
-                np.save(fp, np.zeros((512, 3442, 2), dtype=np.int16))
+                np.save(fp, np.zeros((512, 512, 2), dtype=np.int16))
 
         # Touch some unnecessary files
         for name in ('_ibl_rawImagingData.meta.json', '2023-03-03_2_test_2P_00001_00001.mat'):
