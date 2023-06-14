@@ -254,34 +254,53 @@ class TestMesoscopeSync(base.IntegrationTest):
 
 class TestMesoscopeRegisterSnapshots(base.IntegrationTest):
     session_path = None
+    one = None
 
-    def setUp(self) -> None:
-        self.one = ONE(**base.TEST_DB)
-        self.session_path = self.default_data_root().joinpath('mesoscope', 'test', '2023-02-17', '002')
-
-    def test_register_snapshots(self):
-        task = MesoscopeRegisterSnapshots(self.session_path, one=self.one)
-        eid, *_ = self.one.search()
-        with unittest.mock.patch.object(self.one, 'path2eid', return_value=eid):
-            status = task.run()
-        self.assertEqual(0, status)
-        notes = self.one.alyx.rest('notes', 'list', session=eid)  # filter doesn't work
-        self.assertEqual(4, len([n for n in notes if n['image'] and n['object_id'] == eid]))
-
-    def test_get_signature(self):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.one = ONE(**base.TEST_DB)
+        cls.session_path = cls.default_data_root().joinpath('mesoscope', 'test', '2023-02-17', '002')
+        # Create some reference images to register
         for i in range(2):
-            p = self.session_path.joinpath(
+            p = cls.session_path.joinpath(
                 f'raw_imaging_data_{i:02}', 'reference', '2023-02-17_2_test_2P_00001_00001.tif')
             if p.parents[1].exists():
-                self.addCleanup(p.unlink)
+                cls.addClassCleanup(p.unlink)
             else:
                 # For now these raw_imaging_data_0* folders are created new
-                self.addCleanup(shutil.rmtree, p.parents[1])
+                cls.addClassCleanup(shutil.rmtree, p.parents[1])
             p.parent.mkdir(parents=True, exist_ok=True)
             p.touch()
 
+    def test_register_snapshots(self):
+        """Test for MesoscopeRegisterSnapshots.
+
+        NB: More thorough tests of register_snapshots exist in
+          ibllib.tests.test_base_tasks.TestRegisterRawDataTask.test_register_snapshots
+          ibllib.tests.test_pipes.TestRegisterRawDataTask.test_rename_files
+        """
+        task = MesoscopeRegisterSnapshots(self.session_path, one=self.one)
+        eid, *_ = self.one.search()
+        with unittest.mock.patch.object(self.one, 'path2eid', return_value=eid), \
+                unittest.mock.patch.object(task, 'register_snapshots') as reg_mock:
+            status = task.run()
+            reg_mock.assert_called_once_with(collection=['raw_imaging_data_*', ''])
+        self.assertEqual(0, status)
+        # Check that the reference images were renamed and registered
+        expected = ['raw_imaging_data_00/reference/reference.image.tif',
+                    'raw_imaging_data_01/reference/reference.image.tif']
+        outputs = [o.relative_to(self.session_path).as_posix() for o in task.outputs]
+        self.assertCountEqual(expected, outputs)
+
+    def test_get_signature(self):
         task = MesoscopeRegisterSnapshots(self.session_path, one=self.one)
         task.get_signatures()
+        expected = [('*.tif', 'raw_imaging_data_00/reference', False),
+                    ('*.tif', 'raw_imaging_data_01/reference', False)]
+        self.assertEqual(expected, task.input_files)
+        expected = [('reference.image.tif', 'raw_imaging_data_00/reference', False),
+                    ('reference.image.tif', 'raw_imaging_data_01/reference', False)]
+        self.assertEqual(expected, task.output_files)
 
 
 class TestMesoscopePreprocess(base.IntegrationTest):
@@ -356,7 +375,7 @@ class TestMesoscopeCompress(base.IntegrationTest):
         self.alf_path.mkdir(parents=True)
         for i in range(2):
             with open(str(self.alf_path / f'2023-03-03_2_test_2P_00001_{i:05}.tif'), 'wb') as fp:
-                np.save(fp, np.zeros((512, 3442, 5), dtype=np.int16))
+                np.save(fp, np.zeros((512, 3442, 2), dtype=np.int16))
 
         # Touch some unnecessary files
         for name in ('_ibl_rawImagingData.meta.json', '2023-03-03_2_test_2P_00001_00001.mat'):
