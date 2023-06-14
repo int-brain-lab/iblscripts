@@ -1,4 +1,14 @@
+# Devices - list of devices used in the experiment
+# (so far we have Cameras, Microphone, Mesoscope, Neuropixel, Photometry and Widefield
 devices:
+  # All devices have the device name followed by a list of sub-devices e.g Camera -> belly, left,
+  # Neuropixel -> probe00, probe01. If only one device, the sub-device is given the same name as
+  # the device
+  # Each device must have at least the following two keys;
+  # 1. collection - the folder containing the data,
+  # 2. sync_label - the name of the ttl pulses in the channel map used to sync the timestamps
+  # Additional keys can also be specified for specific extractors, e.g for belly camera the camera
+  # metadata passed into the extractor is defined in this file
   mesoscope:
     mesoscope:
       collection: raw_imaging_data*
@@ -16,16 +26,30 @@ devices:
     right:
       collection: raw_video_data
       sync_label: audio
+# Procedures - list of procedures that apply to this experiment
 procedures:
 - Imaging
+# Projects - list of projects that apply to this experiment
 projects:
 - ibl_mesoscope_active
+# Sync - information about the syncing method used for the experiment
 sync:
+  # The device used as the main clock - currently have bpod, nidq, tdms, timeline
+  # Sync must have the following keys;
+  # 1. collection - the folder containing the sync data
+  # 2. extension - the file extension of the sync data (e.g npy or bin)
+  # Optional keys included acquisition_software - the software used to acquire the sync pulses
   nidq:
     acquisition_software: timeline
     collection: raw_sync_data
     extension: npy
+# Tasks - list of tasks run during the experiment.
 tasks:
+# Each task must have the following keys
+# 1. collection - the folder containing the task data
+# 2. sync_label - the name of the ttl pulses in the channel map used to sync the timestamps
+# Additional keys include a list of extractors to use, to extract the data from the task.
+# The order of the extractors defines their parent child relationship in the task architecture
 - _biasedChoiceWorld:
     collection: raw_task_data_00
     sync_label: bpod
@@ -34,4 +58,5 @@ tasks:
     collection: raw_task_data_01
     sync_label: bpod
     extractors: [PassiveRegisterRaw, PassiveTaskTimeline]
+# Version of the experiment description file
 version: 1.0.0
