@@ -4,7 +4,7 @@ import numpy as np
 import one.alf.io as alfio
 from one.api import ONE
 
-from ibllib.pipes.ephys_preprocessing import EphysTrials
+from ibllib.pipes.ephys_preprocessing import LaserTrialsLegacy
 from ibllib.pipes.training_preprocessing import TrainingTrials
 
 from ci.tests import base
@@ -36,13 +36,18 @@ class TestEphysTaskExtraction(base.IntegrationTest):
 
     def setUp(self) -> None:
         self.one_offline = ONE(mode='local')
-        self.session_path = self.data_path.joinpath("personal_projects/ephys_biased_opto/ZFM-01802/2021-03-10/001")
+        self.session_path = self.data_path.joinpath('personal_projects/ephys_biased_opto/ZFM-01802/2021-03-10/001')
 
     def test_ephys_biased_opto(self):
-        """Guido's task"""
+        """Guido's task
+
+        NB: This way of extracting personal projects is deprecated. Instead, a new extractor task
+        should be defined in the experiment.description file, which has its own _extract_behavior method.
+        The EphysTrials
+        """
         desired_output = list(EPHYS_TRIALS_SIGNATURE) + ['_ibl_trials.laserProbability.npy', '_ibl_trials.laserStimulation.npy']
         shutil.move(self.session_path.joinpath('alf'), self.session_path.joinpath('alf.bk'))
-        task = EphysTrials(self.session_path, one=self.one_offline)
+        task = LaserTrialsLegacy(self.session_path, one=self.one_offline)
         task.run()
         self.assertEqual(0, task.status)
         self.assertCountEqual([p.name for p in task.outputs], desired_output)
