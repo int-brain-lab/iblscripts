@@ -198,7 +198,7 @@ class TestMesoscopeSync(base.IntegrationTest):
         alf_path = self.session_path_0.joinpath('alf')
         ROI_folders = list(filter(Path.is_dir, alf_path.rglob('FOV*')))
         self.assertEqual(nROIs, len(ROI_folders))
-        ROI_times = list(alf_path.rglob('mpci.times.npy'))
+        ROI_times = sorted(list(alf_path.rglob('mpci.times.npy')))
         self.assertEqual(nROIs, len(ROI_times))
         expected = [1.106, 1.304, 1.503, 1.701, 1.899]
         np.testing.assert_array_almost_equal(np.load(ROI_times[0])[:5], expected)
@@ -297,10 +297,10 @@ class TestMesoscopeRegisterSnapshots(base.IntegrationTest):
         task.get_signatures()
         expected = [('*.tif', 'raw_imaging_data_00/reference', False),
                     ('*.tif', 'raw_imaging_data_01/reference', False)]
-        self.assertEqual(expected, task.input_files)
+        self.assertEqual(expected, sorted(task.input_files))
         expected = [('reference.image.tif', 'raw_imaging_data_00/reference', False),
                     ('reference.image.tif', 'raw_imaging_data_01/reference', False)]
-        self.assertEqual(expected, task.output_files)
+        self.assertEqual(expected, sorted(task.output_files))
 
 
 class TestMesoscopePreprocess(base.IntegrationTest):
