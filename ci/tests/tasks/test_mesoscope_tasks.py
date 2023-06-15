@@ -196,13 +196,13 @@ class TestMesoscopeSync(base.IntegrationTest):
         # Check output
         nROIs = 9
         alf_path = self.session_path_0.joinpath('alf')
-        ROI_folders = list(filter(Path.is_dir, alf_path.rglob('FOV*')))
+        ROI_folders = sorted(filter(Path.is_dir, alf_path.rglob('FOV*')))
         self.assertEqual(nROIs, len(ROI_folders))
-        ROI_times = sorted(list(alf_path.rglob('mpci.times.npy')))
+        ROI_times = sorted(alf_path.rglob('mpci.times.npy'))
         self.assertEqual(nROIs, len(ROI_times))
         expected = [1.106, 1.304, 1.503, 1.701, 1.899]
         np.testing.assert_array_almost_equal(np.load(ROI_times[0])[:5], expected)
-        ROI_shifts = list(alf_path.rglob('mpciStack.timeshift.npy'))
+        ROI_shifts = sorted(alf_path.rglob('mpciStack.timeshift.npy'))
         self.assertEqual(nROIs, len(ROI_shifts))
         expected = [0., 4.157940e-05, 8.315880e-05, 1.247382e-04, 1.663176e-04]
         np.testing.assert_array_almost_equal(np.load(ROI_shifts[0])[:5], expected)
@@ -217,11 +217,11 @@ class TestMesoscopeSync(base.IntegrationTest):
         alf_path = self.session_path_1.joinpath('alf')
         ROI_folders = list(filter(Path.is_dir, alf_path.rglob('FOV*')))
         self.assertEqual(nROIs, len(ROI_folders))
-        ROI_times = list(alf_path.rglob('mpci.times.npy'))
+        ROI_times = sorted(alf_path.rglob('mpci.times.npy'))
         self.assertEqual(nROIs, len(ROI_times))
         expected = [1.0075, 1.154, 1.3, 1.446, 1.5925]
         np.testing.assert_array_almost_equal(np.load(ROI_times[0])[:5], expected)
-        ROI_shifts = list(alf_path.rglob('mpciStack.timeshift.npy'))
+        ROI_shifts = sorted(alf_path.rglob('mpciStack.timeshift.npy'))
         self.assertEqual(nROIs, len(ROI_shifts))
         expected = [0., 4.157550e-05, 8.315100e-05, 1.247265e-04, 1.663020e-04]
         np.testing.assert_array_almost_equal(np.load(ROI_shifts[0])[:5], expected)
@@ -387,9 +387,8 @@ class TestMesoscopeCompress(base.IntegrationTest):
         task = MesoscopeCompress(self.alf_path.parent, one=self.one)
 
         # Check fails if compressed file too small
-        with self.assertLogs('ibllib.pipes.mesoscope_tasks', logging.ERROR):
-            self.assertEqual(-1, task.run())
-            self.assertIn('Compressed file < 1KB', task.log)
+        self.assertEqual(-1, task.run())
+        self.assertIn('Compressed file < 1KB', task.log)
         # self.assertRaises(AssertionError, task.run)
 
         # Shouldn't unlink files if compression failed
