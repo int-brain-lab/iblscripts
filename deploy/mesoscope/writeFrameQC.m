@@ -46,6 +46,7 @@ try
     else
         datPath = fileList(1).folder;
     end
+    fprintf('Found tiff data in %s\n',datPath);
 catch
     error('Cannot parse the data path %s.',exptName)
 end
