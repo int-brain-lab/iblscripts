@@ -6,11 +6,13 @@ import numpy as n
 import zarr
 import time
 
-def default_log(string, val=None): print(string)
+
+def default_log(string, val=None):
+    print(string)
 
 
-def block_and_svd(mov_reg, n_comp, block_shape= (1, 128, 128), block_overlaps=(0, 18, 18),
-                  t_chunk=4000, pix_chunk= 12000, n_svd_blocks_per_batch = 36, svd_dir=None,
+def block_and_svd(mov_reg, n_comp, block_shape=(1, 128, 128), block_overlaps=(0, 18, 18),
+                  t_chunk=4000, pix_chunk=12000, n_svd_blocks_per_batch=36, svd_dir=None,
                   block_validity=None, log_cb=default_log, flip_shape=False):
     if not flip_shape:
         nz, nt, ny, nx = mov_reg.shape
@@ -70,7 +72,7 @@ def block_and_svd(mov_reg, n_comp, block_shape= (1, 128, 128), block_overlaps=(0
             to_compute.append(temp)
         log_cb("Sending batch %d to dask" % batch_idx, 2)
         dask_tic = time.time()
-        xx = darr.compute(to_compute)
+        # xx = darr.compute(to_compute)
 
         dask_toc = time.time() - dask_tic
         log_cb("Dask completed in %.3f sec" % dask_toc, 2)
@@ -85,7 +87,7 @@ def block_and_svd(mov_reg, n_comp, block_shape= (1, 128, 128), block_overlaps=(0
         else:
             alpha = 0.8
             rolling_mean_batch_time = full_toc * (1 - alpha) + rolling_mean_batch_time * alpha
-            
+
         est_remaining_time = (n_batches - batch_idx) * rolling_mean_batch_time
         est_time_str = time.strftime(
             "%Hh%Mm%Ss", time.gmtime(est_remaining_time))
@@ -191,7 +193,7 @@ def run_svd_on_block(block, n_comp, svd_dir=None, save_zarr=True):
         zarrs[zarr_name] = zarr.open(zarr_path, compressor=None, mode='w',
                                      shape=arr.shape, chunks=arr.chunksize, dtype=arr.dtype)
         temp_vals.append(arr.store(zarrs[zarr_name], compute=False, lock=False))
-        
+
     return temp_vals
 
 
