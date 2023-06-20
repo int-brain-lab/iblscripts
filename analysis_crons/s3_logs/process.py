@@ -17,8 +17,8 @@ import boto3
 from botocore.exceptions import ClientError
 from one.alf.files import get_session_path
 
-from .io import REMOTE_LOG_LOCATION, LOCAL_LOG_LOCATION, _iter_objects, prepare_for_parquet, upload_table
-from . import io as s3io
+from analysis_crons.s3_logs.io import REMOTE_LOG_LOCATION, LOCAL_LOG_LOCATION, _iter_objects, prepare_for_parquet, upload_table
+from analysis_crons.s3_logs import io as s3io
 
 
 def files_accessed_this_month():
