@@ -194,18 +194,29 @@ class TestMesoscopeSync(base.IntegrationTest):
         assert status == 0
 
         # Check output
-        nROIs = 9
+        nFOVs = 9
         alf_path = self.session_path_0.joinpath('alf')
-        ROI_folders = sorted(filter(Path.is_dir, alf_path.rglob('FOV*')))
-        self.assertEqual(nROIs, len(ROI_folders))
-        ROI_times = sorted(alf_path.rglob('mpci.times.npy'))
-        self.assertEqual(nROIs, len(ROI_times))
+        FOV_folders = sorted(filter(Path.is_dir, alf_path.rglob('FOV*')))
+        self.assertEqual(nFOVs, len(FOV_folders))
+        FOV_times = sorted(alf_path.rglob('mpci.times.npy'))
+        self.assertEqual(nFOVs, len(FOV_times))
         expected = [1.106, 1.304, 1.503, 1.701, 1.899]
-        np.testing.assert_array_almost_equal(np.load(ROI_times[0])[:5], expected)
-        ROI_shifts = sorted(alf_path.rglob('mpciStack.timeshift.npy'))
-        self.assertEqual(nROIs, len(ROI_shifts))
+        np.testing.assert_array_almost_equal(np.load(FOV_times[0])[:5], expected)
+        FOV_shifts = sorted(alf_path.rglob('mpciStack.timeshift.npy'))
+        self.assertEqual(nFOVs, len(FOV_shifts))
         expected = [0., 4.157940e-05, 8.315880e-05, 1.247382e-04, 1.663176e-04]
-        np.testing.assert_array_almost_equal(np.load(ROI_shifts[0])[:5], expected)
+        np.testing.assert_array_almost_equal(np.load(FOV_shifts[0])[:5], expected)
+
+        # Test what happens when there are more frame TTLs than timestamps in the header file
+        extractor = mesoscope.MesoscopeSyncTimeline(self.session_path_0, nFOVs)
+        n_frames = 336
+        sync = {'times': np.arange(n_frames + 5), 'channels': np.zeros(n_frames + 5)}
+        chmap = {'neural_frames': 0}
+        with self.assertLogs(mesoscope.__name__) as log:
+            out, _ = extractor.extract(sync=sync, chmap=chmap)
+            self.assertEqual('WARNING', log.records[0].levelname, 'failed to log warning')
+            self.assertIn('Dropping last 5 frame times', log.output[-1])
+        self.assertEqual({n_frames}, set(map(len, out[:nFOVs])), 'failed to drop timestamps')
 
     def test_mesoscope_sync_multiple(self):
         task = MesoscopeSync(self.session_path_1, device_collection='raw_imaging_data*', one=self.one)
@@ -226,7 +237,8 @@ class TestMesoscopeSync(base.IntegrationTest):
         expected = [0., 4.157550e-05, 8.315100e-05, 1.247265e-04, 1.663020e-04]
         np.testing.assert_array_almost_equal(np.load(ROI_shifts[0])[:5], expected)
 
-    def test_get_bout_edges(self):
+    @unittest.mock.patch('ibllib.io.extractors.mesoscope.plt')
+    def test_get_bout_edges(self, plt_mock):
         """Test for ibllib.io.extractors.mesoscope.MesoscopeSyncTimeline.get_bout_edges.
 
         This tests detection with and without the _ibl_softwareEvents.log.htsv file.
@@ -246,6 +258,18 @@ class TestMesoscopeSync(base.IntegrationTest):
 
         # Test works with no events
         np.testing.assert_array_equal(bouts, extractor.get_bout_edges(frame_times, collections))
+
+        # Test display
+        plt_mock.subplots.return_value = (MagicMock(), MagicMock())
+        extractor.get_bout_edges(frame_times, collections, events.drop([2, 4, 5]), display=True)
+        plt_mock.subplots.assert_called()
+        # Check plotted bout starts equal returned values
+        ax = plt_mock.subplots.return_value[1]
+        ax.plot.assert_called()
+        plot_args = ax.plot.call_args_list[0]
+        self.assertEqual('bout start', plot_args.kwargs['label'])
+        bout_starts = np.unique(plot_args.args[0])
+        np.testing.assert_array_equal(bout_starts[~np.isnan(bout_starts)], bouts2[:, 0])
 
         # Check validation
         collections.append('raw_imaging_data_02')
