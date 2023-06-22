@@ -27,6 +27,7 @@ reg_tiff = [reg_expref '_(?<type>\w+)_(?<acq>\d+)_(?<file>\d+)'];
 if isfile(filename)
     [ff, fn, fext] = fileparts(filename);
     parsed = regexp(fn, reg_tiff, 'names');
+    fn = [fn, fext];
     subj = parsed.subject;
     % we will need the whole list of files to extract FPGA frametimes for each frame
     % here assuming the files are sorted, and only relevant .tif files are
