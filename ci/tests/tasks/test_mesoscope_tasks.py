@@ -162,18 +162,88 @@ class TestTimelineTrials(base.IntegrationTest):
         self.assertDictEqual(expected, chmap)
 
 
-@unittest.skip('TODO')
 class TestMesoscopeFOV(base.IntegrationTest):
     session_path = None
 
     def setUp(self) -> None:
         self.one = ONE(**base.TEST_DB)
-        self.session_path = self.default_data_root().joinpath('mesoscope', 'test', '2023-02-17', '002')
+        tmpdir = tempfile.TemporaryDirectory()
+        self.addCleanup(tmpdir.cleanup)
+        self.session_path = Path(tmpdir.name, 'subject', '2020-01-01', '001')
+        self.session_path.joinpath('alf').mkdir(parents=True)
+        # Make some toy datasets
+        self.n_pixels = 512  # Number of pixels xy pixels in each FOV
+        self.n_fov = 2  # Number of fields of view
+        self.n_roi = 128  # Number of ROIs (will be multiplied by FOV number)
+        self.expected_roi_mlapdv = {}  # Save the expected extracted ROI MLAPDV coordinates
+        self.offset = 5.  # Offset between pixel number and MLAPDV coordinate
+        for i in range(self.n_fov):
+            alf_path = self.session_path.joinpath('alf', f'FOV_{i:02}')
+            alf_path.mkdir()
+            # Mean image MLAPDV coordinates
+            ml = np.tile(np.arange(self.n_pixels), (self.n_pixels, 1)).astype(float) + self.offset
+            mlapdv = np.dstack([ml, ml.T, np.zeros_like(ml)])
+            np.save(alf_path / 'mpciMeanImage.mlapdv_estimate.npy', mlapdv)
+            # Mean image brain location IDs (a grid of 32x32 brain locations)
+            n_tiles = 32
+            tile_sz = self.n_pixels / n_tiles  # NB: leave as float to test re-saving as int
+            x = np.repeat(np.arange(tile_sz), n_tiles)
+            y = np.repeat(np.r_[0, (2 ** np.arange(tile_sz) * tile_sz)[:-1]], n_tiles)
+            np.save(alf_path / 'mpciMeanImage.brainLocationIds_estimate.npy', x + y[..., None])
+            # mpciROIs.stackPos (evenly spaced along the diagonal)
+            n_roi = self.n_roi * (i + 1)  # 2nd FOV has twice as many as first
+            v = np.linspace(0, self.n_pixels - 1, n_roi).astype(int)
+            roi_mlapdv = np.vstack([v, v, np.zeros_like(v)]).T
+            self.expected_roi_mlapdv[i] = np.c_[roi_mlapdv[:, :2] + self.offset, roi_mlapdv[:, 2]]
+            np.save(alf_path / 'mpciROIs.stackPos.npy', roi_mlapdv)
+        # For now the meta only contains number of FOVs
+        alf_path = self.session_path.joinpath('raw_imaging_data')
+        alf_path.mkdir()
+        with open(alf_path / '_ibl_rawImagingData.meta.json', 'w') as fp:
+            fp.write('{"FOV":[%s]}' % ','.join(['{}'] * self.n_fov))
 
     def test_mesoscope_fov(self):
+        """Test the full MesoscopeFOV task"""
+        # Test generation of mpciROI datasets
         task = MesoscopeFOV(self.session_path, device_collection='raw_imaging_data', one=self.one)
-        status = task.run()
-        assert status == 0
+        self.assertEqual(0, task.run())
+        self.assertEqual(self.n_fov * 4, len(task.outputs))
+        # Mean image brain locations should be int
+        file = next(f for f in task.outputs if 'mpciMeanImage.brainLocationIds_estimate' in f.name)
+        self.assertIs(np.load(file).dtype, np.dtype('int'))
+        # Check ROI MLAPDV and brain locations
+        rois = alfio.load_object(self.session_path / 'alf' / 'FOV_00', 'mpciROIs')
+        expected = {'brainLocationIds_estimate', 'mlapdv_estimate', 'stackPos'}
+        self.assertCountEqual(expected, rois.keys())
+        expected = self.expected_roi_mlapdv[0]
+        np.testing.assert_array_equal(expected, rois['mlapdv_estimate'])
+        expected = np.repeat(np.array([0, 17, 34, 67]), 8)
+        self.assertIs(rois['brainLocationIds_estimate'].dtype, np.dtype(int))
+        np.testing.assert_array_equal(expected, rois['brainLocationIds_estimate'][:32])
+
+        # Test that we preferentially use the final coordinates
+        # Copy data from another FOV and use as final
+        for file in self.session_path.joinpath('alf', 'FOV_01').glob('mpciMeanImage.*'):
+            file = file.replace(file.with_name(file.name.replace('_estimate', '')))
+            shutil.copy(file, self.session_path.joinpath('alf', 'FOV_00', file.name))
+        task = MesoscopeFOV(self.session_path, device_collection='raw_imaging_data', one=self.one)
+        self.assertEqual(0, task.run())
+        self.assertEqual(self.n_fov * 4, len(task.outputs))
+        self.assertFalse(any('_estimate' in x.name for x in task.outputs))
+        rois = alfio.load_object(self.session_path / 'alf' / 'FOV_00', 'mpciROIs')
+        expected = {'brainLocationIds', 'mlapdv', 'stackPos'}
+        self.assertTrue(expected <= set(rois.keys()))
+
+        # Check behaviour when there are incomplete datasets
+        self.session_path.joinpath('alf', 'FOV_00', 'mpciROIs.stackPos.npy').unlink()
+        self.assertRaises(FileNotFoundError, task.roi_mlapdv, self.n_fov)
+        # Should exit early if no mean image datasets found
+        for file in self.session_path.rglob('*meanImage*'):
+            file.unlink()
+        task = MesoscopeFOV(self.session_path, device_collection='raw_imaging_data', one=self.one)
+        with self.assertLogs('ibllib.pipes.mesoscope_tasks', 'ERROR'):
+            self.assertEqual(0, task.run())  # For now allow task to complete
+        self.assertFalse(task.outputs)
 
 
 class TestMesoscopeSync(base.IntegrationTest):
