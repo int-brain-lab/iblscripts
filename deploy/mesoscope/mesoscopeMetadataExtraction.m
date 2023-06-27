@@ -356,7 +356,7 @@ function metaOut = projectMLAPDV(meta)
 
 metaOut = meta;
 % prepare for 3D projection onto brain surface
-% TO DO: get these atlas files onto a remote repo?
+% TODO: get these atlas files onto a remote repo?
 try
     surfaceData = load('mlapdvAtlas.mat');
 catch
