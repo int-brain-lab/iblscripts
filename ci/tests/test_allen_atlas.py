@@ -17,6 +17,10 @@ class TestAtlasSlicesConversion(unittest.TestCase):
         self.ba.compute_regions_volume()
         # 'AAA' aid 23, index 594 1921, one sided volume should be around 1/4 of a sq. mm
         np.testing.assert_allclose(self.ba.regions.volume[594], 0.247453125)
+        np.testing.assert_allclose(self.ba.regions.volume[31], 0)
+        # test the cumulative hierarchy volume
+        self.ba.compute_regions_volume(cumsum=True)
+        np.testing.assert_allclose(self.ba.regions.volume[31], 16.666015625)
 
     def test_simple(self):
         ba = self.ba
