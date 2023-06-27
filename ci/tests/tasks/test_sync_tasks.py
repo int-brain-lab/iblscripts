@@ -1,6 +1,7 @@
 import logging
 import shutil
 
+from one.api import ONE
 from ibllib.pipes.sync_tasks import SyncRegisterRaw, SyncMtscomp, SyncPulses
 
 from ci.tests import base
@@ -47,15 +48,12 @@ class TestSyncRegisterRaw(base.IntegrationTest):
 
     def test_register(self):
         task = SyncRegisterRaw(self.session_path, sync_collection=self.sync_collection, sync=self.sync, sync_ext=self.sync_ext,
-                               sync_namespace=self.sync_namespace)
+                               sync_namespace=self.sync_namespace, one=ONE(**base.TEST_DB))
         status = task.run()
 
-        assert status == 0
-
-        for exp_files in task.signature['output_files']:
-            file = next(self.session_path.joinpath(exp_files[1]).glob(exp_files[0]), None)
-            assert file.exists()
-            assert file in task.outputs
+        self.assertEqual(0, status)
+        self.assertIn(self.daq_file, task.outputs)
+        self.assertIn(self.wiring_file, task.outputs)
 
     def tearDown(self) -> None:
         shutil.rmtree(self.session_path.parent)
