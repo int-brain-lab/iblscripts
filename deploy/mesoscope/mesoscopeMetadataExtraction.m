@@ -1,21 +1,21 @@
-function meta = mesoscopeMetadataExtraction(filename, options)
+function meta = mesoscopeMetadataExtraction(filename, varargin)
 
 if nargin < 1
     %filename = 'D:\Subjects\test\2023-01-31\1\2023-01-31_1_test_2P_00001_00001.tif';
     %filename = 'M:\Subjects\SP035\2023-03-03\001\raw_imaging_data_01\2023-03-03_1_SP035_2P_00001_00001.tif';
     error('Must provide a valid data path.')
 end
-% TODO only default fill fields that do not exist in the options structure
-if nargin < 2
-    options = struct;
-    % from surgery - centre of the window in mm in AP/ML coordinates
-    options.centerMM.ML = 2.7;
-    options.centerMM.AP = -2.6;
-    % image orientations and seen in ScanImage window relative to AP/ML axes
-    options.positiveML = [0, -1]; %'up'; [0,0] is top left corner, right and down are positive
-    options.positiveAP = [-1, 0]; %'left';
-end
 
+% User parameters
+p = inputParser;
+p.addParameter('positiveML', [0, -1], @isnumeric)
+p.addParameter('positiveAP', [-1, 0], @isnumeric)
+p.addParameter('centerML', 2.7, @isnumeric)
+p.addParameter('centerAP', -2.6, @isnumeric)
+p.addParameter('alyx', Alyx('',''), @(v)isa(v,'Alyx'))
+p.parse(varargin{:})
+
+alyx = p.Results.alyx;
 
 %% figure out file paths and parse animal name
 
@@ -45,25 +45,24 @@ else
                 ExpRefs = dat.listExps(subj);
                 ExpRef = ExpRefs{end};
                 %then as ExpRef
-            elseif ~contains(exptName,'\') && dat.expExists(filename)
-                ExpRef = exptName;
-                subj = dat.parseExpRef(ExpRef);
+            elseif ~contains(filename,'\') && dat.expExists(filename)
+                ExpRef = filename;
             else
                 error('%s is not a valid animal name, expRef, or tiff data path.',filename)
             end
             datPath = dat.expPath(ExpRef,'local');
-            ff = datPath{1};
-        else
-            ff = fileList(1).folder;
-            fn = fileList(1).name;
-            parsed = regexp(fn, reg_tiff, 'names');
-            subj = parsed.subject;
+            fileList = dir(fullfile(datPath{1},'*.tif'));
         end
+        ff = fileList(1).folder;
+        fn = fileList(1).name;
+        parsed = regexp(fn, reg_tiff, 'names');
+        subj = parsed.subject;
     catch
         error('Cannot parse the data path %s.',filename)
     end
 end
 fullfilepath = fullfile(ff,fn);
+fprintf('%s\n',ff);
 
 %% Generate the skeleton of the output struct
 meta = struct();
@@ -80,8 +79,8 @@ meta.laserPowerCalibration.dualV = linspace(0, 2, 101); % calibration data imagi
 meta.laserPowerCalibration.dualPrc = linspace(0, 100, 101); % calibration data imaging/dual etc.
 
 % once per rig configuration (i.e. flipping axes, rotating animal)
-meta.imageOrientation.positiveML = options.positiveML;
-meta.imageOrientation.positiveAP = options.positiveAP;
+meta.imageOrientation.positiveML = p.Results.positiveML;
+meta.imageOrientation.positiveAP = p.Results.positiveAP;
 
 % animal based
 % extracted from ScanImage header
@@ -92,10 +91,10 @@ meta.centerMM.y = NaN; % in mm, but still in SI coords
 
 % extracted from Alyx (if possible)
 try
-    [meta.centerMM.ML, meta.centerMM.AP] = getCraniotomyCoordinates(subj); % from surgery - centre of the window
+    [meta.centerMM.ML, meta.centerMM.AP] = getCraniotomyCoordinates(subj,'alyx',alyx); % from surgery - centre of the window
 catch
-    meta.centerMM.ML = options.centerMM.ML;
-    meta.centerMM.AP = options.centerMM.AP;
+    meta.centerMM.ML = p.Results.centerML;
+    meta.centerMM.AP = p.Results.centerAP;
     warning('Could not find craniotomy coordinates in alyx, please upload using update_craniotomy.py... Writing dummy coordinates.');
     %TO DO input manually here? Abort script if not found?
 end
