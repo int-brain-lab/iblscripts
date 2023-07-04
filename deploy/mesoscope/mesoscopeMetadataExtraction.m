@@ -51,7 +51,10 @@ else
                 error('%s is not a valid animal name, expRef, or tiff data path.',filename)
             end
             datPath = dat.expPath(ExpRef,'local');
-            fileList = dir(fullfile(datPath{1},'*.tif'));
+            fileList = dir(fullfile(datPath{1},'*.tif'));   
+            if isempty(fileList)
+                warning('%s does not exist or does not contain tiffs\n',datPath{1});
+            end
         end
         ff = fileList(1).folder;
         fn = fileList(1).name;
@@ -104,29 +107,32 @@ meta.rawScanImageMeta = struct; % SI config and all the header info from tiff
 meta.PMTGain = []; %TO DO input manually
 meta.channelSaved = [];
 
-% for each FOV
-% extracted directly from the header
-% make sure dual plane case is taken care of
-meta.FOV.topLeftDeg = [NaN, NaN, NaN];
-meta.FOV.topRightDeg = [NaN, NaN, NaN];
-meta.FOV.bottomLeftDeg = [NaN, NaN, NaN];
-meta.FOV.bottomRightDeg = [NaN, NaN, NaN];
-% after rotation we will get these:
-meta.FOV.topLeftMM = [NaN, NaN, NaN];
-meta.FOV.topRightMM = [NaN, NaN, NaN];
-meta.FOV.bottomLeftMM = [NaN, NaN, NaN];
-meta.FOV.bottomRightMM = [NaN, NaN, NaN];
+% for each FOV (extracted directly from the header)
+% TODO make sure dual plane case is taken care of
+meta.FOV.slice_id = NaN; %unique identifier of this FOV's slice in stack
+meta.FOV.stack_id = NaN; %unique identifier of this FOV's roi
+meta.FOV.Zs = NaN; % RF depth(s) of the slice (length 2 for dual-plane?)
+% coordinates of all corners of the FOV in scope coords
+meta.FOV.Deg.topLeft = [NaN, NaN, NaN];
+meta.FOV.Deg.topRight = [NaN, NaN, NaN];
+meta.FOV.Deg.bottomLeft = [NaN, NaN, NaN];
+meta.FOV.Deg.bottomRight = [NaN, NaN, NaN];
+% coordinates after 3D projection
+meta.FOV.MM.topLeft = [NaN, NaN, NaN];
+meta.FOV.MM.topRight = [NaN, NaN, NaN];
+meta.FOV.MM.bottomLeft = [NaN, NaN, NaN];
+meta.FOV.MM.bottomRight = [NaN, NaN, NaN];
 
 % these are the valid lines that hold the data (sans black stripes)
 meta.FOV.lineIdx = NaN; % which lines belong to this FOV in a single tiff frame
-meta.FOV.lineTimeShifts = NaN; % [nLines, nPixels] line acquisition time shift relative to the beginning of a tiff frame
+%meta.FOV.lineTimeShifts = NaN; % [nLines, nPixels] line acquisition time shift relative to the beginning of a tiff frame
 
 meta.FOV.nXnYnZ = [NaN, NaN, 1]; % number of pixels in the images
 % use meta.channelConfig to figure out correct indices
 % meta.FOV.channelIdx = []; % {[1, 3], [2, 4], [1, 2], [3, 4], [1,2,3,4]} - GreenChannels == 1,2, RedChannels = 3,4
-meta.FOV.imagingLaserPowerPrc = [];
-meta.FOV.dualPlaneLaserPowerPrc = [];
-meta.FOV.laserPowerW = [];
+%meta.FOV.imagingLaserPowerPrc = [];
+%meta.FOV.dualPlaneLaserPowerPrc = [];
+%meta.FOV.laserPowerW = [];
 
 
 %%
@@ -184,7 +190,7 @@ end
 fprintf('\n')
 meta.acquisitionStartTime = imageDescription(1).epoch;
 meta.nFrames = nFramesAccum;
-%TO DO add nVolumeFrames (for multi-channel / multi-depth data)
+%TODO add nVolumeFrames (for multi-channel / multi-depth data)
 
 %% useful SI parameters
 meta.scanImageParams = struct('objectiveResolution', SI.objectiveResolution);
@@ -200,6 +206,7 @@ meta.scanImageParams.hRoiManager = struct(...
     'scanVolumeRate', SI.hRoiManager.scanVolumeRate,...
     'linePeriod', SI.hRoiManager.linePeriod);
 meta.scanImageParams.hStackManager = struct(...
+    'numSlices', SI.hStackManager.zs,...
     'zs', SI.hStackManager.zs,...
     'zsRelative', SI.hStackManager.zsRelative,...
     'zsAllActuators', SI.hStackManager.zsAllActuators);
@@ -245,58 +252,83 @@ meta.coordsTF = TF;
 si_rois_all = fArtist.RoiGroups.imagingRoiGroup.rois;
 si_rois = si_rois_all(logical([si_rois_all.enable])); %only consider the rois that were 'enabled'
 
-nFOVs = numel(si_rois);
-nLines_allFOVs = nan(nFOVs, 1);
-for iFOV = 1:nFOVs
-    cXY = si_rois(iFOV).scanfields.centerXY';
-    sXY = si_rois(iFOV).scanfields.sizeXY';
-    nXnY = si_rois(iFOV).scanfields(1).pixelResolutionXY';
-    
-    meta.FOV(iFOV).nXnYnZ = [nXnY, 1];
-    meta.FOV(iFOV).topLeftDeg = cXY + sXY.*[-1, -1]/2;
-    meta.FOV(iFOV).topRightDeg = cXY + sXY.*[1, -1]/2;
-    meta.FOV(iFOV).bottomLeftDeg = cXY + sXY.*[-1, 1]/2;
-    meta.FOV(iFOV).bottomRightDeg = cXY + sXY.*[1, 1]/2;
-    
-    centerDegXY = [meta.centerDeg.x, meta.centerDeg.y];
-    meta.FOV(iFOV).topLeftMM = [meta.FOV(iFOV).topLeftDeg - centerDegXY, 1]*TF;
-    meta.FOV(iFOV).topRightMM = [meta.FOV(iFOV).topRightDeg - centerDegXY, 1]*TF;
-    meta.FOV(iFOV).bottomLeftMM = [meta.FOV(iFOV).bottomLeftDeg - centerDegXY, 1]*TF;
-    meta.FOV(iFOV).bottomRightMM = [meta.FOV(iFOV).bottomRightDeg - centerDegXY, 1]*TF;
-    
-    nLines_allFOVs(iFOV) = meta.FOV(iFOV).nXnYnZ(2);
-end
-nValidLines_allFOVs = sum(nLines_allFOVs);
+%we define a IBL FOV as a unique combination of 'scanimage roi' and 'slice depth'
 
-%deal with z-stacks where each FOV is a discrete plane
-%(TO DO deal with non-discrete planes: check SI.hStackManager.numFramesPerVolume)
-nZs=1; Zidxs=ones(1,nFOVs);
-if all([si_rois.discretePlaneMode])
-    Zs = [si_rois.zs];
-    Zvals = unique(Zs);
-    nZs = length(Zvals);
-    for i = 1:length(Zs)
-        Zidxs(i)=find(Zvals==Zs(i));
+%look up the depths we used
+% if SI.hStackManager.enable
+    Zs = SI.hStackManager.zs;
+% else
+%     Zs = [si_rois.zs];
+% end
+Zvals = unique(Zs); %NB this automatically sorts ascendingly
+nZs = length(Zvals); %total number of depths defined
+nrois = numel(si_rois); %total number of si_rois defined
+
+%create a logical array of nrois * ndepths telling us at which depth a FOV exists
+i_roi_depth = false(nrois,nZs);
+for iroi = 1:nrois
+    if si_rois(iroi).discretePlaneMode
+        for iSlice = 1:length(si_rois(iroi).zs)
+            [~,~,ii] = intersect(si_rois(iroi).zs(iSlice),Zvals);
+            i_roi_depth(iroi,ii) = true;
+        end
+    else
+        i_roi_depth(iroi,:) = true;
     end
 end
+nFOVs = sum(i_roi_depth(:));
+
+%get info for each FOV
+iFOV = 0;
+for iSlice = 1:nZs
+    for iRoi = 1:nrois
+        if i_roi_depth(iRoi,iSlice)
+            
+            iFOV = iFOV+1;
+            
+            cXY = si_rois(iRoi).scanfields.centerXY';
+            sXY = si_rois(iRoi).scanfields.sizeXY';
+            nXnY = si_rois(iRoi).scanfields(1).pixelResolutionXY';
+            
+            meta.FOV(iFOV).slice_id = iSlice-1; %assuming 0-indexing
+            meta.FOV(iFOV).stack_id = iRoi-1;            
+            meta.FOV(iFOV).Zs = Zvals(iSlice);
+            
+            meta.FOV(iFOV).nXnYnZ = [nXnY, 1];
+            meta.FOV(iFOV).Deg.topLeft = cXY + sXY.*[-1, -1]/2;
+            meta.FOV(iFOV).Deg.topRight = cXY + sXY.*[1, -1]/2;
+            meta.FOV(iFOV).Deg.bottomLeft = cXY + sXY.*[-1, 1]/2;
+            meta.FOV(iFOV).Deg.bottomRight = cXY + sXY.*[1, 1]/2;
+            
+            centerDegXY = [meta.centerDeg.x, meta.centerDeg.y];
+            meta.FOV(iFOV).MM.topLeft = [meta.FOV(iFOV).Deg.topLeft - centerDegXY, 1]*TF;
+            meta.FOV(iFOV).MM.topRight = [meta.FOV(iFOV).Deg.topRight - centerDegXY, 1]*TF;
+            meta.FOV(iFOV).MM.bottomLeft = [meta.FOV(iFOV).Deg.bottomLeft - centerDegXY, 1]*TF;
+            meta.FOV(iFOV).MM.bottomRight = [meta.FOV(iFOV).Deg.bottomRight - centerDegXY, 1]*TF;
+
+            nLines_allFOVs(iFOV) = meta.FOV(iFOV).nXnYnZ(2);
+        end
+    end
+end
+
 %maxnFOVsPerZ = ceil(nFOVs/nZs); %might be useful if nFOVs per Z isn't equal across Zs
 
 %find which lines correspond to which FOV in each slice in the z-stack
 %WARNING: this works for adjacent FOVs with the same nr of lines, but hasn't been tested yet for multi-plane data with unequal FOV sizes
 nLines = cell(1, nZs);
 nValidLines = zeros(1, nZs);
-for iZ = 1:nZs
+for iSlice = 1:nZs
     % get FOV info for each slice in the z-stack
-    nFOVs(iZ) = sum(Zidxs==iZ);
-    nValidLines(iZ) = sum(nLines_allFOVs(Zidxs==iZ));
-    nLines{iZ} = nLines_allFOVs(Zidxs==iZ);
-    
-    nLinesPerGap = (fInfo(1).Height - nValidLines(iZ)) / (nFOVs(iZ) - 1);
-    fovStartIdx = [1; cumsum(nLines{iZ}(1:end-1) + nLinesPerGap) + 1];
-    fovEndIdx = fovStartIdx + nLines{iZ} - 1;
-    iFOVs = find(Zidxs==iZ);
-    % Save line indexes and timestamps per FOV per z-slice
-    for ii = 1:nFOVs(iZ)
+    iFOVs_at_this_z = [meta.FOV.Zs]==Zvals(iSlice);
+    nFOVs_at_this_z(iSlice) = sum(iFOVs_at_this_z);
+    nValidLines(iSlice) = sum(nLines_allFOVs(iFOVs_at_this_z));
+    nLines{iSlice} = nLines_allFOVs(iFOVs_at_this_z);
+    nLinesPerGap = (fInfo(1).Height - nValidLines(iSlice)) / (nFOVs_at_this_z(iSlice) - 1);
+    fovStartIdx = [1, cumsum(nLines{iSlice}(1:end-1) + nLinesPerGap) + 1];
+    fovEndIdx = fovStartIdx + nLines{iSlice} - 1;
+    iFOVs = find(iFOVs_at_this_z);
+    % Save line indexes per FOV per z-slice
+    for ii = 1:nFOVs_at_this_z(iSlice)
         iFOV = iFOVs(ii);
         meta.FOV(iFOV).lineIdx = (fovStartIdx(ii):fovEndIdx(ii))';
     end
@@ -305,13 +337,13 @@ end
 
 [ff_top,ff_raw] = fileparts(ff);
 
-% 3D projection on the brain surface
-%TO DO: only need to do this for the first raw_imaging_data folder
-meta = projectMLAPDV(meta);
-
 % Save raw FPGA timestamps array
 timestamps_filename = fullfile(ff, 'rawImagingData.times_scanImage.npy');
 writeNPY([imageDescription.frameTimestamps_sec]', timestamps_filename)
+
+% 3D projection on the brain surface
+%TODO: only need to do this for the first raw_imaging_data folder
+meta = projectMLAPDV(meta);
 
 % Save 3D projection data in separate npy files
 % saves them as 'stitched arrays', similar to the raw tiff frames where the
@@ -328,7 +360,6 @@ for iFOV = 1:length(meta.FOV)
         writeNPY(atlasAnnotation, annotation_filename)
     end
 end
-
 % remove the big data arrays from json
 metaForJson = meta;
 FOV = metaForJson.FOV;
@@ -404,11 +435,11 @@ for iFOV = 1:nFOVs
     [xPixIdx, yPixIdx] = meshgrid(1:meta.FOV(iFOV).nXnYnZ(1), 1:meta.FOV(iFOV).nXnYnZ(2));
     % xx and yy are in mm in coverslip space
     xx = interp2([1, meta.FOV(iFOV).nXnYnZ(1)], [1, meta.FOV(iFOV).nXnYnZ(2)], ...
-        [meta.FOV(iFOV).topLeftMM(1), meta.FOV(iFOV).topRightMM(1); ...
-        meta.FOV(iFOV).bottomLeftMM(1), meta.FOV(iFOV).bottomRightMM(1)], xPixIdx, yPixIdx);
+        [meta.FOV(iFOV).MM.topLeft(1), meta.FOV(iFOV).MM.topRight(1); ...
+        meta.FOV(iFOV).MM.bottomLeft(1), meta.FOV(iFOV).MM.bottomRight(1)], xPixIdx, yPixIdx);
     yy = interp2([1, meta.FOV(iFOV).nXnYnZ(1)], [1, meta.FOV(iFOV).nXnYnZ(2)], ...
-        [meta.FOV(iFOV).topLeftMM(2), meta.FOV(iFOV).topRightMM(2); ...
-        meta.FOV(iFOV).bottomLeftMM(2), meta.FOV(iFOV).bottomRightMM(2)], xPixIdx, yPixIdx);
+        [meta.FOV(iFOV).MM.topLeft(2), meta.FOV(iFOV).MM.topRight(2); ...
+        meta.FOV(iFOV).MM.bottomLeft(2), meta.FOV(iFOV).MM.bottomRight(2)], xPixIdx, yPixIdx);
     xx = xx(:) - coordML;
     yy = yy(:) - coordAP;
     
