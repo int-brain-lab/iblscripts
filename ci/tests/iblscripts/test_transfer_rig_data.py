@@ -16,7 +16,7 @@ from ibllib.pipes.misc import check_create_raw_session_flag
 from deploy.videopc.transfer_video_session import main as transfer_video_session
 from deploy.widefieldpc.transfer_widefield import main as transfer_widefield
 from deploy.transfer_data_folder import main as transfer_data_folder
-from deploy.transfer_data import main as transfer_data
+from deploy.transfer_data import transfer_sessions as transfer_data
 from deploy.consolidate_sessions import main as consolidate_sessions
 
 from ci.tests import base

@@ -94,9 +94,7 @@ def transfer_session(session, params=None):
     return status
 
 
-def main(local=None, remote=None):
-    # logging configuration
-
+def transfer_sessions(local=None, remote=None):
     # Determine if user passed in arg for local/remote subject folder locations or pull in from
     # local param file or prompt user if missing
     params = create_basic_transfer_params(local_data_path=local, remote_data_path=remote)
@@ -135,4 +133,4 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--local', default=False, required=False, help='Local iblrig_data/Subjects folder')
     parser.add_argument('-r', '--remote', default=False, required=False, help='Remote iblrig_data/Subjects folder')
     args = parser.parse_args()
-    main(args.data_folder, args.local)
+    transfer_sessions(args.data_folder, args.local)
