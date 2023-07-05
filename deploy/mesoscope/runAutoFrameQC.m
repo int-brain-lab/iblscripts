@@ -41,8 +41,8 @@ Ly_all = arrayfun(@(x) x.scanfields(1).pixelResolutionXY(2),si_rois);
 Zs = [si_rois.zs];
 Zvals = unique(Zs);
 nZs = length(Zvals);
-for iZ = 1:length(Zs)
-    Zidxs(iZ)=find(Zvals==Zs(iZ));
+for iSlice = 1:length(Zs)
+    Zidxs(iSlice)=find(Zvals==Zs(iSlice));
 end
 
 if length(SI.hChannels.channelSave)==1
@@ -50,21 +50,22 @@ if length(SI.hChannels.channelSave)==1
     fprintf('Single channel detected...\n');
     
     %if ~SI.hStackManager.enable & nZs==1 %for single plane, single channel
-        fprintf('No z-stack found, treating as single plane...\n');
-        Ly = Ly_all;
-        n_rows_sum = sum(Ly);
-        n_flyback = (fInfo(1).Height - n_rows_sum) / max(1, (nrois - 1));
-        irows = [0 cumsum(Ly'+n_flyback)]+1; %MATLAB indexing!
-        irows(end) = [];
-        irows(2,:) = irows(1,:) + Ly' - 1;
-        validLines = {[]};
-        for i = 1:nrois
-            validLines{1} = [validLines{1} irows(1,i):(irows(2,i))];
-        end
-        fprintf('Found %i FOVs, %i valid lines out of %i.\n',nrois,length(validLines{1}),fInfo(1).Height);
-        
-    %elseif SI.hStackManager.enable & all([si_rois.discretePlaneMode]) %several discrete planes, single channel
-        
+%         fprintf('No z-stack found, treating as single plane...\n');
+%         Ly = Ly_all;
+%         n_rows_sum = sum(Ly);
+%         n_flyback = (fInfo(1).Height - n_rows_sum) / max(1, (nrois - 1));
+%         irows = [0 cumsum(Ly'+n_flyback)]+1; %MATLAB indexing!
+%         irows(end) = [];
+%         irows(2,:) = irows(1,:) + Ly' - 1;
+%         validLines = {[]};
+%         for i = 1:nrois
+%             validLines{1} = [validLines{1} irows(1,i):(irows(2,i))];
+%         end
+%         fprintf('Found %i FOVs, %i valid lines out of %i.\n',nrois,length(validLines{1}),fInfo(1).Height);
+%         
+    %if SI.hStackManager.enable & all([si_rois.discretePlaneMode]) %several discrete planes, single channel
+    if all([si_rois.discretePlaneMode]) %several discrete planes, single channel
+    
         fprintf('Treating as z-stack with multiple discrete planes...\n');
         
         %FOV = struct('lineIdx',double.empty(0,nrois));
@@ -94,7 +95,38 @@ if length(SI.hChannels.channelSave)==1
             fprintf('Slice %i: Found %i FOVs, %i valid lines out of %i.\n',islices(iZ),nFOVs(iZ),length(validLines{iZ}),fInfo(1).Height);
             
         end
-    %end
+        
+    elseif SI.hStackManager.enable & nZs==1 & SI.hStackManager.numSlices>1 %'stack' imaging where each FOV is defined on all slices
+        
+        fprintf('Treating as z-stack with continuously defined FOVs...\n');
+        
+        nZs = SI.hStackManager.numSlices; %overwrite with number of slices
+        islices = 1:nZs;
+        nFOVs = zeros(1,nZs); %nr of FOVs per z-plane
+        n_rows_sum = zeros(1, nZs);
+        irows = double.empty(2,0);
+        validLines = {};
+        for iSlice = 1:nZs
+            % get FOV info for each slice in the z-stack
+            nFOVs(iSlice) = sum(~[si_rois.discretePlaneMode]); %nr of FOVs in this slice
+            Ly = Ly_all(~[si_rois.discretePlaneMode]); %indexes of valid lines in this slice
+            n_rows_sum(iSlice) = sum(Ly); %nr of valid lines in this slice
+            n_flyback = (fInfo(1).Height - n_rows_sum(iSlice)) / max(1, (nFOVs(iSlice) - 1)); %nr of flyback/flyto lines
+            irow = [0 cumsum(Ly'+n_flyback)]+1; %MATLAB indexing!
+            irow(end) = [];
+            irow(2,:) = irow(1,:) + Ly' - 1;
+            irows = horzcat(irows,irow);
+            
+            iFOVs = find(~[si_rois.discretePlaneMode]); %the FOVs that are contained in this plane
+            
+            validLines{iSlice} = [];
+            for i = 1:nFOVs(iSlice)
+                validLines{iSlice} = [validLines{iSlice} irow(1,i):(irow(2,i))];
+            end
+            fprintf('Slice %i: Found %i FOVs, %i valid lines out of %i.\n',islices(iSlice),nFOVs(iSlice),length(validLines{iSlice}),fInfo(1).Height);
+            
+        end
+    end
     
     
 else
@@ -130,10 +162,10 @@ stdTrace_all = [];
 maxTrace_all = []; 
 medianTrace_all = []; 
 
-for iZ = 1:nZs
+for iSlice = 1:nZs
 
 %islice = Zvals(iZ);
-fprintf('\nSlice nr. %i\n',iZ);
+fprintf('\nSlice nr. %i\n',iSlice);
 
 %initialize variables
 frames_sampled = [];
@@ -170,7 +202,7 @@ for iFile = 1:nFiles
     lastFrameToRead = lastFrameToRead-FramesInFile;
     
     %make vector of frame indexes
-    iSlice = sliceIdx(lastframe_all+iZ);
+    iSlice = sliceIdx(lastframe_all+iSlice);
     framenrs = (iSlice+options.firstFrame-1):options.frameStride:options.lastFrame;
     totFrames_idx = lastframe_all+framenrs;
     frames_sampled = [frames_sampled totFrames_idx];
@@ -183,7 +215,7 @@ for iFile = 1:nFiles
     
     lastframe_all = lastframe_all+FramesInFile;
     volframe_all = volframe_all+ceil(FramesInFile/nZs);
-    
+
     superFrames_idx = superFrames_cnt + [1:length(framenrs)];
     superFrames_cnt = superFrames_cnt + length(framenrs);
     
@@ -193,9 +225,9 @@ for iFile = 1:nFiles
     
     
     % for convenience, only consider valid lines of first slice for overall stats
-    if iZ==1
+    if iSlice==1
         
-        stack = stack_full(validLines{iZ},:,:);
+        stack = stack_full(validLines{iSlice},:,:);
         stack_flat = single(reshape(stack,[size(stack,1)*size(stack,2),size(stack,3)]));
         
         %get some stats across all pixels of stack
@@ -214,8 +246,12 @@ for iFile = 1:nFiles
     end
     
     %get info for each FOV
-    nrois = nFOVs(iZ); %length(islices==iSlice);
-    iFOVs = find(Zidxs==iZ); %the FOVs that are contained in this plane
+    nrois = nFOVs(iSlice); %length(islices==iSlice);
+    if all([si_rois.discretePlaneMode])
+        iFOVs = find(Zidxs==iSlice); %the FOVs that are contained in this plane
+    else
+        iFOVs = find(~[si_rois.discretePlaneMode]);
+    end
     traceFOV_median = nan(nrois,length(framenrs));
     traceFOV_mean = nan(nrois,length(framenrs));
     traceFOV_max = nan(nrois,length(framenrs));
@@ -283,9 +319,11 @@ if plot_flag
     %legend()
     
     linkaxes(ax,'x');
-    xlim([0,TotNumFrames])
+    xlim([0,volframe_all])
+    xlim([0,volframe_all])
     
     c = colororder;
+    c = repmat(c,3,1); %just in case we have more than 7 FOVs
     
     %plot each FOV mean image across stacks (either downsampled full img or central patch)
     dsFactor = 4;
@@ -324,13 +362,13 @@ end
 
 %define QC types
 frameQC_names = {'ok','PMT off','galvos fault','high signal'};
-frameQC_frames = zeros(1,TotNumFrames);
+frameQC_frames = zeros(1,volframe_all);
 badframes = []; %by default there are no badframes and all frames are 'ok'
 
 %first we find outlier frames
 tr = medianTrace_all;
 fr = volFrames_sampled;
-fr_all = 1:TotNumFrames;
+fr_all = 1:volframe_all;
 st = options.frameStride;
 
 C = median(tr);
@@ -407,7 +445,7 @@ if sum(outliers>0)
         yline(C,':','Central Value');
         xlabel('Frame nr')
         ylabel('F');
-        xlim([0,TotNumFrames])
+        xlim([0,volframe_all])
         legend(h);
     end
     
