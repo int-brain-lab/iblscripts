@@ -39,7 +39,7 @@ if any(diff(diff([fInfo.Offset])))
 else
     % this is the simple case, where all the headers are the same size
     % search for the beginning of the first image (also skip the first header)
-    fseek(fid, firstOffset + interFrameOffset, 'bof');
+    fseek(fid, fInfo(options.firstFrame).Offset + interFrameOffset, 'bof');
     % read only image data, skipping the headers
     bytesPerFullFrame = diff([fInfo(1:2).Offset]);
     extraSkipBytes = (options.frameStride - 1) * bytesPerFullFrame;
