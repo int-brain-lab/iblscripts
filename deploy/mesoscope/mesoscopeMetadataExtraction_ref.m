@@ -35,7 +35,7 @@ if isfile(filename)
     parsed = regexp(fn, reg_tiff, 'names');
     fn = [fn, fext];
     subj = parsed.subject;
-    %subj = 'SP037';
+    %subj = 'SP043';
     fileList = dir(fullfile(ff, ['*', fext]));
 else
     %try as a final data path
@@ -141,7 +141,7 @@ end
 nFiles = numel(fileList);
 nFramesAccum = 0;
 fprintf('Extracting metadata from tiff nr. ');
-for iFile = 1:nFiles
+for iFile = 1%:nFiles
     
     %display a iFile/nFiles counter (and replace previous entry)
     if iFile>1
