@@ -19,8 +19,8 @@ end
 [ff, fn, fext] = fileparts(filename);
 savefolder = ff;
 savename = 'reference.stack.tif';
-%if exist(fullfile(savefolder,[savename,'f']),'file'), delete(fullfile(savefolder,[savename,'f'])); end
-if exist(fullfile(savefolder,savename),'file'), delete(fullfile(savefolder,savename)); end
+if exist(fullfile(savefolder,[savename,'f']),'file'), delete(fullfile(savefolder,[savename,'f'])); end
+%if exist(fullfile(savefolder,savename),'file'), delete(fullfile(savefolder,savename)); end
 %if ~exist(savefolder,'dir'), mkdir(savefolder); end
 
 %read relevant meta-data from header
@@ -78,7 +78,6 @@ nZs = length(Zvals); %total number of depths defined
 
 % reconstruct image in each plane
 imgStack = [];
-t = {};
 fprintf('Writing tiff slice nr. ');
 for iZ = 1:nZs
     

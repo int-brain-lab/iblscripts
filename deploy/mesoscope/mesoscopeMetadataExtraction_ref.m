@@ -36,7 +36,8 @@ if isfile(filename)
     fn = [fn, fext];
     subj = parsed.subject;
     %subj = 'SP043';
-    fileList = dir(fullfile(ff, ['*', fext]));
+    fileList = dir(fullfile(ff, fn)); %only take this tif
+    %fileList = dir(fullfile(ff, ['*', fext])); %all tifs in folder
 else
     %try as a final data path
     fileList = dir(fullfile(filename,'reference','*.tif'));
@@ -141,7 +142,7 @@ end
 nFiles = numel(fileList);
 nFramesAccum = 0;
 fprintf('Extracting metadata from tiff nr. ');
-for iFile = 1%:nFiles
+for iFile = 1:nFiles
     
     %display a iFile/nFiles counter (and replace previous entry)
     if iFile>1
