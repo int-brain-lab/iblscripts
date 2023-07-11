@@ -353,7 +353,7 @@ for iFOV = 1:length(meta.FOV)
     if ~exist(ff_alf,'dir')
         mkdir(ff_alf);
         mlapdv = meta.FOV(iFOV).pixelMLAPDV * 1e3;  % Save in um instead of mm
-        mlapdv_filename = fullfile(ff_alf,'mpciMeanImage.mlapdv_ccf_2017_estimate.npy');
+        mlapdv_filename = fullfile(ff_alf,'mpciMeanImage.mlapdv_estimate.npy');
         atlasAnnotation = meta.FOV(iFOV).pixelAnnot;
         annotation_filename = fullfile(ff_alf, 'mpciMeanImage.brainLocationIds_ccf_2017_estimate.npy');
         writeNPY(mlapdv, mlapdv_filename)
