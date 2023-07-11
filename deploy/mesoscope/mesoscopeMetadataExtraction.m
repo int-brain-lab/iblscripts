@@ -65,7 +65,7 @@ fullfilepath = fullfile(ff,fn);
 fprintf('%s\n',ff);
 
 %% Generate the skeleton of the output struct
-meta = struct();
+meta = struct('version', '0.1.0');
 
 % rig based
 meta.channelID.green = [1, 2]; % information about channel numbers (red/green)
@@ -320,10 +320,10 @@ for iFOV = 1:length(meta.FOV)
     ff_alf = fullfile(ff_top,'alf',['FOV_0' num2str(iFOV)-1]);
     if ~exist(ff_alf,'dir')
         mkdir(ff_alf);
-        mlapdv = meta.FOV(iFOV).pixelMLAPDV;
-        mlapdv_filename = fullfile(ff_alf,'mpciMeanImage.mlapdv_estimate.npy');
+        mlapdv = meta.FOV(iFOV).pixelMLAPDV * 1e3;  % Save in um instead of mm
+        mlapdv_filename = fullfile(ff_alf,'mpciMeanImage.mlapdv_ccf_2017_estimate.npy');
         atlasAnnotation = meta.FOV(iFOV).pixelAnnot;
-        annotation_filename = fullfile(ff_alf, 'mpciMeanImage.brainLocationIds_estimate.npy');
+        annotation_filename = fullfile(ff_alf, 'mpciMeanImage.brainLocationIds_ccf_2017_estimate.npy');
         writeNPY(mlapdv, mlapdv_filename)
         writeNPY(atlasAnnotation, annotation_filename)
     end

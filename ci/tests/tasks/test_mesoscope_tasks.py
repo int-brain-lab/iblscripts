@@ -206,7 +206,9 @@ class TestMesoscopeFOV(base.IntegrationTest):
         """Test the full MesoscopeFOV task"""
         # Test generation of mpciROI datasets
         task = MesoscopeFOV(self.session_path, device_collection='raw_imaging_data', one=self.one)
-        self.assertEqual(0, task.run())
+        with unittest.mock.patch.object(task, 'register_fov') as mock_obj:
+            self.assertEqual(0, task.run())
+            mock_obj.assert_called_once_with({'FOV': [{}, {}]}, 'estimate')
         self.assertEqual(self.n_fov * 4, len(task.outputs))
         # Mean image brain locations should be int
         file = next(f for f in task.outputs if 'mpciMeanImage.brainLocationIds_estimate' in f.name)
@@ -226,8 +228,11 @@ class TestMesoscopeFOV(base.IntegrationTest):
         for file in self.session_path.joinpath('alf', 'FOV_01').glob('mpciMeanImage.*'):
             file = file.replace(file.with_name(file.name.replace('_estimate', '')))
             shutil.copy(file, self.session_path.joinpath('alf', 'FOV_00', file.name))
+
         task = MesoscopeFOV(self.session_path, device_collection='raw_imaging_data', one=self.one)
-        self.assertEqual(0, task.run())
+        with unittest.mock.patch.object(task, 'register_fov') as mock_obj:
+            self.assertEqual(0, task.run())
+            mock_obj.assert_called_once_with({'FOV': [{}, {}]}, None)
         self.assertEqual(self.n_fov * 4, len(task.outputs))
         self.assertFalse(any('_estimate' in x.name for x in task.outputs))
         rois = alfio.load_object(self.session_path / 'alf' / 'FOV_00', 'mpciROIs')
@@ -244,6 +249,50 @@ class TestMesoscopeFOV(base.IntegrationTest):
         with self.assertLogs('ibllib.pipes.mesoscope_tasks', 'ERROR'):
             self.assertEqual(0, task.run())  # For now allow task to complete
         self.assertFalse(task.outputs)
+
+    def test_register_fov(self):
+        """Test MesoscopeFOV.register_fov method."""
+        task = MesoscopeFOV(self.session_path, device_collection='raw_imaging_data', one=self.one)
+        mlapdv = {
+            'topLeft': [2317.2, -1599.8, -535.5],
+            'topRight': [2862.7, -1625.2, -748.7],
+            'bottomLeft': [2317.3, -2181.4, -466.3],
+            'bottomRight': [2862.7, -2206.9, -679.4],
+            'center': [2596.1, -1900.5, -588.6]}
+        meta = {'FOV': [{'MLAPDV': mlapdv, 'nXnYnZ': [512, 512, 1]}]}
+        with unittest.mock.patch.object(self.one.alyx, 'rest') as mock_rest:
+            task.register_fov(meta, 'estimate')
+        calls = mock_rest.call_args_list
+        self.assertEqual(3, len(calls))
+
+        args, kwargs = calls[1]
+        self.assertEqual(('fields-of-view', 'create'), args)
+        expected = {'data': {'session': None, 'imaging_type': 'mesoscope', 'name': 'FOV_00'}}
+        self.assertEqual(expected, kwargs)
+
+        args, kwargs = calls[2]
+        self.assertEqual(('fov-location', 'create'), args)
+        expected = ['field_of_view', 'default_provenance', 'coordinate_system',
+                    'n_xyz', 'provenance', 'x', 'y', 'z', 'brain_region']
+        self.assertCountEqual(expected, kwargs.get('data', {}).keys())
+        self.assertEqual(256, len(kwargs['data']['brain_region']))
+        self.assertEqual([512, 512, 1], kwargs['data']['n_xyz'])
+        self.assertIs(kwargs['data']['field_of_view'], mock_rest().get('id'))
+        self.assertEqual('E', kwargs['data']['provenance'])
+        self.assertEqual([2317200.0, 2862700.0, 2317300.0, 2862700.0], kwargs['data']['x'])
+
+        # Check dry mode with suffix input = None
+        for file in self.session_path.joinpath('alf', 'FOV_00').glob('mpciMeanImage.*'):
+            file.replace(file.with_name(file.name.replace('_estimate', '')))
+        self.one.mode = 'local'
+        with unittest.mock.patch.object(self.one.alyx, 'rest') as mock_rest:
+            out = task.register_fov(meta, None)
+            mock_rest.assert_not_called()
+        self.assertEqual(1, len(out))
+        self.assertEqual('FOV_00', out[0].get('name'))
+        locations = out[0]['location']
+        self.assertEqual(1, len(locations))
+        self.assertEqual('L', locations[0].get('provenance', 'L'))
 
 
 class TestMesoscopeSync(base.IntegrationTest):
