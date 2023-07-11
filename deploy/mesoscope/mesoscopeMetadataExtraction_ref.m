@@ -35,7 +35,7 @@ if isfile(filename)
     parsed = regexp(fn, reg_tiff, 'names');
     fn = [fn, fext];
     subj = parsed.subject;
-    %subj = 'SP043';
+    %subj = 'SP037';
     fileList = dir(fullfile(ff, fn)); %only take this tif
     %fileList = dir(fullfile(ff, ['*', fext])); %all tifs in folder
 else
@@ -242,7 +242,7 @@ fprintf('Making stitched mean reference tiff fom raw data...\n ');
 imgStack = meanImgFromSItiff_stack(fullfilepath);
 
 %% save everything
-jsonFileName = fullfile(ff, 'reference.meta.json');
+jsonFileName = fullfile(ff, 'referenceImage.meta.json');
 % txt = jsonencode(meta, 'PrettyPrint', true);
 txt = jsonencode(meta, 'ConvertInfAndNaN', false);
 fid = fopen(jsonFileName, 'wt');

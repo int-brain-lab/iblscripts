@@ -18,8 +18,7 @@ end
 
 [ff, fn, fext] = fileparts(filename);
 savefolder = ff;
-savename = 'reference.stack.tif';
-if exist(fullfile(savefolder,[savename,'f']),'file'), delete(fullfile(savefolder,[savename,'f'])); end
+savename = 'referenceImage.stack.tif';
 %if exist(fullfile(savefolder,savename),'file'), delete(fullfile(savefolder,savename)); end
 %if ~exist(savefolder,'dir'), mkdir(savefolder); end
 
@@ -137,6 +136,10 @@ for iZ = 1:nZs
     %imagesc(XX, YY, imgM); hold on;
     
 end
+
+%re-name raw data
+movefile(filename,fullfile(ff,['referenceImage.raw',fext])); 
+
 fprintf(' done!\n')
 
 end
