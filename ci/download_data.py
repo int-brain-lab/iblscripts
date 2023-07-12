@@ -144,6 +144,7 @@ if logger.level == logging.DEBUG:
             logger.debug(f'{src_file} -> {dst_file}')
     except TransferAPIError:
         logger.debug('Failed to query transferred files')
+        logger.debug('Status: %s; nice status: %s', tr.data['status'], tr.data['nice_status'])
 
 # Here we should exit
 if __name__ == '__main__':
