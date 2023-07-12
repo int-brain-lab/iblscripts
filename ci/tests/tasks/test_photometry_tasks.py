@@ -57,7 +57,7 @@ class BasePhotometryTaskTest(base.IntegrationTest):
 class TestTaskPhotometryRegisterRaw(BasePhotometryTaskTest):
 
     def test_register_raw(self):
-        task = photometry_tasks.TaskFibrePhotometryRegisterRaw(self.session_path, one=self.one, **self.kwargs)
+        task = photometry_tasks.FibrePhotometryRegisterRaw(self.session_path, one=self.one, **self.kwargs)
         self.assertEqual(0, task.run())
         # Even if we run the task again we should get the same output
         task.run()
@@ -66,7 +66,7 @@ class TestTaskPhotometryRegisterRaw(BasePhotometryTaskTest):
 class TestTaskFibrePhotometryPreprocess(BasePhotometryTaskTest):
 
     def test_extract_fp_data(self):
-        task = photometry_tasks.TaskFibrePhotometryPreprocess(self.session_path, one=self.one, **self.kwargs)
+        task = photometry_tasks.FibrePhotometryPreprocess(self.session_path, one=self.one, **self.kwargs)
         self.assertEqual(0, task.run())
         # Even if we run the task again we should get the same output
         task.run()
