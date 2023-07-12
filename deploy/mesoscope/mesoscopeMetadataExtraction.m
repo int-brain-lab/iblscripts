@@ -393,9 +393,13 @@ try
 catch
     surfaceData = load('C:\Users\scanimage\Documents\MATLAB\mlapdvAtlas.mat');
 end
-dataFolder = 'C:\Users\scanimage\Documents\allenCCFData';
 annotationsFile = 'annotation_volume_10um_by_index.npy';
-allenAV = readNPY(fullfile(dataFolder, annotationsFile));
+try
+    allenAV = readNPY(annotationsFile);
+catch
+    dataFolder = 'C:\Users\scanimage\Documents\allenCCFData';
+    allenAV = readNPY(fullfile(dataFolder, annotationsFile));
+end
 
 coordML = meta.centerMM.ML;
 coordAP = meta.centerMM.AP;
