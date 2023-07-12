@@ -291,7 +291,7 @@ for iSlice = 1:nZs
             nXnY = si_rois(iRoi).scanfields(1).pixelResolutionXY';
             
             meta.FOV(iFOV).slice_id = iSlice-1; %assuming 0-indexing
-            meta.FOV(iFOV).stack_id = iRoi-1;            
+            meta.FOV(iFOV).roiUuid = si_rois(iroi).roiUuid; %this is scanimage ID            
             meta.FOV(iFOV).Zs = Zvals(iSlice);
             
             meta.FOV(iFOV).nXnYnZ = [nXnY, 1];
