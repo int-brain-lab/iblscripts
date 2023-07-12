@@ -259,7 +259,7 @@ class TestMesoscopeFOV(base.IntegrationTest):
             'bottomLeft': [2317.3, -2181.4, -466.3],
             'bottomRight': [2862.7, -2206.9, -679.4],
             'center': [2596.1, -1900.5, -588.6]}
-        meta = {'FOV': [{'MLAPDV': mlapdv, 'nXnYnZ': [512, 512, 1]}]}
+        meta = {'FOV': [{'MLAPDV': mlapdv, 'nXnYnZ': [512, 512, 1], 'stack_id': 0}]}
         with unittest.mock.patch.object(self.one.alyx, 'rest') as mock_rest:
             task.register_fov(meta, 'estimate')
         calls = mock_rest.call_args_list
@@ -267,7 +267,7 @@ class TestMesoscopeFOV(base.IntegrationTest):
 
         args, kwargs = calls[1]
         self.assertEqual(('fields-of-view', 'create'), args)
-        expected = {'data': {'session': None, 'imaging_type': 'mesoscope', 'name': 'FOV_00'}}
+        expected = {'data': {'session': None, 'imaging_type': 'mesoscope', 'name': 'FOV_00', 'stack': None}}
         self.assertEqual(expected, kwargs)
 
         args, kwargs = calls[2]
