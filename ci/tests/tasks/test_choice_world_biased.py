@@ -2,7 +2,6 @@ import logging
 import shutil
 import ibllib.pipes.behavior_tasks as btasks
 from one.api import ONE
-from one.registration import RegistrationClient
 
 from ci.tests import base
 
