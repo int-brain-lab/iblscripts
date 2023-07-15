@@ -1,2 +1,3 @@
 graft deploy/ephyspc/device_stubs
+graft deploy/ephyspc/wirings
 graft deploy/videopc/device_stubs
