@@ -64,6 +64,45 @@ def main(local=None, remote=None):
     # logging configuration
     log = log_to_file(filename='transfer_session.log', log='ibllib.pipes.misc')
 
+def transfer_session(session, params=None):
+    status = True
+    if params is None:
+        params = create_basic_transfer_params()
+    remote_subject_folder = subjects_data_folder(params['REMOTE_DATA_FOLDER_PATH'], rglob=True)
+    session_parts = session.parent.as_posix().split('/')[-3:]
+    remote_session = remote_subject_folder.joinpath(*session_parts)
+    remote_file = session_params.get_remote_stub_name(remote_session, filename_parts(session.name)[3])
+    assert remote_file.exists()
+    exp_pars = session_params.read_params(session)
+    collections = set(session_params.get_collections(exp_pars).values())
+    for collection in collections:
+        if not session.with_name(collection).exists():
+            log.error(f'Collection {session.with_name(collection)} doesn\'t exist')
+            status = False
+            continue
+        log.debug(f'transferring {session_parts} - {collection}')
+        status &= rsync_paths(session.with_name(collection), remote_session / collection)
+    # if the transfer was successful, merge the stub file with the remote experiment description
+    if status:
+        main_experiment_file = remote_session / '_ibl_experiment.description.yaml'
+        session_params.aggregate_device(remote_file, main_experiment_file, unlink=True)
+        # when there is not any remaining stub files, create a flag file in the session folder
+        # that indicates the copy is complete
+        if not any(remote_session.joinpath('_devices').glob('*.*')):
+            file_list = list(map(str, remote_session.rglob('*.*.*')))
+            flags.write_flag_file(remote_session.joinpath('raw_session.flag'), file_list=file_list)
+        flags.write_flag_file(session.with_name('transferred.flag'), file_list=list(collections))
+        log.info(f'{session_parts} transfer success')
+    return status
+
+
+def transfer_sessions(local=None, remote=None):
+    """
+    Transfer all sessions in the local subject folder that have an experiment.description file
+    :param local: the local computer full path to the Subjects folder
+    :param remote: the remote server full path to the Subjects folder
+    :return:
+    """
     # Determine if user passed in arg for local/remote subject folder locations or pull in from
     # local param file or prompt user if missing
     params = create_basic_transfer_params(local_data_path=local, remote_data_path=remote)

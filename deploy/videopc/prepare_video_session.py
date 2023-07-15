@@ -7,6 +7,7 @@ import datetime
 import os
 import subprocess
 from pathlib import Path
+import traceback
 
 import ibllib
 from ibllib.pipes.misc import load_videopc_params
@@ -35,24 +36,29 @@ def get_activated_environment(ignore=False):
 
 
 def check_ibllib_version(ignore=False):
-    bla = subprocess.run(
-        "pip install ibllib==ver",
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    ble = [x.decode("utf-8") for x in bla.stderr.rsplit()]
-    # Latest version is at the end of the error message before the close parens
-    latest_ibllib = parse([x.strip(")") for x in ble if ")" in x][0])
-    if latest_ibllib != parse(ibllib.__version__):
-        msg = (
-            f"You are using ibllib {ibllib.__version__}, but the latest version is {latest_ibllib}"
+    try:
+        bla = subprocess.run(
+            "pip install ibllib==ver",
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
-        print(f"{msg} - Please update ibllib")
-        print("To update run: [conda activate iblenv] and [pip install -U ibllib]")
-        if ignore:
-            return
-        raise Exception(msg)
+        ble = [x.decode("utf-8") for x in bla.stderr.rsplit()]
+        # Latest version is at the end of the error message before the close parens
+        latest_ibllib = parse([x.strip(")") for x in ble if ")" in x][0])
+        if latest_ibllib != parse(ibllib.__version__):
+            msg = (
+                f"You are using ibllib {ibllib.__version__}, but the latest version is {latest_ibllib}"
+            )
+            print(f"{msg} - Please update ibllib")
+            print("To update run: [conda activate iblenv] and [pip install -U ibllib]")
+            if ignore:
+                return
+            raise Exception(msg)
+    except Exception as e:
+        print(traceback.format_exc())
+        pass
+
 
 
 def check_iblscripts_version(ignore=False):
