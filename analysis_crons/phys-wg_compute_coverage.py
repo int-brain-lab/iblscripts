@@ -54,6 +54,7 @@ filepath_coverage = PATH_COVERAGE.joinpath('test', 'coverage.npy')
 filepath_df_cov_val = filepath_coverage.parent.joinpath('df_cov_val.csv')
 filepath_sp_per012 = filepath_coverage.parent.joinpath('sp_per012.npy')
 filepath_coverage_pinpoint = filepath_coverage.parent.joinpath('coverage_pinpoint.bytes')
+filepath_trajs_df = filepath_coverage.parent.joinpath('trajs_df.csv')
 
 if not filepath_sp_vol.exists():
     s3, bucket_name = aws.get_s3_from_alyx(alyx=one.alyx)
@@ -114,6 +115,19 @@ coverage, sp_per0, sp_per1, sp_per2 = pr.compute_coverage(trajs, dist_fcn=[dist,
 # Save aggregate for fastness of report later
 df_coverage_vals = pd.DataFrame.from_dict({"0": [sp_per0[-1]], "1": [sp_per1[-1]], "2": [sp_per2[-1]],
                                            "date": [datefile]})
+# Save trajs used
+trajs_dict = dict()
+trajs_dict['traj_id'] = [item['id'] for item in trajs]
+trajs_dict['traj_provenance'] = [item['provenance'] for item in trajs]
+trajs_dict['pid'] = [item['probe_insertion'] for item in trajs]
+trajs_dict['lab'] = [item['session']['lab'] for item in trajs]
+trajs_dict['date'] = [item['session']['start_time'][0:10] for item in trajs]
+trajs_dict['subject'] = [item['session']['subject'] for item in trajs]
+trajs_dict['session_number'] = [item['session']['number'] for item in trajs]
+trajs_dict['probe'] = [item['probe_name'] for item in trajs]
+
+trajs_df = pd.DataFrame.from_dict(trajs_dict)
+
 ##
 '''
 ============================
@@ -156,6 +170,8 @@ np.save(filepath_sp_per012, [sp_per0, sp_per1, sp_per2])
 log.info(f"{filepath_sp_per012} saved to disk")
 df_coverage_vals.to_csv(filepath_df_cov_val)
 log.info(f"{filepath_df_cov_val} saved to disk")
+trajs_df.to_csv(filepath_trajs_df)
+log.info(f"{filepath_trajs_df} saved to disk")
 # Save into format for Pinpoint
 coverage = sum_points.copy()
 coverage[np.isnan(coverage)] = 0
@@ -173,6 +189,8 @@ commands = [
     f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_sp_per012.name}",
     f"aws --profile ibl s3 cp {filepath_coverage_pinpoint} "
     f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_coverage_pinpoint.name}",
+    f"aws --profile ibl s3 cp {filepath_trajs_df} "
+    f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_trajs_df.name}",
     # Add to public bucket too for Pinpoint access
     f"aws --profile ibl s3 cp {filepath_coverage_pinpoint} "
     f"s3://ibl-brain-wide-map-public/phys-coverage-2023/{filepath_coverage_pinpoint.name}"
