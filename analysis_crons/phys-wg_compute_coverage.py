@@ -39,7 +39,8 @@ acronyms_region_cov = ['AD', 'AHN', 'AUDpo', 'CL', 'COAa', 'FN', 'GPi', 'IO',
 # Instantiate brain atlas and one
 log = setup_logger('ibllib', level='INFO')
 log.info('coverage computation: setup parameters')
-one = ONE(base_url="https://alyx.internationalbrainlab.org")  # makes sure we're on the private database
+one = ONE(base_url="https://alyx.internationalbrainlab.org", cache_rest=None)  # makes sure we're on the private database
+one.alyx.clear_rest_cache()  # Remove cache in case trajs changed
 ba = atlas.AllenAtlas(25)
 ba.compute_surface()
 br = BrainRegions()
