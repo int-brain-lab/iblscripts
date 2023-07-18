@@ -55,10 +55,9 @@ def check_ibllib_version(ignore=False):
             if ignore:
                 return
             raise Exception(msg)
-    except Exception as e:
+    except Exception:
         print(traceback.format_exc())
         pass
-
 
 
 def check_iblscripts_version(ignore=False):
