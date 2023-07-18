@@ -105,7 +105,7 @@ def update_ibllib(env="iblenv"):
     )
 
 
-def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
+def launch_three_videos_acquisition(mouse: str, training_session: bool = False, new: bool = False) -> None:
     SUBJECT_NAME = mouse
     PARAMS = load_videopc_params()
     DATA_FOLDER = Path(PARAMS["DATA_FOLDER_PATH"])
@@ -121,9 +121,9 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
     DATE = datetime.datetime.now().date().isoformat()
     NUM = next_num_folder(DATA_FOLDER / SUBJECT_NAME / DATE)
 
-    SESSION_FOLDER = DATA_FOLDER / SUBJECT_NAME / DATE / NUM / "raw_video_data"
-    SESSION_FOLDER.mkdir(parents=True, exist_ok=True)
-    print(f"Created {SESSION_FOLDER}")
+    collection_folder = DATA_FOLDER / SUBJECT_NAME / DATE / NUM / "raw_video_data"
+    collection_folder.mkdir(parents=True, exist_ok=True)
+    print(f"Created {collection_folder}")
     # Create filenames to call Bonsai
     filenamevideo = "_iblrig_{}Camera.raw.avi"
     filenameframedata = "_iblrig_{}Camera.frameData.bin"
@@ -132,23 +132,21 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
     leftidx = "-p:LeftCameraIndex=" + str(PARAMS["LEFT_CAM_IDX"])
     rightidx = "-p:RightCameraIndex=" + str(PARAMS["RIGHT_CAM_IDX"])
 
-    body = "-p:FileNameBody=" + str(SESSION_FOLDER / filenamevideo.format("body"))
-    left = "-p:FileNameLeft=" + str(SESSION_FOLDER / filenamevideo.format("left"))
-    right = "-p:FileNameRight=" + str(SESSION_FOLDER / filenamevideo.format("right"))
+    body = "-p:FileNameBody=" + str(collection_folder / filenamevideo.format("body"))
+    left = "-p:FileNameLeft=" + str(collection_folder / filenamevideo.format("left"))
+    right = "-p:FileNameRight=" + str(collection_folder / filenamevideo.format("right"))
 
-    bodydata = "-p:FileNameBodyData=" + str(SESSION_FOLDER / filenameframedata.format("body"))
-    leftdata = "-p:FileNameLeftData=" + str(SESSION_FOLDER / filenameframedata.format("left"))
-    rightdata = "-p:FileNameRightData=" + str(SESSION_FOLDER / filenameframedata.format("right"))
+    bodydata = "-p:FileNameBodyData=" + str(collection_folder / filenameframedata.format("body"))
+    leftdata = "-p:FileNameLeftData=" + str(collection_folder / filenameframedata.format("left"))
+    rightdata = "-p:FileNameRightData=" + str(collection_folder / filenameframedata.format("right"))
 
     start = "--start"  # --start-no-debug
     noboot = "--no-boot"
     # noeditor = "--no-editor"
     # Force trigger mode on all cams
     cams.disable_trigger_mode()
-    here = os.getcwd()
-    os.chdir(str(BONSAI_WORKFLOWS_PATH))
     # Open the streaming file and start
-    subprocess.call([str(BONSAI), str(SETUP_FILE), start, noboot, bodyidx, leftidx, rightidx])
+    subprocess.call([str(BONSAI), str(SETUP_FILE), start, noboot, bodyidx, leftidx, rightidx], cwd=str(BONSAI_WORKFLOWS_PATH))
     # Force trigger mode on all cams
     cams.enable_trigger_mode()
     # Open the record_file start and wait for manual trigger mode disabling
@@ -167,7 +165,8 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
             bodydata,
             leftdata,
             rightdata,
-        ]
+        ],
+        cwd=str(BONSAI_WORKFLOWS_PATH)
     )
     print("\nPRESS ENTER TO START CAMERAS" * 10)
     untrigger = input("") or 1
@@ -176,15 +175,14 @@ def main(mouse: str, training_session: bool = False, new: bool = False) -> None:
         cams.disable_trigger_mode()
         print("\nTo terminate video acquisition, please stop and close Bonsai workflow.")
     rec.wait()
-    os.chdir(here)
     # Check lengths
-    len_files(SESSION_FOLDER.parent, display=True)  # Will printout the results
+    len_files(collection_folder.parent, display=True)  # Will printout the results
     # XXX: Consider not creating the transfer flag if lengths are not good:
     #       will impact the transfer script as it requires both transfers to be completed before
     #       creating the raw_session.flag
     # Create a transfer_me.flag file
-    open(SESSION_FOLDER.parent / "transfer_me.flag", "w")
-    print(f"\nCreated transfer flag for session {SESSION_FOLDER.parent}")
+    open(collection_folder.parent / "transfer_me.flag", "w")
+    print(f"\nCreated transfer flag for session {collection_folder.parent}")
     print("Video acquisition session finished.")
     return
 
@@ -212,4 +210,4 @@ if __name__ == "__main__":
     # print(type(args.mouse), type(args.training))
     check_ibllib_version(ignore=args.ignore_checks)
     check_iblscripts_version(ignore=args.ignore_checks)
-    main(args.mouse, training_session=args.training)
+    launch_three_videos_acquisition(args.mouse, training_session=args.training)
