@@ -4,7 +4,6 @@
 # @Date: Thursday, May 2nd 2019, 5:41:56 pm
 import argparse
 import datetime
-import os
 import subprocess
 from pathlib import Path
 import traceback
@@ -55,10 +54,8 @@ def check_ibllib_version(ignore=False):
             if ignore:
                 return
             raise Exception(msg)
-    except Exception as e:
+    except Exception:
         print(traceback.format_exc())
-        pass
-
 
 
 def check_iblscripts_version(ignore=False):
