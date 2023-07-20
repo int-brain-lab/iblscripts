@@ -117,6 +117,7 @@ coverage, sp_per0, sp_per1, sp_per2 = pr.compute_coverage(trajs, dist_fcn=[dist,
 # Save aggregate for fastness of report later
 df_coverage_vals = pd.DataFrame.from_dict({"0": [sp_per0[-1]], "1": [sp_per1[-1]], "2": [sp_per2[-1]],
                                            "date": [datefile]})
+coverage_012 = coverage.copy()
 # Save trajs used
 trajs_dict = dict()
 trajs_dict['traj_id'] = [item['id'] for item in trajs]
@@ -168,7 +169,7 @@ sum_points[np.isnan(sp_volume)] = np.nan
 filepath_coverage.parent.mkdir(exist_ok=True, parents=True)
 np.save(filepath_coverage, sum_points)
 log.info(f"{filepath_coverage} saved to disk")
-np.save(filepath_coverage_012, sum_points)
+np.save(filepath_coverage_012, coverage_012)
 log.info(f"{filepath_coverage_012} saved to disk")
 np.save(filepath_sp_per012, [sp_per0, sp_per1, sp_per2])
 log.info(f"{filepath_sp_per012} saved to disk")
