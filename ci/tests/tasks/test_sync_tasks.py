@@ -14,6 +14,7 @@ class SyncTemplate(base.IntegrationTest):
         self.session_path = self.default_data_root().joinpath('widefield', 'widefieldChoiceWorld', 'JC076',
                                                               '2022-02-04', '001')
         self.widefield_path = self.session_path.joinpath('raw_widefield_data')
+        self.kwargs = dict(sync_collection='raw_widefield_data', sync='nidq', sync_namespace='spikeglx', one=ONE(**base.TEST_DB))
 
     def copy_folder(self, folder):
         shutil.copytree(self.session_path.joinpath(folder), self.widefield_path)
@@ -51,7 +52,7 @@ class TestSyncRegisterRaw(base.IntegrationTest):
                                sync_namespace=self.sync_namespace, one=ONE(**base.TEST_DB))
         status = task.run()
 
-        self.assertEqual(0, status)
+        self.assertEqual(status, 0)
         self.assertIn(self.daq_file, task.outputs)
         self.assertIn(self.wiring_file, task.outputs)
 
@@ -63,30 +64,30 @@ class TestSyncMtscomp(SyncTemplate):
 
     def test_rename_and_compress(self):
         self.copy_folder('rename_compress')
-        task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq', sync_namespace='spikeglx')
+        task = SyncMtscomp(self.session_path, **self.kwargs)
         status = task.run()
-        assert status == 0
+        self.assertEqual(status, 0)
         self.check_files(task)
 
     def test_rename(self):
         self.copy_folder('rename')
-        task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq', sync_namespace='spikeglx')
+        task = SyncMtscomp(self.session_path, **self.kwargs)
         status = task.run()
-        assert status == 0
+        self.assertEqual(status, 0)
         self.check_files(task)
 
     def test_compress(self):
         self.copy_folder('compress')
-        task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq', sync_namespace='spikeglx')
+        task = SyncMtscomp(self.session_path, **self.kwargs)
         status = task.run()
-        assert status == 0
+        self.assertEqual(status, 0)
         self.check_files(task)
 
     def test_register(self):
         self.copy_folder('register')
-        task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq', sync_namespace='spikeglx')
+        task = SyncMtscomp(self.session_path, **self.kwargs)
         status = task.run()
-        assert status == 0
+        self.assertEqual(status, 0)
         # Here we don't expect the .cbin file
         self.check_files(task, ignore_ext='.cbin')
 
@@ -95,17 +96,17 @@ class TestSyncPulses(SyncTemplate):
 
     def test_extract_pulses_bin(self):
         self.copy_folder('compress')
-        task = SyncPulses(self.session_path, sync_collection='raw_widefield_data', sync='nidq', sync_namespace='spikeglx')
+        task = SyncPulses(self.session_path, **self.kwargs)
         status = task.run()
-        assert status == 0
+        self.assertEqual(status, 0)
         self.check_files(task)
 
     def test_extract_pulses_cbin(self):
         self.copy_folder('compress')
-        task = SyncMtscomp(self.session_path, sync_collection='raw_widefield_data', sync='nidq', sync_namespace='spikeglx')
+        task = SyncMtscomp(self.session_path, **self.kwargs)
         task.run()
 
-        task = SyncPulses(self.session_path, sync_collection='raw_widefield_data', sync='nidq', sync_namespace='spikeglx')
+        task = SyncPulses(self.session_path, **self.kwargs)
         status = task.run()
-        assert status == 0
+        self.assertEqual(status, 0)
         self.check_files(task)

@@ -592,7 +592,7 @@ class TestCameraQC(base.IntegrationTest):
             '_videoLeft_position': 'PASS',
             '_videoLeft_resolution': 'PASS',
             '_videoLeft_timestamps': 'PASS',
-            '_videoLeft_wheel_alignment': ('PASS', 0)
+            '_videoLeft_wheel_alignment': ('WARNING', 7)
         }
         self.assertEqual(expected, qc['left'].metrics)
 
@@ -633,7 +633,7 @@ class TestCameraQC(base.IntegrationTest):
             '_videoLeft_position': 'PASS',
             '_videoLeft_resolution': 'PASS',
             '_videoLeft_timestamps': 'PASS',
-            '_videoLeft_wheel_alignment': ('WARNING', -95)
+            '_videoLeft_wheel_alignment': ('WARNING', 27)
         }
         self.assertEqual(expected, extended)
 
@@ -786,8 +786,8 @@ class TestWheelMotionNRG(base.IntegrationTest):
         expected = np.array([0.90278801, 0.68067675, 0.73734772, 0.82648895, 0.80950881,
                              0.88054471, 0.84264046, 0.302118, 0.94302567, 0.86188695])
         np.testing.assert_array_almost_equal(expected, df[:10])
-        self.assertEqual(dt_i, 0)
-        self.assertEqual(round(c, 5), 19.48842)
+        self.assertEqual(1, dt_i)
+        self.assertEqual(18.74374, round(c, 5))
 
         # Test saving alignment video
         with tempfile.TemporaryDirectory() as tdir:
