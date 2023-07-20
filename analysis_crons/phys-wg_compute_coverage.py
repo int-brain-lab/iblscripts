@@ -52,7 +52,7 @@ mapped_atlas_ac = br.acronym[label_beryl]  # TODO could be done faster by remapp
 # Saving paths
 filepath_sp_vol = PATH_COVERAGE.joinpath('volume_test', 'second_pass_volume.npy')
 filepath_coverage = PATH_COVERAGE.joinpath('test', 'coverage.npy')
-filepath_coverage_012 = filepath_coverage.parent.joinpath('coverage_012.csv')
+filepath_coverage_012 = filepath_coverage.parent.joinpath('coverage_012.npy')
 filepath_df_cov_val = filepath_coverage.parent.joinpath('df_cov_val.csv')
 filepath_sp_per012 = filepath_coverage.parent.joinpath('sp_per012.npy')
 filepath_coverage_pinpoint = filepath_coverage.parent.joinpath('coverage_pinpoint.bytes')
