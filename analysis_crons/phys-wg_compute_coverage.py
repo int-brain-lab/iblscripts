@@ -52,6 +52,7 @@ mapped_atlas_ac = br.acronym[label_beryl]  # TODO could be done faster by remapp
 # Saving paths
 filepath_sp_vol = PATH_COVERAGE.joinpath('volume_test', 'second_pass_volume.npy')
 filepath_coverage = PATH_COVERAGE.joinpath('test', 'coverage.npy')
+filepath_coverage_012 = filepath_coverage.parent.joinpath('coverage_012.csv')
 filepath_df_cov_val = filepath_coverage.parent.joinpath('df_cov_val.csv')
 filepath_sp_per012 = filepath_coverage.parent.joinpath('sp_per012.npy')
 filepath_coverage_pinpoint = filepath_coverage.parent.joinpath('coverage_pinpoint.bytes')
@@ -167,6 +168,8 @@ sum_points[np.isnan(sp_volume)] = np.nan
 filepath_coverage.parent.mkdir(exist_ok=True, parents=True)
 np.save(filepath_coverage, sum_points)
 log.info(f"{filepath_coverage} saved to disk")
+np.save(filepath_coverage_012, sum_points)
+log.info(f"{filepath_coverage_012} saved to disk")
 np.save(filepath_sp_per012, [sp_per0, sp_per1, sp_per2])
 log.info(f"{filepath_sp_per012} saved to disk")
 df_coverage_vals.to_csv(filepath_df_cov_val)
@@ -184,6 +187,8 @@ log.info(f"{filepath_coverage_pinpoint} saved to disk")
 commands = [
     f"aws --profile ibl s3 cp {filepath_coverage} "
     f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_coverage.name}",
+f"aws --profile ibl s3 cp {filepath_coverage_012} "
+    f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_coverage_012.name}",
     f"aws --profile ibl s3 cp {filepath_df_cov_val} "
     f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_df_cov_val.name}",
     f"aws --profile ibl s3 cp {filepath_sp_per012} "
