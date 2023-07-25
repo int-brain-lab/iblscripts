@@ -48,6 +48,7 @@ class TestPipeline(base.IntegrationTest):
             N_TASKS = 7
             self.assertEqual(nses * N_TASKS, len(training_jobs))
             # one.alyx.rest('jobs', 'read', id='32c83da4-8a2f-465e-8227-c3b540e61142')
+            [t['level'] for t in training_jobs]
 
             local_server.tasks_runner(subjects_path, training_jobs, one=one, dry=True,
                                       count=nses * 10)
@@ -71,6 +72,5 @@ class TestPipeline(base.IntegrationTest):
         local_server.job_creator(session_path, one=one, max_md5_size=1024 * 1024 * 20)
         eid = one.path2eid(session_path, query_type='remote')
         self.assertIsNotNone(eid)
-        alyx_tasks = one.alyx.rest('tasks', 'list',
-                                   session=eid, graph='TrainingExtractionPipeline', no_cache=True)
+        alyx_tasks = one.alyx.rest('tasks', 'list', session=eid, graph='TrainingExtractionPipeline', no_cache=True)
         self.assertEqual(7, len(alyx_tasks))
