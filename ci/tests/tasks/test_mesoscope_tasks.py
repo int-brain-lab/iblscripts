@@ -1,3 +1,4 @@
+"""Tests for ibllib.pipes.mesoscope_tasks module."""
 import logging
 import shutil
 import tempfile
@@ -15,13 +16,17 @@ import one.alf.io as alfio
 from one.alf.files import get_session_path
 from one.api import ONE
 
-from ibllib.pipes.mesoscope_tasks import \
-    MesoscopeSync, MesoscopeFOV, MesoscopeRegisterSnapshots, MesoscopePreprocess, MesoscopeCompress
+from ibllib.pipes.mesoscope_tasks import (
+    MesoscopeSync, MesoscopeFOV, MesoscopeRegisterSnapshots,
+    MesoscopePreprocess, MesoscopeCompress, Provenance
+)
+from ibllib.atlas import AllenAtlas
 from ibllib.pipes.behavior_tasks import ChoiceWorldTrialsTimeline
 from ibllib.io.extractors import mesoscope
 from ibllib.io.raw_daq_loaders import load_timeline_sync_and_chmap
 
 from ci.tests import base
+import deploy
 
 _logger = logging.getLogger('ibllib')
 
@@ -177,19 +182,21 @@ class TestMesoscopeFOV(base.IntegrationTest):
         self.n_roi = 128  # Number of ROIs (will be multiplied by FOV number)
         self.expected_roi_mlapdv = {}  # Save the expected extracted ROI MLAPDV coordinates
         self.offset = 5.  # Offset between pixel number and MLAPDV coordinate
+        self.mean_img_mlapdv = dict.fromkeys(range(self.n_fov))
+        self.mean_img_ids = dict.fromkeys(range(self.n_fov))
         for i in range(self.n_fov):
-            alf_path = self.session_path.joinpath('alf', f'FOV_{i:02}')
-            alf_path.mkdir()
+            (alf_path := self.session_path.joinpath('alf', f'FOV_{i:02}')).mkdir()
             # Mean image MLAPDV coordinates
             ml = np.tile(np.arange(self.n_pixels), (self.n_pixels, 1)).astype(float) + self.offset
-            mlapdv = np.dstack([ml, ml.T, np.zeros_like(ml)])
-            np.save(alf_path / 'mpciMeanImage.mlapdv_estimate.npy', mlapdv)
+            self.mean_img_mlapdv[i] = np.dstack([ml, ml.T, np.zeros_like(ml)])
+
             # Mean image brain location IDs (a grid of 32x32 brain locations)
             n_tiles = 32
-            tile_sz = self.n_pixels / n_tiles  # NB: leave as float to test re-saving as int
+            tile_sz = int(self.n_pixels / n_tiles)
             x = np.repeat(np.arange(tile_sz), n_tiles)
             y = np.repeat(np.r_[0, (2 ** np.arange(tile_sz) * tile_sz)[:-1]], n_tiles)
-            np.save(alf_path / 'mpciMeanImage.brainLocationIds_ccf_2017_estimate.npy', x + y[..., None])
+            self.mean_img_ids[i] = x + y[..., None]
+
             # mpciROIs.stackPos (evenly spaced along the diagonal)
             n_roi = self.n_roi * (i + 1)  # 2nd FOV has twice as many as first
             v = np.linspace(0, self.n_pixels - 1, n_roi).astype(int)
@@ -203,13 +210,18 @@ class TestMesoscopeFOV(base.IntegrationTest):
             fp.write('{"FOV":[%s]}' % ','.join(['{}'] * self.n_fov))
 
     def test_mesoscope_fov(self):
-        """Test the full MesoscopeFOV task"""
+        """Test for MesoscopeFOV._run and MesoscopeFOV.roi_mlapdv methods.
+
+        This stubs both register_fov and project_mlapdv, which are tested separately.
+        """
         # Test generation of mpciROI datasets
         task = MesoscopeFOV(self.session_path, device_collection='raw_imaging_data', one=self.one)
-        with unittest.mock.patch.object(task, 'register_fov') as mock_obj:
+        mean_img_map = (self.mean_img_mlapdv, self.mean_img_ids)
+        with unittest.mock.patch.object(task, 'register_fov') as mock_obj, \
+                unittest.mock.patch.object(task, 'project_mlapdv', return_value=mean_img_map):
             self.assertEqual(0, task.run())
             mock_obj.assert_called_once_with({'FOV': [{}, {}]}, 'estimate')
-        self.assertEqual(self.n_fov * 4, len(task.outputs))
+        self.assertEqual(self.n_fov * 4 + 1, len(task.outputs))  # + 1 for modified meta file
         # Mean image brain locations should be int
         file = next(f for f in task.outputs if 'mpciMeanImage.brainLocationIds_ccf_2017_estimate' in f.name)
         self.assertIs(np.load(file).dtype, np.dtype('int'))
@@ -230,10 +242,11 @@ class TestMesoscopeFOV(base.IntegrationTest):
             shutil.copy(file, self.session_path.joinpath('alf', 'FOV_00', file.name))
 
         task = MesoscopeFOV(self.session_path, device_collection='raw_imaging_data', one=self.one)
-        with unittest.mock.patch.object(task, 'register_fov') as mock_obj:
-            self.assertEqual(0, task.run())
+        with unittest.mock.patch.object(task, 'register_fov') as mock_obj, \
+                unittest.mock.patch.object(task, 'project_mlapdv', return_value=mean_img_map):
+            self.assertEqual(0, task.run(provenance=Provenance.HISTOLOGY))
             mock_obj.assert_called_once_with({'FOV': [{}, {}]}, None)
-        self.assertEqual(self.n_fov * 4, len(task.outputs))
+        self.assertEqual((self.n_fov * 4) + 1, len(task.outputs))  # + 1 for modified meta file
         self.assertFalse(any('_estimate' in x.name for x in task.outputs))
         rois = alfio.load_object(self.session_path / 'alf' / 'FOV_00', 'mpciROIs')
         expected = {'brainLocationIds_ccf_2017', 'mlapdv', 'stackPos'}
@@ -242,57 +255,78 @@ class TestMesoscopeFOV(base.IntegrationTest):
         # Check behaviour when there are incomplete datasets
         self.session_path.joinpath('alf', 'FOV_00', 'mpciROIs.stackPos.npy').unlink()
         self.assertRaises(FileNotFoundError, task.roi_mlapdv, self.n_fov)
-        # Should exit early if no mean image datasets found
-        for file in self.session_path.rglob('*meanImage*'):
-            file.unlink()
+
+
+class TestProjectFOV(base.IntegrationTest):
+    """Test MesoscopeFOV.project_mlapdv method."""
+    session_path = None
+
+    def setUp(self) -> None:
+        # Load fixtures and create simple meta map
+        self.session_path = Path('subject', '2020-01-01', '001')
+        self.n_pixels = 64  # Number of pixels xy pixels in each FOV
+        self.n_fov = 2  # Number of fields of view
+
+        mesoscope_path = Path(deploy.__file__).parent / 'mesoscope'
+        self.flat_tri = alfio.load_object(mesoscope_path, 'flatTR')
+        self.dorsal_tri = alfio.load_object(mesoscope_path, 'dorsalTR')
+        self.atlas = AllenAtlas(res_um=50)  # Use low res atlas for speed
+        self.one = ONE(**base.TEST_DB)
+
+        # Create a toy meta file
+        self.meta = {'centerMM': {'ML': 2.6, 'AP': -1.9}}
+        MM = {'topLeft': [2.307, -1.607], 'topRight': [2.892, -1.607],
+              'bottomLeft': [2.30, -2.193], 'bottomRight': [2.893, -2.193]}
+        self.meta['FOV'] = [{'nXnYnZ': [self.n_pixels, self.n_pixels, 1], 'MM': MM}] * self.n_fov
+
+    def test_project_mlapdv(self):
+        """Test the full MesoscopeFOV.project_mlapdv method."""
+        # Test generation of mpciROI datasets
         task = MesoscopeFOV(self.session_path, device_collection='raw_imaging_data', one=self.one)
-        with self.assertLogs('ibllib.pipes.mesoscope_tasks', 'ERROR'):
-            self.assertEqual(0, task.run())  # For now allow task to complete
-        self.assertFalse(task.outputs)
+        mlapdv, ids = task.project_mlapdv(self.meta, self.flat_tri, self.dorsal_tri, self.atlas)
 
-    def test_register_fov(self):
-        """Test MesoscopeFOV.register_fov method."""
-        task = MesoscopeFOV(self.session_path, device_collection='raw_imaging_data', one=self.one)
-        mlapdv = {
-            'topLeft': [2317.2, -1599.8, -535.5],
-            'topRight': [2862.7, -1625.2, -748.7],
-            'bottomLeft': [2317.3, -2181.4, -466.3],
-            'bottomRight': [2862.7, -2206.9, -679.4],
-            'center': [2596.1, -1900.5, -588.6]}
-        meta = {'FOV': [{'MLAPDV': mlapdv, 'nXnYnZ': [512, 512, 1], 'stack_id': 0}]}
-        with unittest.mock.patch.object(self.one.alyx, 'rest') as mock_rest:
-            task.register_fov(meta, 'estimate')
-        calls = mock_rest.call_args_list
-        self.assertEqual(3, len(calls))
+        # Check MLAPDV coordinates
+        self.assertCountEqual(mlapdv.keys(), range(self.n_fov))
+        self.assertEqual(mlapdv[0].shape, (self.n_pixels, self.n_pixels, 3))
+        # NB: Both FOVs will have the same values as the corner coords were duplicated
+        expected = [
+            [[2340.56338479, -1591.90678391, -470.00086393],
+             [2349.31505118, -1592.27367881, -473.0827811],
+             [2358.06671756, -1592.64057372, -476.16469828]],
+            [[2340.458664, -1601.13876084, -468.86441878],
+             [2349.21223008, -1601.50573538, -471.94700493],
+             [2357.96579616, -1601.87270992, -475.02959108]],
+            [[2340.35394321, -1610.37073777, -467.72797362],
+             [2349.10940898, -1610.73779195, -470.81122876],
+             [2357.86487476, -1611.10484613, -473.89448389]]
+        ]
+        np.testing.assert_array_almost_equal(mlapdv[0][:3, :3, :], expected)
 
-        args, kwargs = calls[1]
-        self.assertEqual(('fields-of-view', 'create'), args)
-        expected = {'data': {'session': None, 'imaging_type': 'mesoscope', 'name': 'FOV_00', 'stack': None}}
-        self.assertEqual(expected, kwargs)
+        # Check brain location IDs
+        expected = [[670, 201, 201],
+                    [670, 201, 201],
+                    [670, 201, 201]]
+        np.testing.assert_array_almost_equal(ids[0][:3, 30:33], expected)
+        self.assertCountEqual(ids.keys(), range(self.n_fov))
+        self.assertEqual(ids[0].shape, (self.n_pixels, self.n_pixels))
 
-        args, kwargs = calls[2]
-        self.assertEqual(('fov-location', 'create'), args)
-        expected = ['field_of_view', 'default_provenance', 'coordinate_system',
-                    'n_xyz', 'provenance', 'x', 'y', 'z', 'brain_region']
-        self.assertCountEqual(expected, kwargs.get('data', {}).keys())
-        self.assertEqual(256, len(kwargs['data']['brain_region']))
-        self.assertEqual([512, 512, 1], kwargs['data']['n_xyz'])
-        self.assertIs(kwargs['data']['field_of_view'], mock_rest().get('id'))
-        self.assertEqual('E', kwargs['data']['provenance'])
-        self.assertEqual([2317200.0, 2862700.0, 2317300.0, 2862700.0], kwargs['data']['x'])
+        # Check meta map was modified
+        FOV_00 = self.meta['FOV'][0]
+        self.assertTrue(set(FOV_00.keys()) >= {'MLAPDV', 'brainLocationIds'})
+        expected = {'topLeft': 312782554, 'topRight': 201, 'bottomLeft': 312782554,
+                    'bottomRight': 312782608, 'center': 312782554}
+        self.assertDictEqual(FOV_00['brainLocationIds'], expected)
+        expected = [2610.4443067967663, -1889.5483453231307, -530.9533882881943]
+        np.testing.assert_array_almost_equal(FOV_00['MLAPDV']['center'], expected)
 
-        # Check dry mode with suffix input = None
-        for file in self.session_path.joinpath('alf', 'FOV_00').glob('mpciMeanImage.*'):
-            file.replace(file.with_name(file.name.replace('_estimate', '')))
-        self.one.mode = 'local'
-        with unittest.mock.patch.object(self.one.alyx, 'rest') as mock_rest:
-            out = task.register_fov(meta, None)
-            mock_rest.assert_not_called()
-        self.assertEqual(1, len(out))
-        self.assertEqual('FOV_00', out[0].get('name'))
-        locations = out[0]['location']
-        self.assertEqual(1, len(locations))
-        self.assertEqual('L', locations[0].get('provenance', 'L'))
+        # Test behaviour when outside of the brain (also remove one of the FOVs for speed)
+        FOV_00 = self.meta['FOV'].pop()
+        for k in FOV_00['MM']:
+            FOV_00['MM'][k] = np.array(FOV_00['MM'][k]) + 10
+        with self.assertLogs('ibllib.pipes.mesoscope_tasks', 'WARNING'):
+            mlapdv, ids = task.project_mlapdv(self.meta, self.flat_tri, self.dorsal_tri, self.atlas)
+        self.assertTrue(np.all(np.isnan(mlapdv[0])))
+        np.testing.assert_array_equal(ids[0], np.zeros((self.n_pixels, self.n_pixels), dtype=int))
 
 
 class TestMesoscopeSync(base.IntegrationTest):
@@ -523,9 +557,8 @@ class TestMesoscopeCompress(base.IntegrationTest):
         task = MesoscopeCompress(self.alf_path.parent, one=self.one)
 
         # Check fails if compressed file too small
-        self.assertEqual(-1, task.run())
+        self.assertEqual(-1, task.run(remove_uncompressed=True))
         self.assertIn('Compressed file < 1KB', task.log)
-        # self.assertRaises(AssertionError, task.run)
 
         # Shouldn't unlink files if compression failed
         tif_files = list(self.alf_path.glob('*.tif'))
@@ -533,7 +566,7 @@ class TestMesoscopeCompress(base.IntegrationTest):
 
         self.alf_path.joinpath('imaging.frames.tar.bz2').unlink()
         # With a mocked file size the task should complete
-        status = task.run(verify_min_size=False)
+        status = task.run(verify_min_size=False, remove_uncompressed=True)
         self.assertFalse(status, 'compression task failed')
 
         self.assertTrue(self.alf_path.joinpath('imaging.frames.tar.bz2').exists())
