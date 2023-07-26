@@ -283,40 +283,40 @@ class TestProjectFOV(base.IntegrationTest):
         """Test the full MesoscopeFOV.project_mlapdv method."""
         # Test generation of mpciROI datasets
         task = MesoscopeFOV(self.session_path, device_collection='raw_imaging_data', one=self.one)
-        mlapdv, ids = task.project_mlapdv(self.meta, self.flat_tri, self.dorsal_tri, self.atlas)
+        mlapdv, ids = task.project_mlapdv(self.meta, self.atlas)
 
         # Check MLAPDV coordinates
         self.assertCountEqual(mlapdv.keys(), range(self.n_fov))
         self.assertEqual(mlapdv[0].shape, (self.n_pixels, self.n_pixels, 3))
         # NB: Both FOVs will have the same values as the corner coords were duplicated
         expected = [
-            [[2340.56338479, -1591.90678391, -470.00086393],
-             [2349.31505118, -1592.27367881, -473.0827811],
-             [2358.06671756, -1592.64057372, -476.16469828]],
-            [[2340.458664, -1601.13876084, -468.86441878],
-             [2349.21223008, -1601.50573538, -471.94700493],
-             [2357.96579616, -1601.87270992, -475.02959108]],
-            [[2340.35394321, -1610.37073777, -467.72797362],
-             [2349.10940898, -1610.73779195, -470.81122876],
-             [2357.86487476, -1611.10484613, -473.89448389]]
+            [[2309.19916861, -1601.44040887, -231.35034825],
+             [2317.83114255, -1601.89273938, -234.74282709],
+             [2326.4631165, -1602.34506989, -238.13530593]],
+            [[2309.09588003, -1610.65498922, -230.0804221],
+             [2317.72972769, -1611.10741792, -233.47363734],
+             [2326.36357535, -1611.55984662, -236.86685258]],
+            [[2308.99259145, -1619.86956957, -228.81049596],
+             [2317.62831283, -1620.32209646, -232.20444759],
+             [2326.26403421, -1620.77462334, -235.59839922]]
         ]
         np.testing.assert_array_almost_equal(mlapdv[0][:3, :3, :], expected)
 
         # Check brain location IDs
-        expected = [[670, 201, 201],
-                    [670, 201, 201],
-                    [670, 201, 201]]
-        np.testing.assert_array_almost_equal(ids[0][:3, 30:33], expected)
+        expected = [[1006, 981, 981],
+                    [312782550, 981, 981],
+                    [312782550, 981, 981]]
+        np.testing.assert_array_almost_equal(ids[0][:3, 49:52], expected)
         self.assertCountEqual(ids.keys(), range(self.n_fov))
         self.assertEqual(ids[0].shape, (self.n_pixels, self.n_pixels))
 
         # Check meta map was modified
         FOV_00 = self.meta['FOV'][0]
         self.assertTrue(set(FOV_00.keys()) >= {'MLAPDV', 'brainLocationIds'})
-        expected = {'topLeft': 312782554, 'topRight': 201, 'bottomLeft': 312782554,
-                    'bottomRight': 312782608, 'center': 312782554}
+        expected = {'topLeft': 312782550, 'topRight': 981, 'bottomLeft': 312782550,
+                    'bottomRight': 312782604, 'center': 312782550}
         self.assertDictEqual(FOV_00['brainLocationIds'], expected)
-        expected = [2610.4443067967663, -1889.5483453231307, -530.9533882881943]
+        expected = [2575.3890558071657, -1901.209002390902, -297.8571573244117]
         np.testing.assert_array_almost_equal(FOV_00['MLAPDV']['center'], expected)
 
         # Test behaviour when outside of the brain (also remove one of the FOVs for speed)
@@ -324,7 +324,7 @@ class TestProjectFOV(base.IntegrationTest):
         for k in FOV_00['MM']:
             FOV_00['MM'][k] = np.array(FOV_00['MM'][k]) + 10
         with self.assertLogs('ibllib.pipes.mesoscope_tasks', 'WARNING'):
-            mlapdv, ids = task.project_mlapdv(self.meta, self.flat_tri, self.dorsal_tri, self.atlas)
+            mlapdv, ids = task.project_mlapdv(self.meta, self.atlas)
         self.assertTrue(np.all(np.isnan(mlapdv[0])))
         np.testing.assert_array_equal(ids[0], np.zeros((self.n_pixels, self.n_pixels), dtype=int))
 
