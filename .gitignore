@@ -22,4 +22,5 @@ pybpod-api.log
 iblrig.egg-info/
 iblscripts.egg-info/
 .*
+!.pre-commit-config.yaml
 !.coveragerc
