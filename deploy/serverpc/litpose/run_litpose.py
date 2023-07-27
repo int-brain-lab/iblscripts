@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from iblvideo import lightning_pose, __version__
+from iblvideo import lightning_pose
 
 
 if __name__ == "__main__":
