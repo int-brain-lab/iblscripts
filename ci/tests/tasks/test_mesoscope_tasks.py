@@ -26,7 +26,6 @@ from ibllib.io.extractors import mesoscope
 from ibllib.io.raw_daq_loaders import load_timeline_sync_and_chmap
 
 from ci.tests import base
-import deploy
 
 _logger = logging.getLogger('ibllib')
 
@@ -267,9 +266,6 @@ class TestProjectFOV(base.IntegrationTest):
         self.n_pixels = 64  # Number of pixels xy pixels in each FOV
         self.n_fov = 2  # Number of fields of view
 
-        mesoscope_path = Path(deploy.__file__).parent / 'mesoscope'
-        self.flat_tri = alfio.load_object(mesoscope_path, 'flatTR')
-        self.dorsal_tri = alfio.load_object(mesoscope_path, 'dorsalTR')
         self.atlas = AllenAtlas(res_um=50)  # Use low res atlas for speed
         self.one = ONE(**base.TEST_DB)
 
