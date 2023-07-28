@@ -1,6 +1,8 @@
 import argparse
 from pathlib import Path
-from iblvideo import lightning_pose, __version__
+from iblvideo import lightning_pose
+import cProfile
+import pstats
 
 
 if __name__ == "__main__":
@@ -13,4 +15,13 @@ if __name__ == "__main__":
     path_weights = Path('/mnt/s0/Data/resources/current-lp-networks')
     # path_weights = download_weights(version=__version__)
 
+    profile = cProfile.Profile()
+    profile.enable()
     lp_result = lightning_pose(file_mp4, ckpts_path=path_weights, force=args.overwrite)
+    profile.disable()
+    profile.create_stats()
+
+    with open(f"{file_mp4.name}_profile.txt", 'w') as fp:
+        stats = pstats.Stats(profile, stream=fp)
+        stats.sort_stats('cumulative')
+        stats.print_stats()
