@@ -128,7 +128,7 @@ for i, sub in enumerate(subjects):
         task_ds = Dataset.objects.filter(session__in=trials_ds.values_list('session', flat=True),
                                          name__in=['_iblrig_taskSettings.raw.json', '_iblrig_taskData.raw.jsonable'],
                                          default_dataset=True)
-        # If we don't have task data for each session, we that's a problem
+        # If we don't have task data for each session, well that's a problem
         if task_ds.count() / 2 < trials_ds.count():
             logger.info('...not all sessions have raw task data')
             status_agg[f'{sub.id}'] = 'ERROR: not all sessions have raw task data'
@@ -206,8 +206,6 @@ for i, sub in enumerate(subjects):
             # Add to list of trials for subject
             trials['session'] = str(t.session.id)
             trials['session_start_time'] = t.session.start_time
-            trials['session_number'] = t.session.number
-            trials['task_protocol'] = t.session.task_protocol
 
             # Load quiescence and stimOn_trigger and add to the table
             (*_, quiescence), _ = PhasePosQuiescence(alf_path.parent).extract(save=False)
