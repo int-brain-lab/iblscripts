@@ -1,35 +1,15 @@
-%this script is to be run after a mesoscope experiment at the scanimage PC.
-%1) looks for today's data
+function out = mesoscopePostExpt(ExpRefs)
+
+%this function is to be run after a mesoscope experiment at the scanimage PC.
+%1) TODO looks for today's data
 %2) writes Frame QC
-%3) extracts metadata (including 3D projection)
-%4) copies data to server
+%3) extracts metadata
+%4) TODO copies data to server
 
-%input the expRefs to be processed (can be raw paths)
-ExpRefs = {...
-    ...%'Y:\Subjects\SP037\2023-02-08\001\raw_imaging_data_00',... %QC done, no meta yet
-    ...%'Y:\Subjects\SP037\2023-02-09\001\raw_imaging_data_00',... %QC done, no meta yet
-    ...%'Y:\Subjects\SP037\2023-02-10\001\raw_imaging_data_00',... %QC done, no meta yet
-    ...%'Y:\Subjects\SP037\2023-02-14\001\raw_imaging_data_00',... %QC done
-    ...%'Y:\Subjects\SP037\2023-02-16\001\raw_imaging_data_00',... %QC done
-    ...%'Y:\Subjects\SP037\2023-02-23\001\raw_imaging_data_00',... %QC done
-    ...%'Y:\Subjects\SP037\2023-02-23\001\raw_imaging_data_01',... %QC done
-    ...%'Y:\Subjects\SP037\2023-02-24\001\raw_imaging_data_00',... %QC done
-    ...%'Y:\Subjects\SP037\2023-02-24\001\raw_imaging_data_01',... %QC done
-    ...%'Y:\Subjects\SP037\2023-03-09\001\raw_imaging_data_00',... %QC done
-    ...%'Y:\Subjects\SP037\2023-03-09\001\raw_imaging_data_01',... %QC done
-    ...%'Y:\Subjects\SP037\2023-03-23\002\raw_imaging_data_00',... %QC done
-    ...%'Y:\Subjects\SP037\2023-03-23\002\raw_imaging_data_01',... %QC done
-    ...%'Y:\Subjects\SP037\2023-03-24\001\raw_imaging_data_00',... %QC done
-    ...%'Y:\Subjects\SP037\2023-03-24\001\raw_imaging_data_01',... %QC done
-    ...%'Y:\Subjects\SP037\2023-03-27\001\raw_imaging_data_00',... %dual-plane recording (at same depth)
-    ...%'Y:\Subjects\SP037\2023-03-27\001\raw_imaging_data_01',... %dual-plane recording (at same depth)
-    'Y:\Subjects\SP037\2023-03-28\001\raw_imaging_data_00',...
-    'Y:\Subjects\SP037\2023-03-28\001\raw_imaging_data_01',...
-    'Y:\Subjects\SP037\2023-03-28\001\raw_imaging_data_02'...
-    };
-
-%for testing on one data-file
-%ExpRefs = {'Y:\Subjects\SP037\2023-02-20\002\raw_imaging_data_00'};
+%for testing
+if nargin<1
+    ExpRefs = {'Y:\Subjects\test\2023-03-03\002\raw_imaging_data_00'};
+end
 
 %make sure we are logged into alyx
 if exist('alyx','var')
