@@ -4,12 +4,12 @@ if nargin < 2
     %initialize tiff reading options;
     options = {};
     options.frameStride = 12;
-    options.firstFrame = 1;
+    options.firstFrame = 1; %this HAS to be 1 (for now)
     options.lastFrame = 0; %just for initialization, this will be updated in for-loop
 end
 
 if nargin <1
-    datPath = 'M:\Subjects\SP035\2023-03-01\001\raw_imaging_data_02';
+    datPath = 'Y:\Subjects\SP037\2023-02-17\002\raw_imaging_data_00';
 end
 
 plot_flag = true;
@@ -49,22 +49,23 @@ if length(SI.hChannels.channelSave)==1
     
     fprintf('Single channel detected...\n');
     
-    %if ~SI.hStackManager.enable & nZs==1 %for single plane, single channel
-%         fprintf('No z-stack found, treating as single plane...\n');
-%         Ly = Ly_all;
-%         n_rows_sum = sum(Ly);
-%         n_flyback = (fInfo(1).Height - n_rows_sum) / max(1, (nrois - 1));
-%         irows = [0 cumsum(Ly'+n_flyback)]+1; %MATLAB indexing!
-%         irows(end) = [];
-%         irows(2,:) = irows(1,:) + Ly' - 1;
-%         validLines = {[]};
-%         for i = 1:nrois
-%             validLines{1} = [validLines{1} irows(1,i):(irows(2,i))];
-%         end
-%         fprintf('Found %i FOVs, %i valid lines out of %i.\n',nrois,length(validLines{1}),fInfo(1).Height);
-%         
-    %if SI.hStackManager.enable & all([si_rois.discretePlaneMode]) %several discrete planes, single channel
-    if all([si_rois.discretePlaneMode]) %several discrete planes, single channel
+    if ~SI.hStackManager.enable & nZs==1 %for single plane, single channel
+        fprintf('No z-stack found, treating as single plane...\n');
+        Ly = Ly_all;
+        n_rows_sum = sum(Ly);
+        n_flyback = (fInfo(1).Height - n_rows_sum) / max(1, (nrois - 1));
+        irows = [0 cumsum(Ly'+n_flyback)]+1; %MATLAB indexing!
+        irows(end) = [];
+        irows(2,:) = irows(1,:) + Ly' - 1;
+        validLines = {[]};
+        for i = 1:nrois
+            validLines{1} = [validLines{1} irows(1,i):(irows(2,i))];
+        end
+        nFOVs = nrois;
+        fprintf('Found %i FOVs, %i valid lines out of %i.\n',nrois,length(validLines{1}),fInfo(1).Height);
+        
+    elseif SI.hStackManager.enable & all([si_rois.discretePlaneMode]) %several discrete planes, single channel
+    %if all([si_rois.discretePlaneMode]) %several discrete planes, single channel
     
         fprintf('Treating as z-stack with multiple discrete planes...\n');
         
@@ -126,19 +127,22 @@ if length(SI.hChannels.channelSave)==1
             fprintf('Slice %i: Found %i FOVs, %i valid lines out of %i.\n',islices(iSlice),nFOVs(iSlice),length(validLines{iSlice}),fInfo(1).Height);
             
         end
+    else
+        error('Could not figure out how the tiff is structured, please write arrays manually.');
     end
     
+else %multi-channel recording could be dual-plane, dual-colour, or both
     
-else
-    
-    error('Could not figure out how the tiff is structured, write arrays manually.');
-    
+    error('Tiff has multiple channels, functionality does not exist yet....');
+
 end
 
 
 
 
 %% load tiff-stacks (one for each slice) and get stats
+
+firstFrame = options.firstFrame;
 
 %update frame stride after with slice factor
 frameStride = options.frameStride; 
@@ -200,10 +204,14 @@ for iFile = 1:nFiles
     TotNumFrames = TotNumFrames + FramesInFile;
     options.lastFrame = min(lastFrameToRead,FramesInFile);
     lastFrameToRead = lastFrameToRead-FramesInFile;
+    sliceIdx_remaining = sliceIdx((lastframe_all+1):end);
+    options.firstFrame = find(sliceIdx_remaining==iSlice,1);
     
     %make vector of frame indexes
-    iSlice = sliceIdx(lastframe_all+iSlice);
-    framenrs = (iSlice+options.firstFrame-1):options.frameStride:options.lastFrame;
+    framenrs_all = find(sliceIdx(lastframe_all+(1:FramesInFile))==iSlice);
+    framenrs = framenrs_all(1:frameStride:min(length(framenrs_all),ceil((options.lastFrame/nZs))));
+    %iSlice_corr = sliceIdx(lastframe_all+iSlice);
+    %framenrs = (iSlice_corr+options.firstFrame-1):options.frameStride:options.lastFrame;
     totFrames_idx = lastframe_all+framenrs;
     frames_sampled = [frames_sampled totFrames_idx];
     
@@ -211,7 +219,7 @@ for iFile = 1:nFiles
     volFrames_idx = volframe_all+volframenrs;
     volFrames_sampled = [volFrames_sampled volFrames_idx];
     
-    frameBounds_stacks(iFile,:) = [lastframe_all+options.firstFrame, lastframe_all+options.lastFrame];
+    frameBounds_stacks(iFile,:) = [lastframe_all+firstFrame, lastframe_all+options.lastFrame];
     
     lastframe_all = lastframe_all+FramesInFile;
     volframe_all = volframe_all+ceil(FramesInFile/nZs);
@@ -246,16 +254,16 @@ for iFile = 1:nFiles
     end
     
     %get info for each FOV
-    nrois = nFOVs(iSlice); %length(islices==iSlice);
+    nrois_inslice = nFOVs(iSlice); %length(islices==iSlice);
     if all([si_rois.discretePlaneMode])
         iFOVs = find(Zidxs==iSlice); %the FOVs that are contained in this plane
     else
         iFOVs = find(~[si_rois.discretePlaneMode]);
     end
-    traceFOV_median = nan(nrois,length(framenrs));
-    traceFOV_mean = nan(nrois,length(framenrs));
-    traceFOV_max = nan(nrois,length(framenrs));
-    for i = 1:nrois
+    traceFOV_median = nan(nrois_inslice,length(framenrs));
+    traceFOV_mean = nan(nrois_inslice,length(framenrs));
+    traceFOV_max = nan(nrois_inslice,length(framenrs));
+    for i = 1:nrois_inslice
         stackFOV = stack_full(irows(1,iFOVs(i)):irows(2,iFOVs(i)),:,:);
         meanImgFOV = squeeze(mean(stackFOV,3));
         stackFOV_flat = single(reshape(stackFOV,[size(stackFOV,1)*size(stackFOV,2),size(stackFOV,3)]));
@@ -287,6 +295,20 @@ end
 medianTrace_eachFOV(:,superFrames_idx(end)+1:end) = [];
 meanTrace_eachFOV(:,superFrames_idx(end)+1:end) = [];
 maxTrace_eachFOV(:,superFrames_idx(end)+1:end) = [];
+
+%fix potential issue with unequal nr. of frames between _all and _eachFOV 
+[minlength, maxlength] = bounds([length(maxTrace_eachFOV),length(maxTrace_all),length(volFrames_sampled)]);
+if minlength ~= maxlength
+    if length(maxTrace_all)<length(volFrames_sampled)
+        maxTrace_all = [maxTrace_all nan(1,length(volFrames_sampled)-length(maxTrace_all))];
+        medianTrace_all = [medianTrace_all nan(1,length(volFrames_sampled)-length(medianTrace_all))];
+        meanTrace_all = [meanTrace_all nan(1,length(volFrames_sampled)-length(meanTrace_all))];
+    else
+        maxTrace_all(:,length(volFrames_sampled)+1:end) = [];
+        medianTrace_all(:,length(volFrames_sampled)+1:end) = [];
+        meanTrace_all(:,length(volFrames_sampled)+1:end) = [];
+    end
+end
 
 %% plot some stuff
 
