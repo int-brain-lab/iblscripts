@@ -1,8 +1,8 @@
 function [mlapdv,brainLocIds] = getMLAPDV(sess,varargin)
-
 %this script pulls MLAPDV + brainLocationIds guesstimates of ROI centroids
 %from pixel-maps, and writes those to the alf folder
 %written by Samuel Picard (June 2023)
+%NB: This is now done in ibllib
 
 defaultRoot = 'M:\Subjects\';
 
@@ -45,12 +45,12 @@ for iFOV=1:length(fns)
     mlapdv = double(nan(size(stackPos)));
     brainLocIds = int16(nan(1,size(stackPos,1)));
     for iROI=1:length(stackPos)
-        mlapdv(iROI,:) = map_mlapdv(stackPos(iROI,1), stackPos(iROI,2), :);
-        brainLocIds(iROI) = int16(map_brainLocIds(stackPos(iROI,1), stackPos(iROI,2)));
+        mlapdv(iROI,:) = map_mlapdv(stackPos(iROI,1)+1, stackPos(iROI,2)+1, :);
+        brainLocIds(iROI) = int16(map_brainLocIds(stackPos(iROI,1)+1, stackPos(iROI,2)+1));
     end
         
     %write mlapdv + brainLocIds of ROIs to disk
-    writeNPY(mlapdv,fullfile(alf_data_path,'mpciROIs.mlapdv_estimate_test.npy'));
-    writeNPY(brainLocIds,fullfile(alf_data_path,'mpciROIs.brainLocationIds_estimate_test.npy'));
+    writeNPY(mlapdv,fullfile(alf_data_path,'mpciROIs.mlapdv_estimate.npy'));
+    writeNPY(brainLocIds,fullfile(alf_data_path,'mpciROIs.brainLocationIds_estimate.npy'));
     
 end
