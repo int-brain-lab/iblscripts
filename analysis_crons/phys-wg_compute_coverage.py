@@ -161,10 +161,11 @@ coverage_left = coverage.copy()
 coverage_left[indx_right] = np.nan
 
 # Sum left+right
-sp_volume_sum = sp_volume_left + sp_volume_right_flip
+sp_volume_sum = np.nan_to_num(sp_volume_left) + np.nan_to_num(sp_volume_right_flip)
 coverage_sum = coverage_left + coverage_right_flip
 
 # Some voxels in sp_volume are == to 2 or 4, remap to 1
+sp_volume_sum[np.where(sp_volume_sum == 0)] = np.nan
 sp_volume_sum[np.where(~np.isnan(sp_volume_sum))] = 1
 
 # Compute coverage flipped
