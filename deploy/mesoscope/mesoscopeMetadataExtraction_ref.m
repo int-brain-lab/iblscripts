@@ -35,7 +35,7 @@ if isfile(filename)
     parsed = regexp(fn, reg_tiff, 'names');
     fn = [fn, fext];
     subj = parsed.subject;
-    %subj = 'SP037';
+    %subj = 'SP044';
     fileList = dir(fullfile(ff, fn)); %only take this tif
     %fileList = dir(fullfile(ff, ['*', fext])); %all tifs in folder
 else
