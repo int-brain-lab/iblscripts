@@ -335,7 +335,7 @@ for iSlice = 1:nZs
 end
 %TODO: figure out how to work with 'volume frames' for multi-plane data!
 
-[ff_top,ff_raw] = fileparts(ff);
+% [ff_top,ff_raw] = fileparts(ff);
 
 % Save raw FPGA timestamps array
 timestamps_filename = fullfile(ff, 'rawImagingData.times_scanImage.npy');
@@ -343,34 +343,34 @@ writeNPY([imageDescription.frameTimestamps_sec]', timestamps_filename)
 
 % 3D projection on the brain surface
 %TODO: only need to do this for the first raw_imaging_data folder
-meta = projectMLAPDV(meta);
-
-% Save 3D projection data in separate npy files
-% saves them as 'stitched arrays', similar to the raw tiff frames where the
-% different FOVs are concatenated vertically
-for iFOV = 1:length(meta.FOV)
-    ff_alf = fullfile(ff_top,'alf',['FOV_0' num2str(iFOV)-1]);
-    if ~exist(ff_alf,'dir')
-        mkdir(ff_alf);
-        mlapdv = meta.FOV(iFOV).pixelMLAPDV * 1e3;  % Save in um instead of mm
-        mlapdv_filename = fullfile(ff_alf,'mpciMeanImage.mlapdv_estimate.npy');
-        atlasAnnotation = meta.FOV(iFOV).pixelAnnot;
-        annotation_filename = fullfile(ff_alf, 'mpciMeanImage.brainLocationIds_ccf_2017_estimate.npy');
-        writeNPY(mlapdv, mlapdv_filename)
-        writeNPY(atlasAnnotation, annotation_filename)
-    end
-end
-% remove the big data arrays from json
-metaForJson = meta;
-FOV = metaForJson.FOV;
-%for iFOV = 1:numel(metaForJson.FOV)
-FOV = rmfield(FOV,{'pixelMLAPDV','pixelAnnot'});
-%end
-metaForJson.FOV = FOV;
+% meta = projectMLAPDV(meta);
+% 
+% % Save 3D projection data in separate npy files
+% % saves them as 'stitched arrays', similar to the raw tiff frames where the
+% % different FOVs are concatenated vertically
+% for iFOV = 1:length(meta.FOV)
+%     ff_alf = fullfile(ff_top,'alf',['FOV_0' num2str(iFOV)-1]);
+%     if ~exist(ff_alf,'dir')
+%         mkdir(ff_alf);
+%         mlapdv = meta.FOV(iFOV).pixelMLAPDV * 1e3;  % Save in um instead of mm
+%         mlapdv_filename = fullfile(ff_alf,'mpciMeanImage.mlapdv_estimate.npy');
+%         atlasAnnotation = meta.FOV(iFOV).pixelAnnot;
+%         annotation_filename = fullfile(ff_alf, 'mpciMeanImage.brainLocationIds_ccf_2017_estimate.npy');
+%         writeNPY(mlapdv, mlapdv_filename)
+%         writeNPY(atlasAnnotation, annotation_filename)
+%     end
+% end
+% % remove the big data arrays from json
+% metaForJson = meta;
+% FOV = metaForJson.FOV;
+% %for iFOV = 1:numel(metaForJson.FOV)
+% FOV = rmfield(FOV,{'pixelMLAPDV','pixelAnnot'});
+% %end
+% metaForJson.FOV = FOV;
 
 jsonFileName = fullfile(ff, '_ibl_rawImagingData.meta.json');
 % txt = jsonencode(meta, 'PrettyPrint', true);
-txt = jsonencode(metaForJson, 'ConvertInfAndNaN', false);
+txt = jsonencode(meta, 'ConvertInfAndNaN', false);
 fid = fopen(jsonFileName, 'wt');
 fwrite(fid, txt);
 fclose(fid);

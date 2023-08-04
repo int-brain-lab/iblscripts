@@ -7,6 +7,9 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 import ibllib.ephys.ephysqc as ephysqc
+from iblutil.util import setup_logger
+
+setup_logger('ibllib', level='INFO')
 
 
 class App(QMainWindow):
