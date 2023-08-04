@@ -19,7 +19,14 @@ end
 [ff, fn, fext] = fileparts(filename);
 savefolder = ff;
 savename = 'referenceImage.stack.tif';
-%if exist(fullfile(savefolder,savename),'file'), delete(fullfile(savefolder,savename)); end
+
+files_to_delete = {savename, 'reference.stack.tif', 'reference.meta.json'};
+for i = 1:length(files_to_delete)
+    if exist(fullfile(savefolder,files_to_delete{i}),'file')
+        delete(fullfile(savefolder,files_to_delete{i})); 
+    end
+end
+
 %if ~exist(savefolder,'dir'), mkdir(savefolder); end
 
 %read relevant meta-data from header
@@ -138,7 +145,9 @@ for iZ = 1:nZs
 end
 
 %re-name raw data
-movefile(filename,fullfile(ff,['referenceImage.raw',fext])); 
+if ~strcmp(filename,fullfile(ff,['referenceImage.raw',fext]))
+    movefile(filename,fullfile(ff,['referenceImage.raw',fext])); 
+end
 
 fprintf(' done!\n')
 
