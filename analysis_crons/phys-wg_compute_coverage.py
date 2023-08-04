@@ -138,6 +138,9 @@ trajs_df = pd.DataFrame.from_dict(trajs_dict)
 ============================
 Decision on 03 Aug 2023 - EB meeting
 '''
+# Ensure only 1s are in sp volume
+sp_volume[np.where(~np.isnan(sp_volume))] = 1
+
 # Flip coverage and sp volume
 indx_left = np.where(ba.label > br.n_lr)
 indx_right = np.where(ba.label <= br.n_lr)
