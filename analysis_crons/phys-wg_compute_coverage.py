@@ -256,6 +256,8 @@ commands = [
     f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_coverage.name}",
     f"aws --profile ibl s3 cp {filepath_coverage_012} "
     f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_coverage_012.name}",
+    f"aws --profile ibl s3 cp {filepath_cov_lr_sum_012} "
+    f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_cov_lr_sum_012.name}",
     f"aws --profile ibl s3 cp {filepath_df_cov_val} "
     f"s3://ibl-brain-wide-map-private/resources/physcoverage/{filepath_df_cov_val.name}",
     f"aws --profile ibl s3 cp {filepath_sp_per012} "
