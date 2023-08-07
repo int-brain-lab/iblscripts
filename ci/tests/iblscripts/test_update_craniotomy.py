@@ -19,7 +19,7 @@ class TestUpdateCraniotomy(IntegrationTest):
     def test_update_craniotomy_coordinates(self):
         """Test update_craniotomy_coordinates function."""
         record = update_craniotomy_coordinates(self.subject, 2.7, 1, alyx=self.alyx)
-        expected = {'craniotomy_00': [2.7, 1.]}
+        expected = {'craniotomy_00': {'center': [2.7, 1.]}}
         self.assertEqual(record['id'], self.uuid)
         self.assertEqual(expected, record['json'])
 

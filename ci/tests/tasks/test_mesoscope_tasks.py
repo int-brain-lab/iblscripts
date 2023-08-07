@@ -267,7 +267,7 @@ class TestProjectFOV(base.IntegrationTest):
         self.n_fov = 2  # Number of fields of view
 
         self.atlas = AllenAtlas(res_um=50)  # Use low res atlas for speed
-        self.one = ONE(**base.TEST_DB)
+        self.one = ONE(**base.TEST_DB, mode='local')
 
         # Create a toy meta file
         self.meta = {'centerMM': {'ML': 2.6, 'AP': -1.9}}
