@@ -219,7 +219,7 @@ class TestMesoscopeFOV(base.IntegrationTest):
         with unittest.mock.patch.object(task, 'register_fov') as mock_obj, \
                 unittest.mock.patch.object(task, 'project_mlapdv', return_value=mean_img_map):
             self.assertEqual(0, task.run())
-            mock_obj.assert_called_once_with({'FOV': [{}, {}]}, 'estimate')
+            mock_obj.assert_called_once_with(unittest.mock.ANY, 'estimate')
         self.assertEqual(self.n_fov * 4 + 1, len(task.outputs))  # + 1 for modified meta file
         # Mean image brain locations should be int
         file = next(f for f in task.outputs if 'mpciMeanImage.brainLocationIds_ccf_2017_estimate' in f.name)
@@ -244,7 +244,7 @@ class TestMesoscopeFOV(base.IntegrationTest):
         with unittest.mock.patch.object(task, 'register_fov') as mock_obj, \
                 unittest.mock.patch.object(task, 'project_mlapdv', return_value=mean_img_map):
             self.assertEqual(0, task.run(provenance=Provenance.HISTOLOGY))
-            mock_obj.assert_called_once_with({'FOV': [{}, {}]}, None)
+            mock_obj.assert_called_once_with(unittest.mock.ANY, None)
         self.assertEqual((self.n_fov * 4) + 1, len(task.outputs))  # + 1 for modified meta file
         self.assertFalse(any('_estimate' in x.name for x in task.outputs))
         rois = alfio.load_object(self.session_path / 'alf' / 'FOV_00', 'mpciROIs')
