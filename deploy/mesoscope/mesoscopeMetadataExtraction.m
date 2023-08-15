@@ -68,7 +68,7 @@ fullfilepath = fullfile(ff,fn);
 fprintf('%s\n',ff);
 
 %% Generate the skeleton of the output struct
-meta = struct('version', '0.1.0');
+meta = struct('version', '0.1.1');
 
 % rig based
 meta.channelID.green = [1, 2]; % information about channel numbers (red/green)
@@ -291,7 +291,7 @@ for iSlice = 1:nZs
             nXnY = si_rois(iRoi).scanfields(1).pixelResolutionXY';
             
             meta.FOV(iFOV).slice_id = iSlice-1; %assuming 0-indexing
-            meta.FOV(iFOV).roiUuid = si_rois(iroi).roiUuid; %this is scanimage ID            
+            meta.FOV(iFOV).roiUUID = si_rois(iroi).roiUuid; %this is scanimage ID            
             meta.FOV(iFOV).Zs = Zvals(iSlice);
             
             meta.FOV(iFOV).nXnYnZ = [nXnY, 1];
