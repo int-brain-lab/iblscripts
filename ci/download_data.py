@@ -24,7 +24,7 @@ SRC_DIR = '/integration'
 POLL = (5, 60 * 2)  # min max seconds between pinging server
 TIMEOUT = 24 * 60 * 60  # seconds before timeout
 status_map = {
-    'ACTIVE': ('QUEUED', 'ACTIVE', 'GC_NOT_CONNECTED'),
+    'ACTIVE': ('QUEUED', 'ACTIVE', 'GC_NOT_CONNECTED', 'UNKNOWN'),
     'FAILED': ('ENDPOINT_ERROR', 'PERMISSION_DENIED', 'CONNECT_FAILED'),
     'INACTIVE': 'PAUSED_BY_ADMIN'
 }
@@ -90,7 +90,7 @@ running = True
 prev_detail = None
 while running:
     """Possible statuses = ('ACTIVE', 'INACTIVE', 'FAILED', 'SUCCEEDED')
-    Nice statuses = (None, 'OK', 'Queued', 'PERMISSION_DENIED',
+    Nice statuses = (None, 'OK', 'Queued', 'PERMISSION_DENIED', 'UNKNOWN',
                      'ENDPOINT_ERROR', 'CONNECT_FAILED', 'PAUSED_BY_ADMIN')
     """
     tr = gtc.get_task(task_id)
@@ -129,6 +129,9 @@ while running:
     elif detail == 'GC_NOT_CONNECTED' and prev_detail != detail:
         logger.warning('Globus Client not connected, this may be temporary')
         poll = POLL[0]
+    elif detail == 'UNKNOWN' and prev_detail != detail:
+        logger.warning('Unknown error from client, this may be temporary')
+        poll = poll[0]
     else:
         poll = min((poll * 2, POLL[1]))
     prev_detail = detail
