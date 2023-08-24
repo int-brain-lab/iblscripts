@@ -1,8 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import unittest
-from ibllib.atlas import AllenAtlas, FlatMap, BrainRegions
-from ibllib.atlas.flatmaps import plot_swanson, annotate_swanson
+from ibllib.atlas import AllenAtlas, BrainRegions
+from ibllib.atlas.flatmaps import FlatMap
+from ibllib.atlas.plots import plot_swanson, annotate_swanson
 from ibllib.atlas.genes import allen_gene_expression
 
 
