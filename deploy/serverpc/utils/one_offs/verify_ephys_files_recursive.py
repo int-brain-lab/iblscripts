@@ -2,7 +2,7 @@ from pathlib import Path
 import argparse
 import logging
 
-from ibllib.io import spikeglx
+import spikeglx
 
 _logger = logging.getLogger('ibllib')
 
