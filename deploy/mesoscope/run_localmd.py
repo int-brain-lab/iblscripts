@@ -179,7 +179,7 @@ if __name__ == '__main__':
     # Modify the filename below as desired
     parts = SESSION_PATH.split('/')
     exp_ref = '_'.join([parts[1], str(int(parts[2])), parts[0]])
-    filename_to_save = Path.home().joinpath(f'{exp_ref}_{FOV}_PMD_Movie_Comparison.tiff')
+    filename_to_save = ROOT / SESSION_PATH / 'alf' / f'FOV_{FOV:02}' / 'mpci.pmdTriptych.tiff'
 
     # The below line saves the tiff file
     print(f'Saving triptych to {filename_to_save}')
