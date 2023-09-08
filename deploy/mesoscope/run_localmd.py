@@ -116,7 +116,7 @@ if __name__ == '__main__':
 
     pmd_params_dict = vars(parser.parse_args())
     FOV = pmd_params_dict.pop('fov')
-    SESSION_PATH = pmd_params_dict.pop('session')
+    SESSION_PATH = str(Path(pmd_params_dict.pop('session')).relative_to(ROOT))
 
     # For testing, check there are no bad frames
     bad_frames_file = ROOT / SESSION_PATH / 'alf' / f'FOV_{FOV:02}' / 'mpci.badFrames.npy'
@@ -179,7 +179,7 @@ if __name__ == '__main__':
     # Modify the filename below as desired
     parts = SESSION_PATH.split('/')
     exp_ref = '_'.join([parts[1], str(int(parts[2])), parts[0]])
-    filename_to_save = Path.home().joinpath(f'{exp_ref}_{FOV}_PMD__Movie_Comparison.tiff')
+    filename_to_save = Path.home().joinpath(f'{exp_ref}_{FOV}_PMD_Movie_Comparison.tiff')
 
     # The below line saves the tiff file
     print(f'Saving triptych to {filename_to_save}')

@@ -12,4 +12,4 @@ nvcc --version
 # $2 FOV number
 # $3 block height
 # $4 block width
-python ~/Documents/PYTHON/iblscripts/mesoscope/run_localmd.py --session_path $1 --fov $2 --block_height $3 --block_width $4
+python ~/Documents/PYTHON/iblscripts/deploy/mesoscope/run_localmd.py --session $1 --fov $2 --block_height $3 --block_width $4
