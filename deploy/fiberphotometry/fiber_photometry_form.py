@@ -23,7 +23,7 @@ import pandas as pd
 import yaml
 from PyQt5 import QtWidgets, QtCore
 from dateutil.relativedelta import relativedelta
-from ibllib.atlas import BrainRegions
+from iblatlas.atlas import BrainRegions
 from ibllib.io.extractors import fibrephotometry as fp_extractor
 from ibllib.pipes.misc import rsync_paths
 from iblutil.util import setup_logger

@@ -20,7 +20,7 @@ from ibllib.pipes.mesoscope_tasks import (
     MesoscopeSync, MesoscopeFOV, MesoscopeRegisterSnapshots,
     MesoscopePreprocess, MesoscopeCompress, Provenance
 )
-from ibllib.atlas import AllenAtlas
+from iblatlas.atlas import AllenAtlas
 from ibllib.pipes.behavior_tasks import ChoiceWorldTrialsTimeline
 from ibllib.io.extractors import mesoscope
 from ibllib.io.raw_daq_loaders import load_timeline_sync_and_chmap
