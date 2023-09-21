@@ -131,7 +131,7 @@ while running:
         poll = POLL[0]
     elif detail == 'UNKNOWN' and prev_detail != detail:
         logger.warning('Unknown error from client, this may be temporary')
-        poll = poll[0]
+        poll = POLL[0]
     else:
         poll = min((poll * 2, POLL[1]))
     prev_detail = detail
