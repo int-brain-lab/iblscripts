@@ -130,7 +130,9 @@ while running:
         logger.warning('Globus Client not connected, this may be temporary')
         poll = POLL[0]
     elif detail == 'UNKNOWN' and prev_detail != detail:
-        logger.warning('Unknown error from client, this may be temporary')
+        logger.warning(f'Unknown error from client, this may be temporary. Task state is: {tr.state}'
+                       f' \n task message is {tr.message}'
+                       f'\n additional_details is %s', tr.data['additional_details'])
         poll = POLL[0]
     else:
         poll = min((poll * 2, POLL[1]))
