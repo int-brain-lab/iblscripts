@@ -815,7 +815,7 @@ class TestWheelAlignment(base.IntegrationTest):
     def test_alignment_ephys_session(self):
 
         motion_class = MotionAlignment(self.ephys_folder, 'right', behavior=False)
-        motion_class.camera_meta['length'] = motion_class.camera_meta['fps'] * 200 # only run on 20s snippet of video
+        motion_class.camera_meta['length'] = motion_class.camera_meta['fps'] * 200  # only run on 20s snippet of video
         _ = motion_class.process()
 
         motion_class.camera_times = motion_class.camera_times[motion_class.tdiff:]
@@ -824,7 +824,6 @@ class TestWheelAlignment(base.IntegrationTest):
 
         diff = ((motion_class.camera_times - motion_class.new_times) * motion_class.camera_meta['fps']).astype(int)
         self.assertTrue(all(diff <= 4))
-
 
 
 if __name__ == '__main__':
