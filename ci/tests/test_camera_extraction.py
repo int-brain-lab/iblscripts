@@ -801,5 +801,31 @@ class TestWheelMotionNRG(base.IntegrationTest):
             self.assertEqual(227, n_frames)
 
 
+class TestWheelAlignment(base.IntegrationTest):
+
+    def setUp(self) -> None:
+        self.training_folder = self.data_path.joinpath('training', 'CSHL_003', '2019-04-05', '001')
+        self.ephys_folder = self.data_path.joinpath('ephys', 'choice_world_init',
+                                                    'KS022', '2019-12-10', '001')
+        if not self.ephys_folder.exists():
+            raise FileNotFoundError(f'Fixture {self.ephys_folder} does not exist')
+        if not self.training_folder.exists():
+            raise FileNotFoundError(f'Fixture {self.training_folder} does not exist')
+
+    def test_alignment_ephys_session(self):
+
+        motion_class = MotionAlignment(self.ephys_folder, 'right', behavior=False)
+        motion_class.camera_meta['length'] = motion_class.camera_meta['fps'] * 200 # only run on 20s snippet of video
+        _ = motion_class.process()
+
+        motion_class.camera_times = motion_class.camera_times[motion_class.tdiff:]
+        np.testing.assert_array_equal(motion_class.shifts[:10], np.array([8., 8., 8., 7., 4., 4., 4., 4., 4., 4.]))
+        np.testing.assert_array_equal(motion_class.shifts_filt[:10], np.array([4., 4., 4., 4., 4., 4., 4., 4., 4., 4.]))
+
+        diff = ((motion_class.camera_times - motion_class.new_times) * motion_class.camera_meta['fps']).astype(int)
+        self.assertTrue(all(diff <= 4))
+
+
+
 if __name__ == '__main__':
     unittest.main(exit=False, verbosity=2)
