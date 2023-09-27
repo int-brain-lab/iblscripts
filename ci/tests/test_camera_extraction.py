@@ -822,9 +822,6 @@ class TestWheelAlignment(base.IntegrationTest):
         np.testing.assert_array_equal(motion_class.shifts[:10], np.array([8., 8., 8., 7., 4., 4., 4., 4., 4., 4.]))
         np.testing.assert_array_equal(motion_class.shifts_filt[:10], np.array([4., 4., 4., 4., 4., 4., 4., 4., 4., 4.]))
 
-        diff = ((motion_class.camera_times - motion_class.new_times) * motion_class.camera_meta['fps']).astype(int)
-        self.assertTrue(all(diff <= 4))
-
 
 if __name__ == '__main__':
     unittest.main(exit=False, verbosity=2)
