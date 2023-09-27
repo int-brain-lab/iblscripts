@@ -27,7 +27,7 @@ import one.alf.io as alfio
 import one.params
 from one.api import ONE
 
-from ibllib.io.extractors.video_motion import MotionAlignment
+from ibllib.io.extractors.video_motion import MotionAlignment, MotionAlignmentFullSession
 from ibllib.io.extractors.ephys_fpga import get_main_probe_sync
 import ibllib.io.extractors.camera as camio
 import ibllib.io.raw_data_loaders as raw
@@ -814,7 +814,7 @@ class TestWheelAlignment(base.IntegrationTest):
 
     def test_alignment_ephys_session(self):
 
-        motion_class = MotionAlignment(self.ephys_folder, 'right', behavior=False)
+        motion_class = MotionAlignmentFullSession(session_path=self.ephys_folder, label='right', behavior=False)
         motion_class.camera_meta['length'] = motion_class.camera_meta['fps'] * 200  # only run on 20s snippet of video
         _ = motion_class.process()
 
