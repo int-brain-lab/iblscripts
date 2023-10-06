@@ -255,12 +255,12 @@ class TestEphysCompressNP24(EphysTemplate):
         self.copy_ap_data(probe=self.probe, ext='.bin', meta='NP24')
 
         task = EphysCompressNP24(self.session_path, sync_collection='raw_ephys_data', pname=self.probe, nshanks=4)
-        status = task.run()
+        status = task.run(delete_original=False)
         assert status == 0
         self.check_files(task)
 
         # This checks the already processed
-        status = task.run()
+        status = task.run(delete_original=False)
         assert status == 0
         self.check_files(task)
 
