@@ -72,7 +72,7 @@ class TestTimelineTrials(base.IntegrationTest):
 
         # Check ALF trials
         trials = alfio.load_object(self.session_path / 'alf', 'trials')
-        self.assertEqual(16, len(trials.keys()))
+        self.assertEqual(17, len(trials.keys()))
         expected = [[9.97294005, 24.00193085],
                     [24.52629002, 28.1602763],
                     [28.6754851, 32.9438336],
