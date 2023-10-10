@@ -814,7 +814,7 @@ class TestWheelAlignment(base.IntegrationTest):
 
     def test_alignment_ephys_session(self):
 
-        motion_class = MotionAlignmentFullSession(session_path=self.ephys_folder, label='right', behavior=False)
+        motion_class = MotionAlignmentFullSession(session_path=self.ephys_folder, label='right')
         motion_class.camera_meta['length'] = motion_class.camera_meta['fps'] * 200  # only run on 20s snippet of video
         _ = motion_class.process()
 
