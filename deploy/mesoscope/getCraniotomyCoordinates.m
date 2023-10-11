@@ -40,5 +40,5 @@ assert(~isempty(surgeries), 'no %s surgeries found for subject %s', procedure, s
 json = surgeries(1).json;
 name = p.Results.name;
 assert(ismember(name, fieldnames(json)), '"%s" not in surgery JSON', name)
-ml = json.(name)(1);
-ap = json.(name)(2);
+ml = json.(name).center(1);
+ap = json.(name).center(2);
