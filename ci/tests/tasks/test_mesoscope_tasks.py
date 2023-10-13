@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, ANY
 import tarfile
 from itertools import chain
+from uuid import UUID
 
 import numpy as np
 import pandas as pd
@@ -512,6 +513,15 @@ class TestMesoscopePreprocess(base.IntegrationTest):
         expected = [1.9042398, 2.0305383, 3.5443015, 4.247522, 3.14291, 2.286991,
                     3.8462281, 3.553623, 2.456772, 3.4159436]
         np.testing.assert_array_almost_equal(expected, mask[np.nonzero(mask)][:10])
+        # Check ROI UUIDs were generated
+        self.assertTrue((uuids_file := files[0].with_name('mpciROIs.uuids.csv')).exists())
+        try:
+            uuids = pd.read_csv(uuids_file).squeeze().apply(UUID)
+        except ValueError as ex:
+            self.assertFalse(True, f'failed to load and parse mpciROIs.uuids.csv: {ex}')
+        expected_rois = 222
+        self.assertEqual(uuids.size, expected_rois)
+        self.assertEqual(uuids.nunique(), expected_rois)
 
     def test_rename_with_qc(self):
         """Test MesoscopePreprocess._rename_outputs method with frame QC input."""
