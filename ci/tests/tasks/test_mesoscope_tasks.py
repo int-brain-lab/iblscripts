@@ -91,7 +91,8 @@ class TestTimelineTrials(base.IntegrationTest):
         expected = [20.809, 20.811, 20.812, 20.813, 20.814]
         np.testing.assert_array_almost_equal(expected, wheel['timestamps'][:5])
 
-    def test_get_wheel_positions(self):
+    @unittest.mock.patch('ibllib.io.extractors.mesoscope.plt')
+    def test_get_wheel_positions(self, plt_mock):
         """Test for TimelineTrials.get_wheel_positions in ibllib.io.extractors.mesoscope."""
         # # NB: For now we're testing individual functions before we have complete data
         timeline_trials = mesoscope.TimelineTrials(self.session_path, sync_collection='raw_sync_data')
@@ -106,6 +107,17 @@ class TestTimelineTrials(base.IntegrationTest):
         np.testing.assert_array_almost_equal(expected, moves['intervals'][:5, :])
         # Check input validation
         self.assertRaises(ValueError, timeline_trials.get_wheel_positions, coding='x3')
+        # Test display
+        plt_mock.subplots.return_value = (MagicMock(), (MagicMock(), MagicMock()))
+        timeline_trials.bpod_trials = {'wheel_position': np.zeros_like(wheel['position']),
+                                       'wheel_timestamps': wheel['timestamps']}
+        timeline_trials.bpod2fpga = lambda x: x
+        timeline_trials.get_wheel_positions(display=True)
+        plt_mock.subplots.assert_called()
+        # The second axes should be a plot of extracted wheel positions
+        ax0, ax1 = plt_mock.subplots.return_value[1]
+        ax1.plot.assert_called()
+        np.testing.assert_array_equal(ax1.plot.call_args_list[0].args[0], wheel['timestamps'])
 
     @unittest.mock.patch('ibllib.io.extractors.mesoscope.plt')
     def test_get_valve_open_times(self, plt_mock):
