@@ -2,13 +2,13 @@ import time
 from datetime import datetime, timedelta
 import logging
 
-from one.remote.globus import Globus
+from one.remote.globus import Globus, STATUS_MAP
 from iblutil.io import params
 
 from globus_sdk import TransferAPIError
 
 globus = Globus('server')
-flatiron_id = 'ab2d064c-413d-11eb-b188-0ee0d5d9299f'
+flatiron_id = params.read('globus/admin').remote_endpoint
 logger = logging.getLogger('ibllib')
 logger.setLevel(logging.DEBUG)
 
@@ -18,11 +18,6 @@ globus.endpoints['local']['root_path'] = params.read('ibl_ci', {'data_root': '.'
 # Constants
 POLL = (5, 60 * 2)  # min max seconds between pinging server
 TIMEOUT = 24 * 60 * 60  # seconds before timeout
-status_map = {
-    'ACTIVE': ('QUEUED', 'ACTIVE', 'GC_NOT_CONNECTED', 'UNKNOWN'),
-    'FAILED': ('ENDPOINT_ERROR', 'PERMISSION_DENIED', 'CONNECT_FAILED'),
-    'INACTIVE': 'PAUSED_BY_ADMIN'
-}
 
 # Check path exists
 try:
@@ -69,22 +64,22 @@ while running:
     tr = globus.client.get_task(task_id)
     detail = (
         'ACTIVE'
-        if (tr.data['nice_status']) == 'OK'
-        else (tr.data['nice_status'] or tr.data['status']).upper()
+        if (tr['nice_status']) == 'OK'
+        else (tr['nice_status'] or tr['status']).upper()
     )
-    status = next((k for k, v in status_map.items() if detail in v), tr.data['status'])
-    running = tr.data['status'] == 'ACTIVE' and detail in status_map['ACTIVE']
-    if files_skipped != tr.data['files_skipped']:
-        files_skipped = tr.data['files_skipped']
+    status = next((k for k, v in STATUS_MAP.items() if detail in v), tr['status'])
+    running = tr['status'] == 'ACTIVE' and detail in STATUS_MAP['ACTIVE']
+    if files_skipped != tr['files_skipped']:
+        files_skipped = tr['files_skipped']
         logger.info(f'Skipping {files_skipped} files....')
         poll = POLL[0]
-    if last_status != status or files_transferred != tr.data['files_transferred']:
-        files_transferred = tr.data['files_transferred']
-        total_files = tr.data['files'] - tr.data['files_skipped']
-        if status == 'FAILED' or detail in status_map['FAILED']:
-            logger.error(f'Transfer {status}: {tr.data["fatal_error"] or detail}')
+    if last_status != status or files_transferred != tr['files_transferred']:
+        files_transferred = tr['files_transferred']
+        total_files = tr['files'] - tr['files_skipped']
+        if status == 'FAILED' or detail in STATUS_MAP['FAILED']:
+            logger.error(f'Transfer {status}: {tr["fatal_error"] or detail}')
             # If still active and error unlikely to resolve by itself, cancel the task
-            if tr.data['status'] == 'ACTIVE' and detail != 'CONNECT_FAILED':
+            if tr['status'] == 'ACTIVE' and detail != 'CONNECT_FAILED':
                 globus.client.cancel_task(task_id)
                 logger.warning('Transfer CANCELLED')
         elif status == 'INACTIVE' or detail == 'PAUSED_BY_ADMIN':
@@ -103,8 +98,10 @@ while running:
         logger.warning('Globus Client not connected, this may be temporary')
         poll = POLL[0]
     elif detail == 'UNKNOWN' and prev_detail != detail:
-        logger.warning('Unknown error from client, this may be temporary')
-        poll = poll[0]
+        logger.warning('Unknown error from client, this may be temporary.')
+        if tr['nice_status_short_description']:
+            logger.debug('%s: %s', tr['nice_status'], tr['nice_status_short_description'])
+        poll = POLL[0]
     else:
         poll = min((poll * 2, POLL[1]))
     prev_detail = detail
@@ -120,7 +117,7 @@ if logger.level == logging.DEBUG:
             logger.debug(f'{src_file} -> {dst_file}')
     except TransferAPIError:
         logger.debug('Failed to query transferred files')
-        logger.debug('Status: %s; nice status: %s', tr.data['status'], tr.data['nice_status'])
+        logger.debug('Status: %s; nice status: %s', tr['status'], tr['nice_status'])
 
 # Here we should exit
 if __name__ == '__main__':

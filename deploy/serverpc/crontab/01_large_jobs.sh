@@ -8,6 +8,12 @@ cd ~/Documents/PYTHON/iblscripts/deploy/serverpc/crontab
 
 source ~/Documents/PYTHON/envs/dlcenv/bin/activate
 
+# Set cuda env
+export CUDA_VERSION=11.8
+test -e /usr/local/cuda-$CUDA_VERSION/bin || export CUDA_VERSION=11.2
+export PATH=/usr/local/cuda-$CUDA_VERSION/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH
+
 last_update=$SECONDS
 elapsed=22000
 while true; do

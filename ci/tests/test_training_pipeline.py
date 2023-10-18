@@ -31,7 +31,7 @@ class TestPipeline(base.IntegrationTest):
             # register jobs in alyx for all the sessions
             nses = 0
             session_stubs = [
-                './IBL_46/2019-02-19/001',  # time stamps million years in future
+                './IBL_46/2019-02-19/001',  # timestamps a million years in future
                 './ZM_335/2018-12-13/001',  # rotary encoder ms instead of us
                 './ZM_1085/2019-02-12/002',  # rotary encoder corrupt
                 './ZM_1085/2019-07-01/001'  # habituation session rig version 5.0.0
@@ -47,8 +47,6 @@ class TestPipeline(base.IntegrationTest):
                 graph='TrainingExtractionPipeline', no_cache=True)
             N_TASKS = 7
             self.assertEqual(nses * N_TASKS, len(training_jobs))
-            # one.alyx.rest('jobs', 'read', id='32c83da4-8a2f-465e-8227-c3b540e61142')
-            [t['level'] for t in training_jobs]
 
             local_server.tasks_runner(subjects_path, training_jobs, one=one, dry=True,
                                       count=nses * 10)
