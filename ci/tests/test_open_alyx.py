@@ -3,7 +3,7 @@ import unittest
 import logging
 
 from one.api import ONE
-from ibllib.atlas import AllenAtlas
+from iblatlas.atlas import AllenAtlas
 from brainbox.io.one import SpikeSortingLoader
 from brainbox.io.spikeglx import Streamer
 

@@ -41,7 +41,7 @@ def update_craniotomy_coordinates(subject, ml, ap, name='craniotomy_00', lambda_
     if not surgeries:
         raise alferr.ALFError(f'Surgery not found for subject "{subject}"')
 
-    data = {name: (float(ml), float(ap))}
+    data = {name: {'center': (float(ml), float(ap))}}
     if lambda_mlap:
         data['lambda'] = tuple(map(float, lambda_mlap))
         if len(data['lambda']) != 2:
@@ -57,7 +57,7 @@ def update_craniotomy_coordinates(subject, ml, ap, name='craniotomy_00', lambda_
 
 
 if __name__ == '__main__':
-    r"""Update craniotomy coordinates.
+    """Update craniotomy coordinates.
 
     Update the JSON field for a subject's most recent surgery with craniotomy coordinates.
     Optionally can the coordinates of lambda and bregma.

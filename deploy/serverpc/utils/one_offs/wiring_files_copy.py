@@ -1,7 +1,7 @@
 from pathlib import Path
 import shutil
 
-from ibllib.io import spikeglx
+import spikeglx
 
 PROBE_TYPE = '3A'
 DRY = True

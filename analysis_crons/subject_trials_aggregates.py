@@ -16,7 +16,7 @@ import globus_sdk as globus
 
 from one.alf import io as alfio, files as alfiles
 from iblutil.io import hashfile, params
-from ibllib.io.extractors.training_trials import PhasePosQuiescence, StimOnTriggerTimes
+from ibllib.io.extractors.training_trials import StimOnTriggerTimes
 
 """
 Generate per subject trials aggregate files for all culled subjects that have at least one session with an ibl project
@@ -43,6 +43,10 @@ SETTING UP
 ===========
 '''
 
+# Flags
+dry = True  # Only tell me which files would be created, don't do anything
+only_new_subjects = True  # Only create aggregates for subjects that don't have an aggregate yet, don't check for update
+
 # Settings
 root_path = Path('/mnt/ibl')
 output_path = Path('/mnt/ibl/aggregates/')
@@ -50,7 +54,6 @@ collection = 'Subjects'
 file_name = '_ibl_subjectTrials.table.pqt'
 alyx_user = 'julia.huntenburg'
 version = 1.0
-dry = True
 
 # Set up
 output_path.mkdir(exist_ok=True, parents=True)
@@ -128,7 +131,7 @@ for i, sub in enumerate(subjects):
         task_ds = Dataset.objects.filter(session__in=trials_ds.values_list('session', flat=True),
                                          name__in=['_iblrig_taskSettings.raw.json', '_iblrig_taskData.raw.jsonable'],
                                          default_dataset=True)
-        # If we don't have task data for each session, we that's a problem
+        # If we don't have task data for each session, well that's a problem
         if task_ds.count() / 2 < trials_ds.count():
             logger.info('...not all sessions have raw task data')
             status_agg[f'{sub.id}'] = 'ERROR: not all sessions have raw task data'
@@ -144,6 +147,9 @@ for i, sub in enumerate(subjects):
         ds = Dataset.objects.filter(id=ds_id)
         # If there is exactly one default dataset, check if it needs updating
         if ds.count() == 1:
+            if only_new_subjects:
+                logger.info('...aggregate exists and only_new_subjects=True, skipping')
+                continue
             if ds.first().revision is None:
                 out_file = output_path.joinpath(collection, sub.lab.name, sub.nickname, file_name)
             else:
@@ -206,14 +212,14 @@ for i, sub in enumerate(subjects):
             # Add to list of trials for subject
             trials['session'] = str(t.session.id)
             trials['session_start_time'] = t.session.start_time
-            trials['session_number'] = t.session.number
-            trials['task_protocol'] = t.session.task_protocol
 
             # Load quiescence and stimOn_trigger and add to the table
-            (*_, quiescence), _ = PhasePosQuiescence(alf_path.parent).extract(save=False)
+            quiescence = alfio.load_object(alf_path, 'trials',
+                                           attribute='quiescencePeriod', short_keys=True)['quiescencePeriod']
             stimon_trigger, _ = StimOnTriggerTimes(alf_path.parent).extract(save=False)
             trials['quiescence'] = quiescence
             trials['stimOnTrigger_times'] = stimon_trigger
+            # TODO: Add protocol number
             # Add to list of trials for subject
             all_trials.append(trials)
 

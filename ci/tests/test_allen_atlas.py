@@ -1,9 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import unittest
-from ibllib.atlas import AllenAtlas, FlatMap, BrainRegions
-from ibllib.atlas.flatmaps import plot_swanson, annotate_swanson
-from ibllib.atlas.genes import allen_gene_expression
+from iblatlas.atlas import AllenAtlas, BrainRegions
+from iblatlas.flatmaps import FlatMap
+from iblatlas.plots import plot_swanson, annotate_swanson
+from iblatlas.genes import allen_gene_expression
 
 
 class TestAtlasSlicesConversion(unittest.TestCase):
