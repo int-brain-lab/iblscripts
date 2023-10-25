@@ -9,6 +9,9 @@ The specificity of this implementation arises from several factors:
 
 The limitations of this implementation are:
 -   alfio.load methods will load objects with long keys containing UUIDS
+
+Recommended usage: just monkey patch the ONE import and run your code as usual on Popeye !
+>>> from deploy.iblsdsc import OneSdsc as ONE
 """
 
 from one.api import OneAlyx
