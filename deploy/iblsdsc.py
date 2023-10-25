@@ -153,8 +153,13 @@ def _test_one_sdsc():
     eid, _ = one.pid2eid(pid)
     dsets = one.list_datasets(eid=eid)
     assert len(dsets) > 0
-    trials = one.load_object(eid, obj='trials')  # noqa
-
+    # checks that this is indeed the short key version when using load object
+    trials = one.load_object(eid, obj='trials')
+    assert 'intervals' in trials
+    # checks that this is indeed the short key version when using the session loader and spike sorting loader
     sl = SessionLoader(eid=eid, one=one)  # noqa
+    sl.load_wheel()
+    assert 'position' in sl.wheel.columns
     ssl = SpikeSortingLoader(pid=pid, one=one)
     spikes, clusters, channels = ssl.load_spike_sorting()  # noqa
+    assert 'amps' in spikes
