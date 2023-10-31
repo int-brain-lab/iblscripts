@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, ANY
 import tarfile
 from itertools import chain
+from uuid import UUID
 
 import numpy as np
 import pandas as pd
@@ -90,7 +91,8 @@ class TestTimelineTrials(base.IntegrationTest):
         expected = [20.809, 20.811, 20.812, 20.813, 20.814]
         np.testing.assert_array_almost_equal(expected, wheel['timestamps'][:5])
 
-    def test_get_wheel_positions(self):
+    @unittest.mock.patch('ibllib.io.extractors.mesoscope.plt')
+    def test_get_wheel_positions(self, plt_mock):
         """Test for TimelineTrials.get_wheel_positions in ibllib.io.extractors.mesoscope."""
         # # NB: For now we're testing individual functions before we have complete data
         timeline_trials = mesoscope.TimelineTrials(self.session_path, sync_collection='raw_sync_data')
@@ -105,6 +107,17 @@ class TestTimelineTrials(base.IntegrationTest):
         np.testing.assert_array_almost_equal(expected, moves['intervals'][:5, :])
         # Check input validation
         self.assertRaises(ValueError, timeline_trials.get_wheel_positions, coding='x3')
+        # Test display
+        plt_mock.subplots.return_value = (MagicMock(), (MagicMock(), MagicMock()))
+        timeline_trials.bpod_trials = {'wheel_position': np.zeros_like(wheel['position']),
+                                       'wheel_timestamps': wheel['timestamps']}
+        timeline_trials.bpod2fpga = lambda x: x
+        timeline_trials.get_wheel_positions(display=True)
+        plt_mock.subplots.assert_called()
+        # The second axes should be a plot of extracted wheel positions
+        ax0, ax1 = plt_mock.subplots.return_value[1]
+        ax1.plot.assert_called()
+        np.testing.assert_array_equal(ax1.plot.call_args_list[0].args[0], wheel['timestamps'])
 
     @unittest.mock.patch('ibllib.io.extractors.mesoscope.plt')
     def test_get_valve_open_times(self, plt_mock):
@@ -512,6 +525,15 @@ class TestMesoscopePreprocess(base.IntegrationTest):
         expected = [1.9042398, 2.0305383, 3.5443015, 4.247522, 3.14291, 2.286991,
                     3.8462281, 3.553623, 2.456772, 3.4159436]
         np.testing.assert_array_almost_equal(expected, mask[np.nonzero(mask)][:10])
+        # Check ROI UUIDs were generated
+        self.assertTrue((uuids_file := files[0].with_name('mpciROIs.uuids.csv')).exists())
+        try:
+            uuids = pd.read_csv(uuids_file).squeeze().apply(UUID)
+        except ValueError as ex:
+            self.assertFalse(True, f'failed to load and parse mpciROIs.uuids.csv: {ex}')
+        expected_rois = 222
+        self.assertEqual(uuids.size, expected_rois)
+        self.assertEqual(uuids.nunique(), expected_rois)
 
     def test_rename_with_qc(self):
         """Test MesoscopePreprocess._rename_outputs method with frame QC input."""
