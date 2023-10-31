@@ -106,6 +106,13 @@ sessions = sessions.annotate(
 sessions = sessions.exclude(trials_table_count=0)
 subjects = Subject.objects.filter(id__in=sessions.values_list('subject'))
 
+# If only new, exclude all subjects that already have an aggregate
+# existing files with this file name
+# all_ds = Dataset.objects.filter(name=file_name, default_dataset=True)
+if only_new_subjects:
+    table_exists = Dataset.objects.filter(name=file_name).values_list('object_id', flat=True)
+    subjects = subjects.exclude(id__in=table_exists)
+
 # dataset format, type and repos
 dataset_format = DataFormat.objects.get(name='parquet')
 dataset_type = DatasetType.objects.get(name='subjectTrials.table')
@@ -115,8 +122,6 @@ fi_repo = DataRepository.objects.get(name='flatiron_aggregates')
 # Go through subjects and check if aggregate needs to be (re)created
 logger.info('\n')
 logger.info(f' {subjects.count()} SUBJECTS')
-# existing files with this file name
-all_ds = Dataset.objects.filter(name=file_name, default_dataset=True)
 
 for i, sub in enumerate(subjects):
     try:
@@ -143,13 +148,9 @@ for i, sub in enumerate(subjects):
         new_hash = hashlib.md5(hash_str).hexdigest()
         revision = None  # Only set if making a new revision is required
         # Check if this dataset exists
-        ds_id = next((d.id for d in all_ds if d.content_object == sub), None)
-        ds = Dataset.objects.filter(id=ds_id)
+        ds = Dataset.objects.filter(name=file_name, object_id=sub.id)
         # If there is exactly one default dataset, check if it needs updating
         if ds.count() == 1:
-            if only_new_subjects:
-                logger.info('...aggregate exists and only_new_subjects=True, skipping')
-                continue
             if ds.first().revision is None:
                 out_file = output_path.joinpath(collection, sub.lab.name, sub.nickname, file_name)
             else:
