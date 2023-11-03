@@ -7,7 +7,7 @@ import unittest
 import unittest.mock
 import tempfile
 
-from pkg_resources import parse_version
+from packaging import version
 from ibllib.qc.task_metrics import TaskQC
 from ibllib.qc.task_extractors import TaskQCExtractor
 from one.api import ONE
@@ -165,7 +165,7 @@ class TestBpodQCExtractors(base.IntegrationTest):
                         'stimOffTrigger_times',
                         'stimOff_times',
                         'stimOnTrigger_times']
-        if parse_version(ex.settings['IBLRIG_VERSION_TAG']) >= parse_version('5.0.0'):
+        if version.parse(ex.settings['IBLRIG_VERSION']) >= version.parse('5.0.0'):
             expected += expected_5up
         self.assertTrue(set(expected).issubset(set(ex.data.keys())))
 
