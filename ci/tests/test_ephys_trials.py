@@ -69,8 +69,9 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         if any(bk_path.glob('*trials*')):
             alf_trials_old = alfio.load_object(alf_path.parent / 'alf.bk', 'trials')
             for k, v in alf_trials.items():
-                if k in alf_trials_old:  # added quiescencePeriod from the old dataset
-                    numpy.testing.assert_array_almost_equal(v, alf_trials_old[k])
+                with self.subTest(attribute=k, session='/'.join(session_path.parts[-3:])):
+                    if k in alf_trials_old:  # added quiescencePeriod from the old dataset
+                        numpy.testing.assert_array_almost_equal(v, alf_trials_old[k])
         # go deeper and check the internal fpga trials structure consistency
         fpga_trials = {k: v for k, v in fpga_trials.items() if 'wheel' not in k}
         # check dimensions
