@@ -52,6 +52,10 @@ class TimeLoggingTestRunner(TextTestRunner):
 
 class IntegrationTest(unittest.TestCase):
     """A class for running integration tests"""
+
+    required_files = []
+    """An optional list of required files/folders to glob for, relative to `data_path`."""
+
     def __init__(self, *args, data_path=None, **kwargs):
         """A base class for locating integration test data
         Upon initialization, loads the path to the integration test data.  The path is loaded from
@@ -67,9 +71,13 @@ class IntegrationTest(unittest.TestCase):
         data_present = (self.data_path.exists() and
                         self.data_path.is_dir() and
                         any(self.data_path.glob('Subjects_init')))
+
+        if self.required_files:
+            data_present &= all(map(self.data_path.glob, self.required_files))
+
         if not data_present:
             raise FileNotFoundError(f'Invalid data root folder {self.data_path.absolute()}\n\t'
-                                    'must contain a "Subjects_init" folder')
+                                    'must contain a "Subjects_init" folder.')
 
     @staticmethod
     def default_data_root():
