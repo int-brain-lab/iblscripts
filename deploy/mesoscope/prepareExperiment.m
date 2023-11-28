@@ -1,4 +1,4 @@
-function paths = prepareExperiment(expRef, stub, varargin)
+function paths = prepareExperiment(varargin)
 % prepareExperiment Save an experiment description stub for a given session
 %   Saves a stub _ibl_experiment.description.yaml file for use by the
 %   iblrig data transfer script.
@@ -47,13 +47,15 @@ s = '(?<date>^\d{4}-\d\d\-\d\d)_(?<seq>\d+)_(?<subject>\w+)';  % dat.expRefRegEx
 isExpRef = @(r) (ischar(r) || isstring(r)) && ~isempty(regexp(r, s, 'once'));
 addRequired(p, 'expRef', isExpRef)
 addRequired(p, 'stub', @ischar)
-addOptional(p, 'computerID', transfer_id, @ischar)
-addOptional(p, 'fullPathInSettings', true, @islogical)
-p.parse(expRef, varargin{:})
+addParameter(p, 'computerID', transfer_id, @ischar)
+addParameter(p, 'fullPathInSettings', true, @islogical)
+p.parse(varargin{:})
 
+stub = p.Results.stub;
+expRef = p.Results.expRef;
 
 % Load the paths from the iblrig settings
-settingsPath = 'C:\iblrig\settings\iblrig_settings.yaml';
+settingsPath = 'C:\iblrigv8\settings\iblrig_settings.yaml'; %'C:\iblrig\settings\iblrig_settings.yaml';
 if ~exist(settingsPath, 'file')
   error('%s does not exist: please set up iblrigv8', settingsPath)
 end
@@ -79,9 +81,9 @@ if isfield(settings, 'iblrig_remote_data_path') && ...
     remotePath = fullfile(remotePath, 'Subjects');
   end
 else
-  remotePath = false;
+  remotePath = []; 
 end
-if remotePath == false
+if isempty(remotePath)
   warning('No remote path set up, will only save locally')
 end
 
@@ -125,7 +127,7 @@ fprintf('Saved stub to %s\n', localFile);
 paths = {localFile};
 
 % Save remote
-if remotePath ~= false
+if ~isempty(remotePath)
   remoteSession = fullfile(remotePath, parsed.subject, parsed.date, sprintf('%03d', expSequence));
   remoteFile = fullfile(remoteSession, '_devices/', [expRef '@' p.Results.computerID '.yaml']);
   if exist(remoteSession, 'dir') == 0
