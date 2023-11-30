@@ -130,8 +130,8 @@ paths = {localFile};
 if ~isempty(remotePath)
   remoteSession = fullfile(remotePath, parsed.subject, parsed.date, sprintf('%03d', expSequence));
   remoteFile = fullfile(remoteSession, '_devices/', [expRef '@' p.Results.computerID '.yaml']);
-  if exist(remoteSession, 'dir') == 0
-    warning('%s does not exists, creating folder(s)', remoteSession)
+  if ~exist(remoteSession, 'dir')
+    fprintf('\n%s does not exist, creating folder(s)\n\n', remoteSession)
     status = mkdir(remoteSession);
     assert(status == 1, 'Failed to create remote session folder(s) %s', remoteSession)
   end
