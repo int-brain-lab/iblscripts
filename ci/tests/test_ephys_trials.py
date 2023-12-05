@@ -26,7 +26,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
     # Expect 'alf', 'raw_ephys_data', 'raw_behavior_data' collections in each.
     required_files = [
         'ephys/ephys_choice_world_task/CSP004/2019-11-27/001/*',  # normal session
-        'ephys/ephys_choice_world_task/ibl_witten_13/2019-11-25/001/*', # FPGA stops before bpod, custom sync
+        'ephys/ephys_choice_world_task/ibl_witten_13/2019-11-25/001/*',  # FPGA stops before bpod, custom sync
         # 'ephys/ephys_choice_world_task/ibl_witten_27/2021-01-21/001/*'  # frame2ttl flicker
     ]
 
