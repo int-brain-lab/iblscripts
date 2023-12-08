@@ -1,7 +1,4 @@
 """Test NI DAQ trials extraction."""
-import shutil
-import warnings
-
 import numpy as np
 import numpy.testing
 import one.alf.io as alfio
@@ -49,30 +46,11 @@ class TestEphysTaskExtraction(base.IntegrationTest):
             with self.subTest(msg=session_path):
                 self._task_extraction_assertions(session_path)
 
-    @staticmethod
-    def _restore_alf(session_path):
-        """Restore backup alf folder."""
-        alf_path = session_path.joinpath('alf')
-        bk_path = alf_path.parent / 'alf.bk'
-        if alf_path.exists() and bk_path.exists():
-            shutil.rmtree(alf_path, ignore_errors=True)
-            shutil.move(str(bk_path), str(alf_path))
-
     def _task_extraction_assertions(self, session_path, trials_task=None):
         """Compare task extraction with expected ALF trials output."""
+        self.backup_alf(session_path)
         alf_path = session_path.joinpath('alf')
         bk_path = alf_path.parent / 'alf.bk'
-        if alf_path.exists():
-            # Back-up alf files and restore on teardown
-            if bk_path.exists():  # if last cleanup failed
-                warnings.warn(f'{bk_path} already exists; removing alf path')
-                # assume backup is correct validation data and delete the alf folder
-                shutil.rmtree(alf_path, ignore_errors=True)
-            else:
-                shutil.move(alf_path, bk_path)
-            self.addCleanup(self._restore_alf, session_path)
-        elif not bk_path.exists():
-            raise FileNotFoundError(f'alf folder missing for session {session_path}')
 
         # Run extractor
         TrialsTask = trials_task or self.trials_task

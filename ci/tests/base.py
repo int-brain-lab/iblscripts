@@ -7,6 +7,8 @@ from functools import wraps
 import logging
 import json
 import tempfile
+import shutil
+import warnings
 
 from iblutil.io import params
 from one.alf.files import get_session_path
@@ -87,6 +89,39 @@ class IntegrationTest(unittest.TestCase):
         or the current working directory.
         """
         return Path(params.read('ibl_ci', {'data_root': '.'}).data_root)
+
+    def backup_alf(self, session_path):
+        """Backup alf folder.
+
+        Some extraction tests backup the ALF folder, extract the data into a new alf folder then
+        compare the results. This function moves the original ALF folder to a backup location.
+        """
+        alf_path = session_path.joinpath('alf')
+        bk_path = alf_path.parent / 'alf.bk'
+        if alf_path.exists():
+            # Back-up alf files and restore on teardown
+            if bk_path.exists():  # if last cleanup failed
+                warnings.warn(f'{bk_path} already exists; removing alf path')
+                # assume backup is correct validation data and delete the alf folder
+                shutil.rmtree(alf_path, ignore_errors=True)
+            else:
+                shutil.move(alf_path, bk_path)
+            self.addCleanup(self.restore_alf, session_path)
+        elif not bk_path.exists():
+            raise FileNotFoundError(f'alf folder missing for session {session_path}')
+
+    @staticmethod
+    def restore_alf(session_path):
+        """Restore backup alf folder.
+
+        Some extraction tests backup the ALF folder, extract the data into a new alf folder then
+        compare the results. This function moves the backed up folder back.
+        """
+        alf_path = session_path.joinpath('alf')
+        bk_path = alf_path.parent / 'alf.bk'
+        if alf_path.exists() and bk_path.exists():
+            shutil.rmtree(alf_path, ignore_errors=True)
+            shutil.move(str(bk_path), str(alf_path))
 
 
 def list_current_sessions(one=None):

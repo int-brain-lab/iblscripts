@@ -1,12 +1,13 @@
 import numpy as np
-import shutil
 
 from scipy.signal import butter, filtfilt
 import scipy.interpolate
 import matplotlib.pyplot as plt
 
+from one.api import ONE
 from one.alf.files import get_session_path
-from ibllib.io.extractors import ephys_fpga, training_wheel
+from ibllib.io.extractors import training_wheel
+from ibllib.pipes.behavior_tasks import ChoiceWorldTrialsNidq
 
 from ci.tests import base
 
@@ -14,16 +15,15 @@ DISPLAY = False
 
 
 def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
-    alf_path = session_path.joinpath('alf')
-    shutil.rmtree(alf_path, ignore_errors=True)
-    sync, chmap = ephys_fpga.get_main_probe_sync(session_path, bin_exists=False)
-    fpga_t, fpga_pos = ephys_fpga.extract_wheel_sync(sync, chmap=chmap)
-    bpod_t, bpod_pos = training_wheel.get_wheel_position(session_path, display=display)
-    data, _ = ephys_fpga.extract_all(session_path)
-    bpod2fpga = scipy.interpolate.interp1d(data['intervals_bpod'][:, 0], data['table']['intervals_0'],
-                                           fill_value="extrapolate")
+    task = ChoiceWorldTrialsNidq(session_path, one=ONE(mode='local'),
+                                 collection='raw_behavior_data', sync_collection='raw_ephys_data')
+    fpga_trials, _ = task._extract_behaviour(save=False)
+    bpod_trials = task.extractor.bpod_trials
+    fpga_t, fpga_pos = fpga_trials['wheel_timestamps'], fpga_trials['wheel_position']
+    bpod_t, bpod_pos = bpod_trials['wheel_timestamps'], bpod_trials['wheel_position']
+
     # resample both traces to the same rate and compute correlation coeff
-    bpod_t = bpod2fpga(bpod_t)
+    bpod_t = task.extractor.bpod2fpga(bpod_t)
     tmin = max([np.min(fpga_t), np.min(bpod_t)])
     tmax = min([np.max(fpga_t), np.max(bpod_t)])
     wheel = {'tscale': np.arange(tmin, tmax, 0.01)}
@@ -33,8 +33,8 @@ def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
         bpod_t, bpod_pos)(wheel['tscale'])
     if display:
         plt.figure()
-        plt.plot(fpga_t - bpod2fpga(0), fpga_pos, '*')
-        plt.plot(bpod_t - bpod2fpga(0), bpod_pos, '.')
+        plt.plot(fpga_t - task.extractor.bpod2fpga(0), fpga_pos, '*')
+        plt.plot(bpod_t - task.extractor.bpod2fpga(0), bpod_pos, '.')
     raw_wheel = {'fpga_t': fpga_t, 'fpga_pos': fpga_pos, 'bpod_t': bpod_t, 'bpod_pos': bpod_pos}
     return raw_wheel, wheel
 
@@ -45,13 +45,6 @@ class TestWheelExtractionSimpleEphys(base.IntegrationTest):
         self.session_path = \
             self.data_path.joinpath('wheel', 'ephys', 'three_clockwise_revolutions')
         assert self.session_path.exists()
-        # Back up ALF folder
-        shutil.move(self.session_path.joinpath('alf'), self.session_path.joinpath('alf.bk'))
-
-    def tearDown(self) -> None:
-        # Restore ALF folder
-        shutil.rmtree(self.session_path.joinpath('alf'))
-        shutil.move(self.session_path.joinpath('alf.bk'), self.session_path.joinpath('alf'))
 
     def test_three_clockwise_revolutions_fpga(self):
         raw_wheel, wheel = compare_wheel_fpga_behaviour(self.session_path)
@@ -67,15 +60,6 @@ class TestWheelExtractionSessionEphys(base.IntegrationTest):
         if not self.root_path.exists():
             return
         self.sessions = [f.parent for f in self.root_path.rglob('raw_behavior_data')]
-        # Back up ALF folders
-        for session_path in self.sessions:
-            shutil.move(session_path.joinpath('alf'), session_path.joinpath('alf.bk'))
-
-    def tearDown(self) -> None:
-        # Restore ALF folder
-        for session_path in self.sessions:
-            shutil.rmtree(session_path.joinpath('alf'))
-            shutil.move(session_path.joinpath('alf.bk'), session_path.joinpath('alf'))
 
     def test_wheel_extraction_session(self):
         for session_path in self.sessions:
