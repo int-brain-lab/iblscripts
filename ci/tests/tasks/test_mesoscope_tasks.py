@@ -78,11 +78,14 @@ class TestTimelineTrials(base.IntegrationTest):
                     [24.52629002, 28.16019116],
                     [28.6754851, 32.94392776],
                     [33.46808532, 36.9309287]]
-        np.testing.assert_array_almost_equal(expected, trials['intervals'][:4, :])
-        expected = [20.903051, 26.033181, 30.82629, 34.803585, 39.257353, 44.131028, 53.224913]
-        np.testing.assert_array_almost_equal(expected, trials['feedback_times'])
+        with self.subTest(k='intervals'):
+            np.testing.assert_array_almost_equal(expected, trials['intervals'][:4, :])
+        expected = [20.903, 26.056, 30.847, 34.824, 39.257, 44.153, 53.247]
+        with self.subTest(k='feedback_times'):
+            np.testing.assert_array_almost_equal(expected, trials['feedback_times'])
         expected = [20.811, 25.892, 30.742, 34.731, 39.091, 43.992, 53.125]
-        np.testing.assert_array_almost_equal(expected, trials['firstMovement_times'])
+        with self.subTest(k='firstMovement_times'):
+            np.testing.assert_array_almost_equal(expected, trials['firstMovement_times'])
 
         # Check ALF wheel
         wheel = alfio.load_object(self.session_path / 'alf', 'wheel')

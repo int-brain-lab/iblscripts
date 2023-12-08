@@ -1,3 +1,5 @@
+import shutil
+
 import numpy as np
 import one.alf.io as alfio
 from one.api import ONE
@@ -63,7 +65,7 @@ class TestTrainingTaskExtraction(base.IntegrationTest):
     def test_biased_opto_stim(self):
         # this session has only laser stimulation labeled
         self.session_path = self.data_path.joinpath('personal_projects/biased_opto/ZFM-01804/2021-01-15/001')
-        self.backup_alf(self.session_path)
+        self.addCleanup(shutil.rmtree, self.session_path / 'alf', ignore_errors=True)
         desired_output = list(TRAINING_TRIALS_SIGNATURE) + ['_ibl_trials.laserStimulation.npy']
         task = TrainingTrials(self.session_path, one=self.one_offline)
         task.run()
@@ -79,7 +81,7 @@ class TestTrainingTaskExtraction(base.IntegrationTest):
         desired_output = list(TRAINING_TRIALS_SIGNATURE) + extra_outputs
 
         self.session_path = self.data_path.joinpath('personal_projects/biased_opto/ZFM-01802/2021-02-08/001')
-        self.backup_alf(self.session_path)
+        self.addCleanup(shutil.rmtree, self.session_path / 'alf', ignore_errors=True)
         task = TrainingTrials(self.session_path, one=self.one_offline)
         task.run()
         self.assertEqual(0, task.status)
