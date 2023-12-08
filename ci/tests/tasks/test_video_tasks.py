@@ -182,6 +182,7 @@ class TestVideoSyncQCNidq(base.IntegrationTest):
         self.folder_path = self.data_path.joinpath('ephys', 'choice_world_init', 'KS022', '2019-12-10', '001')
         self.temp_dir = Path(tempfile.TemporaryDirectory().name)
         self.session_path = self.temp_dir.joinpath('KS022', '2019-12-10', '001')
+        self.one = ONE(**base.TEST_DB, mode='local')
 
         for ff in self.folder_path.rglob('*.*'):
             link = self.session_path.joinpath(ff.relative_to(self.folder_path))
@@ -196,7 +197,7 @@ class TestVideoSyncQCNidq(base.IntegrationTest):
     @unittest.mock.patch('ibllib.qc.camera.CameraQC')
     def test_videosync(self, mock_qc):
         task = VideoSyncQcNidq(self.session_path, device_collection='raw_video_data', sync='nidq', sync_namespace='spikeglx',
-                               sync_collection='raw_ephys_data', cameras=['left', 'right', 'body'])
+                               sync_collection='raw_ephys_data', cameras=['left', 'right', 'body'], one=self.one)
         status = task.run()
         self.assertEqual(mock_qc.call_count, 3)
         self.assertEqual(status, 0)

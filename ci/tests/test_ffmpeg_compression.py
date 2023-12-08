@@ -51,6 +51,7 @@ class TestVideoTraining(base.IntegrationTest):
 
     def setUp(self) -> None:
         self.TRAINING_INIT_FOLDER = self.data_path.joinpath('Subjects_init')
+        self.one = ONE(**base.TEST_DB, mode='local')
         assert self.TRAINING_INIT_FOLDER.exists()
 
     @unittest.mock.patch('ibllib.pipes.training_preprocessing.CameraQC')
@@ -71,7 +72,7 @@ class TestVideoTraining(base.IntegrationTest):
                 session_path = Path(tdir).joinpath(
                     init_session_path.relative_to(self.TRAINING_INIT_FOLDER))
                 shutil.copytree(init_session_path, session_path)
-                job = training_preprocessing.TrainingVideoCompress(session_path)
+                job = training_preprocessing.TrainingVideoCompress(session_path, one=self.one)
                 job.run()
                 self.assertIsNone(next(session_path.rglob('*.avi'), None))
                 self.assertEqual(next(session_path.rglob('*.mp4')), job.outputs[0])

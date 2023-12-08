@@ -255,7 +255,6 @@ class TestEphysPipeline(base.IntegrationTest):
 
                              ('trials.table', 1, 1),
                              ('trials.goCueTrigger_times', 1, 1),
-                             ('trials.intervals', 1, 1),  # intervals_bpod
                              ('trials.stimOff_times', 1, 1),
                              ('wheel.position', 1, 1),
                              ('wheel.timestamps', 1, 1),

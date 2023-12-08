@@ -30,10 +30,11 @@ class TestPassiveTrials(base.IntegrationTest):
     def setUp(self) -> None:
         self.session_path = self.default_data_root().joinpath('ephys', 'passive_extraction', 'SWC_054', '2020-10-10', '001')
         self.alf_path = self.session_path.joinpath('alf')
+        self.one = ONE(**base.TEST_DB, mode='local')
 
     def test_passive_extract(self):
         task = PassiveTask(self.session_path, collection='raw_passive_data', sync_collection='raw_ephys_data',
-                           sync_namespace='spikeglx')
+                           sync_namespace='spikeglx', one=self.one)
         status = task.run()
 
         assert status == 0
