@@ -3,8 +3,9 @@ import shutil
 import tempfile
 from pathlib import Path
 import numpy as np
-import numpy.testing
 import unittest.mock
+
+from one.api import ONE
 
 from ibllib.pipes.video_tasks import VideoCompress, VideoSyncQcBpod, VideoSyncQcNidq, VideoConvert, VideoSyncQcCamlog
 from ibllib.io.video import get_video_meta
@@ -36,10 +37,11 @@ class TestVideoEphysCompress(base.IntegrationTest):
         for file in avi_files:
             new_file = self.session_path.joinpath('raw_video_data', file.name.replace('.avi', '.raw.avi'))
             file.replace(new_file)
+        self.one = ONE(**base.TEST_DB, mode='local')
 
     def test_compress(self):
         task = VideoCompress(self.session_path, device_collection='raw_video_data', cameras=['left', 'right', 'body'],
-                             sync='nidq')
+                             sync='nidq', one=self.one)
         status = task.run()
         assert status == 0
         task.assert_expected_outputs()
@@ -54,9 +56,10 @@ class TestVideoCompress(base.IntegrationTest):
         self.temp_dir = Path(tempfile.TemporaryDirectory().name)
         self.session_path = self.temp_dir.joinpath('ZM_1085', '2019-02-12', '002')
         shutil.copytree(self.folder_path, self.session_path.joinpath('raw_video_data'))
+        self.one = ONE(**base.TEST_DB, mode='local')
 
     def test_compress(self):
-        task = VideoCompress(self.session_path, device_collection='raw_video_data', cameras=['left'], sync='bpod')
+        task = VideoCompress(self.session_path, one=self.one, device_collection='raw_video_data', cameras=['left'], sync='bpod')
         status = task.run()
         assert status == 0
         task.assert_expected_outputs()
@@ -77,9 +80,10 @@ class TestVideoConvert(base.IntegrationTest):
         self.orig_video_path.mkdir()
         self.avi_file = self.orig_video_path.joinpath(self.orig_video.name)
         shutil.copy(self.orig_video, self.avi_file)
+        self.one = ONE(**base.TEST_DB, mode='local')
 
     def test_video_convert(self):
-        task = VideoConvert(self.session_path, device_collection='raw_video_data', cameras=['left'])
+        task = VideoConvert(self.session_path, one=self.one, device_collection='raw_video_data', cameras=['left'])
         status = task.run()
         self.assertEqual(status, 0)
         task.assert_expected_outputs()
@@ -118,13 +122,14 @@ class TestVideoSyncQCBpod(base.IntegrationTest):
         self.temp_dir = Path(tempfile.TemporaryDirectory().name)
         self.session_path = self.temp_dir.joinpath('ZM_1085', '2019-02-12', '002')
         shutil.copytree(self.folder_path, self.session_path)
-        task = VideoCompress(self.session_path, device_collection='raw_video_data', cameras=['left'])
+        self.one = ONE(**base.TEST_DB, mode='local')
+        task = VideoCompress(self.session_path, one=self.one, device_collection='raw_video_data', cameras=['left'])
         task.run()
 
     @unittest.mock.patch('ibllib.qc.camera.CameraQC')
     def test_videosync(self, mock_qc):
         task = VideoSyncQcBpod(self.session_path, device_collection='raw_video_data', cameras=['left'], sync='bpod',
-                               collection='raw_behavior_data')
+                               one=self.one, collection='raw_behavior_data')
         status = task.run()
         self.assertEqual(mock_qc.call_count, 1)
         self.assertEqual(status, 0)

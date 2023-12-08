@@ -3,6 +3,7 @@ import tempfile
 import unittest.mock
 from pathlib import Path
 
+from one.api import ONE
 from ibllib.pipes import ephys_preprocessing, training_preprocessing
 
 from ci.tests import base
@@ -14,7 +15,7 @@ class TestVideoAudioEphys(base.IntegrationTest):
     @unittest.mock.patch('ibllib.io.extractors.camera.extract_all')
     def test_compress_all_vids(self, mock_ext, mock_qc):
         EPHYS_INIT_FOLDER = self.data_path.joinpath('ephys', 'ephys_video_init')
-
+        one = ONE(**base.TEST_DB, mode='local')
         mock_ext.return_value = (None, [])  # Return empty file list upon timestamp extraction
         with tempfile.TemporaryDirectory() as tdir:
             shutil.copytree(EPHYS_INIT_FOLDER, Path(tdir).joinpath('Subjects'))
@@ -23,9 +24,9 @@ class TestVideoAudioEphys(base.IntegrationTest):
                 Test the video compression and video and sync qc jobs
                 """
                 session_path = ts_file.parents[1]
-                job = ephys_preprocessing.EphysVideoCompress(session_path)
+                job = ephys_preprocessing.EphysVideoCompress(session_path, one=one)
                 job.run()
-                jobqc = ephys_preprocessing.EphysVideoSyncQc(session_path)
+                jobqc = ephys_preprocessing.EphysVideoSyncQc(session_path, one=one)
                 jobqc.force = False  # Make sure it doesn't go into globus mode
                 jobqc.run()
                 # check output files and non-existent inputs
@@ -40,7 +41,7 @@ class TestVideoAudioEphys(base.IntegrationTest):
                 """
                 Do the audio compression test as well
                 """
-                job_audio = ephys_preprocessing.EphysAudio(session_path)
+                job_audio = ephys_preprocessing.EphysAudio(session_path, one=one)
                 job_audio.run()
                 self.assertIsNone(next(session_path.rglob('*.wav'), None))
                 self.assertTrue(next(session_path.rglob('*.flac')) == job_audio.outputs[0])

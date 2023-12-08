@@ -34,7 +34,7 @@ class TestTrainingTrialsRecording(RecordingTemplate):
 class TestTrialRegisterRaw(RecordingTemplate):
 
     def test_task(self):
-        wf = btasks.TrialRegisterRaw(self.session_path, collection='raw_behavior_data')
+        wf = btasks.TrialRegisterRaw(self.session_path, one=self.one, collection='raw_behavior_data')
         status = wf.run()
         assert status == 0
         wf.assert_expected_outputs()
