@@ -44,7 +44,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         folders = (next(f, None) for f in map(self.data_path.glob, self.required_files))
         self.sessions = set(filter(None, map(get_session_path, folders)))
         for session_path in self.sessions:
-            with self.subTest(msg=session_path):
+            with self.subTest(msg=session_path.relative_to(self.data_path)):
                 self._task_extraction_assertions(session_path)
 
     def _task_extraction_assertions(self, session_path, trials_task=None):
