@@ -1,5 +1,6 @@
-"""Tests TaskQC object and Bpod extractors
-NB: FPGA TaskQC extractor is tested in test_ephys_extraction_choiceWorld
+"""Tests TaskQC object and Bpod extractors.
+
+NB: FPGA TaskQC extractor is tested in test_ephys_extraction_choiceWorld.
 
 This module uses ZM_1150/2019-05-07/001 ('b1c968ad-4874-468d-b2e4-5ffa9b9964e9').
 """
@@ -18,7 +19,6 @@ one = ONE(**base.TEST_DB)
 
 class TestTaskQCObject(base.IntegrationTest):
     def setUp(self):
-        # TODO Add to integration data so doesn't re-download
         self.one = one
         self.eid = 'b1c968ad-4874-468d-b2e4-5ffa9b9964e9'
         # Make sure the data exists locally
@@ -90,7 +90,7 @@ class TestTaskQCObject(base.IntegrationTest):
             '_task_stimOff_itiIn_delays': 'WARNING',
             '_task_stimOn_delays': 'WARNING',
             '_task_stimOn_goCue_delays': 'FAIL',
-            '_task_stimulus_move_before_goCue': 'PASS',
+            '_task_stimulus_move_before_goCue': 'NOT_SET',
             '_task_trial_length': 'WARNING',
             '_task_wheel_freeze_during_quiescence': 'PASS',
             '_task_wheel_integrity': 'PASS',
@@ -99,7 +99,9 @@ class TestTaskQCObject(base.IntegrationTest):
             '_task_wheel_move_during_closed_loop_bpod': 'PASS',
             '_task_passed_trial_checks': 'NOT_SET'
         }
-        self.assertTrue(all(outcomes[k] == expected_outcomes[k] for k in outcomes.keys()))
+        for k in outcomes:
+            with self.subTest(check=k[6:].replace('_', ' ')):
+                self.assertEqual(outcomes[k], expected_outcomes[k], f'{k} should be {expected_outcomes[k]}')
 
 
 class TestBpodQCExtractors(base.IntegrationTest):
@@ -170,8 +172,7 @@ class TestBpodQCExtractors(base.IntegrationTest):
         self.assertTrue(set(expected).issubset(set(ex.data.keys())))
 
     def test_download_data(self):
-        """Test behavior when download_data flag is True
-        """
+        """Test behavior when download_data flag is True."""
         path = one.eid2path(self.eid_incomplete)
         ex = TaskQCExtractor(path, lazy=True, one=self.one, download_data=True)
         self.assertTrue(ex.lazy, 'Failed to set lazy flag')
@@ -189,5 +190,5 @@ class TestBpodQCExtractors(base.IntegrationTest):
                 self.one.alyx._par = self.one.alyx._par.set('CACHE_DIR', _cache)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main(exit=False)
