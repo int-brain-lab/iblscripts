@@ -4,6 +4,7 @@ import logging
 
 import spikeglx
 from ibllib.pipes.ephys_preprocessing import EphysMtscomp
+from one.api import ONE
 
 from ci.tests import base
 
@@ -15,7 +16,7 @@ class TestMtsCompRegistration(base.IntegrationTest):
 
     def test_single_run(self):
         SESSION_PATH = self.data_path.joinpath("ephys/choice_world_init/KS022/2019-12-10/001")
-        task = EphysMtscomp(SESSION_PATH)
+        task = EphysMtscomp(SESSION_PATH, one=ONE(**base.TEST_DB, mode='local'))
         task.run()
         self.assertTrue(sum(map(lambda x: x.suffix == '.cbin', task.outputs)) == 5)
         self.assertTrue(sum(map(lambda x: x.suffix == '.ch', task.outputs)) == 5)
@@ -38,9 +39,10 @@ class TestEphysCompression(base.IntegrationTest):
             link = self.main_folder.joinpath(ff.relative_to(self.init_folder))
             link.parent.mkdir(exist_ok=True, parents=True)
             link.symlink_to(ff)
+        self.one = ONE(**base.TEST_DB, mode='local')
 
     def test_compress_session(self):
-        EphysMtscomp(self.main_folder).run()
+        EphysMtscomp(self.main_folder, one=self.one).run()
         ephys_files = spikeglx.glob_ephys_files(self.main_folder)
         for ef in ephys_files:
             # there is only one compressed file afterwards
@@ -54,5 +56,5 @@ class TestEphysCompression(base.IntegrationTest):
         shutil.rmtree(self.main_folder)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main(exit=False)

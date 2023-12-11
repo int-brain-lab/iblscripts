@@ -1,11 +1,10 @@
 from one.api import ONE
-from ibllib.pipes.training_status import *
+from ibllib.pipes.training_status import (get_training_info_for_session, find_earliest_recompute_date, save_dataframe,
+                                          make_plots, compute_training_status)
 from pathlib import Path
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import gc
-import logging
 
 one = ONE()
 PLOT = False
@@ -14,7 +13,7 @@ REGISTER = False
 save_path = Path('/home/datauser/temp/subject_training')
 save_path.mkdir(exist_ok=True)
 
-#### COMPUTE THE SUBJECT TRAINING FOR THE SPECIFIED SUBJECTS
+# COMPUTE THE SUBJECT TRAINING FOR THE SPECIFIED SUBJECTS
 
 subjects = ['NR_0017', 'NR_0019', 'NR_0020', 'NR_0021', 'NR_0027']
 
@@ -115,11 +114,11 @@ for sub in subjects:
         gc.collect()
 
 
-### TO register - this needs to be run in an django shell
+# TO register - this needs to be run in an django shell
 
 if REGISTER:
 
-    from data.models import Dataset, DataRepository, DataFormat, DatasetType, FileRecord, Tag
+    from data.models import Dataset, DataRepository, DataFormat, DatasetType, FileRecord
     from misc.models import LabMember
     from subjects.models import Subject
 
@@ -151,11 +150,9 @@ if REGISTER:
     logger = logging.getLogger('ibllib')
     logger.setLevel(logging.INFO)
 
-
     def log_subprocess_output(pipe, log_function=print):
         for line in iter(pipe.readline, b''):
             log_function(line.decode().strip())
-
 
     for file in files:
 
