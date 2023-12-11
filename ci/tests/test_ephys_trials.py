@@ -102,10 +102,12 @@ class TestEphysTaskExtraction(base.IntegrationTest):
 
         for k in res_ephys:
             if k == '_task_response_feedback_delays':
-                continue
+                continue  # FIXME explain why this check is skipped
             with self.subTest(check=k):
+                check_diff = (res_bpod[k] or 0) - (res_ephys[k] or 0)
                 self.assertFalse(
-                    np.abs(res_bpod[k] - res_ephys[k]) > .2, f'{k} bpod: {res_bpod[k]}, ephys: {res_ephys[k]}')
+                    np.abs(check_diff) > .2, f'{k} bpod: {res_bpod[k]}, ephys: {res_ephys[k]}'
+                )
 
     def _check_task_trial_events(self, trials):
         """Check task-specific trial events."""
