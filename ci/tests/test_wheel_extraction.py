@@ -24,8 +24,8 @@ def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
 
     # resample both traces to the same rate and compute correlation coeff
     bpod_t = task.extractor.bpod2fpga(bpod_t)
-    tmin = max([np.min(fpga_t), np.min(bpod_t)])
-    tmax = min([np.max(fpga_t), np.max(bpod_t)])
+    tmin = max(np.min(fpga_t), np.min(bpod_t))
+    tmax = min(np.max(fpga_t), np.max(bpod_t))
     wheel = {'tscale': np.arange(tmin, tmax, 0.01)}
     wheel['fpga'] = scipy.interpolate.interp1d(
         fpga_t, fpga_pos)(wheel['tscale'])
