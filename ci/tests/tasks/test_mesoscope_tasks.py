@@ -73,16 +73,19 @@ class TestTimelineTrials(base.IntegrationTest):
 
         # Check ALF trials
         trials = alfio.load_object(self.session_path / 'alf', 'trials')
-        self.assertEqual(17, len(trials.keys()))
+        self.assertEqual(16, len(trials.keys()))
         expected = [[9.97294005, 24.00193085],
-                    [24.52629002, 28.1602763],
-                    [28.6754851, 32.9438336],
-                    [33.46808532, 36.930929]]
-        np.testing.assert_array_almost_equal(expected, trials['intervals'][:4, :])
-        expected = [20.903, 26.053, 30.844, 34.821, 39.257, 44.15, 53.244]
-        np.testing.assert_array_almost_equal(expected, trials['feedback_times'])
-        expected = [np.nan, 25.892, 30.742, 34.731, 39.091, 43.992, 53.125]
-        np.testing.assert_array_almost_equal(expected, trials['firstMovement_times'])
+                    [24.52629002, 28.16019116],
+                    [28.6754851, 32.94392776],
+                    [33.46808532, 36.9309287]]
+        with self.subTest(k='intervals'):
+            np.testing.assert_array_almost_equal(expected, trials['intervals'][:4, :])
+        expected = [20.903, 26.056, 30.847, 34.824, 39.257, 44.153, 53.247]
+        with self.subTest(k='feedback_times'):
+            np.testing.assert_array_almost_equal(expected, trials['feedback_times'])
+        expected = [20.811, 25.892, 30.742, 34.731, 39.091, 43.992, 53.125]
+        with self.subTest(k='firstMovement_times'):
+            np.testing.assert_array_almost_equal(expected, trials['firstMovement_times'])
 
         # Check ALF wheel
         wheel = alfio.load_object(self.session_path / 'alf', 'wheel')
@@ -123,7 +126,12 @@ class TestTimelineTrials(base.IntegrationTest):
     def test_get_valve_open_times(self, plt_mock):
         """Test for TimelineTrials.get_valve_open_times in ibllib.io.extractors.mesoscope."""
         timeline_trials = mesoscope.TimelineTrials(self.session_path, sync_collection='raw_sync_data')
-        expected = [26.053, 30.844, 34.821, 44.15, 53.244, 66.295]
+        expected = [[26.056, 26.099],
+                    [30.847, 30.891],
+                    [34.824, 34.868],
+                    [44.153, 44.197],
+                    [53.247, 53.29],
+                    [66.295, np.nan]]
         np.testing.assert_array_almost_equal(expected, timeline_trials.get_valve_open_times())
         # Test display
         plt_mock.subplots.return_value = (MagicMock(), (MagicMock(), MagicMock()))
@@ -132,7 +140,9 @@ class TestTimelineTrials(base.IntegrationTest):
         # The second axes should be a plot of expected valve open times
         ax0, ax1 = plt_mock.subplots.return_value[1]
         ax1.plot.assert_called()
-        np.testing.assert_array_equal(ax1.plot.call_args_list[1].args[0], open_times)
+        ax1.twinx.assert_called()
+        ax2 = ax1.twinx()
+        np.testing.assert_array_equal(ax2.plot.call_args_list[1].args[0], open_times[:, 1])
 
     @unittest.mock.patch('ibllib.io.extractors.mesoscope.plt')
     def test_plot_timeline(self, plt_mock):

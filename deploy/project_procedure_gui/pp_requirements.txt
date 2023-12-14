@@ -1,5 +1,0 @@
-ibllib
-iblutil
-ONE-api
-pyyaml
-PyQt5

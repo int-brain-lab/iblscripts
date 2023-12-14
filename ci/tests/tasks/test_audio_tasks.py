@@ -3,6 +3,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from one.api import ONE
 from ibllib.pipes.audio_tasks import AudioCompress, AudioSync
 
 from ci.tests import base
@@ -16,9 +17,10 @@ class TestAudioCompress(base.IntegrationTest):
         self.temp_dir = Path(tempfile.TemporaryDirectory().name)
         self.session_path = self.temp_dir.joinpath('ZM_1735', '2019-08-01', '001')
         shutil.copytree(self.data_path, self.session_path.joinpath('raw_behavior_data'))
+        self.one = ONE(**base.TEST_DB, mode='local')
 
     def test_compress(self):
-        task = AudioCompress(self.session_path, device_collection='raw_behavior_data')
+        task = AudioCompress(self.session_path, one=self.one, device_collection='raw_behavior_data')
         status = task.run()
         assert status == 0
 
@@ -36,16 +38,19 @@ class TestAudioSync(base.IntegrationTest):
         self.temp_dir = Path(tempfile.TemporaryDirectory().name)
         self.session_path = self.temp_dir.joinpath('ZM_1735', '2019-08-01', '001')
         shutil.copytree(self.data_path, self.session_path.joinpath('raw_behavior_data'))
+        self.one = ONE(**base.TEST_DB, mode='local')
 
     def test_audiosync(self):
-        task = AudioSync(self.session_path, device_collection='raw_behavior_data', collection='raw_behavior_data', sync='bpod')
+        task = AudioSync(
+            self.session_path, one=self.one, device_collection='raw_behavior_data', collection='raw_behavior_data', sync='bpod')
         status = task.run()
         assert status == 0
 
         self.assertIsNone(next(self.session_path.rglob('*.wav'), None))
 
     def test_audiosync_fpga(self):
-        task = AudioSync(self.session_path, device_collection='raw_behavior_data', collection='raw_behavior_data', sync='fpga')
+        task = AudioSync(
+            self.session_path, one=self.one, device_collection='raw_behavior_data', collection='raw_behavior_data', sync='fpga')
         status = task.run()
         assert status == 0
         assert task.outputs is None
