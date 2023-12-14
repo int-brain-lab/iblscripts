@@ -1,4 +1,4 @@
-function paths = prepareExperiment(expRef, stub, varargin)
+function paths = prepareExperiment(varargin)
 % prepareExperiment Save an experiment description stub for a given session
 %   Saves a stub _ibl_experiment.description.yaml file for use by the
 %   iblrig data transfer script.
@@ -31,6 +31,8 @@ assert(~isempty(which('yaml.dumpFile')),...
    ' install.'],...
    'https://uk.mathworks.com/matlabcentral/fileexchange/106765-yaml')
 
+settingsPath = 'C:\iblrigv8\settings\iblrig_settings.yaml'; %'C:\iblrig\settings\iblrig_settings.yaml';
+
 % Generate a default unique label for this device using the computer
 % hostname and volume label
 [ret, name] = system('hostname');
@@ -41,19 +43,29 @@ sc = strsplit(out, '\n');
 volLbl = sc{2}(end-8:end);
 transfer_id = [strip(name) '_' volLbl];
 
+% If RIG_NAME in hardware settings use this as the default ID instead
+hwSettingsPath = fullfile(fileparts(settingsPath), 'hardware_settings.yaml');
+if exist(hwSettingsPath, 'file')
+  hwSettings = yaml.loadFile(hwSettingsPath);
+  if isfield(hwSettings, 'RIG_NAME') && isstring(hwSettings.RIG_NAME)
+    transfer_id = hwSettings.RIG_NAME;
+  end
+end
+
 % Parse the input args
 p = inputParser;
 s = '(?<date>^\d{4}-\d\d\-\d\d)_(?<seq>\d+)_(?<subject>\w+)';  % dat.expRefRegExp
 isExpRef = @(r) (ischar(r) || isstring(r)) && ~isempty(regexp(r, s, 'once'));
 addRequired(p, 'expRef', isExpRef)
 addRequired(p, 'stub', @ischar)
-addOptional(p, 'computerID', transfer_id, @ischar)
-addOptional(p, 'fullPathInSettings', true, @islogical)
-p.parse(expRef, varargin{:})
+addParameter(p, 'computerID', transfer_id, @ischar)
+addParameter(p, 'fullPathInSettings', true, @islogical)
+p.parse(varargin{:})
 
+stub = p.Results.stub;
+expRef = p.Results.expRef;
 
 % Load the paths from the iblrig settings
-settingsPath = 'C:\iblrig\settings\iblrig_settings.yaml';
 if ~exist(settingsPath, 'file')
   error('%s does not exist: please set up iblrigv8', settingsPath)
 end
@@ -79,9 +91,9 @@ if isfield(settings, 'iblrig_remote_data_path') && ...
     remotePath = fullfile(remotePath, 'Subjects');
   end
 else
-  remotePath = false;
+  remotePath = []; 
 end
-if remotePath == false
+if isempty(remotePath)
   warning('No remote path set up, will only save locally')
 end
 
@@ -125,11 +137,11 @@ fprintf('Saved stub to %s\n', localFile);
 paths = {localFile};
 
 % Save remote
-if remotePath ~= false
+if ~isempty(remotePath)
   remoteSession = fullfile(remotePath, parsed.subject, parsed.date, sprintf('%03d', expSequence));
   remoteFile = fullfile(remoteSession, '_devices/', [expRef '@' p.Results.computerID '.yaml']);
-  if exist(remoteSession, 'dir') == 0
-    warning('%s does not exists, creating folder(s)', remoteSession)
+  if ~exist(remoteSession, 'dir')
+    fprintf('\n%s does not exist, creating folder(s)\n\n', remoteSession)
     status = mkdir(remoteSession);
     assert(status == 1, 'Failed to create remote session folder(s) %s', remoteSession)
   end
