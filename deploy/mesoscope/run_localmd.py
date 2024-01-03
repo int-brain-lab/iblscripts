@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+import os
 
 import numpy as np
 from localmd.dataset import PMDDataset
@@ -8,22 +9,19 @@ from localmd.dataset import PMDDataset
 class MotionBinDataset(PMDDataset):
     """Load a suite2p data.bin imaging registration file."""
 
-    def __init__(self, session_path, FOV):
+    def __init__(self, dataset_path, ops_path):
         """
         Load a suite2p data.bin imaging registration file.
 
         Parameters
         ----------
         session_path : str, pathlib.Path
-            The session path containing preprocessed data.
-        FOV : int
-            The field of view number to load.
+            The session path containing preprocessed data
         """
-        self.session_path = Path(session_path)
-        self.filename = self.session_path.joinpath('raw_bin_files', f'FOV_{FOV:02}', 'data.bin')
-        self.FOV = int(FOV)
+        self.dataset_path = Path(dataset_path)
+        self.ops_path = Path(ops_path)
         self._shape = None
-
+        
     @property
     def shape(self):
         """
@@ -48,16 +46,7 @@ class MotionBinDataset(PMDDataset):
         (int, int, int)
             The number of y pixels, number of x pixels, number of frames.
         """
-        ops_file = self.filename.parent.joinpath('ops.npy')
-        if ops_file.exists():
-            ops = np.load(ops_file, allow_pickle=True).item()
-        else:  # Load from archived ALF
-            filename = self.session_path.joinpath('alf', f'FOV_{self.FOV:02}', '_suite2p_ROIData.raw.zip')
-            s2p = np.load(filename, allow_pickle=True)
-            try:
-                ops = s2p['ops'].item()
-            finally:
-                s2p.close()
+        ops = np.load(self.ops_path, allow_pickle=True).item()
         return ops['Ly'], ops['Lx'], ops['nframes']
 
     def get_frames(self, frames):
@@ -78,7 +67,7 @@ class MotionBinDataset(PMDDataset):
         numpy.array
             The frame data with shape (n y pixels, n x pixels, n frames).
         """
-        file = np.memmap(self.filename, mode='r', dtype=np.int16, shape=(self.shape[-1], *self.shape[:2]))
+        file = np.memmap(self.dataset_path, mode='r', dtype=np.int16, shape=(self.shape[-1], *self.shape[:2]))
         try:
             frame_data = file[frames]
         finally:
@@ -93,64 +82,65 @@ if __name__ == '__main__':
 
     import tifffile  # for saving comparison
 
-    ROOT = Path('/mnt/s0/Data/Subjects')
-
     parser = argparse.ArgumentParser(
         prog='PMD', description='Run penalized matrix decomposition (PMD) on suite2p file registration bin file.')
-    parser.add_argument('--session', type=str, help='The relative session path, e.g. SP044/2023-06-15/001')
-    parser.add_argument('--fov', type=int, help=f'The field of view number')
+    parser.add_argument('--dataset_path', type=str, help='The absolute path of the dataset wherever this script is being run')
+    parser.add_argument('--ops_file', type=str, help='The absolute path of the ops file wherever this script is being run')
+    parser.add_argument('--output_location', type=str, help='The location where the outputs should be saved on the filesystem where this is being run')
+    # parser.add_argument('--fov', type=int, help=f'The field of view number')
     parser.add_argument('--block_height', default=20, type=int,
                         help='The height of the blocks in pixels (should be comparable to size of somata)')
     parser.add_argument('--block_width', default=20, type=int,
                         help='The width of the blocks in pixels (should be comparable to size of somata)')
-    parser.add_argument('--overlaps_height', default=10, type=int,
-                        help='The amount of y pixel overlap (should be less than block height)')
-    parser.add_argument('--overlaps_width', default=10, type=int,
-                        help='The amount of x pixel overlap (should be less than block width)')
     parser.add_argument('--frames_to_init', default=5000, type=int,
                         help='We begin the method by finding a low-rank (conservative) estimate of the linear subspace in which the signal resides.'
                              'We use frames_to_init frames, sampled at time points throughout the movie to compute this spatial basis.')
     parser.add_argument('--background_rank', default=1, type=int)
     parser.add_argument('--max_consec_failures', default=1, type=int)
     parser.add_argument('--max_components', default=40, type=int)
+    
 
     pmd_params_dict = vars(parser.parse_args())
-    FOV = pmd_params_dict.pop('fov')
-    SESSION_PATH = str(Path(pmd_params_dict.pop('session')).relative_to(ROOT))
+    dataset_path = pmd_params_dict.pop('dataset_path')
+    ops_file_path = pmd_params_dict.pop('ops_file')
+    output_folder=pmd_params_dict.pop('output_location')
+    # FOV = pmd_params_dict.pop('fov')
+    # SESSION_PATH = str(Path(pmd_params_dict.pop('session')).relative_to(ROOT))
 
     # For testing, check there are no bad frames
-    bad_frames_file = ROOT / SESSION_PATH / 'alf' / f'FOV_{FOV:02}' / 'mpci.badFrames.npy'
-    if not bad_frames_file.parent.exists():
-        raise FileNotFoundError(str(bad_frames_file.parent))
-    assert not np.load(bad_frames_file).any(), 'bad frames in session'
+    # bad_frames_file = ROOT / SESSION_PATH / 'alf' / f'FOV_{FOV:02}' / 'mpci.badFrames.npy'
+    # if not bad_frames_file.parent.exists():
+    #     raise FileNotFoundError(str(bad_frames_file.parent))
+    # assert not np.load(bad_frames_file).any(), 'bad frames in session'
 
-    current_dataset = MotionBinDataset(ROOT / SESSION_PATH, FOV)
-    print(f'Loading data from {current_dataset.filename}')
+    # current_dataset = MotionBinDataset(ROOT / SESSION_PATH)
+    current_dataset = MotionBinDataset(dataset_path, ops_file_path)
+    print(f'Loading data from {current_dataset.dataset_path}')
 
     other_params = {
         'frame_corrector_obj': None,
         # These don't change
         'frame_batch_size': 1000,
         'pixel_batch_size': 5000,
-        'order': 'C',
         'num_workers': 0,
         'sim_conf': 5,
         'dtype': 'float32'  # currently only float32 supported
     }
     block_sizes = (pmd_params_dict.pop('block_height'), pmd_params_dict.pop('block_width'))
-    overlap = (pmd_params_dict.pop('overlaps_height'), pmd_params_dict.pop('overlaps_width'))
+    # overlap = (pmd_params_dict.pop('overlaps_height'), pmd_params_dict.pop('overlaps_width'))
     frames_to_init = pmd_params_dict.pop('frames_to_init')
 
     pmd_params_dict.update(other_params)
 
     # Run PMD
     U, R, s, V, std_img, mean_img, data_shape, data_order = localmd_decomposition(
-        current_dataset, block_sizes, overlap, frames_to_init, **pmd_params_dict)
+        current_dataset, block_sizes, frames_to_init, **pmd_params_dict)
 
     # TODO Attach logger
 
     # Save the compressed results to a sparse NPZ
-    npz_save_name = ROOT / SESSION_PATH / 'alf' / f'FOV_{FOV:02}' / 'PMD.npz'
+    # npz_save_name = ROOT / SESSION_PATH / 'alf' / f'FOV_{FOV:02}' / 'PMD.npz'
+    npz_save_name = os.path.join(output_folder, 'PMD.npz')
     print(f'Saving to {npz_save_name}')
     U = U.tocsr()
     np.savez(npz_save_name,
@@ -177,9 +167,10 @@ if __name__ == '__main__':
 
     # Save the triptych as a tiff file, which can be viewed in imageJ
     # Modify the filename below as desired
-    parts = SESSION_PATH.split('/')
-    exp_ref = '_'.join([parts[1], str(int(parts[2])), parts[0]])
-    filename_to_save = ROOT / SESSION_PATH / 'alf' / f'FOV_{FOV:02}' / 'mpci.pmdTriptych.tiff'
+    # parts = SESSION_PATH.split('/')
+    # exp_ref = '_'.join([parts[1], str(int(parts[2])), parts[0]])
+    # filename_to_save = ROOT / SESSION_PATH / 'alf' / f'FOV_{FOV:02}' / 'mpci.pmdTriptych.tiff'
+    filename_to_save = os.path.join(output_folder, 'PMDTriptych.tiff')
 
     # The below line saves the tiff file
     print(f'Saving triptych to {filename_to_save}')
