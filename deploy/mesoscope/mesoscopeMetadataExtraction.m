@@ -68,7 +68,7 @@ fullfilepath = fullfile(ff,fn);
 fprintf('%s\n',ff);
 
 %% Generate the skeleton of the output struct
-meta = struct('version', '0.1.1');
+meta = struct('version', '0.1.2');
 
 % rig based
 meta.channelID.green = [1, 2]; % information about channel numbers (red/green)
@@ -110,7 +110,7 @@ meta.channelSaved = [];
 % for each FOV (extracted directly from the header)
 % TODO make sure dual plane case is taken care of
 meta.FOV.slice_id = NaN; %unique identifier of this FOV's slice in stack
-meta.FOV.stack_id = NaN; %unique identifier of this FOV's roi
+meta.FOV.roiUUID = NaN; %unique identifier of this FOV's roi
 meta.FOV.Zs = NaN; % RF depth(s) of the slice (length 2 for dual-plane?)
 % coordinates of all corners of the FOV in scope coords
 meta.FOV.Deg.topLeft = [NaN, NaN, NaN];
@@ -291,7 +291,7 @@ for iSlice = 1:nZs
             nXnY = si_rois(iRoi).scanfields(1).pixelResolutionXY';
             
             meta.FOV(iFOV).slice_id = iSlice-1; %assuming 0-indexing
-            meta.FOV(iFOV).roiUUID = si_rois(iroi).roiUuid; %this is scanimage ID            
+            meta.FOV(iFOV).roiUUID = si_rois(iRoi).roiUuid; %this is scanimage ID            
             meta.FOV(iFOV).Zs = Zvals(iSlice);
             
             meta.FOV(iFOV).nXnYnZ = [nXnY, 1];

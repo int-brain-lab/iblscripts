@@ -20,7 +20,7 @@ function [ml, ap] = getCraniotomyCoordinates(subject, varargin)
 %   Example 1: Fetch craniotomy coordinates for subject 'SP035'
 %     [ml, ap] = getCraniotomyCoordinates('SP035')
 %
-%   Example 1: Fetch specific craniotomy coordinates
+%   Example 2: Fetch specific craniotomy coordinates
 %     [ml, ap] = getCraniotomyCoordinates('SP035', 'name', 'craniotomy_01')
 
 % User parameters

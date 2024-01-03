@@ -59,15 +59,45 @@ from ibllib.io import session_params
 from ibllib.pipes.misc import \
     create_basic_transfer_params, subjects_data_folder, rsync_paths
 
+log = log_to_file(filename='transfer_session.log', log='ibllib.pipes.misc')
 
-def main(local=None, remote=None):
-    # logging configuration
-    log = log_to_file(filename='transfer_session.log', log='ibllib.pipes.misc')
 
+def transfer_session(session, params=None):
+    status = True
+    if params is None:
+        params = create_basic_transfer_params()
+    remote_subject_folder = subjects_data_folder(params['REMOTE_DATA_FOLDER_PATH'], rglob=True)
+    session_parts = session.parent.as_posix().split('/')[-3:]
+    remote_session = remote_subject_folder.joinpath(*session_parts)
+    remote_file = session_params.get_remote_stub_name(remote_session, filename_parts(session.name)[3])
+    assert remote_file.exists()
+    exp_pars = session_params.read_params(session)
+    collections = set(session_params.get_collections(exp_pars).values())
+    for collection in collections:
+        if not session.with_name(collection).exists():
+            log.error(f'Collection {session.with_name(collection)} doesn\'t exist')
+            status = False
+            continue
+        log.debug(f'transferring {session_parts} - {collection}')
+        status &= rsync_paths(session.with_name(collection), remote_session / collection)
+    # if the transfer was successful, merge the stub file with the remote experiment description
+    if status:
+        main_experiment_file = remote_session / '_ibl_experiment.description.yaml'
+        session_params.aggregate_device(remote_file, main_experiment_file, unlink=True)
+        # when there is not any remaining stub files, create a flag file in the session folder
+        # that indicates the copy is complete
+        if not any(remote_session.joinpath('_devices').glob('*.*')):
+            file_list = list(map(str, remote_session.rglob('*.*.*')))
+            flags.write_flag_file(remote_session.joinpath('raw_session.flag'), file_list=file_list)
+        flags.write_flag_file(session.with_name('transferred.flag'), file_list=list(collections))
+        log.info(f'{session_parts} transfer success')
+    return status
+
+
+def transfer_sessions(local=None, remote=None):
     # Determine if user passed in arg for local/remote subject folder locations or pull in from
     # local param file or prompt user if missing
     params = create_basic_transfer_params(local_data_path=local, remote_data_path=remote)
-
     # Check for Subjects folder
     local_subject_folder = subjects_data_folder(params['DATA_FOLDER_PATH'], rglob=True)
     remote_subject_folder = subjects_data_folder(params['REMOTE_DATA_FOLDER_PATH'], rglob=True)
@@ -94,30 +124,7 @@ def main(local=None, remote=None):
 
     ok = [True] * len(local_sessions)
     for i, session in enumerate(local_sessions):
-        session_parts = session.parent.as_posix().split('/')[-3:]
-        remote_session = remote_subject_folder.joinpath(*session_parts)
-        remote_file = session_params.get_remote_stub_name(remote_session, filename_parts(session.name)[3])
-        assert remote_file.exists()
-        exp_pars = session_params.read_params(session)
-        collections = set(session_params.get_collections(exp_pars).values())
-        for collection in collections:
-            if not session.with_name(collection).exists():
-                log.error(f'Collection {session.with_name(collection)} doesn\'t exist')
-                ok[i] = False
-                continue
-            log.debug(f'transferring {session_parts} - {collection}')
-            ok[i] &= rsync_paths(session.with_name(collection), remote_session / collection)
-        # if the transfer was successful, merge the stub file with the remote experiment description
-        if ok[i]:
-            main_experiment_file = remote_session / '_ibl_experiment.description.yaml'
-            session_params.aggregate_device(remote_file, main_experiment_file, unlink=True)
-            # when there is not any remaining stub files, create a flag file in the session folder
-            # that indicates the copy is complete
-            if not any(remote_session.joinpath('_devices').glob('*.*')):
-                file_list = list(map(str, remote_session.rglob('*.*.*')))
-                flags.write_flag_file(remote_session.joinpath('raw_session.flag'), file_list=file_list)
-            flags.write_flag_file(session.with_name('transferred.flag'), file_list=list(collections))
-            log.info(f'{session_parts} transfer success')
+        ok[i] = transfer_session(session)
     return local_sessions, ok
 
 
@@ -126,4 +133,4 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--local', default=False, required=False, help='Local iblrig_data/Subjects folder')
     parser.add_argument('-r', '--remote', default=False, required=False, help='Remote iblrig_data/Subjects folder')
     args = parser.parse_args()
-    main(args.data_folder, args.local)
+    transfer_sessions(args.data_folder, args.local)

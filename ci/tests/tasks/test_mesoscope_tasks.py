@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, ANY
 import tarfile
 from itertools import chain
+from uuid import UUID
 
 import numpy as np
 import pandas as pd
@@ -20,7 +21,7 @@ from ibllib.pipes.mesoscope_tasks import (
     MesoscopeSync, MesoscopeFOV, MesoscopeRegisterSnapshots,
     MesoscopePreprocess, MesoscopeCompress, Provenance
 )
-from ibllib.atlas import AllenAtlas
+from iblatlas.atlas import AllenAtlas
 from ibllib.pipes.behavior_tasks import ChoiceWorldTrialsTimeline
 from ibllib.io.extractors import mesoscope
 from ibllib.io.raw_daq_loaders import load_timeline_sync_and_chmap
@@ -74,14 +75,17 @@ class TestTimelineTrials(base.IntegrationTest):
         trials = alfio.load_object(self.session_path / 'alf', 'trials')
         self.assertEqual(16, len(trials.keys()))
         expected = [[9.97294005, 24.00193085],
-                    [24.52629002, 28.1602763],
-                    [28.6754851, 32.9438336],
-                    [33.46808532, 36.930929]]
-        np.testing.assert_array_almost_equal(expected, trials['intervals'][:4, :])
-        expected = [20.903, 26.053, 30.844, 34.821, 39.257, 44.15, 53.244]
-        np.testing.assert_array_almost_equal(expected, trials['feedback_times'])
-        expected = [np.nan, 25.892, 30.742, 34.731, 39.091, 43.992, 53.125]
-        np.testing.assert_array_almost_equal(expected, trials['firstMovement_times'])
+                    [24.52629002, 28.16019116],
+                    [28.6754851, 32.94392776],
+                    [33.46808532, 36.9309287]]
+        with self.subTest(k='intervals'):
+            np.testing.assert_array_almost_equal(expected, trials['intervals'][:4, :])
+        expected = [20.903, 26.056, 30.847, 34.824, 39.257, 44.153, 53.247]
+        with self.subTest(k='feedback_times'):
+            np.testing.assert_array_almost_equal(expected, trials['feedback_times'])
+        expected = [20.811, 25.892, 30.742, 34.731, 39.091, 43.992, 53.125]
+        with self.subTest(k='firstMovement_times'):
+            np.testing.assert_array_almost_equal(expected, trials['firstMovement_times'])
 
         # Check ALF wheel
         wheel = alfio.load_object(self.session_path / 'alf', 'wheel')
@@ -90,7 +94,8 @@ class TestTimelineTrials(base.IntegrationTest):
         expected = [20.809, 20.811, 20.812, 20.813, 20.814]
         np.testing.assert_array_almost_equal(expected, wheel['timestamps'][:5])
 
-    def test_get_wheel_positions(self):
+    @unittest.mock.patch('ibllib.io.extractors.mesoscope.plt')
+    def test_get_wheel_positions(self, plt_mock):
         """Test for TimelineTrials.get_wheel_positions in ibllib.io.extractors.mesoscope."""
         # # NB: For now we're testing individual functions before we have complete data
         timeline_trials = mesoscope.TimelineTrials(self.session_path, sync_collection='raw_sync_data')
@@ -105,12 +110,28 @@ class TestTimelineTrials(base.IntegrationTest):
         np.testing.assert_array_almost_equal(expected, moves['intervals'][:5, :])
         # Check input validation
         self.assertRaises(ValueError, timeline_trials.get_wheel_positions, coding='x3')
+        # Test display
+        plt_mock.subplots.return_value = (MagicMock(), (MagicMock(), MagicMock()))
+        timeline_trials.bpod_trials = {'wheel_position': np.zeros_like(wheel['position']),
+                                       'wheel_timestamps': wheel['timestamps']}
+        timeline_trials.bpod2fpga = lambda x: x
+        timeline_trials.get_wheel_positions(display=True)
+        plt_mock.subplots.assert_called()
+        # The second axes should be a plot of extracted wheel positions
+        ax0, ax1 = plt_mock.subplots.return_value[1]
+        ax1.plot.assert_called()
+        np.testing.assert_array_equal(ax1.plot.call_args_list[0].args[0], wheel['timestamps'])
 
     @unittest.mock.patch('ibllib.io.extractors.mesoscope.plt')
     def test_get_valve_open_times(self, plt_mock):
         """Test for TimelineTrials.get_valve_open_times in ibllib.io.extractors.mesoscope."""
         timeline_trials = mesoscope.TimelineTrials(self.session_path, sync_collection='raw_sync_data')
-        expected = [26.053, 30.844, 34.821, 44.15, 53.244, 66.295]
+        expected = [[26.056, 26.099],
+                    [30.847, 30.891],
+                    [34.824, 34.868],
+                    [44.153, 44.197],
+                    [53.247, 53.29],
+                    [66.295, np.nan]]
         np.testing.assert_array_almost_equal(expected, timeline_trials.get_valve_open_times())
         # Test display
         plt_mock.subplots.return_value = (MagicMock(), (MagicMock(), MagicMock()))
@@ -119,7 +140,9 @@ class TestTimelineTrials(base.IntegrationTest):
         # The second axes should be a plot of expected valve open times
         ax0, ax1 = plt_mock.subplots.return_value[1]
         ax1.plot.assert_called()
-        np.testing.assert_array_equal(ax1.plot.call_args_list[1].args[0], open_times)
+        ax1.twinx.assert_called()
+        ax2 = ax1.twinx()
+        np.testing.assert_array_equal(ax2.plot.call_args_list[1].args[0], open_times[:, 1])
 
     @unittest.mock.patch('ibllib.io.extractors.mesoscope.plt')
     def test_plot_timeline(self, plt_mock):
@@ -512,6 +535,15 @@ class TestMesoscopePreprocess(base.IntegrationTest):
         expected = [1.9042398, 2.0305383, 3.5443015, 4.247522, 3.14291, 2.286991,
                     3.8462281, 3.553623, 2.456772, 3.4159436]
         np.testing.assert_array_almost_equal(expected, mask[np.nonzero(mask)][:10])
+        # Check ROI UUIDs were generated
+        self.assertTrue((uuids_file := files[0].with_name('mpciROIs.uuids.csv')).exists())
+        try:
+            uuids = pd.read_csv(uuids_file).squeeze().apply(UUID)
+        except ValueError as ex:
+            self.assertFalse(True, f'failed to load and parse mpciROIs.uuids.csv: {ex}')
+        expected_rois = 222
+        self.assertEqual(uuids.size, expected_rois)
+        self.assertEqual(uuids.nunique(), expected_rois)
 
     def test_rename_with_qc(self):
         """Test MesoscopePreprocess._rename_outputs method with frame QC input."""

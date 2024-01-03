@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 import shutil
 
-from pkg_resources import parse_version
+from packaging import version
 import numpy as np
 from one.api import ONE
 from one.remote.globus import get_lab_from_endpoint_id
@@ -97,8 +97,8 @@ def correct_passive_params():
         session_path = flag_file.parent
         if session_path.joinpath('raw_passive_data', '_iblrig_taskSettings.raw.json').exists():
             settings = raw.load_settings(session_path, 'raw_passive_data')
-            version = settings.get('IBLRIG_VERSION', settings.get('IBLRIG_VERSION_TAG', '0.0.0'))
-            if parse_version(version) < parse_version('7.2.5'):
+            ver = settings.get('IBLRIG_VERSION', settings.get('IBLRIG_VERSION_TAG')) or '0.0.0'
+            if version.parse(ver) < version.parse('7.2.5'):
                 parts = session_path_parts(session_path, as_dict=True, assert_valid=True)
                 parts.pop('lab')
                 new_settings = raw.patch_settings(

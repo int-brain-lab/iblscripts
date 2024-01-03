@@ -5,7 +5,7 @@ import tempfile
 
 import numpy as np
 
-from pkg_resources import parse_version
+from packaging import version
 from ibllib.pipes.training_preprocessing import TrainingTrials
 import ibllib.io.raw_data_loaders as rawio
 from one.api import One
@@ -49,7 +49,7 @@ class TestSessions(base.IntegrationTest):
                 # read task settings and determine iblrig version to throw into subtests
                 session_path = fil.parents[1]
                 settings = rawio.load_settings(session_path)
-                iblrig_version = parse_version(settings['IBLRIG_VERSION_TAG'])
+                iblrig_version = version.parse(settings['IBLRIG_VERSION'])
                 with self.subTest(file=fil, iblrig_version=iblrig_version):
                     # task running part
                     job = TrainingTrials(session_path, one=self.one)
@@ -57,7 +57,7 @@ class TestSessions(base.IntegrationTest):
                     # check the trials objects
                     trials = alfio.load_object(session_path / 'alf', 'trials')
                     self.assertTrue(alfio.check_dimensions(trials) == 0)
-                    if iblrig_version >= parse_version('5.0.0'):
+                    if iblrig_version >= version.parse('5.0.0'):
                         tkeys = TRIAL_KEYS_ge5
                     else:
                         tkeys = TRIAL_KEYS_lt5

@@ -8,7 +8,7 @@ from one.api import One
 from one.alf.io import load_object
 import brainbox.io.one as bbone
 from neuropixel import trace_header
-from ibllib.atlas.regions import BrainRegions
+from iblatlas.regions import BrainRegions
 from brainbox.io.one import SpikeSortingLoader, SessionLoader
 
 from ci.tests.base import IntegrationTest

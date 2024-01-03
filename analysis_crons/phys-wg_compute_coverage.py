@@ -13,8 +13,8 @@ import pandas as pd
 
 from one.api import ONE
 from one.remote import aws
-from ibllib.atlas import atlas
-from ibllib.atlas.regions import BrainRegions
+from iblatlas import atlas
+from iblatlas.regions import BrainRegions
 from needles2.probe_model import ProbeModel
 from iblutil.util import setup_logger
 
