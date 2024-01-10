@@ -207,17 +207,26 @@ for i, sub in enumerate(subjects):
             # load trials table
             alf_path = root_path.joinpath(sub.lab.name, 'Subjects', t.file_records.filter(
                 data_repository__name__startswith='flatiron').first().relative_path).parent
+            session_path = root_path.joinpath(sub.lab.name, 'Subjects', sub.nickname, str(t.session.start_time.date()),
+                                              str(t.session.number).zfill(3))
             trials = alfio.load_object(alf_path, 'trials', attribute='table', short_keys=True)
             trials = trials.to_df()
 
             # Add to list of trials for subject
             trials['session'] = str(t.session.id)
             trials['session_start_time'] = t.session.start_time
+            trials['session_number'] = t.session.number
+            trials['task_protocol'] = t.session.task_protocol
 
             # Load quiescence and stimOn_trigger and add to the table
             quiescence = alfio.load_object(alf_path, 'trials',
                                            attribute='quiescencePeriod', short_keys=True)['quiescencePeriod']
-            stimon_trigger, _ = StimOnTriggerTimes(alf_path.parent).extract(save=False)
+            try:
+                stimon_trigger, _ = StimOnTriggerTimes(session_path).extract(save=False)
+            except TypeError:
+                task_no = t.collection.split('/')[1].split('_')[1]
+                stimon_trigger, _ = StimOnTriggerTimes(session_path).extract(task_collection=f'raw_task_data_{task_no}',
+                                                                             save=False)
             trials['quiescence'] = quiescence
             trials['stimOnTrigger_times'] = stimon_trigger
             # TODO: Add protocol number
