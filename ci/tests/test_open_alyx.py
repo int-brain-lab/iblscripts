@@ -5,7 +5,6 @@ import logging
 from one.api import ONE
 from iblatlas.atlas import AllenAtlas
 from brainbox.io.one import SpikeSortingLoader
-from brainbox.io.spikeglx import Streamer
 
 
 _logger = logging.getLogger('ibllib')
@@ -36,7 +35,7 @@ class TestReadSpikeSorting(unittest.TestCase):
 
 class TestStreamData(unittest.TestCase):
 
-    def test_streamer_object(self):
+    def test_streamer_object_with_spike_sorting_loader(self):
         pid = '675952a4-e8b3-4e82-a179-cc970d5a8b01'
         t0 = 50
         self.td = tempfile.TemporaryDirectory()
@@ -46,7 +45,8 @@ class TestStreamData(unittest.TestCase):
             silent=True,
             cache_dir=self.td.name)
 
-        sr = Streamer(pid=pid, one=tmp_one, typ='lf')
+        sl = SpikeSortingLoader(pid=pid, one=tmp_one)
+        sr = sl.raw_electrophysiology(stream=True)
         # read once to download the data
         raw_ = sr[int(t0 * 2500):int((t0 + 1) * 2500), :]  # noqa
         # second read to use the local cache
