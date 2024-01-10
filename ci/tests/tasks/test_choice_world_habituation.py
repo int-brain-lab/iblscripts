@@ -1,3 +1,7 @@
+"""Tests for habituation pipeline tasks.
+
+NB: For ibllib.pipes.behavior_tasks.HabituationTrialsNidq tests see tests.test_ephys_trials.
+"""
 import logging
 import shutil
 import ibllib.pipes.behavior_tasks as btasks
@@ -33,7 +37,7 @@ class TestHabituationRegisterRaw(HabituationTemplate):
 class TestHabituationTrialsBpod(HabituationTemplate):
 
     def test_task(self):
-        wf = btasks.HabituationTrialsBpod(self.session_path, collection='raw_behavior_data', save=True)
+        wf = btasks.HabituationTrialsBpod(self.session_path, one=self.one, collection='raw_behavior_data', save=True)
         status = wf.run(update=False)
         assert status == 0
         wf.assert_expected_outputs()
