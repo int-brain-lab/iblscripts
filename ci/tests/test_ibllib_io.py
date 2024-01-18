@@ -4,6 +4,7 @@ import time
 import tempfile
 import shutil
 from pathlib import Path
+import json
 
 import numpy as np
 import numpy.testing
@@ -157,6 +158,18 @@ class TestPatchSettings(base.IntegrationTest):
         self.assertEqual(7, sum(new_path in ln for ln in new_raw_settings))
         old_path = '\\\\'.join([settings['SUBJECT_NAME'], settings['SESSION_DATE'], settings['SESSION_NUMBER']])
         self.assertFalse(any(old_path in ln for ln in new_raw_settings))
+
+        # Test with v8-style settings
+        settings.pop('SESSION_RAW_DATA_FOLDER')
+        settings['SESSION_END_TIME'] = settings['SESSION_DATE'] + 'T11:15:30.064893'
+        settings['SESSION_START_TIME'] = settings['SESSION_DATETIME']
+        with open(self.settings_file, 'w') as fp:
+            json.dump(settings, fp, indent=' ')
+        new_data.update(new_collection='raw_task_data_03')
+        with self.assertLogs('ibllib.io.raw_data_loaders', level=20):
+            new_settings = patch_settings(session_path, collection, **new_data)
+        self.assertTrue(new_settings['SESSION_END_TIME'].startswith(new_data['date']))
+        self.assertTrue(new_settings['SESSION_START_TIME'].startswith(new_data['date']))
 
 
 class TestDAQDiscontinuities(base.IntegrationTest):
