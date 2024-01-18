@@ -72,7 +72,7 @@ def transfer_session(session, params=None):
     remote_file = session_params.get_remote_stub_name(remote_session, filename_parts(session.name)[3])
     assert remote_file.exists()
     exp_pars = session_params.read_params(session)
-    collections = set(session_params.get_collections(exp_pars).values())
+    collections = session_params.get_collections(exp_pars, flat=True)
     for collection in collections:
         if not session.with_name(collection).exists():
             log.error(f'Collection {session.with_name(collection)} doesn\'t exist')
