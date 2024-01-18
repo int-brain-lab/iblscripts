@@ -58,8 +58,8 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         task = TrialsTask(session_path,
                           one=ONE(mode='local'), collection='raw_behavior_data',
                           sync_collection='raw_ephys_data')
-        fpga_trials, _ = task._extract_behaviour(save=True)
-        tqc_ephys = task._run_qc(fpga_trials.copy(), update=False, plot_qc=False)
+        fpga_trials, _ = task.extract_behaviour(save=True)
+        tqc_ephys = task.run_qc(fpga_trials.copy(), update=False, plot_qc=False)
 
         # check that the output is complete
         for f in self.alf_files:
@@ -159,9 +159,9 @@ class TestEphysTrialsFPGA(base.IntegrationTest):
         task = ChoiceWorldTrialsNidq(session_path,
                                      one=ONE(mode='local'), collection='raw_behavior_data',
                                      sync_collection='raw_ephys_data')
-        fpga_trials, _ = task._extract_behaviour(save=True)
+        fpga_trials, _ = task.extract_behaviour(save=True)
         # Run the task QC
-        qc = task._run_qc(fpga_trials, update=False, plot_qc=False)
+        qc = task.run_qc(fpga_trials, update=False, plot_qc=False)
         # Aggregate and update Alyx QC fields
         _, myqc, _ = qc.compute_session_status()
 
