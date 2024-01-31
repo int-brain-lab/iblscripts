@@ -93,6 +93,9 @@ class TestReadSpikeSorting(IntegrationTest):
             eid=self.eid, one=self.one, collection=f'alf/*{self.pname}/*', return_channels=True)
         _check(spikes[self.pname]['times'])
 
+        # this dataset contains no raw data whatsoever
+        self.assertEqual(len(sl.download_raw_electrophysiology('lf')), 0)
+
     def test_samples2times(self):
         pname = 'probe01'
         one = self.one
