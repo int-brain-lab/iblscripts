@@ -25,11 +25,11 @@ WHEEL_KEYS = ['position', 'timestamps']
 class TestHabituation(base.IntegrationTest):
 
     def test_legacy_habituation_session(self):
-        session_path = self.data_path.joinpath("Subjects_init/ZM_1098/2019-01-25/001")
+        session_path = self.data_path.joinpath('Subjects_init/ZM_1098/2019-01-25/001')
         job = TrainingTrials(session_path)
         status = job.run()
-        assert status == 0
-        assert "No extraction of legacy habituation sessions" in job.log
+        self.assertEqual(0, status)
+        self.assertIn('No extraction of legacy habituation sessions', job.log)
 
 
 class TestSessions(base.IntegrationTest):
