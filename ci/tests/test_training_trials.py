@@ -26,7 +26,7 @@ class TestHabituation(base.IntegrationTest):
 
     def test_legacy_habituation_session(self):
         session_path = self.data_path.joinpath('Subjects_init/ZM_1098/2019-01-25/001')
-        job = TrainingTrials(session_path)
+        job = TrainingTrials(session_path, one=One(mode='local'))
         status = job.run()
         self.assertEqual(0, status)
         self.assertIn('No extraction of legacy habituation sessions', job.log)
@@ -72,10 +72,10 @@ class TestSessions(base.IntegrationTest):
              an error for the gocuetime. The fix was to extract the downgoing front and
              subtract 100ms.
             """
-            session_path = subjects_path / "CSHL_007/2019-07-31/001"
+            session_path = subjects_path / 'CSHL_007/2019-07-31/001'
             trials = alfio.load_object(session_path / 'alf', 'trials')
             self.assertTrue(np.all(np.logical_not(np.isnan(trials.goCue_times))))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main(exit=False, verbosity=2)

@@ -153,11 +153,12 @@ class TestVideoSyncQcCamlog(base.IntegrationTest):
         self.patch = unittest.mock.patch('ibllib.io.extractors.camera.get_video_length',
                                          return_value=self.video_length)
         self.patch.start()
+        self.one = ONE(**base.TEST_DB, mode='local')
 
     def test_videosync(self):
 
         task = VideoSyncQcCamlog(self.session_path, device_collection='raw_video_data', sync='nidq', sync_namespace='spikeglx',
-                                 sync_collection='raw_sync_data', cameras=['left'])
+                                 sync_collection='raw_sync_data', cameras=['left'], one=self.one)
         status = task.run(qc=False)
         self.assertEqual(status, 0)
         task.assert_expected_outputs()

@@ -5,6 +5,8 @@ import unittest.mock
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 from iblutil.util import Bunch
+from one.api import ONE
+
 from ibllib.pipes.widefield_tasks import WidefieldPreprocess, WidefieldCompress, WidefieldSync, WidefieldRegisterRaw
 from ibllib.io.extractors.ephys_fpga import get_sync_and_chn_map, get_sync_fronts
 
@@ -124,15 +126,15 @@ class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
         assert len(list(self.widefield_folder.glob('motion*'))) == 0
 
     def test_compress(self):
-        task = WidefieldCompress(self.session_path)
+        task = WidefieldCompress(self.session_path, one=ONE(**base.TEST_DB))
         status = task.run()
 
-        assert status == 0
+        self.assertEqual(0, status)
 
         for exp_files in task.signature['output_files']:
             file = self.session_path.joinpath(exp_files[1], exp_files[0])
-            assert file.exists()
-            assert file in task.outputs
+            self.assertTrue(file.exists())
+            self.assertIn(file, task.outputs)
 
     @classmethod
     def tearDownClass(cls) -> None:
