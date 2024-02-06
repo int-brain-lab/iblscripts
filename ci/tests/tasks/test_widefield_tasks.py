@@ -18,10 +18,11 @@ _logger = logging.getLogger('ibllib')
 class TestWidefieldRegisterRaw(base.IntegrationTest):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.session_path = cls.default_data_root().joinpath('widefield', 'widefieldChoiceWorld', 'CSK-im-011',
-                                                            '2021-07-21', '001')
+        cls.session_path = cls.default_data_root().joinpath(
+            'widefield', 'widefieldChoiceWorld', 'CSK-im-011', '2021-07-21', '001')
         if not cls.session_path.exists():
-            return
+            raise unittest.SkipTest(reason=f'File not found: {cls.session_path}')
+        cls.one = ONE(**base.TEST_DB, mode='local')
         # Move the data into the correct folder
         cls.data_folder = cls.session_path.joinpath('orig')
         cls.widefield_folder = cls.session_path.joinpath('raw_widefield_data')
@@ -46,13 +47,13 @@ class TestWidefieldRegisterRaw(base.IntegrationTest):
         new_wiring_file.symlink_to(orig_wiring_file)
 
     def test_rename(self):
-        task = WidefieldRegisterRaw(self.session_path)
+        task = WidefieldRegisterRaw(self.session_path, one=self.one)
         status = task.run()
-        assert status == 0
+        self.assertEqual(0, status)
 
         for exp_files in task.signature['output_files']:
             file = self.session_path.joinpath(exp_files[1], exp_files[0])
-            assert file.exists()
+            self.assertTrue(file.exists())
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -71,7 +72,8 @@ class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
         cls.session_path = cls.default_data_root().joinpath(
             'widefield', 'widefieldChoiceWorld', 'CSK-im-011', '2021-07-21', '001')
         if not cls.session_path.exists():
-            return
+            raise unittest.SkipTest(reason=f'File not found: {cls.session_path}')
+        cls.one = ONE(**base.TEST_DB, mode='local')
         # Move the data into the correct folder
         cls.data_folder = cls.session_path.joinpath('orig')
         cls.widefield_folder = cls.session_path.joinpath('raw_widefield_data')
@@ -88,14 +90,14 @@ class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
         new_data_file.symlink_to(orig_data_file)
 
     def test_preprocess(self):
-        task = WidefieldPreprocess(self.session_path)
+        task = WidefieldPreprocess(self.session_path, one=self.one)
         status = task.run(upload_plots=False)
-        assert status == 0
+        self.assertEqual(0, status)
 
         for exp_files in task.signature['output_files']:
             file = self.session_path.joinpath(exp_files[1], exp_files[0])
-            assert file.exists()
-            assert file in task.outputs
+            self.assertTrue(file.exists())
+            self.assertIn(file, task.outputs)
 
         # Test content of files
         PRECISION = 4  # Desired decimal precision
@@ -123,10 +125,10 @@ class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
 
         task.wf.remove_files()
 
-        assert len(list(self.widefield_folder.glob('motion*'))) == 0
+        self.assertEqual(0, len(list(self.widefield_folder.glob('motion*'))))
 
     def test_compress(self):
-        task = WidefieldCompress(self.session_path, one=ONE(**base.TEST_DB))
+        task = WidefieldCompress(self.session_path, one=self.one)
         status = task.run()
 
         self.assertEqual(0, status)
@@ -158,35 +160,40 @@ class TestWidefieldSync(base.IntegrationTest):
         self.patch = unittest.mock.patch('ibllib.io.extractors.widefield.get_video_meta',
                                          return_value=self.video_meta)
         self.patch.start()
+        self.one = ONE(**base.TEST_DB, mode='local')
 
     def test_sync(self):
-        task = WidefieldSync(self.session_path, sync_collection='raw_widefield_data', sync_namespace='spikeglx')
+        task = WidefieldSync(
+            self.session_path, sync_collection='raw_widefield_data', sync_namespace='spikeglx', one=self.one
+        )
         status = task.run()
-        assert status == 0
+        self.assertEqual(0, status)
 
         for exp_files in task.signature['output_files']:
             file = self.session_path.joinpath(exp_files[1], exp_files[0])
-            assert file.exists()
-            assert file in task.outputs
+            self.assertTrue(file.exists())
+            self.assertIn(file, task.outputs)
 
         # Check integrity of outputs
         times = np.load(self.alf_folder.joinpath('imaging.times.npy'))
-        assert len(times) == self.video_meta['length']
-        assert np.all(np.diff(times) > 0)
+        self.assertEqual(len(times), self.video_meta['length'])
+        self.assertTrue(np.all(np.diff(times) > 0))
 
         sync, chmap = get_sync_and_chn_map(self.session_path, 'raw_widefield_data')
         expected_times = get_sync_fronts(sync, chmap['frame_trigger'])
 
-        assert np.array_equal(times, expected_times['times'][0::2])
+        np.testing.assert_array_equal(times, expected_times['times'][0::2])
 
         leds = np.load(self.alf_folder.joinpath('imaging.imagingLightSource.npy'))
-        assert leds[0] == 2
-        assert np.array_equal(np.unique(leds), np.array([1, 2]))
+        self.assertEqual(2, leds[0])
+        self.assertCountEqual([1, 2], np.unique(leds))
 
     def test_video_led_sync_not_enough(self):
         # Mock video file with more frames than led timestamps
         self.video_meta.length = 2035
-        task = WidefieldSync(self.session_path, sync_collection='raw_widefield_data', sync_namespace='spikeglx')
+        task = WidefieldSync(
+            self.session_path, sync_collection='raw_widefield_data', sync_namespace='spikeglx', one=self.one
+        )
         expected_error = 'ValueError: More video frames than led frames detected'
         with self.assertLogs('ibllib.pipes.tasks', logging.ERROR) as log:
             status = task.run()
@@ -195,10 +202,11 @@ class TestWidefieldSync(base.IntegrationTest):
         self.assertEqual(-1, status)
 
     def test_video_led_sync_too_many(self):
-        # Mock video file with more that two extra led timestamps
+        # Mock video file with more than two extra led timestamps
         self.video_meta.length = 2029
-
-        task = WidefieldSync(self.session_path, sync_collection='raw_widefield_data', sync_namespace='spikeglx')
+        task = WidefieldSync(
+            self.session_path, sync_collection='raw_widefield_data', sync_namespace='spikeglx', one=self.one
+        )
         expected_error = 'ValueError: Led frames and video frames differ by more than 2'
         with self.assertLogs('ibllib.pipes.tasks', logging.ERROR) as log:
             status = task.run()
