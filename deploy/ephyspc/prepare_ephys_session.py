@@ -113,8 +113,23 @@ def main_v8(mouse, debug=False):
     copier.initialize_experiment(nprobes=n_probes)
 
     ans = input('Type "abort" to cancel or just press return to finalize\n')
-    if ans.lower().strip() == 'abort' and not any(raw_data_folder.iterdir()):
-        os.removedirs(raw_data_folder)  # TODO prompt to remove folder(s)
+    if ans.lower().strip() == 'abort' and not any(filter(Path.is_file, raw_data_folder.rglob('*'))):
+        log.warning('Removing %s', raw_data_folder)
+        for d in raw_data_folder.iterdir():  # Remove probe folders
+            d.rmdir()
+        raw_data_folder.rmdir()  # remove collection
+        # Delete whole session folder?
+        session_files = list(session_path.rglob('*'))
+        if len(session_files) == 1 and session_files[0].name.startswith('_ibl_experiment.description'):
+            ans = input(f'Remove empty session {"/".join(session_path.parts[-3:])}? [y/N]\n')
+            if (ans.strip().lower() or 'n')[0] == 'y':
+                log.warning('Removing %s', session_path)
+                log.debug('Removing %s', session_files[0])
+                session_files[0].unlink()
+                session_path.rmdir()
+                # Remove remote exp description file
+                log.debug('Removing %s', copier.file_remote_experiment_description)
+                copier.file_remote_experiment_description.unlink()
     else:
         session_path.joinpath('transfer_me.flag').touch()
 
