@@ -52,7 +52,7 @@ class OneSdsc(OneAlyx):
     def _download_dataset(self, dset, cache_dir=None, update_cache=True, **kwargs):
         return
 
-    def _check_filesystem(self, datasets, offline=None, update_exists=True):
+    def _check_filesystem(self, datasets, offline=None, update_exists=True, check_hash=True):
         """Update the local filesystem for the given datasets.
 
         Given a set of datasets, check whether records correctly reflect the filesystem.
@@ -105,15 +105,15 @@ class OneSdsc(OneAlyx):
             if file.exists():
                 # Check if there's a hash mismatch
                 # If so, add this index to list of datasets that need downloading
-                if rec['hash'] is not None:
+                if rec['file_size'] and file.stat().st_size != rec['file_size']:
+                    _logger.warning('local file size mismatch on dataset: %s',
+                                    PurePosixPath(rec.session_path, rec.rel_path))
+                    indices_to_download.append(i)
+                elif check_hash and rec['hash'] is not None:
                     if hashfile.md5(file) != rec['hash']:
                         _logger.warning('local md5 mismatch on dataset: %s',
                                         PurePosixPath(rec.session_path, rec.rel_path))
                         indices_to_download.append(i)
-                elif rec['file_size'] and file.stat().st_size != rec['file_size']:
-                    _logger.warning('local file size mismatch on dataset: %s',
-                                    PurePosixPath(rec.session_path, rec.rel_path))
-                    indices_to_download.append(i)
                 files.append(file)  # File exists so add to file list
             else:
                 raise FileExistsError('Dataset file not found: {}'.format(file))

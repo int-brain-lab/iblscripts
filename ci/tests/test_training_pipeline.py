@@ -34,7 +34,7 @@ class TestPipeline(base.IntegrationTest):
                 './IBL_46/2019-02-19/001',  # timestamps a million years in future
                 './ZM_335/2018-12-13/001',  # rotary encoder ms instead of us
                 './ZM_1085/2019-02-12/002',  # rotary encoder corrupt
-                './ZM_1085/2019-07-01/001'  # habituation session rig version 5.0.0
+                './ZM_1085/2019-07-01/001'  # training session rig version 5.0.0
             ]
             for stub in session_stubs:
                 session_path = subjects_path.joinpath(stub)
@@ -54,7 +54,7 @@ class TestPipeline(base.IntegrationTest):
                                       dry=False, max_md5_size=1024 * 1024 * 20)
             errored_tasks = one.alyx.rest('tasks', 'list', status='Errored',
                                           graph='TrainingExtractionPipeline', no_cache=True)
-            self.assertTrue(len(errored_tasks) == 0)
+            self.assertFalse(len(errored_tasks), 'The following tasks errored: ' + ' '.join(t['name'] for t in errored_tasks))
             session_dict = one.alyx.rest('sessions', 'list',
                                          django='extended_qc__isnull,False', no_cache=True)
             self.assertTrue(len(session_dict) > 0)

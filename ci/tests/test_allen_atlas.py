@@ -4,7 +4,7 @@ import unittest
 from iblatlas.atlas import AllenAtlas, BrainRegions
 from iblatlas.flatmaps import FlatMap
 from iblatlas.plots import plot_swanson, annotate_swanson
-from iblatlas.genes import allen_gene_expression
+from iblatlas.genomics import agea
 
 
 class TestAtlasSlicesConversion(unittest.TestCase):
@@ -115,6 +115,6 @@ class TestSwanson(unittest.TestCase):
 class TestGeneExpression(unittest.TestCase):
 
     def test_load(self):
-        df_genes, gene_expression = allen_gene_expression()
+        df_genes, gene_expression, atlas_agea = agea.load()
         self.assertEqual(df_genes.shape[0], gene_expression.shape[0])
         self.assertEqual(gene_expression.shape[1:], (58, 41, 67))

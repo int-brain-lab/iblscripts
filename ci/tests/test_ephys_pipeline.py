@@ -143,6 +143,10 @@ class TestEphysPipeline(base.IntegrationTest):
         """
         Test the ephys pipeline exactly as it is supposed to run on the local servers
         We stub the QC as it requires a video file and loading frames takes a while.
+
+        NB: This should be removed in favour of smaller tests. Currently this is the only test to
+        provide coverage for modules such as brainbox.behavior.dlc.
+
         :param _: A stub CameraQC object
         :return:
         """
