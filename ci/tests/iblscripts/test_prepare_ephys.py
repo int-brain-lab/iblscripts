@@ -7,7 +7,7 @@ from ibllib.pipes.misc import create_ephyspc_params
 from deploy.ephyspc.prepare_ephys_session import main_v8, main, _v8_check
 
 if not _v8_check():
-    raise unittest.skip('iblrigv8 not installed')
+    raise unittest.SkipTest('iblrigv8 not installed')
 
 
 class TestPrepareEphys(unittest.TestCase):
