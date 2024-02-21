@@ -8,7 +8,6 @@ import subprocess
 from pathlib import Path
 from packaging import version
 import warnings
-import os
 
 from one.alf.io import next_num_folder
 from iblutil.util import setup_logger
@@ -19,20 +18,20 @@ from ibllib.pipes.misc import load_ephyspc_params
 
 def check_ibllib_version(ignore=False):
     bla = subprocess.run(
-        "pip install ibllib==ver",
+        'pip install ibllib==ver',
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
-    ble = [x.decode("utf-8") for x in bla.stderr.rsplit()]
+    ble = [x.decode('utf-8') for x in bla.stderr.rsplit()]
     # Latest version is at the end of the error message before the close parens
-    latest_ibllib = version.parse([x.strip(")") for x in ble if ")" in x][0])
+    latest_ibllib = version.parse([x.strip(')') for x in ble if ')' in x][0])
     if latest_ibllib != version.parse(ibllib.__version__):
         msg = (
-            f"You are using ibllib {ibllib.__version__}, but the latest version is {latest_ibllib}"
+            f'You are using ibllib {ibllib.__version__}, but the latest version is {latest_ibllib}'
         )
-        print(f"{msg} - Please update ibllib")
-        print("To update run: [conda activate iblenv] and [pip install -U ibllib]")
+        print(f'{msg} - Please update ibllib')
+        print('To update run: [conda activate iblenv] and [pip install -U ibllib]')
         if ignore:
             return
         raise Exception(msg)
@@ -40,27 +39,27 @@ def check_ibllib_version(ignore=False):
 
 def check_iblscripts_version(ignore=False):
     ps = subprocess.run(
-        "git fetch; git status", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        'git fetch; git status', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     cmd = subprocess.run(
-        "git fetch && git status", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        'git fetch && git status', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
-    psmsg = ""
-    cmdmsg = ""
-    if b"On branch master" not in ps.stdout:
-        psmsg = psmsg + " You are not on the master branch. Please switch to the master branch"
-    if b"On branch master" not in cmd.stdout:
-        cmdmsg = cmdmsg + " You are not on the master branch. Please switch to the master branch"
-    if b"Your branch is up to date" not in ps.stdout:
-        psmsg = psmsg + " Your branch is not up to date. Please update your branch"
-    if b"Your branch is up to date" not in cmd.stdout:
-        cmdmsg = cmdmsg + " Your branch is not up to date. Please update your branch"
+    psmsg = ''
+    cmdmsg = ''
+    if b'On branch master' not in ps.stdout:
+        psmsg = psmsg + ' You are not on the master branch. Please switch to the master branch'
+    if b'On branch master' not in cmd.stdout:
+        cmdmsg = cmdmsg + ' You are not on the master branch. Please switch to the master branch'
+    if b'Your branch is up to date' not in ps.stdout:
+        psmsg = psmsg + ' Your branch is not up to date. Please update your branch'
+    if b'Your branch is up to date' not in cmd.stdout:
+        cmdmsg = cmdmsg + ' Your branch is not up to date. Please update your branch'
 
     if ignore:
         return
-    if (psmsg == cmdmsg) and psmsg != "":
+    if (psmsg == cmdmsg) and psmsg != '':
         raise Exception(psmsg)
-    elif (psmsg != cmdmsg) and (psmsg == "" or cmdmsg == ""):
+    elif (psmsg != cmdmsg) and (psmsg == '' or cmdmsg == ''):
         return
 
 
@@ -73,7 +72,7 @@ def _v8_check():
         return False
 
 
-def main_v8(mouse, debug=False):
+def main_v8(mouse, debug=False, n_probes=None):
     # from iblrig.base_tasks import EmptySession
     from iblrig.transfer_experiments import EphysCopier
 
@@ -84,12 +83,13 @@ def main_v8(mouse, debug=False):
         'iblrig_local_data_path': Path(PARAMS['DATA_FOLDER_PATH']),
         'iblrig_local_subjects_path': Path(PARAMS['DATA_FOLDER_PATH']),
         'iblrig_remote_data_path': Path(PARAMS['REMOTE_DATA_FOLDER_PATH']),
-        'iblrig_remote_subjects_path': Path(PARAMS['REMOTE_DATA_FOLDER_PATH'], 'Subjects'),
+        'iblrig_remote_subjects_path': Path(PARAMS['REMOTE_DATA_FOLDER_PATH']),
     }
 
     # if PARAMS.get('PROBE_TYPE_00', '3B') != '3B' or PARAMS.get('PROBE_TYPE_01', '3B') != '3B':
     #     raise NotImplementedError('Only 3B probes supported.')
-    n_probes = sum(k.lower().startswith('probe_type_') for k in PARAMS)
+    if n_probes is None:
+        n_probes = sum(k.lower().startswith('probe_type_') for k in PARAMS)
 
     # FIXME this isn't working!
     # session = EmptySession(subject=mouse, interactive=False, iblrig_settings=iblrig_settings)
@@ -138,36 +138,37 @@ def main(mouse, **_):
     warnings.warn('For iblrigv8 behaviour sessions, install iblrigv8 on this PC also', FutureWarning)
     SUBJECT_NAME = mouse
     PARAMS = load_ephyspc_params()
-    DATA_FOLDER = Path(PARAMS["DATA_FOLDER_PATH"])
+    DATA_FOLDER = Path(PARAMS['DATA_FOLDER_PATH'])
 
     DATE = datetime.datetime.now().date().isoformat()
     NUM = next_num_folder(DATA_FOLDER / SUBJECT_NAME / DATE)
 
-    SESSION_FOLDER = DATA_FOLDER / SUBJECT_NAME / DATE / NUM / "raw_ephys_data"
+    SESSION_FOLDER = DATA_FOLDER / SUBJECT_NAME / DATE / NUM / 'raw_ephys_data'
     SESSION_FOLDER.mkdir(parents=True, exist_ok=True)
-    print(f"Created {SESSION_FOLDER}")
-    PROBE_00_FOLDER = SESSION_FOLDER / "probe00"
+    print(f'Created {SESSION_FOLDER}')
+    PROBE_00_FOLDER = SESSION_FOLDER / 'probe00'
     PROBE_00_FOLDER.mkdir(parents=True, exist_ok=True)
-    print(f"Created {PROBE_00_FOLDER}")
-    PROBE_01_FOLDER = SESSION_FOLDER / "probe01"
+    print(f'Created {PROBE_00_FOLDER}')
+    PROBE_01_FOLDER = SESSION_FOLDER / 'probe01'
     PROBE_01_FOLDER.mkdir(parents=True, exist_ok=True)
-    print(f"Created {PROBE_01_FOLDER}")
+    print(f'Created {PROBE_01_FOLDER}')
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Prepare ephys PC for ephys recording session")
-    parser.add_argument("mouse", help="Mouse name")
-    parser.add_argument("--debug", help="Debug mode", action="store_true")
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Prepare ephys PC for ephys recording session')
+    parser.add_argument('mouse', help='Mouse name')
+    parser.add_argument('--debug', help='Debug mode', action='store_true')
+    parser.add_argument('--n_probes', '-n', help='Number of probes in use', type=int)
     parser.add_argument(
-        "--ignore-checks",
+        '--ignore-checks',
         default=False,
         required=False,
-        action="store_true",
-        help="Ignore ibllib and iblscripts checks",
+        action='store_true',
+        help='Ignore ibllib and iblscripts checks',
     )
     args = parser.parse_args()
 
     check_ibllib_version(ignore=args.ignore_checks)
     check_iblscripts_version(ignore=args.ignore_checks)
     fcn = main_v8 if _v8_check() else main
-    fcn(args.mouse, debug=args.debug)
+    fcn(args.mouse, debug=args.debug, n_probes=args.n_probes)
