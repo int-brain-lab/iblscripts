@@ -46,7 +46,7 @@ conda activate ci
 
 pip install -U phylib
 pip install -U ONE-api
-pip install git+https://github.com/int-brain-lab/ibllib.git@$1
+pip install "ibllib[wfield] @ git+https://github.com/int-brain-lab/ibllib.git@$1"
 pip install -e /home/experiment/Documents/github/iblscripts
 pip install pyfftw
 pip install -U git+https://github.com/int-brain-lab/project_extraction.git
