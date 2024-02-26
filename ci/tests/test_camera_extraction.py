@@ -492,7 +492,7 @@ class TestVideoQC(base.IntegrationTest):
             (self.qc.check_position, [10] * 5 + [30] + [10] * 5 + [40] * 4 + [10] * 3),
             (self.qc.check_focus, [10] * 18),
             (self.qc.check_brightness, [10] * 3 + [30, 10, 30, 30, 10, 10, 30, 10, 40] + [10] * 3 + [30, 10, 30]),
-            (self.qc.check_file_headers, [1] * 18),
+            (self.qc.check_file_headers, [10] * 18),
             (self.qc.check_resolution, [10] * 5 + [40, 40, 10, 10, 40, 10, 40] + [10] * 5 + [40])
         )
 
@@ -518,7 +518,7 @@ class TestVideoQC(base.IntegrationTest):
                 plt.show()
 
             # Verify the outcome for each video matches what we expect
-            expected = list(map(spec.QC, expected))
+            expected = list(map(spec.QC.validate, expected))
             self.assertEqual(expected, outcomes, f'Unexpected outcome(s) for {name} video')
 
 
@@ -582,17 +582,17 @@ class TestCameraQC(base.IntegrationTest):
         self.assertFalse(qc['left'].download_data)
         self.assertEqual(qc['left'].type, 'ephys')
         expected = {
-            '_videoLeft_brightness': 'PASS',
-            '_videoLeft_camera_times': ('PASS', 0),
-            '_videoLeft_dropped_frames': ('WARNING', 1, 1),
-            '_videoLeft_file_headers': 'PASS',
-            '_videoLeft_focus': 'PASS',
-            '_videoLeft_framerate': ('PASS', 59.767),
-            '_videoLeft_pin_state': ('WARNING', 2, 1),
-            '_videoLeft_position': 'PASS',
-            '_videoLeft_resolution': 'PASS',
-            '_videoLeft_timestamps': 'PASS',
-            '_videoLeft_wheel_alignment': ('WARNING', 7)
+            '_videoLeft_brightness': spec.QC.PASS,
+            '_videoLeft_camera_times': (spec.QC.PASS, 0),
+            '_videoLeft_dropped_frames': (spec.QC.WARNING, 1, 1),
+            '_videoLeft_file_headers': spec.QC.PASS,
+            '_videoLeft_focus': spec.QC.PASS,
+            '_videoLeft_framerate': (spec.QC.PASS, 59.767),
+            '_videoLeft_pin_state': (spec.QC.WARNING, 2, 1),
+            '_videoLeft_position': spec.QC.PASS,
+            '_videoLeft_resolution': spec.QC.PASS,
+            '_videoLeft_timestamps': spec.QC.PASS,
+            '_videoLeft_wheel_alignment': (spec.QC.WARNING, 7)
         }
         self.assertEqual(expected, qc['left'].metrics)
 
@@ -623,17 +623,17 @@ class TestCameraQC(base.IntegrationTest):
         outcome, extended = qc.run(update=False)
         self.assertEqual(spec.QC.FAIL, outcome)
         expected = {
-            '_videoLeft_brightness': 'PASS',
-            '_videoLeft_camera_times': ('PASS', 0),
-            '_videoLeft_dropped_frames': ('PASS', 1, 0),
-            '_videoLeft_file_headers': 'PASS',
-            '_videoLeft_focus': 'FAIL',
-            '_videoLeft_framerate': ('FAIL', 32.895),
-            '_videoLeft_pin_state': ('WARNING', 1151, 0),
-            '_videoLeft_position': 'PASS',
-            '_videoLeft_resolution': 'PASS',
-            '_videoLeft_timestamps': 'PASS',
-            '_videoLeft_wheel_alignment': ('WARNING', 27)
+            '_videoLeft_brightness': spec.QC.PASS,
+            '_videoLeft_camera_times': (spec.QC.PASS, 0),
+            '_videoLeft_dropped_frames': (spec.QC.PASS, 1, 0),
+            '_videoLeft_file_headers': spec.QC.PASS,
+            '_videoLeft_focus': spec.QC.FAIL,
+            '_videoLeft_framerate': (spec.QC.FAIL, 32.895),
+            '_videoLeft_pin_state': (spec.QC.WARNING, 1151, 0),
+            '_videoLeft_position': spec.QC.PASS,
+            '_videoLeft_resolution': spec.QC.PASS,
+            '_videoLeft_timestamps': spec.QC.PASS,
+            '_videoLeft_wheel_alignment': (spec.QC.WARNING, 27)
         }
         self.assertEqual(expected, extended)
 
