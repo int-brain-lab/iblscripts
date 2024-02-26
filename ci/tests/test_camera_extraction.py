@@ -24,6 +24,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from iblutil.util import Bunch
 import one.alf.io as alfio
+from one.alf import spec
 import one.params
 from one.api import ONE
 
@@ -35,7 +36,6 @@ from ibllib.io import session_params
 from ibllib.pipes.dynamic_pipeline import acquisition_description_legacy_session
 import ibllib.qc.camera as camQC
 from ibllib.qc.camera import CameraQC
-from ibllib.qc.base import CRITERIA
 import ibllib.io.video as vidio
 from ibllib.pipes.training_preprocessing import TrainingVideoCompress
 from ibllib.pipes.ephys_preprocessing import EphysVideoCompress, EphysVideoSyncQc
@@ -489,11 +489,11 @@ class TestVideoQC(base.IntegrationTest):
     def test_video_checks(self, display=False):
         # A tuple of QC checks and the expected outcome for each 10 second video
         video_checks = (
-            (self.qc.check_position, (1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1)),
-            (self.qc.check_focus, (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)),
-            (self.qc.check_brightness, (1, 1, 1, 2, 1, 2, 2, 1, 1, 2, 1, 3, 1, 1, 1, 2, 1, 2)),
+            (self.qc.check_position, [10] * 5 + [30] + [10] * 5 + [40] * 4 + [10] * 3),
+            (self.qc.check_focus, [10] * 18),
+            (self.qc.check_brightness, [10] * 3 + [30, 10, 30, 30, 10, 10, 30, 10, 40] + [10] * 3 + [30, 10, 30]),
             (self.qc.check_file_headers, [1] * 18),
-            (self.qc.check_resolution, (1, 1, 1, 1, 1, 3, 3, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 3))
+            (self.qc.check_resolution, [10] * 5 + [40, 40, 10, 10, 40, 10, 40] + [10] * 5 + [40])
         )
 
         # For each check get the outcome and determine whether it matches our expected outcome
@@ -512,14 +512,14 @@ class TestVideoQC(base.IntegrationTest):
             # This is purely for manual inspection
             if display:  # Check outcomes look reasonable by eye
                 fig, axes = plt.subplots(int(len(self.data) / 4), 4)
-                [self.qc.imshow(frm, ax=ax, title=o)
+                [self.qc.imshow(frm, ax=ax, title=o.name)
                  for frm, ax, o in zip(frame_samples, axes.flatten(), outcomes)]
                 fig.suptitle(name)
                 plt.show()
 
             # Verify the outcome for each video matches what we expect
-            actual = [CRITERIA[x] for x in outcomes]
-            self.assertCountEqual(expected, actual, f'Unexpected outcome(s) for {name} video')
+            expected = list(map(spec.QC, expected))
+            self.assertEqual(expected, outcomes, f'Unexpected outcome(s) for {name} video')
 
 
 class TestCameraQC(base.IntegrationTest):
@@ -546,7 +546,7 @@ class TestCameraQC(base.IntegrationTest):
         qc = CameraQC(session_path, 'left',
                       stream=False, download_data=False, one=self.one, n_samples=20)
         outcome, extended = qc.run(update=False)
-        self.assertEqual('NOT_SET', outcome)
+        self.assertIs(spec.QC.NOT_SET, outcome)
         expected = {}
         self.assertEqual(expected, extended)
 
@@ -621,7 +621,7 @@ class TestCameraQC(base.IntegrationTest):
         qc.video_path = session_path.joinpath('raw_video_data', '_iblrig_leftCamera.raw.mp4')
         qc.load_data(download_data=False, extract_times=True)
         outcome, extended = qc.run(update=False)
-        self.assertEqual('FAIL', outcome)
+        self.assertEqual(spec.QC.FAIL, outcome)
         expected = {
             '_videoLeft_brightness': 'PASS',
             '_videoLeft_camera_times': ('PASS', 0),
