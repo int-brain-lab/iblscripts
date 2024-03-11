@@ -182,9 +182,7 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
         patch_settings(self.session_path, subject=subject, date=date, number=path.parts[-1])
 
     def test_run_dynamic_pipeline_full(self):
-        """
-        This runs the full suite of tasks on a TrainingChoiceWorld task
-        """
+        """This runs the full suite of tasks on a TrainingChoiceWorld task."""
         pipes, dsets = job_creator(self.session_path, one=self.one)
         self.assertEqual(0, len(dsets))
 

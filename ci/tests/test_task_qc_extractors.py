@@ -51,7 +51,7 @@ class TestTaskQCObject(base.IntegrationTest):
                                       id=self.eid, no_cache=True)['extended_qc']
         self.assertDictEqual({}, extended, 'unexpected update to extended qc')
         outcome = self.one.alyx.rest('sessions', 'read', id=self.eid, no_cache=True)['qc']
-        self.assertEqual(spec.QC.NOT_SET, outcome, 'unexpected update to qc')
+        self.assertEqual(spec.QC.NOT_SET.name, outcome, 'unexpected update to qc')
 
         # Test update as True
         outcome, results = self.qc.run(update=True)
@@ -61,7 +61,7 @@ class TestTaskQCObject(base.IntegrationTest):
         expected = list(results.keys()) + ['task']
         self.assertCountEqual(expected, extended.keys(), 'unexpected update to extended qc')
         qc_field = self.one.alyx.rest('sessions', 'read', id=self.eid, no_cache=True)['qc']
-        self.assertEqual(outcome, qc_field, 'unexpected update to qc')
+        self.assertEqual(outcome.name, qc_field, 'unexpected update to qc')
 
     def test_compute_session_status(self):
         with self.assertRaises(AttributeError):
