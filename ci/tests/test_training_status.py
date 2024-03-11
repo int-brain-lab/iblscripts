@@ -7,9 +7,7 @@ import numpy as np
 
 
 class TestTrainingStatus(base.IntegrationTest):
-    """
-    Test training status computations
-    """
+    """Test training status computations."""
     @classmethod
     def setUpClass(cls) -> None:
         cls.subj_path = cls.default_data_root().joinpath('training_status', 'PL023')
