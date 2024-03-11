@@ -523,7 +523,7 @@ class TestVideoQC(base.IntegrationTest):
 
 
 class TestCameraQC(base.IntegrationTest):
-    """Test the video QC on some failure cases"""
+    """Test the video QC on some failure cases."""
 
     def setUp(self) -> None:
         self.incomplete = self.data_path.joinpath('Subjects_init', 'ZM_1098', '2019-01-25', '001')
@@ -554,8 +554,10 @@ class TestCameraQC(base.IntegrationTest):
     @mock.patch('ibllib.io.video.cv2.VideoCapture')
     def test_ephys_session(self, mock_ext, mock_meta):
         """
-        Tests the full QC process for an ephys session.  Mock a load of things so we don't need
-        the ful video file.
+        Tests the full QC process for an ephys session.
+
+        Mock a load of things so we don't need the full video file.
+
         :param mock_ext: mock cv.VideoCapture in camera extractor module
         :param mock_meta: mock get_video_meta
         :return:
