@@ -85,5 +85,18 @@ else
 fi
 #  fi
 #fi
+# Update ibl libraries
+update=$(echo $outdated | grep -o "iblutil" | cut -d = -f 1)
+if test "$update" ; then
+  pip install --upgrade iblutil
+fi
+update=$(echo $outdated | grep -o "ibl-neuropixel" | cut -d = -f 1)
+if test "$update" ; then
+  pip install --upgrade ibl_neuropixel
+fi
+update=$(echo $outdated | grep -o "iblatlas" | cut -d = -f 1)
+if test "$update" ; then
+  pip install --upgrade iblatlas
+fi
 
 deactivate
