@@ -15,7 +15,6 @@ d. If original file is not protected, overwrite it, update hash and file size of
 # https://github.com/int-brain-lab/ibldevtools/blob/master/miles/2022-12-19_register-zainab-aggregates.py
 """
 
-import argparse
 import datetime
 import hashlib
 import logging
@@ -24,7 +23,7 @@ from pathlib import Path
 from subprocess import Popen, PIPE, STDOUT
 
 from django.db.models import Count, Q
-from globus_sdk import globus
+import globus_sdk
 import pandas as pd
 
 from actions.models import Session
@@ -47,10 +46,10 @@ def login_auto(globus_client_id, str_app='globus/default'):
     required_fields = {'refresh_token', 'access_token', 'expires_at_seconds'}
     if not (token and required_fields.issubset(token.as_dict())):
         raise ValueError("Token file doesn't exist, run ibllib.io.globus.setup first")
-    client = globus.NativeAppAuthClient(globus_client_id)
+    client = globus_sdk.NativeAppAuthClient(globus_client_id)
     client.oauth2_start_flow(refresh_tokens=True)
-    authorizer = globus.RefreshTokenAuthorizer(token.refresh_token, client)
-    return globus.TransferClient(authorizer=authorizer)
+    authorizer = globus_sdk.RefreshTokenAuthorizer(token.refresh_token, client)
+    return globus_sdk.TransferClient(authorizer=authorizer)
 
 
 # Main function
@@ -307,16 +306,9 @@ def create_subject_trials_agg(alyx_user, dry=False, only_new_subjects=False, log
 
 
 if __name__ == '__main__':
-
-    # Get arguments from command line
-    parser = argparse.ArgumentParser(description='Create subject trials aggregate tables')
-    parser.add_argument('--dry', help='Dry run, only print what would be done')
-    parser.add_argument('--new', help='Only create for subjects that do not have an aggregate')
-    args = parser.parse_args()
-    dry = args.dry
-    only_new_subjects = args.new
-
     # Some settings we want to be able to change here in the scripts rather having to change the cron
+    dry = True
+    only_new_subjects = False
     version = 1.0
     alyx_user = 'julia.huntenburg'
 
