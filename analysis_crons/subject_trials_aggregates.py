@@ -76,15 +76,12 @@ def create_subject_trials_agg(alyx_user, dry=False, only_new_subjects=False, log
     if logger is None:
         logger = logging.getLogger('ibllib')
         logger.setLevel(logging.INFO)
-        handler = logging.handlers.RotatingFileHandler(log_path.joinpath('subjectTrials.log'),
-                                                       maxBytes=(1024 * 1024 * 256), )
-        logger.addHandler(handler)
 
     # Set up dictionaries to catch errors or other logs
     status_agg = {}
 
     # Now find all culled subjects with at least one session in an ibl project
-    sessions = Session.objects.filter(project__name__icontains='ibl')
+    sessions = Session.objects.filter(projects__name__icontains='ibl')
     subjects = Subject.objects.filter(id__in=sessions.values_list('subject'), cull__isnull=False
                                       ).exclude(nickname__icontains='test')
     # Also make sure to only keep subjects that have at least one session with ibl task protocol and a trials table
@@ -305,12 +302,11 @@ def create_subject_trials_agg(alyx_user, dry=False, only_new_subjects=False, log
         aws_frs.update(exists=True)
 
 
-if __name__ == '__main__':
-    # Some settings we want to be able to change here in the scripts rather having to change the cron
-    dry = True
-    only_new_subjects = False
-    version = 1.0
-    alyx_user = 'julia.huntenburg'
+# Some settings we want to be able to change here in the scripts rather having to change the cron
+dry = False  # Whether to do a dry run that doesn't create any files but just logs which ones would be created
+only_new_subjects = False  # Whether to only create trial aggregates for subjects that don't have one, without checking if any existing ones need updating
+version = 1.0
+alyx_user = 'julia.huntenburg'
 
-    # Run the function
-    create_subject_trials_agg(alyx_user, dry=dry, only_new_subjects=only_new_subjects)
+# Run the function
+create_subject_trials_agg(alyx_user, dry=dry, only_new_subjects=only_new_subjects)
