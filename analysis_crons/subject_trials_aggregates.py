@@ -127,7 +127,7 @@ def create_subject_trials_agg(alyx_user, dry=False, only_new_subjects=False, log
             new_hash = hashlib.md5(hash_str).hexdigest()
             revision = None  # Only set if making a new revision is required
             # Check if this dataset exists
-            ds = Dataset.objects.filter(name=file_name, object_id=sub.id)
+            ds = Dataset.objects.filter(name=file_name, object_id=sub.id, default_dataset=True)
             # If there is exactly one default dataset, check if it needs updating
             if ds.count() == 1:
                 if ds.first().revision is None:
@@ -175,7 +175,11 @@ def create_subject_trials_agg(alyx_user, dry=False, only_new_subjects=False, log
                 out_file = output_path.joinpath(collection, sub.lab.name, sub.nickname, file_name)
                 logger.info('...aggregate does not yet exist, creating.')
                 status_agg[f'{sub.id}'] = 'CREATE: aggregate does not exist'
-
+            # If there is more than one default dataset, that's a problem
+            else:
+                logger.error('...multiple default datasets found.')
+                status_agg[f'{sub.id}'] = 'ERROR: multiple default datasets found'
+                continue
             # If dry run, stop here
             if dry:
                 logger.info(f'...DRY RUN would create {out_file}')
