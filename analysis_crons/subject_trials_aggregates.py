@@ -304,7 +304,9 @@ def create_subject_trials_agg(alyx_user, dry=False, only_new_subjects=False, log
 
 # Some settings we want to be able to change here in the scripts rather having to change the cron
 dry = False  # Whether to do a dry run that doesn't create any files but just logs which ones would be created
-only_new_subjects = False  # Whether to only create trial aggregates for subjects that don't have one, without checking if any existing ones need updating
+# Whether to only create trial aggregates for subjects that don't have one,
+# without checking if any existing ones need updating
+only_new_subjects = False
 version = 1.0
 alyx_user = 'julia.huntenburg'
 
