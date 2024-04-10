@@ -234,6 +234,9 @@ def create_subject_trials_agg(alyx_user, dry=False, only_new_subjects=False, log
                 logger.info(f"...Updated hash and size of existing dataset entry {ds.first().pk}")
             # If we made a new file or revision, create new dataset entry and file records
             else:
+                # Make previous default dataset not default anymore (if there was one)
+                if ds.count() == 1:
+                    _ = ds.update(default_dataset=False)
                 # Create dataset entry (make default)
                 new_ds = Dataset.objects.create(
                     name=file_name,
@@ -252,9 +255,6 @@ def create_subject_trials_agg(alyx_user, dry=False, only_new_subjects=False, log
                 # Validate dataset
                 new_ds.full_clean()
                 new_ds.save()
-                # Make previous default dataset not default anymore (if there was one)
-                if ds.count() == 1:
-                    _ = ds.update(default_dataset=False)
                 # Change name on disk to include dataset id
                 new_out_file = out_file.rename(alfiles.add_uuid_string(out_file, new_ds.pk))
                 assert new_out_file.exists(), f"Failed to save renamed file {new_out_file}"
