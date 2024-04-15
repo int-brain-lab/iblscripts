@@ -264,7 +264,7 @@ for i, sub in enumerate(subjects):
                 new_out_file = out_file.rename(alfiles.add_uuid_string(out_file, new_ds.pk))
 
         # If there is exactly one default dataset, check if it needs updating
-        if ds.count() == 1:
+        elif ds.count() == 1:
             out_file = output_path.joinpath(
                 ds.first().file_records.get(data_repository__name__startswith='flatiron').relative_path
             )
@@ -321,7 +321,7 @@ for i, sub in enumerate(subjects):
                 new_ds = update_dataset(ds.first(), new_out_file, new_hash)
 
         # If there is more than one default dataset, that's a problem
-        if ds.count() > 1:
+        elif ds.count() > 1:
             raise AssertionError('Multiple default datasets found.')
 
     except BaseException as e:
