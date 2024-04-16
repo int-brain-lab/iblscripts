@@ -1,9 +1,9 @@
 import argparse
 from pathlib import Path
-import cProfile
-import pstats
+# import cProfile
+# import pstats
 
-from iblvideo import lightning_pose
+from iblvideo import lightning_pose, download_lit_model
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run lightning pose for mp4 file')
@@ -12,16 +12,15 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     file_mp4 = Path(args.file_mp4)
-    path_weights = Path('/mnt/s0/Data/resources/current-lp-networks')
-    # path_weights = download_weights(version=__version__)
+    path_models = download_lit_model()
 
-    profile = cProfile.Profile()
-    profile.enable()
-    lp_result = lightning_pose(file_mp4, ckpts_path=path_weights, force=args.overwrite)
-    profile.disable()
-    profile.create_stats()
+    # profile = cProfile.Profile()
+    # profile.enable()
+    lp_result = lightning_pose(file_mp4, ckpts_path=path_models, force=args.overwrite)
+    # profile.disable()
+    # profile.create_stats()
 
-    with open(f'{file_mp4.name}_profile.txt', 'w') as fp:
-        stats = pstats.Stats(profile, stream=fp)
-        stats.sort_stats('cumulative')
-        stats.print_stats()
+    # with open(f'{file_mp4.name}_profile.txt', 'w') as fp:
+    #     stats = pstats.Stats(profile, stream=fp)
+    #     stats.sort_stats('cumulative')
+    #     stats.print_stats()
