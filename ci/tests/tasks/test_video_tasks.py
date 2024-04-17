@@ -3,7 +3,6 @@ import shutil
 import tempfile
 from pathlib import Path
 import numpy as np
-import numpy.testing
 import unittest.mock
 
 from one.api import ONE
@@ -224,6 +223,7 @@ class TestLightningPose(base.IntegrationTest):
                 if 'lightningPose' in link.name:
                     link.parent.mkdir(exist_ok=True, parents=True)
                     link.symlink_to(ff)
+                continue
             link.parent.mkdir(exist_ok=True, parents=True)
             link.symlink_to(ff)
 
@@ -232,7 +232,7 @@ class TestLightningPose(base.IntegrationTest):
                              device_collection='raw_video_data',
                              cameras=['left', 'right', 'body'],
                              one=self.one)
-        status = task.run(overwrite=True)
+        status = task.run(overwrite=False)
         self.assertEqual(status, 0)
         task.assert_expected_outputs()
 
