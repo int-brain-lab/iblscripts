@@ -8,7 +8,7 @@ from one.api import One
 from one.alf.io import load_object
 import brainbox.io.one as bbone
 from neuropixel import trace_header
-from ibllib.atlas.regions import BrainRegions
+from iblatlas.regions import BrainRegions
 from brainbox.io.one import SpikeSortingLoader, SessionLoader
 
 from ci.tests.base import IntegrationTest
@@ -92,6 +92,9 @@ class TestReadSpikeSorting(IntegrationTest):
         spikes, clusters, channels = bbone._load_spike_sorting(
             eid=self.eid, one=self.one, collection=f'alf/*{self.pname}/*', return_channels=True)
         _check(spikes[self.pname]['times'])
+
+        # this dataset contains no raw data whatsoever
+        self.assertEqual(len(sl.download_raw_electrophysiology('lf')), 0)
 
     def test_samples2times(self):
         pname = 'probe01'

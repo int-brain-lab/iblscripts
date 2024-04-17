@@ -25,6 +25,7 @@ class EphysTemplate(base.IntegrationTest):
         self.session_path = self.temp_dir.joinpath('mars', '2054-07-13', '001')
         self.session_path.mkdir(parents=True)
         self.probe = 'probe00'
+        self.one = ONE(**base.TEST_DB, mode='local')
 
     def copy_nidq_data(self, sync_collection='raw_ephys_data', ext='.bin', wiring=True):
 
@@ -158,21 +159,21 @@ class TestEphysSyncRegisterRaw(EphysTemplate):
 
     def test_compress(self):
         self.copy_nidq_data(sync_collection='raw_ephys_data', ext='.bin')
-        task = EphysSyncRegisterRaw(self.session_path, sync_collection='raw_ephys_data')
+        task = EphysSyncRegisterRaw(self.session_path, one=self.one, sync_collection='raw_ephys_data')
         status = task.run()
         assert status == 0
         self.check_files(task)
 
     def test_already_compressed(self):
         self.copy_nidq_data(sync_collection='raw_ephys_data', ext='.cbin')
-        task = EphysSyncRegisterRaw(self.session_path, sync_collection='raw_ephys_data')
+        task = EphysSyncRegisterRaw(self.session_path, one=self.one, sync_collection='raw_ephys_data')
         status = task.run()
         assert status == 0
         self.check_files(task)
 
     def test_register(self):
         self.copy_nidq_data(sync_collection='raw_ephys_data', ext=None)
-        task = EphysSyncRegisterRaw(self.session_path, sync_collection='raw_ephys_data')
+        task = EphysSyncRegisterRaw(self.session_path, one=self.one, sync_collection='raw_ephys_data')
         status = task.run()
         assert status == 0
         self.check_files(task, ignore_ext='.cbin')
@@ -182,7 +183,7 @@ class TestEphysSyncPulses(EphysTemplate):
 
     def test_pulses(self):
         self.copy_nidq_data(sync_collection='raw_ephys_data', ext='.cbin')
-        task = EphysSyncPulses(self.session_path, sync_collection='raw_ephys_data')
+        task = EphysSyncPulses(self.session_path, one=self.one, sync_collection='raw_ephys_data')
         status = task.run()
         assert status == 0
         self.check_files(task)
@@ -194,7 +195,7 @@ class TestEphysCompressNP1(EphysTemplate):
         self.copy_ap_data(probe=self.probe, ext='.bin', meta='NP1')
         self.copy_lf_data(probe=self.probe, ext='.bin', meta='NP1')
 
-        task = EphysCompressNP1(self.session_path, sync_collection='raw_ephys_data', pname=self.probe)
+        task = EphysCompressNP1(self.session_path, one=self.one, sync_collection='raw_ephys_data', pname=self.probe)
         status = task.run()
         assert status == 0
         self.check_files(task)
@@ -203,7 +204,7 @@ class TestEphysCompressNP1(EphysTemplate):
         self.copy_ap_data(probe=self.probe, ext='.cbin', meta='NP1')
         self.copy_lf_data(probe=self.probe, ext='.cbin', meta='NP1')
 
-        task = EphysCompressNP1(self.session_path, sync_collection='raw_ephys_data', pname=self.probe)
+        task = EphysCompressNP1(self.session_path, one=self.one, sync_collection='raw_ephys_data', pname=self.probe)
         status = task.run()
         assert status == 0
         self.check_files(task)
@@ -212,7 +213,7 @@ class TestEphysCompressNP1(EphysTemplate):
         self.copy_ap_data(probe=self.probe, ext=None, meta='NP1')
         self.copy_lf_data(probe=self.probe, ext=None, meta='NP1')
 
-        task = EphysCompressNP1(self.session_path, device_collection='raw_ephys_data', pname=self.probe)
+        task = EphysCompressNP1(self.session_path, one=self.one, device_collection='raw_ephys_data', pname=self.probe)
         status = task.run()
         assert status == 0
 
@@ -224,7 +225,7 @@ class TestEphysCompressNP21(EphysTemplate):
     def test_process(self):
         self.copy_ap_data(probe=self.probe, ext='.bin', meta='NP21')
 
-        task = EphysCompressNP21(self.session_path, sync_collection='raw_ephys_data', pname=self.probe)
+        task = EphysCompressNP21(self.session_path, one=self.one, sync_collection='raw_ephys_data', pname=self.probe)
         status = task.run()
         assert status == 0
 
@@ -234,7 +235,7 @@ class TestEphysCompressNP21(EphysTemplate):
 
         self.copy_ap_data(probe=self.probe, ext='.cbin', meta='NP21')
 
-        task = EphysCompressNP21(self.session_path, sync_collection='raw_ephys_data', pname=self.probe)
+        task = EphysCompressNP21(self.session_path, one=self.one, sync_collection='raw_ephys_data', pname=self.probe)
         status = task.run()
         assert status == 0
         self.check_files(task)
@@ -243,7 +244,7 @@ class TestEphysCompressNP21(EphysTemplate):
         self.copy_ap_data(probe=self.probe, ext=None, meta='NP21')
         self.copy_lf_data(probe=self.probe, ext=None, meta='NP21')
 
-        task = EphysCompressNP21(self.session_path, device_collection='raw_ephys_data', pname=self.probe)
+        task = EphysCompressNP21(self.session_path, one=self.one, device_collection='raw_ephys_data', pname=self.probe)
         status = task.run()
         assert status == 0
         self.check_files(task, ignore_ext='.cbin')
@@ -254,13 +255,13 @@ class TestEphysCompressNP24(EphysTemplate):
     def test_process(self):
         self.copy_ap_data(probe=self.probe, ext='.bin', meta='NP24')
 
-        task = EphysCompressNP24(self.session_path, sync_collection='raw_ephys_data', pname=self.probe, nshanks=4)
-        status = task.run()
+        task = EphysCompressNP24(self.session_path, one=self.one, sync_collection='raw_ephys_data', pname=self.probe, nshanks=4)
+        status = task.run(delete_original=False)
         assert status == 0
         self.check_files(task)
 
         # This checks the already processed
-        status = task.run()
+        status = task.run(delete_original=False)
         assert status == 0
         self.check_files(task)
 
@@ -270,7 +271,7 @@ class TestEphysPulses(EphysTemplate):
     def test_probe_sync_pulses(self):
         self.copy_sync_files()
         self.copy_ap_data(probe=self.probe, ext='.cbin', meta='NP1', wiring=False)
-        task = EphysPulses(self.session_path, pname=[self.probe], sync_collection='raw_ephys_data')
+        task = EphysPulses(self.session_path, one=self.one, pname=[self.probe], sync_collection='raw_ephys_data')
         status = task.run()
         assert status == 0
         self.check_files(task)
@@ -278,7 +279,7 @@ class TestEphysPulses(EphysTemplate):
     def test_probe_sync_pulses_diff_collection(self):
         self.copy_sync_files(sync_collection='raw_widefield_data')
         self.copy_ap_data(probe=self.probe, ext='.cbin', meta='NP1', wiring=False)
-        task = EphysPulses(self.session_path, pname=[self.probe], sync_collection='raw_widefield_data')
+        task = EphysPulses(self.session_path, one=self.one, pname=[self.probe], sync_collection='raw_widefield_data')
         status = task.run()
         assert status == 0
         self.check_files(task)
@@ -287,11 +288,11 @@ class TestEphysPulses(EphysTemplate):
         self.copy_sync_files(sync_collection='raw_ephys_data')
         self.copy_ap_data(probe='probe00', ext='.cbin', meta='NP1', wiring=False)
         self.copy_ap_data(probe='probe01', ext='.cbin', meta='NP24', wiring=False)
-        task = EphysCompressNP24(self.session_path, pname='probe01')
+        task = EphysCompressNP24(self.session_path, one=self.one, pname='probe01')
         task.run()
         shutil.rmtree(self.session_path.joinpath('raw_ephys_data', 'probe01'))
         task = EphysPulses(self.session_path, pname=['probe00', 'probe01a', 'probe01b', 'probe01c', 'probe01d'],
-                           sync_collection='raw_ephys_data')
+                           one=self.one, sync_collection='raw_ephys_data')
         status = task.run()
         assert status == 0
         self.check_files(task)

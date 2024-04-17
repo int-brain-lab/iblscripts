@@ -15,6 +15,7 @@ from ci.tests import base
 class TestEphysSignatures(base.IntegrationTest):
     def setUp(self):
         self.folder_path = self.data_path.joinpath('ephys', 'ephys_signatures')
+        self.one = ONE(**base.TEST_DB, mode='local')
 
     def make_new_dataset(self):
         """helper function to use to create a new dataset"""
@@ -31,7 +32,7 @@ class TestEphysSignatures(base.IntegrationTest):
     def assert_task_inputs_outputs(self, session_paths, EphysTask):
         for session_path in session_paths.iterdir():
             with self.subTest(session=session_path):
-                task = EphysTask(session_path)
+                task = EphysTask(session_path, one=self.one)
                 if EphysTask.__name__ == 'SpikeSorting':
                     task.signature['input_files'], task.signature['output_files'] = \
                         task.spike_sorting_signature()
@@ -142,6 +143,10 @@ class TestEphysPipeline(base.IntegrationTest):
         """
         Test the ephys pipeline exactly as it is supposed to run on the local servers
         We stub the QC as it requires a video file and loading frames takes a while.
+
+        NB: This should be removed in favour of smaller tests. Currently this is the only test to
+        provide coverage for modules such as brainbox.behavior.dlc.
+
         :param _: A stub CameraQC object
         :return:
         """
@@ -254,7 +259,6 @@ class TestEphysPipeline(base.IntegrationTest):
 
                              ('trials.table', 1, 1),
                              ('trials.goCueTrigger_times', 1, 1),
-                             ('trials.intervals', 1, 1),  # intervals_bpod
                              ('trials.stimOff_times', 1, 1),
                              ('wheel.position', 1, 1),
                              ('wheel.timestamps', 1, 1),

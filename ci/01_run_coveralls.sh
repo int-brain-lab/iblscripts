@@ -58,7 +58,7 @@ echo Saving coverage reports
 coverage html -d "$3/reports/$1" --skip-covered --show-contexts
 coverage xml -o "$3/reports/$1/CoverageResults.xml"
 coverage json -o "$3/reports/$1/CoverageResults.json"
-if ! [ "${passed}" = false ] ; then
+if [ "${passed}" = false ] ; then
    echo "Done"
    exit
 fi

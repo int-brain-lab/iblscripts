@@ -44,10 +44,11 @@ class TestVideoEphysCompress(base.IntegrationTest):
         for file in avi_files:
             new_file = self.session_path.joinpath('raw_video_data', file.name.replace('.avi', '.raw.avi'))
             file.replace(new_file)
+        self.one = ONE(**base.TEST_DB, mode='local')
 
     def test_compress(self):
         task = VideoCompress(self.session_path, device_collection='raw_video_data', cameras=['left', 'right', 'body'],
-                             sync='nidq')
+                             sync='nidq', one=self.one)
         status = task.run()
         assert status == 0
         task.assert_expected_outputs()
@@ -62,9 +63,10 @@ class TestVideoCompress(base.IntegrationTest):
         self.temp_dir = Path(tempfile.TemporaryDirectory().name)
         self.session_path = self.temp_dir.joinpath('ZM_1085', '2019-02-12', '002')
         shutil.copytree(self.folder_path, self.session_path.joinpath('raw_video_data'))
+        self.one = ONE(**base.TEST_DB, mode='local')
 
     def test_compress(self):
-        task = VideoCompress(self.session_path, device_collection='raw_video_data', cameras=['left'], sync='bpod')
+        task = VideoCompress(self.session_path, one=self.one, device_collection='raw_video_data', cameras=['left'], sync='bpod')
         status = task.run()
         assert status == 0
         task.assert_expected_outputs()
@@ -85,9 +87,10 @@ class TestVideoConvert(base.IntegrationTest):
         self.orig_video_path.mkdir()
         self.avi_file = self.orig_video_path.joinpath(self.orig_video.name)
         shutil.copy(self.orig_video, self.avi_file)
+        self.one = ONE(**base.TEST_DB, mode='local')
 
     def test_video_convert(self):
-        task = VideoConvert(self.session_path, device_collection='raw_video_data', cameras=['left'])
+        task = VideoConvert(self.session_path, one=self.one, device_collection='raw_video_data', cameras=['left'])
         status = task.run()
         self.assertEqual(status, 0)
         task.assert_expected_outputs()
@@ -126,13 +129,14 @@ class TestVideoSyncQCBpod(base.IntegrationTest):
         self.temp_dir = Path(tempfile.TemporaryDirectory().name)
         self.session_path = self.temp_dir.joinpath('ZM_1085', '2019-02-12', '002')
         shutil.copytree(self.folder_path, self.session_path)
-        task = VideoCompress(self.session_path, device_collection='raw_video_data', cameras=['left'])
+        self.one = ONE(**base.TEST_DB, mode='local')
+        task = VideoCompress(self.session_path, one=self.one, device_collection='raw_video_data', cameras=['left'])
         task.run()
 
     @unittest.mock.patch('ibllib.qc.camera.CameraQC')
     def test_videosync(self, mock_qc):
         task = VideoSyncQcBpod(self.session_path, device_collection='raw_video_data', cameras=['left'], sync='bpod',
-                               collection='raw_behavior_data')
+                               one=self.one, collection='raw_behavior_data')
         status = task.run()
         self.assertEqual(mock_qc.call_count, 1)
         self.assertEqual(status, 0)
@@ -156,11 +160,12 @@ class TestVideoSyncQcCamlog(base.IntegrationTest):
         self.patch = unittest.mock.patch('ibllib.io.extractors.camera.get_video_length',
                                          return_value=self.video_length)
         self.patch.start()
+        self.one = ONE(**base.TEST_DB, mode='local')
 
     def test_videosync(self):
 
         task = VideoSyncQcCamlog(self.session_path, device_collection='raw_video_data', sync='nidq', sync_namespace='spikeglx',
-                                 sync_collection='raw_sync_data', cameras=['left'])
+                                 sync_collection='raw_sync_data', cameras=['left'], one=self.one)
         status = task.run(qc=False)
         self.assertEqual(status, 0)
         task.assert_expected_outputs()
@@ -185,6 +190,7 @@ class TestVideoSyncQCNidq(base.IntegrationTest):
         self.folder_path = self.data_path.joinpath('ephys', 'choice_world_init', 'KS022', '2019-12-10', '001')
         self.temp_dir = Path(tempfile.TemporaryDirectory().name)
         self.session_path = self.temp_dir.joinpath('KS022', '2019-12-10', '001')
+        self.one = ONE(**base.TEST_DB, mode='local')
 
         for ff in self.folder_path.rglob('*.*'):
             link = self.session_path.joinpath(ff.relative_to(self.folder_path))
@@ -199,7 +205,7 @@ class TestVideoSyncQCNidq(base.IntegrationTest):
     @unittest.mock.patch('ibllib.qc.camera.CameraQC')
     def test_videosync(self, mock_qc):
         task = VideoSyncQcNidq(self.session_path, device_collection='raw_video_data', sync='nidq', sync_namespace='spikeglx',
-                               sync_collection='raw_ephys_data', cameras=['left', 'right', 'body'])
+                               sync_collection='raw_ephys_data', cameras=['left', 'right', 'body'], one=self.one)
         status = task.run()
         self.assertEqual(mock_qc.call_count, 3)
         self.assertEqual(status, 0)

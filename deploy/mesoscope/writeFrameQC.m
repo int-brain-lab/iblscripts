@@ -116,7 +116,8 @@ else
         fprintf('Running automatic QC on tiffs:\n')
         %options = {}; options.firstFrame = 1; options.lastFrame = Inf; options.frameStride = 24;
         [frameQC_frames,frameQC_names,badframes] = runAutoFrameQC(datPath); %,options);
-        fb = input('Press A to accept, O to overwrite, or RETURN to append with manual QC: ',"s");
+        %fb = input('Press A to accept, O to overwrite, or RETURN to append with manual QC: ',"s");
+        fb = 'a';
         if strcmpi(fb,'a')
             save(fullfile(datPath,'exptQC.mat'),'frameQC_frames','frameQC_names');
             fprintf('frameQC.mat updated!\n')
@@ -149,8 +150,9 @@ standardKeywords = {'PMT','galvo'};
 badframesFlag = 'N';
 
 if isempty(p.Results.QCframes) && isempty(p.Results.description)
-    if ~exist('prompt0'), prompt0 = input("Any manual QC frames to report (y/n)? ", "s"); end
-    QCflag = strcmpi(prompt0,'Y');
+    %if ~exist('prompt0'), prompt0 = input("Any manual QC frames to report (y/n)? ", "s"); end
+    %QCflag = strcmpi(prompt0,'Y');
+    QCflag = false;
     if QCflag
         description = input("Brief description of QC issue: ", "s");
         prompt1 = sprintf('Issue starting at frame (out of total of %i): ',nFramesTot);

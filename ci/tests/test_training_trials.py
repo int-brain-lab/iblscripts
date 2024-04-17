@@ -5,7 +5,7 @@ import tempfile
 
 import numpy as np
 
-from pkg_resources import parse_version
+from packaging import version
 from ibllib.pipes.training_preprocessing import TrainingTrials
 import ibllib.io.raw_data_loaders as rawio
 from one.api import One
@@ -25,11 +25,11 @@ WHEEL_KEYS = ['position', 'timestamps']
 class TestHabituation(base.IntegrationTest):
 
     def test_legacy_habituation_session(self):
-        session_path = self.data_path.joinpath("Subjects_init/ZM_1098/2019-01-25/001")
-        job = TrainingTrials(session_path)
+        session_path = self.data_path.joinpath('Subjects_init/ZM_1098/2019-01-25/001')
+        job = TrainingTrials(session_path, one=One(mode='local'))
         status = job.run()
-        assert status == 0
-        assert "No extraction of legacy habituation sessions" in job.log
+        self.assertEqual(0, status)
+        self.assertIn('No extraction of legacy habituation sessions', job.log)
 
 
 class TestSessions(base.IntegrationTest):
@@ -49,7 +49,7 @@ class TestSessions(base.IntegrationTest):
                 # read task settings and determine iblrig version to throw into subtests
                 session_path = fil.parents[1]
                 settings = rawio.load_settings(session_path)
-                iblrig_version = parse_version(settings['IBLRIG_VERSION_TAG'])
+                iblrig_version = version.parse(settings['IBLRIG_VERSION'])
                 with self.subTest(file=fil, iblrig_version=iblrig_version):
                     # task running part
                     job = TrainingTrials(session_path, one=self.one)
@@ -57,7 +57,7 @@ class TestSessions(base.IntegrationTest):
                     # check the trials objects
                     trials = alfio.load_object(session_path / 'alf', 'trials')
                     self.assertTrue(alfio.check_dimensions(trials) == 0)
-                    if iblrig_version >= parse_version('5.0.0'):
+                    if iblrig_version >= version.parse('5.0.0'):
                         tkeys = TRIAL_KEYS_ge5
                     else:
                         tkeys = TRIAL_KEYS_lt5
@@ -72,10 +72,10 @@ class TestSessions(base.IntegrationTest):
              an error for the gocuetime. The fix was to extract the downgoing front and
              subtract 100ms.
             """
-            session_path = subjects_path / "CSHL_007/2019-07-31/001"
+            session_path = subjects_path / 'CSHL_007/2019-07-31/001'
             trials = alfio.load_object(session_path / 'alf', 'trials')
             self.assertTrue(np.all(np.logical_not(np.isnan(trials.goCue_times))))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main(exit=False, verbosity=2)

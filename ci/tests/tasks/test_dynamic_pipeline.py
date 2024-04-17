@@ -148,7 +148,7 @@ class TestStandardPipelines(base.IntegrationTest):
         self.assertEqual(len(dict1), len(dict2))
         for d1, d2 in zip(dict1, dict2):
             for k in ('executable', 'parents', 'name', 'arguments'):
-                with self.subTest(key=k):
+                with self.subTest(key=k, name_1=d1.get('name'), name_2=d2.get('name')):
                     self.assertEqual(d2[k], d1[k])
 
 
@@ -197,7 +197,7 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
             with self.subTest(name=t['name']):
                 self.assertEqual(t['status'], 'Complete')
 
-        self.assertEqual(len(all_dsets), 29)
+        self.assertEqual(len(all_dsets), 20)
         self.assertIn('_ibl_experiment.description.yaml', [d['name'] for d in all_dsets])
 
     def tearDown(self) -> None:

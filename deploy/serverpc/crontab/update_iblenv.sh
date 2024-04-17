@@ -50,7 +50,7 @@ source ~/Documents/PYTHON/envs/iblenv/bin/activate
 outdated=$(pip list --outdated | awk 'NR>2 {print $1}')
 
 # Check if pip or phylib needs update
-for lib in "pip" "phylib"
+for lib in "pip" "phylib" "ibl-neuropixel"
 do
   update=$(echo $outdated | grep -o $lib | cut -d = -f 1)
   if test "$update" ; then
