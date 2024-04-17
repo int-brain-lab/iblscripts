@@ -6,7 +6,16 @@ import numpy as np
 import numpy.testing
 import unittest.mock
 
-from ibllib.pipes.video_tasks import VideoCompress, VideoSyncQcBpod, VideoSyncQcNidq, VideoConvert, VideoSyncQcCamlog
+from one.api import ONE
+
+from ibllib.pipes.video_tasks import (
+    VideoCompress,
+    VideoSyncQcBpod,
+    VideoSyncQcNidq,
+    VideoConvert,
+    VideoSyncQcCamlog,
+    LightningPose
+)
 from ibllib.io.video import get_video_meta
 from ibllib.io.extractors.ephys_fpga import get_sync_and_chn_map
 from ibllib.io.extractors.camera import extract_camera_sync
@@ -194,6 +203,36 @@ class TestVideoSyncQCNidq(base.IntegrationTest):
                                sync_collection='raw_ephys_data', cameras=['left', 'right', 'body'])
         status = task.run()
         self.assertEqual(mock_qc.call_count, 3)
+        self.assertEqual(status, 0)
+        task.assert_expected_outputs()
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.temp_dir)
+
+class TestLightningPose(base.IntegrationTest):
+    def setUp(self) -> None:
+
+        self.folder_path = self.data_path.joinpath('ephys', 'choice_world_init', 'KS022', '2019-12-10', '001')
+        self.temp_dir = Path(tempfile.TemporaryDirectory().name)
+        self.session_path = self.temp_dir.joinpath('KS022', '2019-12-10', '001')
+        self.one = ONE(**base.TEST_DB, mode='local')
+
+        for ff in self.folder_path.rglob('*.*'):
+            link = self.session_path.joinpath(ff.relative_to(self.folder_path))
+            if 'alf' in link.parts:
+                # We symlink the lp output files as we don't actually want to run the full task during the test
+                if 'lightningPose' in link.name:
+                    link.parent.mkdir(exist_ok=True, parents=True)
+                    link.symlink_to(ff)
+            link.parent.mkdir(exist_ok=True, parents=True)
+            link.symlink_to(ff)
+
+    def test_litpose(self):
+        task = LightningPose(self.session_path,
+                             device_collection='raw_video_data',
+                             cameras=['left', 'right', 'body'],
+                             one=self.one)
+        status = task.run(overwrite=True)
         self.assertEqual(status, 0)
         task.assert_expected_outputs()
 
