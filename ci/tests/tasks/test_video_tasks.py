@@ -208,6 +208,7 @@ class TestVideoSyncQCNidq(base.IntegrationTest):
     def tearDown(self) -> None:
         shutil.rmtree(self.temp_dir)
 
+
 class TestLightningPose(base.IntegrationTest):
     def setUp(self) -> None:
 
