@@ -219,8 +219,8 @@ class TestLightningPose(base.IntegrationTest):
     def setUp(self) -> None:
 
         self.folder_path = self.data_path.joinpath('ephys', 'choice_world_init', 'KS022', '2019-12-10', '001')
-        self.temp_dir = Path(tempfile.TemporaryDirectory().name)
-        self.session_path = self.temp_dir.joinpath('KS022', '2019-12-10', '001')
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.session_path = Path(self.temp_dir.name).joinpath('KS022', '2019-12-10', '001')
         self.one = ONE(**base.TEST_DB, mode='local')
 
         for ff in self.folder_path.rglob('*.*'):
@@ -244,4 +244,4 @@ class TestLightningPose(base.IntegrationTest):
         task.assert_expected_outputs()
 
     def tearDown(self) -> None:
-        shutil.rmtree(self.temp_dir)
+        self.temp_dir.cleanup()
