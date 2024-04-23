@@ -1,11 +1,15 @@
 import logging
 import hashlib
+import shutil
+from pathlib import Path
+import tempfile
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from one.api import One
 from one.alf.io import load_object
+from one.alf.exceptions import ALFMultipleCollectionsFound
 import brainbox.io.one as bbone
 from neuropixel import trace_header
 from iblatlas.regions import BrainRegions
@@ -206,3 +210,52 @@ class TestSessionLoader(IntegrationTest):
                 'INFO:ibllib:Loading pupil data',
                 'INFO:ibllib:Pupil diameter not available, trying to compute on the fly.'
             ], cm.output)
+
+
+class TestSessionLoaderDynamic(IntegrationTest):
+    def setUp(self) -> None:
+
+        sess = 'ibl_witten_13/2019-11-25/001'
+        self.data_path = self.default_data_root().joinpath('ephys', 'ephys_choice_world_task', sess)
+        self.files = ['_ibl_trials.table.pqt', '_ibl_wheel.timestamps.npy', '_ibl_wheel.position.npy']
+        self.temp_dir = Path(tempfile.TemporaryDirectory().name)
+        self.session_path = self.temp_dir.joinpath('wittenlab', 'Subjects', sess)
+
+    def tearDown(self):
+        shutil.rmtree(self.session_path)
+
+    def copy_files(self, collection):
+        for file in self.files:
+            new_path = self.session_path.joinpath(collection)
+            new_path.mkdir(parents=True, exist_ok=True)
+            shutil.copy(self.data_path.joinpath('alf', file), new_path.joinpath(file))
+
+    def test_dynamic_collection(self):
+        self.copy_files('alf/task_00')
+        one = One.setup(self.temp_dir, silent=True)
+        sl = SessionLoader(one, self.session_path)
+        sl.load_trials()
+        self.assertTrue(sl.data_info.loc[sl.data_info['name'] == 'trials', 'is_loaded'].iloc[0])
+        sl.load_wheel()
+        self.assertTrue(sl.data_info.loc[sl.data_info['name'] == 'wheel', 'is_loaded'].iloc[0])
+
+    def test_revisions(self):
+        self.copy_files('alf')
+        self.copy_files('alf/#2024-03-20#')
+        one = One.setup(self.temp_dir, silent=True)
+        sl = SessionLoader(one, self.session_path)
+        sl.load_trials()
+        self.assertTrue(sl.data_info.loc[sl.data_info['name'] == 'trials', 'is_loaded'].iloc[0])
+        sl.load_wheel()
+        self.assertTrue(sl.data_info.loc[sl.data_info['name'] == 'wheel', 'is_loaded'].iloc[0])
+
+    def test_multiple_collections(self):
+        self.copy_files('alf/task_00')
+        self.copy_files('alf/task_01')
+        one = One.setup(self.temp_dir, silent=True)
+        sl = SessionLoader(one, self.session_path)
+        with self.assertRaises(ALFMultipleCollectionsFound):
+            sl.load_trials()
+
+        sl.load_trials(collection='alf/task_00')
+        self.assertTrue(sl.data_info.loc[sl.data_info['name'] == 'trials', 'is_loaded'].iloc[0])
