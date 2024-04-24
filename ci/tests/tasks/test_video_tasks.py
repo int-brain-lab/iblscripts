@@ -7,7 +7,14 @@ import unittest.mock
 
 from one.api import ONE
 
-from ibllib.pipes.video_tasks import VideoCompress, VideoSyncQcBpod, VideoSyncQcNidq, VideoConvert, VideoSyncQcCamlog
+from ibllib.pipes.video_tasks import (
+    VideoCompress,
+    VideoSyncQcBpod,
+    VideoSyncQcNidq,
+    VideoConvert,
+    VideoSyncQcCamlog,
+    LightningPose
+)
 from ibllib.io.video import get_video_meta
 from ibllib.io.extractors.ephys_fpga import get_sync_and_chn_map
 from ibllib.io.extractors.camera import extract_camera_sync
@@ -206,3 +213,38 @@ class TestVideoSyncQCNidq(base.IntegrationTest):
 
     def tearDown(self) -> None:
         shutil.rmtree(self.temp_dir)
+
+
+class TestLightningPose(base.IntegrationTest):
+    def setUp(self) -> None:
+
+        self.folder_path = self.data_path.joinpath('ephys', 'choice_world_init', 'KS022', '2019-12-10', '001')
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.session_path = Path(self.temp_dir.name).joinpath('KS022', '2019-12-10', '001')
+
+        for ff in self.folder_path.rglob('*.*'):
+            link = self.session_path.joinpath(ff.relative_to(self.folder_path))
+            if 'alf' in link.parts:
+                # We symlink the lp output files as we don't actually want to run the full task during the test
+                if 'lightningPose' in link.name:
+                    link.parent.mkdir(exist_ok=True, parents=True)
+                    link.symlink_to(ff)
+                continue
+            link.parent.mkdir(exist_ok=True, parents=True)
+            link.symlink_to(ff)
+
+    @unittest.mock.patch(
+        "ibllib.pipes.video_tasks.LightningPose._check_env", return_value=unittest.mock.MagicMock('mock_version')
+    )
+    def test_litpose(self, mock_check_env):
+        # Test the existence of the relevant iblscripts scripts separately as we are mocking the relevant check
+        task = LightningPose(self.session_path,
+                             device_collection='raw_video_data',
+                             cameras=['left', 'right', 'body'])
+        self.assertEqual(len(list(task.scripts.rglob('run_litpose.*'))), 2)
+        status = task.run(overwrite=False)
+        self.assertEqual(status, 0)
+        task.assert_expected_outputs()
+
+    def tearDown(self) -> None:
+        self.temp_dir.cleanup()
