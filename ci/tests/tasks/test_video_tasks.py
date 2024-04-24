@@ -233,10 +233,13 @@ class TestLightningPose(base.IntegrationTest):
             link.parent.mkdir(exist_ok=True, parents=True)
             link.symlink_to(ff)
 
+    @unittest.mock.patch("LightningPose._check_env", return_value=unittest.mock.MagicMock('mock_version'))
     def test_litpose(self):
+        # Test the existence of the relevant iblscripts scripts separately as we are mocking the relevant check
         task = LightningPose(self.session_path,
                              device_collection='raw_video_data',
                              cameras=['left', 'right', 'body'])
+        self.assertEqual(len(list(task.scripts.rglob('run_litpose.*'))), 2)
         status = task.run(overwrite=False)
         self.assertEqual(status, 0)
         task.assert_expected_outputs()
