@@ -151,7 +151,7 @@ if ~isempty(remotePath)
   % Write flag file too (this is not essential)
   try
     [filepath, name] = fileparts(remoteFile);
-    flagFile = fullfile(filepath, [name '.status_pending']);
+    flagFile = fullfile(filepath, [char(name) '.status_pending']);
     fclose(fopen(flagFile, 'w'));
   catch
     warning('failed to write flag file %s', flagFile)
