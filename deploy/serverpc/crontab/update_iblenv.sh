@@ -1,5 +1,8 @@
 #!/bin/bash
-set -e
+
+# We allow user to pass in virtualenv path
+envpath=${1:-"$HOME/Documents/PYTHON/envs/iblenv/bin/activate"}
+
 # Check if there are canary_branch files for ibllib or one
 # canary_branch is an optional text file containing the ibllib/iblscripts branch to be installed
 FILE=/mnt/s0/Data/Subjects/.canary_branch
@@ -11,7 +14,7 @@ else
 fi
 
 # Check if iblscripts is up to date
-cd ~/Documents/PYTHON/iblscripts
+pushd "$HOME/Documents/PYTHON/iblscripts"
 git fetch --all -p
 # Attempt to checkout same branch name as ibllib; fallback to master
 # if ibllib commit is on master or branch doesn't exist in iblscripts...
@@ -33,6 +36,7 @@ if [ "$LOCAL" != "$REMOTE" ]; then
 else
   echo "iblscripts is up-to-date"
 fi
+popd
 
 # one_canary_branch is an optional text file containing the one branch to be installed
 FILE=/mnt/s0/Data/Subjects/.one_canary_branch
@@ -43,14 +47,14 @@ else
     one_branch="main"
 fi
 
-# Make sure we are in ibllib env
-source ~/Documents/PYTHON/envs/iblenv/bin/activate
+# Make sure we are in ibllib env (or user provided one)
+source "$envpath"
 
 # Collect outdated pip packages
 outdated=$(pip list --outdated | awk 'NR>2 {print $1}')
 
 # Check if pip or phylib needs update
-for lib in "pip" "phylib" "ibl-neuropixel"
+for lib in "pip" "phylib" "ibl-neuropixel" "iblatlas" "iblutil"
 do
   update=$(echo $outdated | grep -o $lib | cut -d = -f 1)
   if test "$update" ; then
