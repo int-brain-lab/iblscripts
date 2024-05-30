@@ -19,10 +19,15 @@ p.addParameter('positiveAP', [-1, 0], @isnumeric)
 p.addParameter('centerML', 2.7, @isnumeric)
 p.addParameter('centerAP', -2.6, @isnumeric)
 p.addParameter('alyx', Alyx('',''), @(v)isa(v,'Alyx'))
+p.addParameter('folderNames', {'reference','hirez'}, @(x) iscell(x) || ischar(x))
 p.parse(varargin{:})
 
 alyx = p.Results.alyx;
-
+if ischar(p.Results.folderNames)
+    folderNames = {p.Results.folderNames};
+else
+    folderNames = p.Results.folderNames;
+end
 %% figure out file paths and parse animal name
 
 %these are the regular expressions we expect
@@ -40,7 +45,15 @@ if isfile(filename)
     %fileList = dir(fullfile(ff, ['*', fext])); %all tifs in folder
 else
     %try as a final data path
-    fileList = dir(fullfile(filename,'reference','*.tif'));
+    if endsWith(filename,folderNames)
+        fileList = dir(fullfile(filename,'*.tif'));
+    else
+        fileList = struct([]);
+        for i=1:length(folderNames)
+            fL = dir(fullfile(filename,folderNames{i},'*.tif'));
+            fileList = [fileList fL];
+        end
+    end
     try
         if isempty(fileList)
             %then as animal name (take latest ExpRef)
@@ -55,10 +68,25 @@ else
                 error('%s is not a valid animal name, expRef, or tiff data path.',filename)
             end
             datPath = dat.expPath(ExpRef,'local');
-            fileList = dir(fullfile(datPath{1},'reference','*.tif'));   
-            if isempty(fileList)
-                warning('%s does not exist or does not contain a tiff.\n',datPath{1});
+            fileList = struct([]);
+            for i=1:length(folderNames)
+                fL = dir(fullfile(datPath{1},'**',folderNames{i},'*.tif'));
+                fileList = [fileList fL];
             end
+            if isempty(fileList)
+                for i=1:length(folderNames)
+                    warning('%s does not exist or does not contain a folder called %s (with a tiff in it)! Skipping...',datPath{1},folderNames{i});
+                end
+                return;
+            end
+        end
+        if any(cellfun(@(x) strcmp(x,'referenceImage.raw.tif'),{fileList.name},'Uniform',true))
+            warning('%s already contains a referenceImage.raw.tif! Skipping...',fileList(1).folder)
+            return;
+        end
+        if any(cellfun(@(x) strcmp(x,'reference.image.tif'),{fileList.name},'Uniform',true))
+            warning('%s already contains a reference.image.tif! Skipping...',fileList(1).folder)
+            return;
         end
         ff = fileList(1).folder;
         fn = fileList(1).name;
@@ -239,7 +267,11 @@ meta.coordsTF = TF;
 
 %% produce stitched mean image stack
 fprintf('Making stitched mean reference tiff fom raw data...\n ');
-imgStack = meanImgFromSItiff_stack(fullfilepath);
+options.firstFrame = 1;
+options.lastFrame = Inf;
+options.frameStride = 1; % useful for reading only a specific channel/plane
+options.overwrite = true;
+imgStack = meanImgFromSItiff_stack(fullfilepath,options);
 
 %% save everything
 jsonFileName = fullfile(ff, 'referenceImage.meta.json');

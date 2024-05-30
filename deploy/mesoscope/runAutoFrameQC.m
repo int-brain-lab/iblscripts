@@ -5,7 +5,7 @@ if nargin < 2
     options = {};
     options.frameStride = 12;
     options.firstFrame = 1; %this HAS to be 1 (for now)
-    options.lastFrame = 0; %just for initialization, this will be updated in for-loop
+    options.lastFrame = 0; %0 is just for initialization, this will be updated in for-loop
 end
 
 if nargin <1
@@ -38,18 +38,27 @@ nrois = numel(si_rois);
 
 Ly_all = arrayfun(@(x) x.scanfields(1).pixelResolutionXY(2),si_rois);
 
-Zs = [si_rois.zs];
-Zvals = unique(Zs);
-nZs = length(Zvals);
-for iSlice = 1:length(Zs)
-    Zidxs(iSlice)=find(Zvals==Zs(iSlice));
+try
+    Zs = [si_rois.zs];
+    Zvals = unique(Zs);
+    nZs = length(Zvals);
+    for iSlice = 1:length(Zs)
+        Zidxs(iSlice)=find(Zvals==Zs(iSlice));
+    end
+catch
+    warning('Could not concatenate zs as they differ between FOVs. Please check the RoiGroup file.')
+    if ~SI.hStackManager.enable && ~any([si_rois.discretePlaneMode])
+        nZs = 1;
+    else
+        error('Multi-slice configuration is ambiguous.')
+    end
 end
 
 if length(SI.hChannels.channelSave)==1
     
     fprintf('Single channel detected...\n');
     
-    if ~SI.hStackManager.enable & nZs==1 %for single plane, single channel
+    if ~SI.hStackManager.enable && nZs==1 %for single plane, single channel
         fprintf('No z-stack found, treating as single plane...\n');
         Ly = Ly_all;
         n_rows_sum = sum(Ly);
@@ -64,7 +73,7 @@ if length(SI.hChannels.channelSave)==1
         nFOVs = nrois;
         fprintf('Found %i FOVs, %i valid lines out of %i.\n',nrois,length(validLines{1}),fInfo(1).Height);
         
-    elseif SI.hStackManager.enable & all([si_rois.discretePlaneMode]) %several discrete planes, single channel
+    elseif SI.hStackManager.enable && all([si_rois.discretePlaneMode]) %several discrete planes, single channel
     %if all([si_rois.discretePlaneMode]) %several discrete planes, single channel
     
         fprintf('Treating as z-stack with multiple discrete planes...\n');
@@ -97,7 +106,7 @@ if length(SI.hChannels.channelSave)==1
             
         end
         
-    elseif SI.hStackManager.enable & nZs==1 & SI.hStackManager.numSlices>1 %'stack' imaging where each FOV is defined on all slices
+    elseif SI.hStackManager.enable && SI.hStackManager.numSlices>1 && ~any([si_rois.discretePlaneMode]) %'stack' imaging where each FOV is defined on all slices
         
         fprintf('Treating as z-stack with continuously defined FOVs...\n');
         
@@ -149,8 +158,14 @@ frameStride = options.frameStride;
 options.frameStride = frameStride*nZs; %overwrite to reflect multi-plane
 
 %make array of all slice indexes across files
-nFramesInFirstFile = nFrames(fullfile(fileList(1).folder, fileList(1).name));
-nVolFramesMax = ceil((nFramesInFirstFile*nFiles)/nZs);
+%nFramesInFirstFile = nFrames(fullfile(fileList(1).folder, fileList(1).name));
+nFramesInFirstGoodFile=1; i=0;
+while nFramesInFirstGoodFile==1 %if only 1 frame was detected, it is probably a buggy file, so find another one
+    i=i+1;
+    nFramesInFirstGoodFile = nFrames(fullfile(fileList(i).folder, fileList(i).name));
+end
+    
+nVolFramesMax = ceil((nFramesInFirstGoodFile*nFiles)/nZs);
 sliceIdx = repmat([1:nZs],[1,nVolFramesMax]);
 
 nVolFramesAfterStride = ceil(nVolFramesMax/frameStride); %maximum nr (will need to chop off end)
@@ -193,14 +208,22 @@ for iFile = 1:nFiles
     %iFile/nFiles counter
     if iFile>1
         for k=0:log10(iFile-1), fprintf('\b'); end
-        for kk=0:log10(nFiles-1), fprintf('\b'); end
+        for kk=0:log10(nFiles), fprintf('\b'); end
         fprintf('\b')
     end
     fprintf('%d/%d', iFile, nFiles);
     
     fpath = fullfile(fileList(iFile).folder, fileList(iFile).name);
     
-    FramesInFile = nFrames(fpath);
+    FramesInFile = nFrames(fpath); %this function is buggy: detects single frame in some cases
+    if FramesInFile == 1 %in case only one frame was detected
+        imgInfo = imfinfo(fpath);
+        evalc(imgInfo(end).ImageDescription);
+        frameNumbers_last = frameNumbers;
+        evalc(imgInfo(1).ImageDescription);
+        frameNumbers_first = frameNumbers;
+        FramesInFile = frameNumbers_last - frameNumbers_first + 1;
+    end
     TotNumFrames = TotNumFrames + FramesInFile;
     options.lastFrame = min(lastFrameToRead,FramesInFile);
     lastFrameToRead = lastFrameToRead-FramesInFile;
