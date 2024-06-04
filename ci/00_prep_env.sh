@@ -51,4 +51,11 @@ pip install -e /home/experiment/Documents/github/iblscripts
 pip install pyfftw
 pip install -U git+https://github.com/int-brain-lab/project_extraction.git
 
+# install our root certificate into the python certifi keychain in order to
+# recorgnise the signed local alyx SSL certificate
+chainfile=$(python -c "import certifi; print(certifi.where())")
+printf "\n# Issuer: CN=IBL\n" >> $chainfile
+cat /var/www/alyx-test/certs/testCA.pem >> $chainfile
+
+# download the integration data
 python /home/experiment/Documents/github/iblscripts/ci/download_data.py

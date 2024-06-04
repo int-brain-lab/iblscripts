@@ -145,8 +145,17 @@ if ~isempty(remotePath)
     status = mkdir(remoteSession);
     assert(status == 1, 'Failed to create remote session folder(s) %s', remoteSession)
   end
+  assert(exist(remoteFile, 'file') == 0, 'Stub file already exists. Please manually merge before saving')
   yaml.dumpFile(remoteFile, stub, 'block')
   assert(exist(remoteFile, 'file') ~= 0, 'Failed to save stub to file %s', remoteFile)
+  % Write flag file too (this is not essential)
+  try
+    [filepath, name] = fileparts(remoteFile);
+    flagFile = fullfile(filepath, [char(name) '.status_pending']);
+    fclose(fopen(flagFile, 'w'));
+  catch
+    warning('failed to write flag file %s', flagFile)
+  end
   fprintf('Saved stub to %s\n', remoteFile);
   paths = [paths {remoteFile}];
 end
