@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+
 # Make sure local suite2p repository is up to date
 ENVDIR="$HOME/Documents/PYTHON/envs/suite2p"
 

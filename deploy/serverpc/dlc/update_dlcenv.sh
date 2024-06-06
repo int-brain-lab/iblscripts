@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+
 # Make sure local iblvideo repository is up to date
 cd "$HOME/Documents/PYTHON/iblvideo"
 git checkout -f master -q
