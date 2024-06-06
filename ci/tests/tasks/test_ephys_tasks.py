@@ -9,6 +9,7 @@ import numpy as np
 
 from one.api import ONE
 import one.alf.io as alfio
+from one.registration import RegistrationClient
 from ibllib.pipes.ephys_tasks import (EphysRegisterRaw, EphysCompressNP1, EphysCompressNP21, EphysCompressNP24,
                                       EphysSyncRegisterRaw, EphysSyncPulses, EphysPulses, SpikeSorting)
 
@@ -112,8 +113,6 @@ class TestEphysRegisterRaw(base.IntegrationTest):
 
     def setUp(self) -> None:
         self.one = ONE(**base.TEST_DB, cache_dir=self.data_path / 'ephys', cache_rest=None)
-
-        from one.registration import RegistrationClient
         path, self.eid = RegistrationClient(self.one).create_new_session('ZM_1743')
         # Currently the task protocol of a session must contain 'ephys' in order to create an insertion!
         self.one.alyx.rest('sessions', 'partial_update', id=self.eid, data={'task_protocol': 'ephys'})
