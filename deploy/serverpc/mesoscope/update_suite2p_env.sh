@@ -1,10 +1,10 @@
 #!/bin/bash
-
+set -e
 # Make sure local suite2p repository is up to date
 ENVDIR="$HOME/Documents/PYTHON/envs/suite2p"
 
-if [ -d "$ENVDIR" ]; then
-  echo "$ENVDIR does exist; creating"
+if [ ! -d "$ENVDIR" ]; then
+  echo "$ENVDIR does not exist; creating"
   python -m venv $ENVDIR
 fi
 ENVDIR="$ENVDIR/bin/activate"  # NB: can't guarantee this path will be correct
