@@ -12,11 +12,44 @@ _logger = logging.getLogger('ibllib')
 
 
 def list_available_envs(root='~/Documents/PYTHON/envs'):
-    envs = filter(Path.is_dir, Path(root).iterdir())
-    return [None, *sorted(x.name for x in envs)]
+    """
+    List all the envs within `root` dir.
+
+    Parameters
+    ----------
+    root : str, pathlib.Path
+        The directory containing venvs.
+
+    Returns
+    -------
+    list of str
+        A list of envs, including None (assumed to be base iblenv).
+    """
+    try:
+        envs = filter(Path.is_dir, Path(root).iterdir())
+        return [None, *sorted(x.name for x in envs)]
+    except FileNotFoundError:
+        return [None]
 
 
-def process_next_large_job(subjects_path, env=None):
+def list_queued_envs(one=None):
+    """
+    The set of all envs in the list of waiting tasks.
+
+    Returns
+    -------
+    set
+        All environments required to process waiting tasks.
+    """
+    one = one or ONE(mode='remote', cache_rest=None)
+    waiting_tasks = task_queue(mode='large', alyx=one.alyx, env=list_available_envs())
+    envs_in_queue = set()
+    for task_exe in map(lambda x: x['executable'], waiting_tasks):
+        envs_in_queue.add(str2class(task_exe).env)
+    return envs_in_queue
+
+
+def process_next_large_job(subjects_path, env=None, one=None):
     """
     Process the next large job.
 
@@ -35,7 +68,7 @@ def process_next_large_job(subjects_path, env=None):
     list of pathlib.Path
         A list of registered datasets.
     """
-    one = ONE(mode='remote', cache_rest=None)
+    one = one or ONE(mode='remote', cache_rest=None)
     waiting_tasks = task_queue(mode='large', alyx=one.alyx, env=list_available_envs())
 
     if len(waiting_tasks) == 0:

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Make sure local iblvideo repository is up to date
-cd ~/Documents/PYTHON/iblvideo
+cd "$HOME/Documents/PYTHON/iblvideo"
 git checkout -f master -q
 git reset --hard -q
 git fetch
