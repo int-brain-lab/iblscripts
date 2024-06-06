@@ -98,9 +98,10 @@ try
 catch
     meta.centerMM.ML = p.Results.centerML;
     meta.centerMM.AP = p.Results.centerAP;
-    warning('Could not find craniotomy coordinates in alyx, please upload using update_craniotomy.py... Writing dummy coordinates.');
+    warning('Could not find craniotomy coordinates in alyx, please upload using update_craniotomy.py... Using default coordinates!');
     %TO DO input manually here? Abort script if not found?
 end
+sprintf('Using the following coordinate: [%.1f %.1f]', meta.centerMM.ML, meta.centerMM.AP);
 
 % per single experiment
 meta.rawScanImageMeta = struct; % SI config and all the header info from tiff
@@ -138,6 +139,11 @@ meta.FOV.nXnYnZ = [NaN, NaN, 1]; % number of pixels in the images
 %%
 % keyboard;
 %%
+
+%TODO: if tiffs are not there anymore, re-extract meta-data from the header
+%info contained in the .mat file. Use previously extracted meta-data to
+%recover nFrames, but re-compute everything else from scratch.
+
 fInfo = imfinfo(fullfilepath);
 
 % these should be the same across all frames apart from timestamps and
@@ -163,6 +169,7 @@ for i = 1:length(fSoftware)
 end
 
 nFiles = numel(fileList);
+%nFiles = 1; %for debugging
 nFramesAccum = 0;
 fprintf('Extracting metadata from tiff nr. ');
 for iFile = 1:nFiles
@@ -170,7 +177,7 @@ for iFile = 1:nFiles
     %display a iFile/nFiles counter (and replace previous entry)
     if iFile>1
         for k=0:log10(iFile-1), fprintf('\b'); end
-        for kk=0:log10(nFiles-1), fprintf('\b'); end
+        for kk=0:log10(nFiles), fprintf('\b'); end
         fprintf('\b')
     end
     fprintf('%d/%d', iFile, nFiles);
@@ -286,8 +293,8 @@ for iSlice = 1:nZs
             
             iFOV = iFOV+1;
             
-            cXY = si_rois(iRoi).scanfields.centerXY';
-            sXY = si_rois(iRoi).scanfields.sizeXY';
+            cXY = si_rois(iRoi).scanfields(1).centerXY';
+            sXY = si_rois(iRoi).scanfields(1).sizeXY';
             nXnY = si_rois(iRoi).scanfields(1).pixelResolutionXY';
             
             meta.FOV(iFOV).slice_id = iSlice-1; %assuming 0-indexing

@@ -4,7 +4,7 @@ function imgStack = meanImgFromSItiff_stack(filename,options)
 %requirements: readTiffFast.m, loadFramesBuff.m, nFrames.m and nFramesTiff.m (from tiffTools)
 %written by M Krumin, edited by Samuel Picard (Oct 2022)
 %Feb 2023: SP included functionality for FOVs of different depths (discrete plane mode)
-%Mar 2023: SP now only plotting considering scanimage ROIs that were 'enabled'
+%Mar 2023: SP now only considering scanimage ROIs that were 'enabled'
 %Jul 2023: SP making tiff stack of stitched grid
 %
 % WARNING: this assumes FOVs are adjacent 'strips' of roughly equal pixel resolution
@@ -14,6 +14,7 @@ if nargin<2 || isempty(options)
     options.firstFrame = 1;
     options.lastFrame = Inf;
     options.frameStride = 1; % useful for reading only a specific channel/plane
+    options.overwrite = false;
 end
 
 [ff, fn, fext] = fileparts(filename);
@@ -145,7 +146,7 @@ for iZ = 1:nZs
 end
 
 %re-name raw data
-if ~strcmp(filename,fullfile(ff,['referenceImage.raw',fext]))
+if options.overwrite && ~strcmp(filename,fullfile(ff,['referenceImage.raw',fext]))
     movefile(filename,fullfile(ff,['referenceImage.raw',fext])); 
 end
 
