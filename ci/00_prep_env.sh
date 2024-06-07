@@ -22,7 +22,7 @@ branch=$(git name-rev --name-only $1)
 #echo $branch
 
 # Update iblscripts
-iblscripts=parentdir="$(dirname "$2")/iblscripts"
+iblscripts="$(dirname "$2")/iblscripts"
 cd "$iblscripts"
 git fetch --all
 git reset --hard HEAD
