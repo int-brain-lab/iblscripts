@@ -40,7 +40,8 @@ if __name__ == "__main__":
 
     os.environ["SDSC_PATCH_PATH"] = str(QUAR_PATH.parent)
 
-    new_path = Path('/home/datauser/temp/RegisterSpikeSortingSDSC/').joinpath(*session_path.parts[-5:], 'alf', probe, 'pykilosort', revision_label)
+    new_path = Path('/home/datauser/temp/RegisterSpikeSortingSDSC/').joinpath(
+        *session_path.parts[-5:], 'alf', probe, 'pykilosort', revision_label)
     if new_path.exists():
         shutil.rmtree(new_path)
     shutil.copytree(data_path, new_path)
