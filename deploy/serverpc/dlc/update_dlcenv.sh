@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Make sure local iblvideo repository is up to date
-cd "$HOME/Documents/PYTHON/iblvideo"
+pushd "$HOME/Documents/PYTHON/iblvideo"
 git checkout -f master -q
 git reset --hard -q
 git fetch
@@ -13,7 +13,7 @@ if [ $LOCAL != $REMOTE ]; then
 else
   echo "iblvideo is up-to-date"
 fi
-
+popd
 # Note: no updating for tensorflow and deeplabcut for now because this has been messing with our env
 ## These libraries need to be installed in order, so if one is updated, the ones after need to be updated too
 #update=$(echo $outdated | grep -o "tensorflow " | cut -d = -f 1)

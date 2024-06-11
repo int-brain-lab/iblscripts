@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Make sure local pykilosort repository is up to date
-cd ~/Documents/PYTHON/SPIKE_SORTING/pykilosort
+pushd ~/Documents/PYTHON/SPIKE_SORTING/pykilosort
 git checkout -f ibl_prod -q
 git reset --hard -q
 git fetch
@@ -59,3 +59,4 @@ else
 fi
 
 conda deactivate
+popd
