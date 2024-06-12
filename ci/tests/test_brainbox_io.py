@@ -84,8 +84,9 @@ class TestReadSpikeSorting(IntegrationTest):
         _check(spikes['times'], spike_sorter='ks2_preproc_tests')
 
         # load spike sorting using collection
+        # this is not recommended as the spike sorter property doesn not match the spike sorting loaded
         spikes, clusters, channels = sl.load_spike_sorting(
-            collection=f'alf/{self.pname}/ks2_preproc_tests')
+            collection=f'alf/{self.pname}/ks2_preproc_tests', enforce_version=False)
         _check(spikes['times'], spike_sorter='ks2_preproc_tests')
 
         # makes sure this is the pykilosort that is returned by default1
@@ -97,13 +98,14 @@ class TestReadSpikeSorting(IntegrationTest):
         self.assertEqual(len(sl.download_raw_electrophysiology('lf')), 0)
 
     def test_samples2times(self):
+        #  eid original alyx '56b57c38-2699-4091-90a8-aba35103155e'
+        # relative path: brainbox/io/spike_sorting/SWC_054/2020-10-05/001'
         pname = 'probe01'
         one = self.one
         eid = one.path2eid(self.session_path)
         sl = SpikeSortingLoader(eid=eid, pname=pname, one=one)
         _logger.setLevel(0)
         spikes, _, _ = sl.load_spike_sorting(spike_sorter='', dataset_types=['spikes.samples'])
-        # TODO: add the sync files
         self.assertTrue(np.all(np.abs(sl.samples2times(spikes.samples) - spikes.times) < 1e11))
 
 
