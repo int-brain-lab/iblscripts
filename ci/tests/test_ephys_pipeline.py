@@ -158,7 +158,7 @@ class TestEphysPipeline(base.IntegrationTest):
             one.alyx.rest('sessions', 'delete', id=eid)
 
         # create the jobs and run them
-        _, raw_ds = local_server.job_creator(self.session_path, one=one, max_md5_size=1024 * 1024 * 20)
+        _, raw_ds = local_server.job_creator(self.session_path, one=one)
         one.alyx.clear_rest_cache()
         eid = one.path2eid(self.session_path, query_type='remote')
         self.assertIsNotNone(eid)  # the session is created on the database

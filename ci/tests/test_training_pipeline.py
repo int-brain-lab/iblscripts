@@ -67,7 +67,7 @@ class TestPipeline(base.IntegrationTest):
         eid = one.path2eid(session_path, query_type='remote')
         if eid is not None:
             one.alyx.rest('sessions', 'delete', id=eid)
-        local_server.job_creator(session_path, one=one, max_md5_size=1024 * 1024 * 20)
+        local_server.job_creator(session_path, one=one)
         eid = one.path2eid(session_path, query_type='remote')
         self.assertIsNotNone(eid)
         alyx_tasks = one.alyx.rest('tasks', 'list', session=eid, graph='TrainingExtractionPipeline', no_cache=True)
