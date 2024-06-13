@@ -6,10 +6,12 @@ from pathlib import Path
 
 try:
     from deploy.serverpc.crontab import large_jobs
+    large_jobs_missing = False
 except ModuleNotFoundError:
-    raise unittest.SkipTest('iblscripts/serverpc/crontab/large_jobs.py not in python path')
+    large_jobs_missing = True
 
 
+@unittest.skipIf(large_jobs_missing, 'iblscripts/serverpc/crontab/large_jobs.py not in python path')
 class TestLargeJobs(unittest.TestCase):
 
     def test_list_available_envs(self):

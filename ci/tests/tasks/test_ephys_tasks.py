@@ -317,8 +317,9 @@ class TestSpikeSortingTask(unittest.TestCase):
             '\x1b[0m15:39:37.919 [I] ibl:90               Starting Pykilosort version ibl_1.3.0, output in gnagga^[[0m\n',
             '\x1b[0m15:39:37.919 [I] ibl:90               Starting Pykilosort version ibl_1.3.0^[[0m\n'
         ]
-        for test_string in test_strings:
-            with tempfile.NamedTemporaryFile() as tf:
-                with open(tf.name, 'w') as fid:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for i, test_string in enumerate(test_strings):
+                filename = tmpdir + f'/kilosort_{i}.log'
+                with open(filename, 'w') as fid:
                     fid.write(test_string)
-                assert SpikeSorting._fetch_pykilosort_run_version(tf.name) == 'ibl_1.3.0'
+                self.assertEqual('ibl_1.3.0', SpikeSorting._fetch_pykilosort_run_version(filename))
