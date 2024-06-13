@@ -321,4 +321,4 @@ class TestSpikeSortingTask(unittest.TestCase):
             with tempfile.NamedTemporaryFile() as tf:
                 with open(tf.name, 'w') as fid:
                     fid.write(test_string)
-                assert SpikeSorting._fetch_pykilosort_run_version(tf.name) == 'pykilosort_ibl_1.3.0'
+                assert SpikeSorting._fetch_pykilosort_run_version(tf.name) == 'ibl_1.3.0'
