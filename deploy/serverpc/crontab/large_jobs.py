@@ -9,6 +9,7 @@ from ibllib.pipes.local_server import task_queue
 from ibllib.pipes.tasks import run_alyx_task, str2class
 
 _logger = logging.getLogger('ibllib')
+_logger.setLevel(logging.DEBUG)
 
 
 def list_available_envs(root='~/Documents/PYTHON/envs'):
