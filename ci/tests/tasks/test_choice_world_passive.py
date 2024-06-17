@@ -2,7 +2,7 @@ import logging
 import shutil
 
 from one.api import ONE
-from ibllib.pipes.behavior_tasks import PassiveRegisterRaw, PassiveTask
+from ibllib.pipes.behavior_tasks import PassiveRegisterRaw, PassiveTaskNidq
 
 from ci.tests import base
 
@@ -33,8 +33,8 @@ class TestPassiveTrials(base.IntegrationTest):
         self.one = ONE(**base.TEST_DB, mode='local')
 
     def test_passive_extract(self):
-        task = PassiveTask(self.session_path, collection='raw_passive_data', sync_collection='raw_ephys_data',
-                           sync_namespace='spikeglx', one=self.one)
+        task = PassiveTaskNidq(self.session_path, collection='raw_passive_data', sync_collection='raw_ephys_data',
+                               sync_namespace='spikeglx', one=self.one)
         status = task.run()
 
         assert status == 0

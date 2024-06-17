@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 
 from ibllib.io.extractors import ephys_passive
-from ibllib.pipes.behavior_tasks import PassiveTask
+from ibllib.pipes.behavior_tasks import PassiveTaskNidq
 from ci.tests import base
 
 
@@ -56,7 +56,7 @@ class TestEphysPassiveExtraction(base.IntegrationTest):
 class TestChainedPassiveExtraction(base.IntegrationTest):
     """Test for the dynamic pipeline extraction of two chained passive protocols.
 
-     Employs the ibllib.pipes.behavior_tasks.PassiveTask class.
+     Employs the ibllib.pipes.behavior_tasks.PassiveTaskNidq class.
      """
     def setUp(self) -> None:
         self.root_folder = self.data_path.joinpath('ephys', 'passive_extraction')
@@ -74,7 +74,7 @@ class TestChainedPassiveExtraction(base.IntegrationTest):
             'sync_ext': 'bin',
             'sync_namespace': 'spikeglx'
         }
-        task = PassiveTask(self.session_path, location='local', **kwargs)
+        task = PassiveTaskNidq(self.session_path, location='local', **kwargs)
         self.assertEqual(0, task.run())
         self.assertEqual('alf/task_01', task.output_collection)
         self.assertEqual(4, len(task.output_files))
