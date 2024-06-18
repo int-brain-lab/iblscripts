@@ -51,7 +51,7 @@ class TestPassiveTrials(base.IntegrationTest):
         assert not np.all(np.isnan(passive_intervals.taskReplay.values))
 
     @unittest.mock.patch("ibllib.io.extractors.ephys_passive.skip_task_replay", return_value=True)
-    def test_passive_extract_no_task_replay(self):
+    def test_passive_extract_no_task_replay(self, mock_qc):
         task = PassiveTaskNidq(self.session_path, collection='raw_passive_data', sync_collection='raw_ephys_data',
                                sync_namespace='spikeglx', one=self.one)
         status = task.run()
