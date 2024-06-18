@@ -68,7 +68,7 @@ fullfilepath = fullfile(ff,fn);
 fprintf('%s\n',ff);
 
 %% Generate the skeleton of the output struct
-meta = struct('version', '0.1.2');
+meta = struct('version', '0.1.3');
 
 % rig based
 meta.channelID.green = [1, 2]; % information about channel numbers (red/green)
