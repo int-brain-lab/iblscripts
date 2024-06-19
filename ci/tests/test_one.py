@@ -138,6 +138,8 @@ class TestRegistration(IntegrationTest):
         self.assertCountEqual({x['water_administered'] for x in subj['water_administrations']}, [2.367])
         self.assertCountEqual({x['session'] for x in subj['water_administrations']}, [info['id']])
         actual = [x['date_time'] for x in subj['water_administrations']]
+        # sort the returned data
+        actual.sort()
         self.assertEqual(['2019-02-12T11:19:46.741060', '2019-02-12T12:27:49.741060'], actual)
 
     def test_register_raw(self):
