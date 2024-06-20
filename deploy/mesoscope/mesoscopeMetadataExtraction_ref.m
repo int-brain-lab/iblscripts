@@ -100,7 +100,7 @@ fullfilepath = fullfile(ff,fn);
 fprintf('%s\n',ff);
 
 %% Generate the skeleton of the output struct
-meta = struct('version', '0.1.0');
+meta = struct('version', '0.1.3');
 
 % rig based
 meta.channelID.green = [1, 2]; % information about channel numbers (red/green)
@@ -130,9 +130,10 @@ try
 catch
     meta.centerMM.ML = p.Results.centerML;
     meta.centerMM.AP = p.Results.centerAP;
-    warning('Could not find craniotomy coordinates in alyx, please upload using update_craniotomy.py... Writing dummy coordinates.');
+    warning('Could not find craniotomy coordinates in alyx, please upload using update_craniotomy.py... Using default coordinates!');
     %TO DO input manually here? Abort script if not found?
 end
+sprintf('Using the following coordinate: [%.1f %.1f]', meta.centerMM.ML, meta.centerMM.AP);
 
 % per single experiment
 meta.rawScanImageMeta = struct; % SI config and all the header info from tiff
