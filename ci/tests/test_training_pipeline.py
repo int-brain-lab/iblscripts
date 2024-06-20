@@ -1,3 +1,9 @@
+"""This originally tested that the training pipeline would register correctly.
+
+The training pipeline has since been usurped by the dynamic pipeline. The sessions in question have
+various data issues which should be tested with trials extractor unit tests, rather than the full
+pipeline.
+"""
 import tempfile
 from pathlib import Path
 
@@ -8,11 +14,11 @@ from ci.tests import base
 
 
 class TestPipeline(base.IntegrationTest):
+    N_TASKS = 8
+    """int: The number of expected pipeline tasks per session."""
+
     def test_full_pipeline(self):
-        """
-        Test the full Training extraction pipeline.
-        :return:
-        """
+        """Test the full Training extraction pipeline."""
         INIT_FOLDER = self.data_path.joinpath('Subjects_init')
         self.assertTrue(INIT_FOLDER.exists())
 
@@ -44,16 +50,15 @@ class TestPipeline(base.IntegrationTest):
             # execute the list of jobs with the simplest scheduler possible
             training_jobs = one.alyx.rest(
                 'tasks', 'list', status='Waiting',
-                graph='TrainingExtractionPipeline', no_cache=True)
-            N_TASKS = 7
-            self.assertEqual(nses * N_TASKS, len(training_jobs))
+                graph='Pipeline', no_cache=True)
+            self.assertEqual(nses * self.N_TASKS, len(training_jobs))
 
             local_server.tasks_runner(subjects_path, training_jobs, one=one, dry=True,
                                       count=nses * 10)
             local_server.tasks_runner(subjects_path, training_jobs, one=one, count=nses * 10,
                                       dry=False, max_md5_size=1024 * 1024 * 20)
             errored_tasks = one.alyx.rest('tasks', 'list', status='Errored',
-                                          graph='TrainingExtractionPipeline', no_cache=True)
+                                          graph='Pipeline', no_cache=True)
             self.assertFalse(len(errored_tasks), 'The following tasks errored: ' + ' '.join(t['name'] for t in errored_tasks))
             session_dict = one.alyx.rest('sessions', 'list',
                                          django='extended_qc__isnull,False', no_cache=True)
@@ -70,5 +75,5 @@ class TestPipeline(base.IntegrationTest):
         local_server.job_creator(session_path, one=one)
         eid = one.path2eid(session_path, query_type='remote')
         self.assertIsNotNone(eid)
-        alyx_tasks = one.alyx.rest('tasks', 'list', session=eid, graph='TrainingExtractionPipeline', no_cache=True)
-        self.assertEqual(7, len(alyx_tasks))
+        alyx_tasks = one.alyx.rest('tasks', 'list', session=eid, graph='Pipeline', no_cache=True)
+        self.assertEqual(self.N_TASKS, len(alyx_tasks))
