@@ -12,7 +12,7 @@ _logger = logging.getLogger('ibllib')
 _logger.setLevel(logging.DEBUG)
 
 
-def list_available_envs(root='~/Documents/PYTHON/envs'):
+def list_available_envs(root=Path.home() / 'Documents/PYTHON/envs'):
     """
     List all the envs within `root` dir.
 
