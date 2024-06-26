@@ -8,6 +8,8 @@ from one.api import ONE
 
 from ibllib.qc.task_extractors import TaskQCExtractor
 from ibllib.pipes.behavior_tasks import ChoiceWorldTrialsNidq, HabituationTrialsNidq
+from ibllib.io.extractors.base import run_extractor_classes
+from ibllib.io.extractors.biased_trials import ProbaContrasts
 
 from ci.tests import base
 
@@ -173,3 +175,47 @@ class TestEphysTrialsFPGA(base.IntegrationTest):
         assert myqc['_task_stimOff_itiIn_delays'] > 0.9
         assert myqc['_task_stimOn_delays'] > 0.9
         assert myqc['_task_stimOn_goCue_delays'] > 0.9
+
+
+class TestEphysTrials_iblrigv8(base.IntegrationTest):
+
+    required_files = [
+        'ephys/ephys_choice_world_task/KM_014/2024-05-02/001/*',  # iblrig v8 ephys session
+        'ephys/ephys_choice_world_task/CSP004/2019-11-27/001/*'  # non iblrig v8 ephys session
+    ]
+
+    def test_contrast_extraction_v8(self):
+        session_path = get_session_path(next(self.data_path.glob(self.required_files[0])))
+
+        # Extract trials using task, should be using TrialsTableBiased which does not contain the
+        # extractor ProbaContrasts and instead gets ContrastLeft, ContrastRight and ProbabilityLeft from
+        # the bpod data itself
+        task = ChoiceWorldTrialsNidq(session_path, one=ONE(mode='local'), collection='raw_task_data_00',
+                                     sync_collection='raw_ephys_data')
+        fpga_trials, _ = task.extract_behaviour(save=False)
+        trials = fpga_trials['table']
+
+        # Extract the using the pregenerated session extractor
+        out, _ = run_extractor_classes(
+            ProbaContrasts, session_path=task.session_path, save=False, task_collection=task.collection)
+
+        # Ensure the values are not the same
+        for col in ['contrastLeft', 'contrastRight', 'probabilityLeft']:
+            self.assertFalse(np.array_equal(trials[col].values, out[col], equal_nan=True))
+
+    def test_contrast_extraction_lt_v8(self):
+        session_path = get_session_path(next(self.data_path.glob(self.required_files[1])))
+
+        # Extract trials using task, should be using TrialsTableEphys which uses the pregenerated session number and
+        # extractor ProbaContrasts to get ContrastLeft, ContrastRight and ProbabilityLeft
+        task = ChoiceWorldTrialsNidq(session_path, one=ONE(mode='local'), collection='raw_behavior_data',
+                                     sync_collection='raw_ephys_data')
+        fpga_trials, _ = task.extract_behaviour(save=False)
+        trials = fpga_trials['table']
+
+        out, _ = run_extractor_classes(
+            ProbaContrasts, session_path=task.session_path, save=False, task_collection=task.collection)
+
+        # Ensure the values are the same
+        for col in ['contrastLeft', 'contrastRight', 'probabilityLeft']:
+            self.assertTrue(np.array_equal(trials[col].values, out[col], equal_nan=True))
