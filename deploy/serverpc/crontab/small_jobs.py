@@ -32,7 +32,7 @@ try:
             if last_session != tdict['session']:
                 ses = one.alyx.rest('sessions', 'list', django=f"pk,{tdict['session']}")[0]
                 session_path = Path(subjects_path).joinpath(
-                    Path(ses['subject'], ses['start_time'][:10], str(ses['number']).zfill(3)))
+                    ses['subject'], ses['start_time'][:10], str(ses['number']).zfill(3))
                 last_session = tdict['session']
             task, dsets = run_alyx_task(tdict=tdict, session_path=session_path, one=one)
             if dsets:
