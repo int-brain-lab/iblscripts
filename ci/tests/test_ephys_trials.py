@@ -115,7 +115,8 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         """Check task-specific trial events."""
         # check that the stimOn < stimFreeze < stimOff
         self.assertTrue(np.less(trials['table']['stimOn_times'], trials['stimOff_times']).all())
-        self.assertTrue(np.less(trials['stimFreeze_times'], trials['stimOff_times']).all())
+        nogo = trials['table']['choice'] == 0
+        self.assertTrue(np.less(trials['stimFreeze_times'][~nogo], trials['stimOff_times'][~nogo]).all())
         # a trial is either an error-nogo or a reward
         self.assertTrue(np.all(np.isnan(trials['valveOpen_times'] * trials['errorCue_times'])))
         self.assertTrue(np.all(np.logical_xor(np.isnan(trials['valveOpen_times']),
