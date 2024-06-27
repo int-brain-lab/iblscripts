@@ -154,7 +154,7 @@ def disable_log(level=logging.CRITICAL, restore_level=None, quiet=False):
         def wrapper(self, *args, **kwargs):
             logging.disable(level)
             if not quiet:
-                print('**Log disabled for test**')
+                print(f'**Log disabled for test "{func.__qualname__}"**')
             output = func(self, *args, **kwargs)
             if not quiet:
                 print('**Log re-enabled**')

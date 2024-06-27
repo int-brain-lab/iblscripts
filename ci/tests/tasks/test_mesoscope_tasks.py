@@ -4,7 +4,7 @@ import shutil
 import tempfile
 import unittest.mock
 from pathlib import Path
-from unittest.mock import MagicMock, ANY
+from unittest.mock import MagicMock, ANY, patch
 import tarfile
 from itertools import chain
 from uuid import UUID
@@ -492,10 +492,10 @@ class TestMesoscopeRegisterSnapshots(base.IntegrationTest):
         self.assertEqual(len(task.signature['output_files']) * N, len(task.output_files))
 
 
-class TestMesoscopePreprocess(base.IntegrationTest):
+class TestMesoscopePreprocessRename(base.IntegrationTest):
+    """Test for MesoscopePreprocess._rename_outputs method."""
     session_path = None
 
-    """Test for MesoscopePreprocess task."""
     def setUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()
         self.addCleanup(self.tempdir.cleanup)
@@ -561,6 +561,39 @@ class TestMesoscopePreprocess(base.IntegrationTest):
             return
         for file in cls.session_path.joinpath('raw_sync_data').glob('_timeline_sync.*.npy'):
             file.unlink()
+
+
+class TestMesoscopePreprocessRun(base.IntegrationTest):
+    """Test for MesoscopePreprocess._run method."""
+    required_files = ['mesoscope/SP053/2024-02-07/001']
+
+    def setUp(self) -> None:
+        self.session_path = self.default_data_root().joinpath(self.required_files[0])
+        self.one = ONE(**base.TEST_DB)
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    @patch.dict('sys.modules', suite2p=MagicMock())
+    @base.disable_log()
+    def test_qc(self):
+        """Test handling of exptQC and badframes."""
+        task = MesoscopePreprocess(self.session_path, one=self.one)
+        task.setUp()
+        # Patch create_db so that badframes file is saved to tamp dir
+        # Mock rename_outputs to check that consolidated QC matches what is expected
+        db = {'data_path': [self.tmp], 'save_path0': self.tmp}
+        with patch.object(task, '_create_db', return_value=db), patch.object(task, '_rename_outputs') as out:
+            task._run(run_suite2p=False, rename_files=True, use_badframes=True)
+            out.assert_called()
+            _, frameQC_names, frameQC = out.call_args[0]
+        np.testing.assert_array_equal(frameQC_names['qc_values'], np.arange(4))
+        self.assertEqual(16328, frameQC.size)
+        expected = [2226, 2227, 2228, 2229, 2230, 2231, 2232, 2233, 2234, 2235, 2236, 2237]
+        self.assertCountEqual(expected, np.where(frameQC > 0)[0])
+        self.assertTrue(self.tmp.joinpath('bad_frames.npy').exists())
+        badframes = np.load(self.tmp.joinpath('bad_frames.npy'))
+        self.assertCountEqual(expected, badframes)
 
 
 class TestMesoscopeCompress(base.IntegrationTest):
