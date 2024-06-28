@@ -48,7 +48,7 @@ class TestReadSpikeSorting(IntegrationTest):
         pname = 'probe01'
         alf_channels = load_object(self.session_path.joinpath('alf', pname), 'channels')
         channels = bbone._channels_alf2bunch(alf_channels)
-        assert set(channels.keys()).issubset(BUNCH_KEYS)
+        assert BUNCH_KEYS.issubset(set(channels.keys()))
 
         h = trace_header(1)
         raw_channels = bbone.channel_locations_interpolation(
