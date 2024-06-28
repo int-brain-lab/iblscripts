@@ -2,7 +2,7 @@ from pathlib import Path
 import argparse
 import logging
 
-from pykilosort.ibl import run_spike_sorting_ibl
+from iblsorter.ibl import run_spike_sorting_ibl
 
 
 _logger = logging.getLogger("pykilosort")

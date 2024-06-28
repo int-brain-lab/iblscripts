@@ -1,23 +1,22 @@
 #!/bin/bash
 
 # Make sure local pykilosort repository is up to date
-cd ~/Documents/PYTHON/SPIKE_SORTING/pykilosort
-git checkout -f ibl_prod -q
+cd ~/Documents/PYTHON/SPIKE_SORTING/iblsort
+git checkout -f main -q
 git reset --hard -q
 git fetch
 LOCAL=$(git rev-parse @)
 REMOTE=$(git rev-parse "@{u}")
 if [ $LOCAL != $REMOTE ]; then
-  echo "Updating pykilosort"
+  echo "Updating iblsort"
   git pull
 else
-  echo "pykilosort is up-to-date"
+  echo "iblsort is up-to-date"
 fi
 
+# TODO: environment install instructions
 # Check that all libraries in the env are up to date
-source ~/anaconda3/etc/profile.d/conda.sh
-conda deactivate
-conda activate pyks2
+source ~/Documents/PYTHON/SPIKE_SORTING/iblsort/.venv/bin/activate
 outdated=$(pip list --outdated | awk 'NR>2 {print $1}')
 
 # Check if pip needs update
@@ -58,4 +57,4 @@ else
   fi
 fi
 
-conda deactivate
+deactivate

@@ -8,8 +8,7 @@ __pycache__
 deploy/videopc/bonsai/bin/
 deploy/mesoscope/+ScanImageTiffReader/
 deploy/serverpc/dlc/weights/
-deploy/serverpc/kilosort2/task_ks2_matlab.sh
-deploy/serverpc/kilosort2/run_pykilosort.sh
+deploy/serverpc/iblsorter/run_iblsorter.sh
 docs/_build
 scratch/
 src/
