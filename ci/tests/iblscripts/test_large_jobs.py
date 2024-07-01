@@ -24,14 +24,13 @@ class TestLargeJobs(unittest.TestCase):
             self.assertCountEqual([None, 'bazenv'], large_jobs.list_available_envs(tmpdir))
             self.assertEqual([None], large_jobs.list_available_envs(tmpdir / 'does_not_exist'))
 
-    @mock.patch('large_jobs.ibllib.pipes.local_server.task_queue')
+    @mock.patch('deploy.serverpc.crontab.large_jobs.task_queue')
     def test_list_queued_envs(self, task_queue_mock):
         one = mock.MagicMock()
         task_queue_mock.return_value = [{'executable': 'ibllib.pipes.behavior_tasks.HabituationRegisterRaw'}]
-        envs = large_jobs.list_queued_envs(one)
-        self.assertEqual({None}, envs)
+        self.assertEqual({None}, large_jobs.list_queued_envs(one))
         task_queue_mock.return_value.append({'executable': 'ibllib.pipes.mesoscope_tasks.MesoscopePreprocess'})
-        self.assertCountEqual({None, 'suite2p'}, envs)
+        self.assertCountEqual({None, 'suite2p'}, large_jobs.list_queued_envs(one))
 
 
 if __name__ == '__main__':
