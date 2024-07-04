@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Make sure local pykilosort repository is up to date
-cd ~/Documents/PYTHON/SPIKE_SORTING/iblsort
+pushd "$HOME/Documents/PYTHON/SPIKE_SORTING/iblsort"
 git checkout -f main -q
 git reset --hard -q
 git fetch
@@ -16,7 +16,7 @@ fi
 
 # TODO: environment install instructions
 # Check that all libraries in the env are up to date
-source ~/Documents/PYTHON/SPIKE_SORTING/iblsort/.venv/bin/activate
+source "$HOME/Documents/PYTHON/SPIKE_SORTING/iblsort/.venv/bin/activate"
 outdated=$(pip list --outdated | awk 'NR>2 {print $1}')
 
 # Check if pip needs update
@@ -58,3 +58,4 @@ else
 fi
 
 deactivate
+popd || exit

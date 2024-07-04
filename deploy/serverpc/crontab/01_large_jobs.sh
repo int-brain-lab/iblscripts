@@ -1,12 +1,13 @@
 #!/bin/bash
 
 # Go to crontab dir
-cd ~/Documents/PYTHON/iblscripts/deploy/serverpc/crontab
+cd "$HOME/Documents/PYTHON/iblscripts/deploy/serverpc/crontab"
 # Source dlcenv here. While the dlc and spike sorting tasks have their own environments, the compression jobs dont
 # We avoid using iblenv here, as we don't want to interfere with the small jobs etc. dlcenv has everything needed
 # for the video compression
-
-source ~/Documents/PYTHON/envs/dlcenv/bin/activate
+dlcenv="$HOME/Documents/PYTHON/envs/dlcenv/"
+suite2penv="$HOME/Documents/PYTHON/envs/suite2p/"
+source "$dlcenv/bin/activate"
 
 # Set cuda env
 export CUDA_VERSION=11.8
@@ -23,11 +24,24 @@ while true; do
     ../dlc/update_dlcenv.sh
     printf "\nChecking pyks2 env for updates\n"
     ../kilosort2/update_pykilosort.sh
+    # check optional suite2p env installed
+    if [ -d "$suite2penv" ]; then
+      printf "\nChecking suite2p env for updates\n"
+      ../mesoscope/update_suite2p_env.sh
+      source "$dlcenv/bin/activate"
+    fi
     last_update=$SECONDS
   fi
   # Python: query for waiting jobs and run first job in the queue
   printf "\nGrabbing next large job from the queue\n"
   python large_jobs.py
+  # If the suite2p env is installed, switch to this to run related task if next in queue
+  if [ -d "$suite2penv" ]; then
+    source "$suite2penv/bin/activate"
+    python large_jobs.py --env suite2p
+    deactivate
+    source "$dlcenv/bin/activate"
+  fi
   # Repeat
   elapsed=$(( SECONDS - last_update ))
 done

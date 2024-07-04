@@ -9,6 +9,7 @@ import numpy as np
 
 from one.api import ONE
 import one.alf.io as alfio
+from one.registration import RegistrationClient
 from ibllib.pipes.ephys_tasks import (EphysRegisterRaw, EphysCompressNP1, EphysCompressNP21, EphysCompressNP24,
                                       EphysSyncRegisterRaw, EphysSyncPulses, EphysPulses, SpikeSorting)
 
@@ -112,8 +113,6 @@ class TestEphysRegisterRaw(base.IntegrationTest):
 
     def setUp(self) -> None:
         self.one = ONE(**base.TEST_DB, cache_dir=self.data_path / 'ephys', cache_rest=None)
-
-        from one.registration import RegistrationClient
         path, self.eid = RegistrationClient(self.one).create_new_session('ZM_1743')
         # Currently the task protocol of a session must contain 'ephys' in order to create an insertion!
         self.one.alyx.rest('sessions', 'partial_update', id=self.eid, data={'task_protocol': 'ephys'})
@@ -318,8 +317,9 @@ class TestSpikeSortingTask(unittest.TestCase):
             '\x1b[0m15:39:37.919 [I] ibl:90               Starting Pykilosort version ibl_1.3.0, output in gnagga^[[0m\n',
             '\x1b[0m15:39:37.919 [I] ibl:90               Starting Pykilosort version ibl_1.3.0^[[0m\n'
         ]
-        for test_string in test_strings:
-            with tempfile.NamedTemporaryFile() as tf:
-                with open(tf.name, 'w') as fid:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for i, test_string in enumerate(test_strings):
+                filename = tmpdir + f'/kilosort_{i}.log'
+                with open(filename, 'w') as fid:
                     fid.write(test_string)
-                assert SpikeSorting._fetch_iblsorter_run_version(tf.name) == 'ibl_1.3.0'
+                self.assertEqual('ibl_1.3.0', SpikeSorting._fetch_pykilosort_run_version(filename))

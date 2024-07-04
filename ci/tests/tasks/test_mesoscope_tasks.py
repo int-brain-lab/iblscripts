@@ -229,7 +229,7 @@ class TestMesoscopeFOV(base.IntegrationTest):
         alf_path = self.session_path.joinpath('raw_imaging_data')
         alf_path.mkdir()
         with open(alf_path / '_ibl_rawImagingData.meta.json', 'w') as fp:
-            fp.write('{"FOV":[%s]}' % ','.join(['{}'] * self.n_fov))
+            fp.write('{"nFrames": 2000, "FOV":[%s]}' % ','.join(['{}'] * self.n_fov))
 
     def test_mesoscope_fov(self):
         """Test for MesoscopeFOV._run and MesoscopeFOV.roi_mlapdv methods.
