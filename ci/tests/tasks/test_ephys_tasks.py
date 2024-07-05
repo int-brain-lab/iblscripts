@@ -322,4 +322,4 @@ class TestSpikeSortingTask(unittest.TestCase):
                 filename = tmpdir + f'/kilosort_{i}.log'
                 with open(filename, 'w') as fid:
                     fid.write(test_string)
-                self.assertEqual('ibl_1.3.0', SpikeSorting._fetch_pykilosort_run_version(filename))
+                self.assertEqual('ibl_1.3.0', SpikeSorting._fetch_iblsorter_run_version(filename))
