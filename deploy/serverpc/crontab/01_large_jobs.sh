@@ -23,7 +23,7 @@ while true; do
     printf "\nChecking dlcenv for updates\n"
     ../dlc/update_dlcenv.sh
     printf "\nChecking pyks2 env for updates\n"
-    ../kilosort2/update_pykilosort.sh
+    ../iblsorter/update_iblsorter.sh
     # check optional suite2p env installed
     if [ -d "$suite2penv" ]; then
       printf "\nChecking suite2p env for updates\n"
