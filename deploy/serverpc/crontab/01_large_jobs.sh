@@ -35,16 +35,19 @@ while true; do
   fi
   elapsed=$(( SECONDS - last_update ))
   # Every 3 hours we run the large jobs
-  if  (( $elapsed > 10800 )); then
+  if  (( $elapsed > 7200 )); then
     printf "\nGrabbing next large job from the queue\n"
+    deactivate
+    source "$dlcenv/bin/activate"
     python large_jobs.py
+    deactivate
+    source "$iblsortenv/bin/activate"
     python large_jobs.py --env iblsorter
     # If the suite2p env is installed, switch to this to run related task if next in queue
     if [ -d "$suite2penv" ]; then
+      deactivate
       source "$suite2penv/bin/activate"
       python large_jobs.py --env suite2p
-      deactivate
-      source "$dlcenv/bin/activate"
     fi
   fi
   # Repeat
