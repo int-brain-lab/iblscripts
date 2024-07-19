@@ -33,19 +33,20 @@ while true; do
     fi
     last_update=$SECONDS
   fi
-  # Python: query for waiting jobs and run first job in the queue
-  printf "\nGrabbing next large job from the queue\n"
-  python large_jobs.py
-  python large_jobs.py --env iblsorter
-  # If the suite2p env is installed, switch to this to run related task if next in queue
-  if [ -d "$suite2penv" ]; then
-    source "$suite2penv/bin/activate"
-    python large_jobs.py --env suite2p
-    deactivate
-    source "$dlcenv/bin/activate"
+  elapsed=$(( SECONDS - last_update ))
+  # Every 3 hours we run the large jobs
+  if  (( $elapsed > 10800 )); then
+    printf "\nGrabbing next large job from the queue\n"
+    python large_jobs.py
+    python large_jobs.py --env iblsorter
+    # If the suite2p env is installed, switch to this to run related task if next in queue
+    if [ -d "$suite2penv" ]; then
+      source "$suite2penv/bin/activate"
+      python large_jobs.py --env suite2p
+      deactivate
+      source "$dlcenv/bin/activate"
+    fi
   fi
   # Repeat
-  sleep 1
-  elapsed=$(( SECONDS - last_update ))
+  sleep 5
 done
-
