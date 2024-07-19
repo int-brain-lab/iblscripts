@@ -7,6 +7,7 @@ cd "$HOME/Documents/PYTHON/iblscripts/deploy/serverpc/crontab"
 # for the video compression
 dlcenv="$HOME/Documents/PYTHON/envs/dlcenv/"
 suite2penv="$HOME/Documents/PYTHON/envs/suite2p/"
+iblsortenv="$HOME/Documents/PYTHON/SPIKE_SORTING/ibl-sorter/.venv"
 source "$dlcenv/bin/activate"
 
 # Set cuda env
@@ -35,6 +36,7 @@ while true; do
   # Python: query for waiting jobs and run first job in the queue
   printf "\nGrabbing next large job from the queue\n"
   python large_jobs.py
+  python large_jobs.py --env iblsorter
   # If the suite2p env is installed, switch to this to run related task if next in queue
   if [ -d "$suite2penv" ]; then
     source "$suite2penv/bin/activate"
@@ -43,6 +45,7 @@ while true; do
     source "$dlcenv/bin/activate"
   fi
   # Repeat
+  sleep 1
   elapsed=$(( SECONDS - last_update ))
 done
 

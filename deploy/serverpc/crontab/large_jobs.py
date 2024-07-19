@@ -1,5 +1,4 @@
 import traceback
-import time
 import logging
 from pathlib import Path
 import argparse
@@ -102,12 +101,5 @@ if __name__ == '__main__':
     args = parser.parse_args()  # returns data from the options specified (echo)
     try:
         task, _ = process_next_large_job(args.subjects_path, env=args.env)
-        if not task:
-            sleep_time = 3600
-            _logger.debug('Sleeping for %g min', sleep_time / 60)
-            time.sleep(sleep_time)
     except Exception:
         _logger.error(f'Error running large task queue \n {traceback.format_exc()}')
-        sleep_time = 1800
-        _logger.debug('Sleeping for %g min', sleep_time / 60)
-        time.sleep(sleep_time)
