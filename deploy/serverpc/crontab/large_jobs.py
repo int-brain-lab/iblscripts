@@ -3,6 +3,8 @@ import logging
 from pathlib import Path
 import argparse
 
+import numpy as np
+
 from one.api import ONE
 from ibllib.pipes.local_server import task_queue
 from ibllib.pipes.tasks import run_alyx_task, str2class
@@ -77,9 +79,12 @@ def process_next_large_job(subjects_path, env=None, one=None):
         _logger.info('No large tasks in the queue')
         return None, []
     else:
-        _logger.info(f'Found {len(waiting_tasks)} tasks in the queue')
+        _logger.info(f'Found {len(waiting_tasks)} tasks in the queue, logging first 10')
+        for i in np.arange(np.minimum(10, len(waiting_tasks))):
+            _logger.info(f"priority {waiting_tasks[i]['priority']}, {waiting_tasks[i]['name']}"
+                         f", env {str2class(waiting_tasks[i]['executable']).env}")
         tdict = waiting_tasks[0]
-        if str2class(waiting_tasks[0]['executable']).env != env:
+        if str2class(tdict['executable']).env != env:
             _logger.debug('Higher priority task should be run in another env; will not run')
             return tdict, []
         _logger.info(f"Running task {tdict['name']} for session {tdict['session']}")
@@ -103,6 +108,7 @@ if __name__ == '__main__':
     parser.add_argument('--subjects-path', type=Path, default='/mnt/s0/Data/Subjects/', help='Specify the location of the data.')
     args = parser.parse_args()  # returns data from the options specified (echo)
     try:
+        _logger.info(f'Running large task queue with environment {args.env}')
         task, _ = process_next_large_job(args.subjects_path, env=args.env)
     except Exception:
         _logger.error(f'Error running large task queue \n {traceback.format_exc()}')
