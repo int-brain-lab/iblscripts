@@ -17,7 +17,7 @@ TRIAL_KEYS_lt5 = ['goCue_times', 'probabilityLeft', 'intervals', 'goCueTrigger_t
                   'response_times', 'feedbackType', 'contrastLeft', 'feedback_times',
                   'rewardVolume', 'choice', 'contrastRight', 'stimOn_times', 'firstMovement_times']
 
-TRIAL_KEYS_ge5 = TRIAL_KEYS_lt5 + ['stimOnTrigger_times', 'included']
+TRIAL_KEYS_ge5 = TRIAL_KEYS_lt5 + ['stimOnTrigger_times', 'included', 'stimOffTrigger_times', 'stimOff_times']
 
 WHEEL_KEYS = ['position', 'timestamps']
 
@@ -34,8 +34,10 @@ class TestHabituation(base.IntegrationTest):
 
 class TestSessions(base.IntegrationTest):
 
+    required_files = ['training']
+
     def setUp(self):
-        self.INIT_FOLDER = self.data_path.joinpath('training')
+        self.INIT_FOLDER = self.data_path.joinpath(self.required_files[0])
         if not self.INIT_FOLDER.exists():
             raise FileNotFoundError(f'Fixture {self.INIT_FOLDER.absolute()} does not exist')
         self.one = One(mode='local')

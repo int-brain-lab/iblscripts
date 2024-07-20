@@ -16,11 +16,13 @@ _logger = logging.getLogger('ibllib')
 
 class TestDynamicPipeline(base.IntegrationTest):
 
+    required_files = ['dynamic_pipeline/ephys_NP3B']
+
     def setUp(self) -> None:
         self.one = ONE(**base.TEST_DB)
         path, self.eid = RegistrationClient(self.one).create_new_session('ZM_1743')
         # need to create a session here
-        session_path = self.data_path.joinpath('dynamic_pipeline', 'ephys_NP3B')
+        session_path = self.data_path.joinpath(self.required_files[0])
         self.pipeline = dynamic.make_pipeline(session_path, one=self.one, eid=str(self.eid))
         self.expected_pipeline = dynamic.load_pipeline_dict(session_path)
 
@@ -195,7 +197,7 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
             with self.subTest(name=t['name']):
                 self.assertEqual(t['status'], 'Complete')
 
-        self.assertEqual(len(all_dsets), 20)
+        self.assertEqual(len(all_dsets), 21)
         self.assertIn('_ibl_experiment.description.yaml', [d['name'] for d in all_dsets])
 
     def tearDown(self) -> None:
