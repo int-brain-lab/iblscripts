@@ -37,6 +37,7 @@ while true; do
   fi
   # Every 3 hours we run the large jobs
   if  (( $(( SECONDS - last_run )) > 7200 )); then
+    last_run=$SECONDS
     printf "\nGrabbing next large job from the queue\n"
     deactivate
     source "$dlcenv/bin/activate"
