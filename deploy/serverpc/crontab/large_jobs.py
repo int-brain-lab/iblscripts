@@ -69,12 +69,15 @@ def process_next_large_job(subjects_path, env=None, one=None):
         A list of registered datasets.
     """
     one = one or ONE(mode='remote', cache_rest=None)
+    envs = list_available_envs()
+    _logger.info(f'Available environments: {envs}')
     waiting_tasks = task_queue(mode='large', alyx=one.alyx, env=list_available_envs())
 
     if len(waiting_tasks) == 0:
         _logger.info('No large tasks in the queue')
         return None, []
     else:
+        _logger.info(f'Found {len(waiting_tasks)} tasks in the queue')
         tdict = waiting_tasks[0]
         if str2class(waiting_tasks[0]['executable']).env != env:
             _logger.debug('Higher priority task should be run in another env; will not run')

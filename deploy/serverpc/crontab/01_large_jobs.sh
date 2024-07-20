@@ -17,13 +17,14 @@ export PATH=/usr/local/cuda-$CUDA_VERSION/bin:$PATH
 export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH
 
 last_update=$SECONDS
+last_run=$SECONDS
 elapsed=22000
 while true; do
   # Every six hours (or after service restart) check if any packages in the environments need updating
-  if  (( $elapsed > 21600 )); then
+  if  (( ($SECONDS) > 21600 )); then
     printf "\nChecking dlcenv for updates\n"
     ../dlc/update_dlcenv.sh
-    printf "\nChecking pyks2 env for updates\n"
+    printf "\nChecking iblsort env for updates\n"
     ../iblsorter/update_iblsorter.sh
     # check optional suite2p env installed
     if [ -d "$suite2penv" ]; then
