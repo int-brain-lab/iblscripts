@@ -16,12 +16,13 @@ test -e /usr/local/cuda-$CUDA_VERSION/bin || export CUDA_VERSION=11.2
 export PATH=/usr/local/cuda-$CUDA_VERSION/bin:$PATH
 export LD_LIBRARY_PATH=/usr/local/cuda-$CUDA_VERSION/lib64:/usr/local/cuda-$CUDA_VERSION/extras/CUPTI/lib64:$LD_LIBRARY_PATH
 
-last_update=$SECONDS
-last_run=$SECONDS
-elapsed=22000
+# we set the initial last_update to 24 hours ago to force an update on first run
+last_update=$(( SECONDS - 86400 ))
+last_run=$(( SECONDS - 86400 ))
+
 while true; do
   # Every six hours (or after service restart) check if any packages in the environments need updating
-  if  (( ($SECONDS) > 21600 )); then
+  if  (( $(( SECONDS - last_update )) > 43200 )); then
     printf "\nChecking dlcenv for updates\n"
     ../dlc/update_dlcenv.sh
     printf "\nChecking iblsort env for updates\n"
@@ -34,9 +35,8 @@ while true; do
     fi
     last_update=$SECONDS
   fi
-  elapsed=$(( SECONDS - last_update ))
   # Every 3 hours we run the large jobs
-  if  (( $elapsed > 7200 )); then
+  if  (( $(( SECONDS - last_run )) > 7200 )); then
     printf "\nGrabbing next large job from the queue\n"
     deactivate
     source "$dlcenv/bin/activate"
