@@ -357,15 +357,3 @@ if not dry:
     )
     logger.info(f"Setting {aws_frs.count()} AWS file records to exists=True")
     aws_frs.update(exists=True)
-
-
-
-for rev in revisions:
-    dset = Dataset.objects.filter(revision=rev)
-    if dset.count() == 0:
-        rev.delete()
-
-for rev in revisions:
-    dset = Dataset.objects.filter(revision=rev)
-    fr = FileRecord.objects.filter(relative_path__icontains=f'#{rev.name}#')
-    print(f'{rev.name}: {dset.count()}, {fr.count()}')
