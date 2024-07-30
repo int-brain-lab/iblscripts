@@ -181,7 +181,7 @@ SET UP
 dry = False  # Whether to do a dry run that doesn't create any files but just logs which ones would be created
 only_new_subjects = False  # Whether to only create trial aggregates for subjects that don't have one
 alyx_user = LabMember.objects.get(username='julia.huntenburg')
-today_revision, _ = Revision.objects.get_or_create(name=datetime.datetime.today().strftime('%Y-%m-%d'))
+today = datetime.datetime.today().strftime('%Y-%m-%d')
 
 # Paths
 root_path = Path('/mnt/ibl')
@@ -281,21 +281,22 @@ for i, sub in enumerate(subjects):
                     if ds.first().is_protected:
                         logger.info('...aggregate already exists but is protected, hash mismatch, creating revision')
                         status_agg[f'{sub.id}'] = 'REVISION: aggregate exists protected, hash mismatch'
-                        # If there has already been a revision today something is probably wrong
-                        if ds.first().revision == today_revision:
-                            raise AssertionError('Dataset already has a revision for today. Something is probably wrong.')
                         # If the current default is not a revision yet, add the revision part to the path
-                        elif ds.first().revision is None:
-                            out_file = out_file.parent.joinpath(f"#{today_revision.name}#", out_file.name)
+                        if ds.first().revision is None:
+                            out_file = out_file.parent.joinpath(f"#{today}#", out_file.name)
+                        # If there has already been a revision today something is probably wrong
+                        elif ds.first().revision.name == today:
+                            raise AssertionError('Dataset already has a revision for today. Something is probably wrong.')
                         # If the current default is already a revision, replace the revision part of the path
                         else:
-                            out_file = out_file.parent.parent.joinpath(f"#{today_revision.name}#", out_file.name)
+                            out_file = out_file.parent.parent.joinpath(f"#{today}#", out_file.name)
                         if dry:
                             logger.info(f'...DRY RUN would create {out_file}')
                             continue
                         else:
                             # Create the file, then the dataset entry, then add the uuid to the file name
                             out_file = make_new_aggregate(out_file=out_file, trials_ds=trials_ds)
+                            today_revision, _ = Revision.objects.get_or_create(name=today)
                             new_ds = make_new_dataset(new_file=out_file, new_hash=new_hash, sub=sub, old_ds=ds.first(),
                                                       revision=today_revision, alyx_user=alyx_user)
                             new_out_file = out_file.rename(alfiles.add_uuid_string(out_file, new_ds.pk))
@@ -356,3 +357,15 @@ if not dry:
     )
     logger.info(f"Setting {aws_frs.count()} AWS file records to exists=True")
     aws_frs.update(exists=True)
+
+
+
+for rev in revisions:
+    dset = Dataset.objects.filter(revision=rev)
+    if dset.count() == 0:
+        rev.delete()
+
+for rev in revisions:
+    dset = Dataset.objects.filter(revision=rev)
+    fr = FileRecord.objects.filter(relative_path__icontains=f'#{rev.name}#')
+    print(f'{rev.name}: {dset.count()}, {fr.count()}')
