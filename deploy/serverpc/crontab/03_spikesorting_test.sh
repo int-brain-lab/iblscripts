@@ -1,5 +1,5 @@
 #!/bin/bash
-
+cd "$HOME/Documents/PYTHON/iblscripts/deploy/serverpc/crontab"
 iblsortenv="$HOME/Documents/PYTHON/SPIKE_SORTING/ibl-sorter/.venv"
 # comment out to force subprocess
 source "$iblsortenv/bin/activate" ###
