@@ -120,7 +120,7 @@ class TestStandardPipelines(base.IntegrationTest):
         exp_desc['sync'] = {'bpod': exp_desc['sync']['nidq']}
         sess_params.write_params(self.session_path, exp_desc)
         self.assertRaises(ValueError, self.check_pipeline)
-        # Modify the experiment description to include an novel task
+        # Modify the experiment description to include a novel task
         exp_desc['tasks'] = [
             {'nouveauChoiceWorld':
                 {'collection': 'raw_task_data_00',
@@ -130,7 +130,7 @@ class TestStandardPipelines(base.IntegrationTest):
         sess_params.write_params(self.session_path, exp_desc)
         pipe = dynamic.make_pipeline(self.session_path)
         dy_pipe = dynamic.make_pipeline_dict(pipe, save=False)
-        task = next((x for x in dy_pipe if x['name'] == 'ChoiceWorldTrialsBpod_00'), None)
+        task = next((x for x in dy_pipe if x['name'] == 'Trials_ChoiceWorldTrialsBpod_00'), None)
         self.assertIsNotNone(task, 'failed to create specified extractor task')
         self.assertEqual('ibllib.pipes.behavior_tasks.ChoiceWorldTrialsBpod', task['executable'])
         self.assertEqual(['TrialRegisterRaw_00'], task['parents'])
