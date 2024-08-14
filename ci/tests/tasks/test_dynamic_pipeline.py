@@ -16,11 +16,13 @@ _logger = logging.getLogger('ibllib')
 
 class TestDynamicPipeline(base.IntegrationTest):
 
+    required_files = ['dynamic_pipeline/ephys_NP3B']
+
     def setUp(self) -> None:
         self.one = ONE(**base.TEST_DB)
         path, self.eid = RegistrationClient(self.one).create_new_session('ZM_1743')
         # need to create a session here
-        session_path = self.data_path.joinpath('dynamic_pipeline', 'ephys_NP3B')
+        session_path = self.data_path.joinpath(self.required_files[0])
         self.pipeline = dynamic.make_pipeline(session_path, one=self.one, eid=str(self.eid))
         self.expected_pipeline = dynamic.load_pipeline_dict(session_path)
 
@@ -118,7 +120,7 @@ class TestStandardPipelines(base.IntegrationTest):
         exp_desc['sync'] = {'bpod': exp_desc['sync']['nidq']}
         sess_params.write_params(self.session_path, exp_desc)
         self.assertRaises(ValueError, self.check_pipeline)
-        # Modify the experiment description to include an novel task
+        # Modify the experiment description to include a novel task
         exp_desc['tasks'] = [
             {'nouveauChoiceWorld':
                 {'collection': 'raw_task_data_00',
@@ -128,7 +130,7 @@ class TestStandardPipelines(base.IntegrationTest):
         sess_params.write_params(self.session_path, exp_desc)
         pipe = dynamic.make_pipeline(self.session_path)
         dy_pipe = dynamic.make_pipeline_dict(pipe, save=False)
-        task = next((x for x in dy_pipe if x['name'] == 'ChoiceWorldTrialsBpod_00'), None)
+        task = next((x for x in dy_pipe if x['name'] == 'Trials_ChoiceWorldTrialsBpod_00'), None)
         self.assertIsNotNone(task, 'failed to create specified extractor task')
         self.assertEqual('ibllib.pipes.behavior_tasks.ChoiceWorldTrialsBpod', task['executable'])
         self.assertEqual(['TrialRegisterRaw_00'], task['parents'])
@@ -195,7 +197,7 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
             with self.subTest(name=t['name']):
                 self.assertEqual(t['status'], 'Complete')
 
-        self.assertEqual(len(all_dsets), 20)
+        self.assertEqual(len(all_dsets), 21)
         self.assertIn('_ibl_experiment.description.yaml', [d['name'] for d in all_dsets])
 
     def tearDown(self) -> None:
