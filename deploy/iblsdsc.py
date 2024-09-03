@@ -13,12 +13,13 @@ The limitations of this implementation are:
 Recommended usage: just monkey patch the ONE import and run your code as usual on Popeye !
 >>> from deploy.iblsdsc import OneSdsc as ONE
 """
-
-from one.api import OneAlyx
-import one.params
-
 import logging
 from pathlib import Path
+from itertools import filterfalse
+
+from one.api import OneAlyx
+from one.alf.spec import is_uuid_string
+import one.params
 
 _logger = logging.getLogger(__name__)
 CACHE_DIR = Path('/mnt/sdceph/users/ibl/data')
@@ -38,17 +39,17 @@ class OneSdsc(OneAlyx):
     def load_object(self, *args, **kwargs):
         # call superclass method
         obj = super().load_object(*args, **kwargs)
-        if isinstance(obj, list):
+        if isinstance(obj, list) or not self.uuid_filenames:
             return obj
         # pops the UUID in the key names
-        keys = list(obj.keys())
-        for k in keys:
-            obj[k[:-37]] = obj.pop(k)
+        for k in obj.keys():
+            new_key = '.'.join(filterfalse(is_uuid_string, k.split('.')))
+            obj[new_key] = obj.pop(k)
         return obj
 
     def _download_datasets(self, dset, **kwargs):
         """Simply return list of None."""
-        urls = self._dset2url(self, dset, update_cache=False)  # normalizes input to list
+        urls = self._dset2url(dset, update_cache=False)  # normalizes input to list
         return [None] * len(urls)
 
 
