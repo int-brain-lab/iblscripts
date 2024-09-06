@@ -41,6 +41,8 @@ def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
 
 class TestWheelExtractionSimpleEphys(base.IntegrationTest):
 
+    required_files = ['wheel/ephys/three_clockwise_revolutions']
+
     def setUp(self) -> None:
         self.session_path = \
             self.data_path.joinpath('wheel', 'ephys', 'three_clockwise_revolutions')
@@ -54,6 +56,8 @@ class TestWheelExtractionSimpleEphys(base.IntegrationTest):
 
 
 class TestWheelExtractionSessionEphys(base.IntegrationTest):
+
+    required_files = ['wheel/ephys/sessions']
 
     def setUp(self) -> None:
         self.root_path = self.data_path.joinpath('wheel', 'ephys', 'sessions')
@@ -76,6 +80,8 @@ class TestWheelExtractionSessionEphys(base.IntegrationTest):
 
 
 class TestWheelExtractionTraining(base.IntegrationTest):
+
+    required_files = ['wheel/training']
 
     def setUp(self) -> None:
         self.root_path = self.data_path.joinpath('wheel', 'training')

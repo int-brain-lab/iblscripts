@@ -90,7 +90,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
 
         TaskQC = type(tqc_ephys)  # Use the same TaskQC class as the task for the Bpod only QC
         tqc_bpod = TaskQC(session_path, one=ONE(mode='local'))
-        tqc_bpod.extractor = TaskQCExtractor(session_path, lazy=True, one=None, bpod_only=True)
+        tqc_bpod.extractor = TaskQCExtractor(session_path, one=None, bpod_only=True)
         tqc_bpod.extractor.settings = task.extractor.settings
         tqc_bpod.extractor.data = tqc_bpod.extractor.rename_data(task.extractor.bpod_trials.copy())
         tqc_bpod.extractor.frame_ttls = task.extractor.bpod_extractor.frame2ttl  # used in iblapps QC viewer

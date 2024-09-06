@@ -9,6 +9,8 @@ from ci.tests import base
 
 class TestAudioExtraction(base.IntegrationTest):
 
+    required_files = ['Subjects_init/ZM_1085/2019-07-01/002/raw_behavior_data']
+
     def setUp(self):
         file_wav = self.data_path.joinpath('Subjects_init', 'ZM_1085', '2019-07-01', '002',
                                            'raw_behavior_data', '_iblrig_micData.raw.wav')

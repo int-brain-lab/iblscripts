@@ -79,9 +79,11 @@ class TestChainedPassiveExtraction(base.IntegrationTest):
         self.assertEqual('alf/task_01', task.output_collection)
         self.assertEqual(4, len(task.output_files))
         out_path = self.session_path.joinpath(task.output_collection)
-        for file, *_ in task.output_files:
-            with self.subTest(file):
-                self.assertTrue((out_path / file).exists())
+        # FIXME assert_expected_outputs will be called by Task.run in the future and this won't be necessary
+        for dset in task.output_files:
+            with self.subTest(dset):
+                ok, files, _ = dset.find_files(self.session_path)
+                self.assertTrue(ok)
         df = pd.read_csv(out_path / '_ibl_passivePeriods.intervalsTable.csv', index_col=0)
         expected = [3119.84190444, 4100.975761]
         np.testing.assert_array_almost_equal(df['passiveProtocol'].values, expected)

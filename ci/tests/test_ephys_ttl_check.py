@@ -11,6 +11,9 @@ from ci.tests import base
 
 
 class TestEphysCheckList(base.IntegrationTest):
+
+    required_files = ['ephys/ttl_check']
+
     def setUp(self):
         self.init_folder = self.data_path.joinpath('ephys', 'ttl_check')
         if not self.init_folder.exists():
