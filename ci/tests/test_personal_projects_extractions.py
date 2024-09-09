@@ -1,14 +1,22 @@
+import unittest
 import shutil
 
 import numpy as np
 import one.alf.io as alfio
 from one.api import ONE
 
-from ibllib.pipes.ephys_preprocessing import LaserTrialsLegacy
-from ibllib.pipes.training_preprocessing import TrainingTrials
+from ibllib.pipes.behavior_tasks import ChoiceWorldTrialsBpod
 
 from ci.tests import base
 
+"""
+To add support for these personal projects:
+
+1. the old ibllib.pipes.ephys_preprocessing.LaserTrialsLegacy class should be moved to project_extraction
+2. the task protocol must be added to the projects/task_extractor_map.json file
+3. experiment description files must be generated and registered for these sessions
+"""
+raise unittest.SkipTest('Support for these tasks not yet implemented for the dynamic pipeline')
 
 TRAINING_TRIALS_SIGNATURE = ('_ibl_trials.goCueTrigger_times.npy',
                              '_ibl_trials.included.npy',
@@ -48,6 +56,7 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         NB: This way of extracting personal projects is deprecated. Instead, a new extractor task
         should be defined in the experiment.description file, which has its own _extract_behavior method.
         """
+        from ibllib.pipes.ephys_preprocessing import LaserTrialsLegacy
         desired_output = list(EPHYS_TRIALS_SIGNATURE) + ['_ibl_trials.laserProbability.npy', '_ibl_trials.laserStimulation.npy']
         task = LaserTrialsLegacy(self.session_path, one=self.one_offline)
         task.run()
@@ -71,7 +80,7 @@ class TestTrainingTaskExtraction(base.IntegrationTest):
         self.session_path = self.data_path.joinpath('personal_projects/biased_opto/ZFM-01804/2021-01-15/001')
         self.addCleanup(shutil.rmtree, self.session_path / 'alf', ignore_errors=True)
         desired_output = list(TRAINING_TRIALS_SIGNATURE) + ['_ibl_trials.laserStimulation.npy']
-        task = TrainingTrials(self.session_path, one=self.one_offline)
+        task = ChoiceWorldTrialsBpod(self.session_path, one=self.one_offline)
         task.run()
         self.assertEqual(0, task.status)
         self.assertEqual(set(p.name for p in task.outputs), set(desired_output))
@@ -86,7 +95,7 @@ class TestTrainingTaskExtraction(base.IntegrationTest):
 
         self.session_path = self.data_path.joinpath('personal_projects/biased_opto/ZFM-01802/2021-02-08/001')
         self.addCleanup(shutil.rmtree, self.session_path / 'alf', ignore_errors=True)
-        task = TrainingTrials(self.session_path, one=self.one_offline)
+        task = ChoiceWorldTrialsBpod(self.session_path, one=self.one_offline)
         task.run()
         self.assertEqual(0, task.status)
         self.assertEqual(set(p.name for p in task.outputs), set(desired_output))

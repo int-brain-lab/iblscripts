@@ -180,6 +180,7 @@ class TestPatchSettings(base.IntegrationTest):
 
 class TestDAQDiscontinuities(base.IntegrationTest):
     required_files = ['mesoscope/2023-03-03_1_SP035-re_pos.npy']
+
     def setUp(self) -> None:
         src_path = self.data_path.joinpath('mesoscope', '2023-03-03_1_SP035-re_pos.npy')
         self.re_pos = np.load(src_path)

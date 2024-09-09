@@ -481,15 +481,17 @@ class TestMesoscopeRegisterSnapshots(base.IntegrationTest):
         with unittest.mock.patch.object(self.one, 'path2eid', return_value=eid), \
                 unittest.mock.patch.object(task, 'register_snapshots') as reg_mock:
             status = task.run()
-            reg_mock.assert_called_once_with(collection=['raw_imaging_data_*', ''])
+            reg_mock.assert_called_once_with(collection=['raw_imaging_data_??', ''])
         self.assertEqual(0, status)
 
     def test_get_signature(self):
         task = MesoscopeRegisterSnapshots(self.session_path, one=self.one)
         task.get_signatures()
         N = 2  # Number of raw_imaging_data collections
-        self.assertEqual(len(task.signature['input_files']) * N, len(task.input_files))
-        self.assertEqual(len(task.signature['output_files']) * N, len(task.output_files))
+        n_input_files = len(list(chain.from_iterable(x.glob_pattern for x in task.input_files)))
+        self.assertEqual(len(task.signature['input_files']) * N, n_input_files)
+        n_output_files = len(list(chain.from_iterable(x.glob_pattern for x in task.output_files)))
+        self.assertEqual(len(task.signature['output_files']) * N, n_output_files)
 
 
 class TestMesoscopePreprocess(base.IntegrationTest):
