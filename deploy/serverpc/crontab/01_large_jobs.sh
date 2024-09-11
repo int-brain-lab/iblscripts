@@ -35,8 +35,8 @@ while true; do
     fi
     last_update=$SECONDS
   fi
-  # Every 3 hours we run the large jobs
-  if  (( $(( SECONDS - last_run )) > 7200 )); then
+  # Every 5 minutes we run the large jobs
+  if  (( $(( SECONDS - last_run )) > 300 )); then
     last_run=$SECONDS
     printf "\nGrabbing next large job from the queue\n"
     deactivate
