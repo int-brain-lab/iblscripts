@@ -2,7 +2,6 @@ import traceback
 import logging
 from pathlib import Path
 import argparse
-import multiprocessing
 
 import numpy as np
 
@@ -108,7 +107,6 @@ if __name__ == '__main__':
     parser.add_argument('--env', type=str, help='Specify the environment (only compatible tasks are run)')
     parser.add_argument('--subjects-path', type=Path, default='/mnt/s0/Data/Subjects/', help='Specify the location of the data.')
     args = parser.parse_args()  # returns data from the options specified (echo)
-    multiprocessing.freeze_support()
     try:
         _logger.info(f'Running large task queue with environment {args.env}')
         task, _ = process_next_large_job(args.subjects_path, env=args.env)
