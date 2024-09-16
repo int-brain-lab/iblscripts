@@ -133,7 +133,7 @@ class TestVideoSyncQCBpod(base.IntegrationTest):
         task = VideoCompress(self.session_path, one=self.one, device_collection='raw_video_data', cameras=['left'])
         task.run()
 
-    @unittest.mock.patch('ibllib.qc.camera.CameraQC')
+    @unittest.mock.patch('ibllib.pipes.video_tasks.CameraQC')
     def test_videosync(self, mock_qc):
         task = VideoSyncQcBpod(self.session_path, device_collection='raw_video_data', cameras=['left'], sync='bpod',
                                one=self.one, collection='raw_behavior_data')
@@ -162,11 +162,12 @@ class TestVideoSyncQcCamlog(base.IntegrationTest):
         self.patch.start()
         self.one = ONE(**base.TEST_DB, mode='local')
 
-    def test_videosync(self):
+    @unittest.mock.patch('ibllib.qc.camera.CameraQCCamlog')
+    def test_videosync(self, mock_qc):
 
         task = VideoSyncQcCamlog(self.session_path, device_collection='raw_video_data', sync='nidq', sync_namespace='spikeglx',
                                  sync_collection='raw_sync_data', cameras=['left'], one=self.one)
-        status = task.run(qc=False)
+        status = task.run()
         self.assertEqual(status, 0)
         task.assert_expected_outputs()
 
@@ -178,6 +179,7 @@ class TestVideoSyncQcCamlog(base.IntegrationTest):
         left_cam_times = cam_times['left']
 
         np.testing.assert_array_equal(times, left_cam_times)
+        mock_qc.assert_called_once()
 
     def tearDown(self):
         shutil.rmtree(self.temp_dir)
@@ -207,7 +209,7 @@ class TestVideoSyncQCNidq(base.IntegrationTest):
         task = VideoSyncQcNidq(self.session_path, device_collection='raw_video_data', sync='nidq', sync_namespace='spikeglx',
                                sync_collection='raw_ephys_data', cameras=['left', 'right', 'body'], one=self.one)
         status = task.run()
-        self.assertEqual(mock_qc.call_count, 3)
+        self.assertEqual(3, mock_qc.call_count)
         self.assertEqual(status, 0)
         task.assert_expected_outputs()
 

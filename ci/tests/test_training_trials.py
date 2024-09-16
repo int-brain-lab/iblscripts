@@ -7,6 +7,7 @@ import numpy as np
 
 from packaging import version
 import ibllib.pipes.behavior_tasks as btasks
+from ibllib.io.extractors.bpod_trials import TrainingTrials
 import ibllib.io.raw_data_loaders as rawio
 from one.api import One
 import one.alf.io as alfio
@@ -17,7 +18,7 @@ TRIAL_KEYS = ['goCue_times', 'probabilityLeft', 'intervals', 'goCueTrigger_times
               'response_times', 'feedbackType', 'contrastLeft', 'feedback_times',
               'rewardVolume', 'choice', 'contrastRight', 'stimOn_times', 'firstMovement_times',
               'stimOnTrigger_times', 'included', 'stimOffTrigger_times', 'stimOff_times']
-TRIAL_KEYS_TRAINING = TRIAL_KEYS.copy()
+TRIAL_KEYS_TRAINING = TRIAL_KEYS + ['repNum']
 TRIAL_KEYS_TRAINING.pop(TRIAL_KEYS.index('included'))
 
 WHEEL_KEYS = ['position', 'timestamps']
@@ -36,7 +37,7 @@ class TestHabituation(base.IntegrationTest):
 class TestSessions(base.IntegrationTest):
     required_files = [
         'training/CSHL_003/2019-04-05/001',
-        'training/CSHL_007/2019-07-31/001',
+        'training/CSHL_007/2019-07-31/001',  # only the down-going front of a trial was detected
         'training/ZM_1150/2019-05-07/001',
         'Subjects_init/IBL_46/2019-02-19/001',  # timestamps a million years in future
         'Subjects_init/ZM_335/2018-12-13/001',  # rotary encoder ms instead of us
@@ -68,21 +69,20 @@ class TestSessions(base.IntegrationTest):
                     # check the trials objects
                     trials = alfio.load_object(session_path / 'alf', 'trials')
                     self.assertTrue(alfio.check_dimensions(trials) == 0)
-                    tkeys = TRIAL_KEYS + ['repNum']
+                    tkeys = TRIAL_KEYS_TRAINING if isinstance(job.extractor, TrainingTrials) else TRIAL_KEYS
                     self.assertEqual(set(trials.keys()), set(tkeys))
+                    """
+                    For CSHL_007/2019-07-31/001 only the down-going front of a trial was detected,
+                    resulting in an error for the go cue time. The fix was to extract the down-going
+                    front and subtract 100ms.
+                    """
+                    if 'CSHL_007' in session_path.as_posix():
+                        self.assertTrue(np.all(np.logical_not(np.isnan(trials.goCue_times))))
                     # check the wheel object if the extraction didn't fail
                     if job.status != -1:
                         wheel = alfio.load_object(session_path / 'alf', 'wheel')
                         self.assertTrue(alfio.check_dimensions(wheel) == 0)
                         self.assertEqual(set(wheel.keys()), set(WHEEL_KEYS))
-            """
-            For this session only the down-going front of a trial was detected, resulting in
-            an error for the go cue time. The fix was to extract the down-going front and
-            subtract 100ms.
-            """
-            session_path = subjects_path / 'CSHL_007/2019-07-31/001'
-            trials = alfio.load_object(session_path / 'alf', 'trials')
-            self.assertTrue(np.all(np.logical_not(np.isnan(trials.goCue_times))))
 
 
 if __name__ == '__main__':
