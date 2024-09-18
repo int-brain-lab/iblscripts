@@ -8,8 +8,8 @@ end
 
 % User parameters
 p = inputParser;
-p.addParameter('positiveML', [0, -1], @isnumeric)
-p.addParameter('positiveAP', [1, 0], @isnumeric)
+p.addParameter('positiveML', [0, -1], @isnumeric) %ML goes from medial to lateral. Opposite of Y-galvo axis.
+p.addParameter('positiveAP', [-1, 0], @isnumeric) %AP goes from posterior to anterior. Opposite of X-galvo axis.
 p.addParameter('centerML', 2.7, @isnumeric)
 p.addParameter('centerAP', -2.6, @isnumeric)
 p.addParameter('alyx', Alyx('',''), @(v)isa(v,'Alyx'))
@@ -68,7 +68,7 @@ fullfilepath = fullfile(ff,fn);
 fprintf('%s\n',ff);
 
 %% Generate the skeleton of the output struct
-meta = struct('version', '0.1.5');
+meta = struct('version', '0.1.6');
 
 % rig based
 meta.channelID.green = [1, 2]; % information about channel numbers (red/green)
