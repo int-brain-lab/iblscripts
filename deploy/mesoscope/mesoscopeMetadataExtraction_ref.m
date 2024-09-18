@@ -15,7 +15,7 @@ end
 % User parameters
 p = inputParser;
 p.addParameter('positiveML', [0, -1], @isnumeric)
-p.addParameter('positiveAP', [-1, 0], @isnumeric)
+p.addParameter('positiveAP', [1, 0], @isnumeric)
 p.addParameter('centerML', 2.7, @isnumeric)
 p.addParameter('centerAP', -2.6, @isnumeric)
 p.addParameter('alyx', Alyx('',''), @(v)isa(v,'Alyx'))
@@ -100,7 +100,7 @@ fullfilepath = fullfile(ff,fn);
 fprintf('%s\n',ff);
 
 %% Generate the skeleton of the output struct
-meta = struct('version', '0.1.3');
+meta = struct('version', '0.1.5');
 
 % rig based
 meta.channelID.green = [1, 2]; % information about channel numbers (red/green)
@@ -263,8 +263,8 @@ posAP = meta.imageOrientation.positiveAP; % this is pointing left in the image
 % [0, 0, 1] * TF = [centerML, centerAP];
 
 TF = pinv([posML, 1; posAP, 1; 0, 0, 1]) *...
-    [[0, SI.objectiveResolution/1000; -SI.objectiveResolution/1000, 0; 0, 0] + repmat([centerML, centerAP], 3, 1)];
-meta.coordsTF = TF;
+    [[SI.objectiveResolution/1000, 0; 0, SI.objectiveResolution/1000; 0, 0] + repmat([centerML, centerAP], 3, 1)];
+meta.coordsTF = round(TF,3);
 
 %% produce stitched mean image stack
 fprintf('Making stitched mean reference tiff fom raw data...\n ');
