@@ -244,7 +244,6 @@ meta.channelSaved = SI.hChannels.channelSave; %these were the channels being sav
 %% Coordinate transformation from ScanImage to stereotactic coords
 
 % center of the craniotomy in ScanImage coordinates (in mm)
-% here assuming first coord is x and second is y, to be confirmed
 try
     offset = SI.hDisplay.circleOffset;
 catch
