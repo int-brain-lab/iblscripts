@@ -196,10 +196,7 @@ class TestVideoSyncQCNidq(base.IntegrationTest):
 
         for ff in self.folder_path.rglob('*.*'):
             link = self.session_path.joinpath(ff.relative_to(self.folder_path))
-            if 'alf' in link.parts:
-                if 'dlc' in link.name or 'ROIMotionEnergy' in link.name:
-                    link.parent.mkdir(exist_ok=True, parents=True)
-                    link.symlink_to(ff)
+            if 'alf' in link.parts and not ('dlc' in link.name or 'ROIMotionEnergy' in link.name):
                 continue
             link.parent.mkdir(exist_ok=True, parents=True)
             link.symlink_to(ff)
@@ -226,11 +223,8 @@ class TestLightningPose(base.IntegrationTest):
 
         for ff in self.folder_path.rglob('*.*'):
             link = self.session_path.joinpath(ff.relative_to(self.folder_path))
-            if 'alf' in link.parts:
+            if 'alf' in link.parts and not ('lightningPose' in link.name):
                 # We symlink the lp output files as we don't actually want to run the full task during the test
-                if 'lightningPose' in link.name:
-                    link.parent.mkdir(exist_ok=True, parents=True)
-                    link.symlink_to(ff)
                 continue
             link.parent.mkdir(exist_ok=True, parents=True)
             link.symlink_to(ff)
