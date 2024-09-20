@@ -10,8 +10,8 @@ end
 p = inputParser;
 p.addParameter('positiveML', [0, -1], @isnumeric) %ML goes from medial to lateral. Opposite of Y-galvo axis.
 p.addParameter('positiveAP', [-1, 0], @isnumeric) %AP goes from posterior to anterior. Opposite of X-galvo axis.
-p.addParameter('centerML', 2.6, @isnumeric)
-p.addParameter('centerAP', -2.0, @isnumeric)
+p.addParameter('centerML', NaN, @isnumeric)
+p.addParameter('centerAP', NaN, @isnumeric)
 p.addParameter('alyx', Alyx('',''), @(v)isa(v,'Alyx'))
 p.parse(varargin{:})
 
@@ -107,13 +107,23 @@ meta.centerMM.x = NaN; % in mm, but still in SI coords
 meta.centerMM.y = NaN; % in mm, but still in SI coords
 
 % extracted from Alyx (if possible)
+userCenterValues = [p.Results.centerML p.Results.centerAP];
+isUserDefined = ~any(isnan(userCenterValues));
 try
     [meta.centerMM.ML, meta.centerMM.AP] = getCraniotomyCoordinates(subj,'alyx',alyx); % from surgery - centre of the window
+    if isUserDefined && ~all([meta.centerMM.ML, meta.centerMM.AP] == userCenterValues)
+      warning(['The craniotomy coordinates provided do not match those in alyx, '...
+               'please update using update_craniotomy.py... Using alyx coordinates!'])
+    end
 catch
-    meta.centerMM.ML = p.Results.centerML;
-    meta.centerMM.AP = p.Results.centerAP;
-    warning('Could not find craniotomy coordinates in alyx, please upload using update_craniotomy.py... Using default coordinates!');
-    %TO DO input manually here? Abort script if not found?
+    if isUserDefined
+        meta.centerMM.ML = p.Results.centerML;
+        meta.centerMM.AP = p.Results.centerAP;
+    else
+        meta.centerMM.ML = input('Please enter the center ML value: ');
+        meta.centerMM.AP = input('Please enter the center AP value: ');
+    end
+    warning('Could not find craniotomy coordinates in alyx, please upload using update_craniotomy.py... Using user coordinates!')
 end
 sprintf('Using the following coordinate: [%.1f %.1f]', meta.centerMM.ML, meta.centerMM.AP);
 
