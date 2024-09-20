@@ -10,8 +10,8 @@ end
 p = inputParser;
 p.addParameter('positiveML', [0, -1], @isnumeric) %ML goes from medial to lateral. Opposite of Y-galvo axis.
 p.addParameter('positiveAP', [-1, 0], @isnumeric) %AP goes from posterior to anterior. Opposite of X-galvo axis.
-p.addParameter('centerML', 2.7, @isnumeric)
-p.addParameter('centerAP', -2.6, @isnumeric)
+p.addParameter('centerML', NaN, @isnumeric)
+p.addParameter('centerAP', NaN, @isnumeric)
 p.addParameter('alyx', Alyx('',''), @(v)isa(v,'Alyx'))
 p.parse(varargin{:})
 
@@ -23,7 +23,7 @@ alyx = p.Results.alyx;
 reg_expref = '(?<date>^[0-9\-]+)_(?<seq>\w+)_(?<subject>\w+)';
 reg_tiff = [reg_expref '_(?<type>\w+)_(?<acq>\d+)_(?<file>\d+)'];
 
-%try as full tiff file-path
+%try as full tiff (or tif.mat) file-path
 if isfile(filename)
     [ff, fn, fext] = fileparts(filename);
     parsed = regexp(fn, reg_tiff, 'names');
@@ -35,25 +35,28 @@ if isfile(filename)
     % TODO to fool proof this with pattern matching
     fileList = dir(fullfile(ff, ['*', fext]));
 else
-    %try as a final data path
-    fileList = dir(fullfile(filename,'*.tif'));
+    %try as a final data path (first look for existing metadata structure, then try raw tifs)
+    fileList = dir(fullfile(filename,'*2P*.mat'));
     try
         if isempty(fileList)
-            %then as animal name (take latest ExpRef)
-            if dat.subjectExists(filename)
-                subj = filename;
-                ExpRefs = dat.listExps(subj);
-                ExpRef = ExpRefs{end};
-                %then as ExpRef
-            elseif ~contains(filename,'\') && dat.expExists(filename)
-                ExpRef = filename;
-            else
-                error('%s is not a valid animal name, expRef, or tiff data path.',filename)
-            end
-            datPath = dat.expPath(ExpRef,'local');
-            fileList = dir(fullfile(datPath{1},'*.tif'));   
+            fileList = dir(fullfile(filename,'*.tif'));
             if isempty(fileList)
-                warning('%s does not exist or does not contain tiffs\n',datPath{1});
+                %then as animal name (take latest ExpRef)
+                if dat.subjectExists(filename)
+                    subj = filename;
+                    ExpRefs = dat.listExps(subj);
+                    ExpRef = ExpRefs{end};
+                    %then as ExpRef
+                elseif ~contains(filename,'\') && dat.expExists(filename)
+                    ExpRef = filename;
+                else
+                    error('%s is not a valid animal name, expRef, or tiff data path.',filename)
+                end
+                datPath = dat.expPath(ExpRef,'local');
+                fileList = dir(fullfile(datPath{1},'*.tif'));
+                if isempty(fileList)
+                    warning('%s does not exist or does not contain tiffs\n',datPath{1});
+                end
             end
         end
         ff = fileList(1).folder;
@@ -68,7 +71,18 @@ fullfilepath = fullfile(ff,fn);
 fprintf('%s\n',ff);
 
 %% Generate the skeleton of the output struct
-meta = struct('version', '0.1.6');
+
+[ff, fn, fext] = fileparts(fullfilepath);
+if strcmp(fext,'.mat')
+    load(fullfilepath); %this loads the already computed meta struct and uses the rawSIMeta field
+    fprintf('Starting from previously extracted rawScanImageMeta, re-computing meta-data...\n');
+    meta_exists = true;
+else
+    meta_exists = false;
+    meta = struct;
+end
+
+meta.version = '0.2.0';
 
 % rig based
 meta.channelID.green = [1, 2]; % information about channel numbers (red/green)
@@ -93,22 +107,35 @@ meta.centerMM.x = NaN; % in mm, but still in SI coords
 meta.centerMM.y = NaN; % in mm, but still in SI coords
 
 % extracted from Alyx (if possible)
+userCenterValues = [p.Results.centerML p.Results.centerAP];
+isUserDefined = ~any(isnan(userCenterValues));
 try
     [meta.centerMM.ML, meta.centerMM.AP] = getCraniotomyCoordinates(subj,'alyx',alyx); % from surgery - centre of the window
+    if isUserDefined && ~all([meta.centerMM.ML, meta.centerMM.AP] == userCenterValues)
+      warning(['The craniotomy coordinates provided do not match those in alyx, '...
+               'please update using update_craniotomy.py... Using alyx coordinates!'])
+    end
 catch
-    meta.centerMM.ML = p.Results.centerML;
-    meta.centerMM.AP = p.Results.centerAP;
-    warning('Could not find craniotomy coordinates in alyx, please upload using update_craniotomy.py... Using default coordinates!');
-    %TO DO input manually here? Abort script if not found?
+    if isUserDefined
+        meta.centerMM.ML = p.Results.centerML;
+        meta.centerMM.AP = p.Results.centerAP;
+    else
+        meta.centerMM.ML = input('Please enter the center ML value: ');
+        meta.centerMM.AP = input('Please enter the center AP value: ');
+    end
+    warning('Could not find craniotomy coordinates in alyx, please upload using update_craniotomy.py... Using user coordinates!')
 end
 sprintf('Using the following coordinate: [%.1f %.1f]', meta.centerMM.ML, meta.centerMM.AP);
 
 % per single experiment
-meta.rawScanImageMeta = struct; % SI config and all the header info from tiff
+if ~meta_exists
+    meta.rawScanImageMeta = struct; % SI config and all the header info from tiff
+end
 meta.PMTGain = []; %TO DO input manually
 meta.channelSaved = [];
 
 % for each FOV (extracted directly from the header)
+meta.FOV = struct;
 % TODO make sure dual plane case is taken care of
 meta.FOV.slice_id = NaN; %unique identifier of this FOV's slice in stack
 meta.FOV.roiUUID = NaN; %unique identifier of this FOV's roi
@@ -135,30 +162,64 @@ meta.FOV.nXnYnZ = [NaN, NaN, 1]; % number of pixels in the images
 %meta.FOV.dualPlaneLaserPowerPrc = [];
 %meta.FOV.laserPowerW = [];
 
-
 %%
 % keyboard;
-%%
-
-%TODO: if tiffs are not there anymore, re-extract meta-data from the header
-%info contained in the .mat file. Use previously extracted meta-data to
-%recover nFrames, but re-compute everything else from scratch.
-
-fInfo = imfinfo(fullfilepath);
-
-% these should be the same across all frames apart from timestamps and
-% framenumbers in the ImageDescription field
-meta.rawScanImageMeta.Artist = jsondecode(fInfo(1).Artist);
-meta.rawScanImageMeta.ImageDescription = fInfo(1).ImageDescription;
-meta.rawScanImageMeta.Software = fInfo(1).Software;
-meta.rawScanImageMeta.Format = fInfo(1).Format;
-meta.rawScanImageMeta.Width = fInfo(1).Width;
-meta.rawScanImageMeta.Height = fInfo(1).Height;
-meta.rawScanImageMeta.BitDepth = fInfo(1).BitDepth;
-meta.rawScanImageMeta.ByteOrder = fInfo(1).ByteOrder;
-meta.rawScanImageMeta.XResolution = fInfo(1).XResolution;
-meta.rawScanImageMeta.YResolution = fInfo(1).YResolution;
-meta.rawScanImageMeta.ResolutionUnit = fInfo(1).ResolutionUnit;
+%% read raw metadata
+%if we did not already do this, extract metadata from the tiff header.
+if ~meta_exists
+    
+    fInfo = imfinfo(fullfilepath);
+    
+    % these should be the same across all frames apart from timestamps and
+    % framenumbers in the ImageDescription field
+    meta.rawScanImageMeta.Artist = jsondecode(fInfo(1).Artist);
+    meta.rawScanImageMeta.ImageDescription = fInfo(1).ImageDescription;
+    meta.rawScanImageMeta.Software = fInfo(1).Software;
+    meta.rawScanImageMeta.Format = fInfo(1).Format;
+    meta.rawScanImageMeta.Width = fInfo(1).Width;
+    meta.rawScanImageMeta.Height = fInfo(1).Height;
+    meta.rawScanImageMeta.BitDepth = fInfo(1).BitDepth;
+    meta.rawScanImageMeta.ByteOrder = fInfo(1).ByteOrder;
+    meta.rawScanImageMeta.XResolution = fInfo(1).XResolution;
+    meta.rawScanImageMeta.YResolution = fInfo(1).YResolution;
+    meta.rawScanImageMeta.ResolutionUnit = fInfo(1).ResolutionUnit;
+    
+    nFiles = numel(fileList);
+    %nFiles = 1; %for debugging
+    nFramesAccum = 0;
+    fprintf('Extracting metadata from tiff nr. ');
+    for iFile = 1:nFiles
+        
+        %display a iFile/nFiles counter (and replace previous entry)
+        if iFile>1
+            for k=0:log10(iFile-1), fprintf('\b'); end
+            for kk=0:log10(nFiles), fprintf('\b'); end
+            fprintf('\b')
+        end
+        fprintf('%d/%d', iFile, nFiles);
+        
+        fInfo = imfinfo(fullfile(fileList(iFile).folder, fileList(iFile).name));
+        nFrames = numel(fInfo);
+        for iFrame = 1:nFrames
+            fImageDescription = splitlines(fInfo(iFrame).ImageDescription);
+            fImageDescription = fImageDescription(1:end-1);
+            for iLine = 1:numel(fImageDescription)
+                str2eval = sprintf('imageDescription(%d).%s', iFrame + nFramesAccum, fImageDescription{iLine});
+                evalc(str2eval);
+            end
+        end
+        nFramesAccum = nFramesAccum + nFrames;
+    end
+    fprintf('\n')
+    meta.acquisitionStartTime = imageDescription(1).epoch;
+    meta.nFrames = nFramesAccum;
+    %TODO add nVolumeFrames (for multi-channel / multi-depth data)
+    
+    % Save raw FPGA timestamps array
+    timestamps_filename = fullfile(ff, 'rawImagingData.times_scanImage.npy');
+    writeNPY([imageDescription.frameTimestamps_sec]', timestamps_filename)
+    
+end
 
 fArtist = meta.rawScanImageMeta.Artist;
 
@@ -168,36 +229,6 @@ for i = 1:length(fSoftware)
     evalc(fSoftware{i});
 end
 
-nFiles = numel(fileList);
-%nFiles = 1; %for debugging
-nFramesAccum = 0;
-fprintf('Extracting metadata from tiff nr. ');
-for iFile = 1:nFiles
-    
-    %display a iFile/nFiles counter (and replace previous entry)
-    if iFile>1
-        for k=0:log10(iFile-1), fprintf('\b'); end
-        for kk=0:log10(nFiles), fprintf('\b'); end
-        fprintf('\b')
-    end
-    fprintf('%d/%d', iFile, nFiles);
-    
-    fInfo = imfinfo(fullfile(fileList(iFile).folder, fileList(iFile).name));
-    nFrames = numel(fInfo);
-    for iFrame = 1:nFrames
-        fImageDescription = splitlines(fInfo(iFrame).ImageDescription);
-        fImageDescription = fImageDescription(1:end-1);
-        for iLine = 1:numel(fImageDescription)
-            str2eval = sprintf('imageDescription(%d).%s', iFrame + nFramesAccum, fImageDescription{iLine});
-            evalc(str2eval);
-        end
-    end
-    nFramesAccum = nFramesAccum + nFrames;
-end
-fprintf('\n')
-meta.acquisitionStartTime = imageDescription(1).epoch;
-meta.nFrames = nFramesAccum;
-%TODO add nVolumeFrames (for multi-channel / multi-depth data)
 
 %% useful SI parameters
 meta.scanImageParams = struct('objectiveResolution', SI.objectiveResolution);
@@ -223,11 +254,15 @@ meta.channelSaved = SI.hChannels.channelSave; %these were the channels being sav
 %% Coordinate transformation from ScanImage to stereotactic coords
 
 % center of the craniotomy in ScanImage coordinates (in mm)
-% here assuming first coord is x and second is y, to be confirmed
-meta.centerMM.x = SI.hDisplay.circleOffset(1)/1000; % defined in microns
-meta.centerMM.y = SI.hDisplay.circleOffset(2)/1000;
-meta.centerDeg.x = SI.hDisplay.circleOffset(1)/SI.objectiveResolution;
-meta.centerDeg.y = SI.hDisplay.circleOffset(2)/SI.objectiveResolution;
+try
+    offset = SI.hDisplay.circleOffset;
+catch
+    offset = [0, 0]; %in old data, assume window was centered
+end
+meta.centerMM.x = offset(1)/1000; % defined in microns
+meta.centerMM.y = offset(2)/1000;
+meta.centerDeg.x = offset(1)/SI.objectiveResolution;
+meta.centerDeg.y = offset(2)/SI.objectiveResolution;
 
 % center of the craniotomy estimated during surgery (in stereotaxic coords)
 centerML = meta.centerMM.ML;
@@ -263,7 +298,7 @@ si_rois = si_rois_all(logical([si_rois_all.enable])); %only consider the rois th
 
 %look up the depths we used
 % if SI.hStackManager.enable
-    Zs = SI.hStackManager.zs;
+Zs = SI.hStackManager.zs;
 % else
 %     Zs = [si_rois.zs];
 % end
@@ -298,7 +333,7 @@ for iSlice = 1:nZs
             nXnY = si_rois(iRoi).scanfields(1).pixelResolutionXY';
             
             meta.FOV(iFOV).slice_id = iSlice-1; %assuming 0-indexing
-            meta.FOV(iFOV).roiUUID = si_rois(iRoi).roiUuid; %this is scanimage ID            
+            meta.FOV(iFOV).roiUUID = si_rois(iRoi).roiUuid; %this is scanimage ID
             meta.FOV(iFOV).Zs = Zvals(iSlice);
             
             meta.FOV(iFOV).nXnYnZ = [nXnY, 1];
@@ -312,7 +347,7 @@ for iSlice = 1:nZs
             meta.FOV(iFOV).MM.topRight = [meta.FOV(iFOV).Deg.topRight - centerDegXY, 1]*TF;
             meta.FOV(iFOV).MM.bottomLeft = [meta.FOV(iFOV).Deg.bottomLeft - centerDegXY, 1]*TF;
             meta.FOV(iFOV).MM.bottomRight = [meta.FOV(iFOV).Deg.bottomRight - centerDegXY, 1]*TF;
-
+            
             nLines_allFOVs(iFOV) = meta.FOV(iFOV).nXnYnZ(2);
         end
     end
@@ -330,7 +365,7 @@ for iSlice = 1:nZs
     nFOVs_at_this_z(iSlice) = sum(iFOVs_at_this_z);
     nValidLines(iSlice) = sum(nLines_allFOVs(iFOVs_at_this_z));
     nLines{iSlice} = nLines_allFOVs(iFOVs_at_this_z);
-    nLinesPerGap = (fInfo(1).Height - nValidLines(iSlice)) / (nFOVs_at_this_z(iSlice) - 1);
+    nLinesPerGap = (meta.rawScanImageMeta.Height - nValidLines(iSlice)) / (nFOVs_at_this_z(iSlice) - 1);
     fovStartIdx = [1, cumsum(nLines{iSlice}(1:end-1) + nLinesPerGap) + 1];
     fovEndIdx = fovStartIdx + nLines{iSlice} - 1;
     iFOVs = find(iFOVs_at_this_z);
@@ -344,14 +379,10 @@ end
 
 % [ff_top,ff_raw] = fileparts(ff);
 
-% Save raw FPGA timestamps array
-timestamps_filename = fullfile(ff, 'rawImagingData.times_scanImage.npy');
-writeNPY([imageDescription.frameTimestamps_sec]', timestamps_filename)
-
 % 3D projection on the brain surface
 %TODO: only need to do this for the first raw_imaging_data folder
 % meta = projectMLAPDV(meta);
-% 
+%
 % % Save 3D projection data in separate npy files
 % % saves them as 'stitched arrays', similar to the raw tiff frames where the
 % % different FOVs are concatenated vertically
@@ -375,6 +406,7 @@ writeNPY([imageDescription.frameTimestamps_sec]', timestamps_filename)
 % %end
 % metaForJson.FOV = FOV;
 
+%% save everything
 jsonFileName = fullfile(ff, '_ibl_rawImagingData.meta.json');
 % txt = jsonencode(meta, 'PrettyPrint', true);
 txt = jsonencode(meta, 'ConvertInfAndNaN', false);
@@ -384,6 +416,8 @@ fclose(fid);
 
 matFileName = fullfile(ff, [fn, '.mat']);
 save(matFileName, 'meta');
+
+fprintf('Done!\n')
 
 end
 
