@@ -34,6 +34,15 @@ if isfile(filename)
     % present in the folder
     % TODO to fool proof this with pattern matching
     fileList = dir(fullfile(ff, ['*', fext]));
+
+%check if there is already a metadata json, if so, choose that.
+elseif ~isempty(dir(fullfile(filename,'*meta.json')))
+    fileList = dir(fullfile(filename,'*meta.json'));
+    ff = fileList.folder;
+    fn = fileList.name;
+    parsed = regexp(ff, filesep);
+    subj = ff(parsed(end-3)+1:parsed(end-2)-1); %should return subject if folder structure is standard (TODO improve w pattern matching)
+
 else
     %try as a final data path
     fileList = dir(fullfile(filename,'*.tif'));
@@ -68,7 +77,35 @@ fullfilepath = fullfile(ff,fn);
 fprintf('%s\n',ff);
 
 %% Generate the skeleton of the output struct
+<<<<<<< Updated upstream
 meta = struct('version', '0.1.5');
+=======
+
+%by default, assume metadata doesn't exist
+meta_exists = false;
+meta = struct;
+    
+[ff, fn, fext] = fileparts(fullfilepath);
+if strcmp(fext,'.json') %load previously computed json if possible
+    txt = fileread(fullfilepath);
+    meta = jsondecode(txt);
+elseif strcmp(fext,'.mat')
+    load(fullfilepath); %load previously computed meta struct and uses the rawSIMeta field
+end
+if isfield(meta,'nFrames')
+    fprintf('Starting from previously extracted rawScanImageMeta, re-computing meta-data...\n');
+    meta_exists = true;
+else
+    if isfile(fullfile(ff,'rawImagingData.times_scanImage.npy'))
+        times_scanImage = readNPY(fullfile(ff,'rawImagingData.times_scanImage.npy'));
+        meta.nFrames = length(times_scanImage);
+        fprintf('Starting from previously extracted rawScanImageMeta, re-computing meta-data...\n');
+        meta_exists = true;
+    end
+end
+
+meta.version = '0.2.1';
+>>>>>>> Stashed changes
 
 % rig based
 meta.channelID.green = [1, 2]; % information about channel numbers (red/green)
@@ -104,7 +141,13 @@ end
 sprintf('Using the following coordinate: [%.1f %.1f]', meta.centerMM.ML, meta.centerMM.AP);
 
 % per single experiment
+<<<<<<< Updated upstream
 meta.rawScanImageMeta = struct; % SI config and all the header info from tiff
+=======
+if ~meta_exists
+    meta.rawScanImageMeta = struct; % should contain SI config and all the header info from tiff
+end
+>>>>>>> Stashed changes
 meta.PMTGain = []; %TO DO input manually
 meta.channelSaved = [];
 
@@ -138,6 +181,7 @@ meta.FOV.nXnYnZ = [NaN, NaN, 1]; % number of pixels in the images
 
 %%
 % keyboard;
+<<<<<<< Updated upstream
 %%
 
 %TODO: if tiffs are not there anymore, re-extract meta-data from the header
@@ -159,6 +203,71 @@ meta.rawScanImageMeta.ByteOrder = fInfo(1).ByteOrder;
 meta.rawScanImageMeta.XResolution = fInfo(1).XResolution;
 meta.rawScanImageMeta.YResolution = fInfo(1).YResolution;
 meta.rawScanImageMeta.ResolutionUnit = fInfo(1).ResolutionUnit;
+=======
+%% read raw metadata
+%if we did not already do this, extract metadata from the tiff headers.
+if ~meta_exists
+    
+    [ff, fn, fext] = fileparts(fullfilepath);
+    if strcmp(fn(end-3:end),'.tif')
+        tiffilepath = fullfile(ff,fn);
+    else
+        tiffilepath = fullfile(ff,[fn,'.tif']);
+    end
+    fInfo = imfinfo(tiffilepath);
+    fileList = dir(fullfile(ff, '*tif'));
+    
+    % these should be the same across all frames apart from timestamps and
+    % framenumbers in the ImageDescription field
+    meta.rawScanImageMeta.Artist = jsondecode(fInfo(1).Artist);
+    meta.rawScanImageMeta.ImageDescription = fInfo(1).ImageDescription;
+    meta.rawScanImageMeta.Software = fInfo(1).Software;
+    meta.rawScanImageMeta.Format = fInfo(1).Format;
+    meta.rawScanImageMeta.Width = fInfo(1).Width;
+    meta.rawScanImageMeta.Height = fInfo(1).Height;
+    meta.rawScanImageMeta.BitDepth = fInfo(1).BitDepth;
+    meta.rawScanImageMeta.ByteOrder = fInfo(1).ByteOrder;
+    meta.rawScanImageMeta.XResolution = fInfo(1).XResolution;
+    meta.rawScanImageMeta.YResolution = fInfo(1).YResolution;
+    meta.rawScanImageMeta.ResolutionUnit = fInfo(1).ResolutionUnit;
+    
+    nFiles = numel(fileList);
+    %nFiles = 1; %for debugging
+    nFramesAccum = 0;
+    fprintf('Extracting metadata from tiff nr. ');
+    for iFile = 1:nFiles
+        
+        %display a iFile/nFiles counter (and replace previous entry)
+        if iFile>1
+            for k=0:log10(iFile-1), fprintf('\b'); end
+            for kk=0:log10(nFiles), fprintf('\b'); end
+            fprintf('\b')
+        end
+        fprintf('%d/%d', iFile, nFiles);
+        
+        fInfo = imfinfo(fullfile(fileList(iFile).folder, fileList(iFile).name));
+        nFrames = numel(fInfo);
+        for iFrame = 1:nFrames
+            fImageDescription = splitlines(fInfo(iFrame).ImageDescription);
+            fImageDescription = fImageDescription(1:end-1);
+            for iLine = 1:numel(fImageDescription)
+                str2eval = sprintf('imageDescription(%d).%s', iFrame + nFramesAccum, fImageDescription{iLine});
+                evalc(str2eval);
+            end
+        end
+        nFramesAccum = nFramesAccum + nFrames;
+    end
+    fprintf('\n')
+    meta.acquisitionStartTime = imageDescription(1).epoch;
+    meta.nFrames = nFramesAccum;
+    %TODO add nVolumeFrames (for multi-channel / multi-depth data)
+    
+    % Save raw FPGA timestamps array
+    timestamps_filename = fullfile(ff, 'rawImagingData.times_scanImage.npy');
+    writeNPY([imageDescription.frameTimestamps_sec]', timestamps_filename)
+    
+end
+>>>>>>> Stashed changes
 
 fArtist = meta.rawScanImageMeta.Artist;
 
