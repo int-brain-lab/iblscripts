@@ -115,14 +115,19 @@ fprintf('%s\n',ff);
 if strcmp(fext,'.json')
     txt = fileread(fullfilepath);
     meta = jsondecode(txt);
-    fprintf('Starting from previously extracted rawScanImageMeta, re-computing meta-data...\n');
-    meta_exists = true;
+    if isfield(meta,'nFrames')
+        fprintf('Starting from previously extracted rawScanImageMeta, re-computing meta-data...\n');
+        meta_exists = true;
+    else
+        meta_exists = false;
+        meta = struct;
+    end
 else
     meta_exists = false;
     meta = struct;
 end
 
-meta.version = '0.2.0';
+meta.version = '0.2.1';
 
 % rig based
 meta.channelID.green = [1, 2]; % information about channel numbers (red/green)
@@ -178,10 +183,17 @@ meta.channelSaved = [];
 %%
 % keyboard;
 %% read raw metadata
-%if we did not already do this, extract metadata from the tiff header.
+%if we did not already do this, extract metadata from the tiff headers.
 if ~meta_exists
     
-    fInfo = imfinfo(fullfilepath);
+    [ff, fn, fext] = fileparts(fullfilepath);
+    if strcmp(fn(end-3:end),'.tif')
+        tiffilepath = fullfile(ff,fn);
+    else
+        tiffilepath = fullfile(ff,[fn,'.tif']);
+    end
+    fInfo = imfinfo(tiffilepath);
+    fileList = dir(fullfile(ff, '*tif'));
     
     % these should be the same across all frames apart from timestamps and
     % framenumbers in the ImageDescription field

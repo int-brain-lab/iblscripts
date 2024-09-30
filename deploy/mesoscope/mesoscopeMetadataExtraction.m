@@ -34,6 +34,15 @@ if isfile(filename)
     % present in the folder
     % TODO to fool proof this with pattern matching
     fileList = dir(fullfile(ff, ['*', fext]));
+
+%check if there is already a metadata json, if so, choose that.
+elseif ~isempty(dir(fullfile(filename,'*meta.json')))
+    fileList = dir(fullfile(filename,'*meta.json'));
+    ff = fileList.folder;
+    fn = fileList.name;
+    parsed = regexp(ff, filesep);
+    subj = ff(parsed(end-3)+1:parsed(end-2)-1); %should return subject if folder structure is standard (TODO improve w pattern matching)
+
 else
     %try as a final data path (first look for existing metadata structure, then try raw tifs)
     fileList = dir(fullfile(filename,'*2P*.mat'));
@@ -72,17 +81,30 @@ fprintf('%s\n',ff);
 
 %% Generate the skeleton of the output struct
 
+%by default, assume metadata doesn't exist
+meta_exists = false;
+meta = struct;
+    
 [ff, fn, fext] = fileparts(fullfilepath);
-if strcmp(fext,'.mat')
-    load(fullfilepath); %this loads the already computed meta struct and uses the rawSIMeta field
+if strcmp(fext,'.json') %load previously computed json if possible
+    txt = fileread(fullfilepath);
+    meta = jsondecode(txt);
+elseif strcmp(fext,'.mat')
+    load(fullfilepath); %load previously computed meta struct and uses the rawSIMeta field
+end
+if isfield(meta,'nFrames')
     fprintf('Starting from previously extracted rawScanImageMeta, re-computing meta-data...\n');
     meta_exists = true;
 else
-    meta_exists = false;
-    meta = struct;
+    if isfile(fullfile(ff,'rawImagingData.times_scanImage.npy'))
+        times_scanImage = readNPY(fullfile(ff,'rawImagingData.times_scanImage.npy'));
+        meta.nFrames = length(times_scanImage);
+        fprintf('Starting from previously extracted rawScanImageMeta, re-computing meta-data...\n');
+        meta_exists = true;
+    end
 end
 
-meta.version = '0.2.0';
+meta.version = '0.2.1';
 
 % rig based
 meta.channelID.green = [1, 2]; % information about channel numbers (red/green)
@@ -129,7 +151,7 @@ sprintf('Using the following coordinate: [%.1f %.1f]', meta.centerMM.ML, meta.ce
 
 % per single experiment
 if ~meta_exists
-    meta.rawScanImageMeta = struct; % SI config and all the header info from tiff
+    meta.rawScanImageMeta = struct; % should contain SI config and all the header info from tiff
 end
 meta.PMTGain = []; %TO DO input manually
 meta.channelSaved = [];
@@ -165,10 +187,17 @@ meta.FOV.nXnYnZ = [NaN, NaN, 1]; % number of pixels in the images
 %%
 % keyboard;
 %% read raw metadata
-%if we did not already do this, extract metadata from the tiff header.
+%if we did not already do this, extract metadata from the tiff headers.
 if ~meta_exists
     
-    fInfo = imfinfo(fullfilepath);
+    [ff, fn, fext] = fileparts(fullfilepath);
+    if strcmp(fn(end-3:end),'.tif')
+        tiffilepath = fullfile(ff,fn);
+    else
+        tiffilepath = fullfile(ff,[fn,'.tif']);
+    end
+    fInfo = imfinfo(tiffilepath);
+    fileList = dir(fullfile(ff, '*tif'));
     
     % these should be the same across all frames apart from timestamps and
     % framenumbers in the ImageDescription field
