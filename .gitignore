@@ -8,7 +8,7 @@ __pycache__
 deploy/videopc/bonsai/bin/
 deploy/mesoscope/+ScanImageTiffReader/
 deploy/serverpc/dlc/weights/
-deploy/serverpc/iblsorter/run_iblsorter.sh
+deploy/serverpc/iblsorter/sort_recording.sh
 docs/_build
 scratch/
 src/
