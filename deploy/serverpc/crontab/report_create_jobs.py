@@ -13,8 +13,7 @@ one = ONE(cache_rest=None)
 
 # Label the lab endpoint json field with health indicators
 try:
-    one = ONE(cache_rest=None)
-    report_health(one=one)
+    report_health(one.alyx)
     _logger.info("Reported health of local server")
 except BaseException:
     _logger.error(f"Error in report_health\n {traceback.format_exc()}")
