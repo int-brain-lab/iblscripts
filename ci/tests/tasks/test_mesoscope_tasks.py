@@ -103,7 +103,7 @@ class TestTimelineTrials(base.IntegrationTest):
         # Check that we can extract the wheel as it's from a counter channel, instead of raw analogue input
         wheel, moves = timeline_trials.get_wheel_positions()
         self.assertCountEqual(['timestamps', 'position'], wheel.keys())
-        self.assertCountEqual(['intervals', 'peakAmplitude', 'wheelMoves_peakVelocity_times'], moves.keys())
+        self.assertCountEqual(['intervals', 'peakAmplitude', 'peakVelocity_times'], moves.keys())
         self.assertEqual(4090, len(wheel['timestamps']))
         np.testing.assert_array_almost_equal([20.809, 20.811, 20.812, 20.813, 20.814], wheel['timestamps'][:5])
         np.testing.assert_array_almost_equal([0., 0.00153398, 0.00306796, 0.00460194, 0.00613592], wheel['position'][:5])
