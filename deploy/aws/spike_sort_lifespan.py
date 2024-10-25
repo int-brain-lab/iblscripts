@@ -1,9 +1,10 @@
-# sudo docker compose exec spikesorter python /root/Documents/PYTHON/iblscripts/deploy/aws/spike_sort_lifespan.py 556b57db-e4bd-456b-b0bf-d0ddc56603ff
+# sudo docker compose exec spikesorter python
+# /root/Documents/PYTHON/iblscripts/deploy/aws/spike_sort_lifespan.py
+# 556b57db-e4bd-456b-b0bf-d0ddc56603ff
 import argparse
 from one.api import ONE
 from ibllib.pipes.ephys_tasks import SpikeSorting, EphysPulses
 from brainbox.io.one import SpikeSortingLoader
-from ibllib.ephys import sync_probes
 
 
 if __name__ == "__main__":
