@@ -42,7 +42,8 @@ class TestDynamicPipeline(base.IntegrationTest):
         self.compare_dicts(alyx_tasks_from_dict, alyx_tasks_from_pipe)
 
     def compare_dicts(self, dict1, dict2, id=True):
-        self.assertEqual(len(dict2), len(dict1))
+        self.assertSetEqual(set([pl['name'] for pl in dict1]),
+                            set([pl['name'] for pl in dict2]))
         for d1, d2 in zip(dict1, dict2):
             if id:
                 self.assertEqual(d2['id'], d1['id'])
@@ -147,7 +148,8 @@ class TestStandardPipelines(base.IntegrationTest):
         self.compare_dicts(dy_pipe, expected_pipe)
 
     def compare_dicts(self, dict1, dict2):
-        self.assertEqual(len(dict1), len(dict2))
+        self.assertSetEqual(set([pl['name'] for pl in dict1]),
+                            set([pl['name'] for pl in dict2]))
         for d1, d2 in zip(dict1, dict2):
             for k in ('executable', 'parents', 'name', 'arguments'):
                 with self.subTest(key=k, name_1=d1.get('name'), name_2=d2.get('name')):
