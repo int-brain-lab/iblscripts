@@ -5,7 +5,7 @@ import scipy.interpolate
 import matplotlib.pyplot as plt
 
 from one.api import ONE
-from one.alf.files import get_session_path
+from one.alf.path import get_session_path
 from ibllib.io.extractors import training_wheel
 from ibllib.pipes.behavior_tasks import ChoiceWorldTrialsNidq
 
