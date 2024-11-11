@@ -2,76 +2,33 @@ import shutil
 
 import pandas as pd
 
-from one.api import ONE
-from one.registration import RegistrationClient
-from ibllib.io.session_params import read_params
-from ibllib.io.extractors import fibrephotometry
-import ibllib.pipes.photometry_tasks as photometry_tasks
+
+import ibllib.io.session_params
+import ibllib.pipes.neurophotometrics as photometry_tasks
 
 from ci.tests import base
 
 
-class TestCopy2Server(base.IntegrationTest):
-
-    def test_check_timestamps(self):
-        # LOAD THE CSV FILES
-        FOLDER_RAW_PHOTOMETRY = self.data_path.joinpath('dynamic_pipeline', 'photometry', 'rigs_data', 'photometry')
-        daily_folders = [f for f in FOLDER_RAW_PHOTOMETRY.glob('20*') if f.is_dir()]
-
-        for daily_folder in daily_folders:
-            daq_files = list(daily_folder.glob("sync_*.tdms"))
-            photometry_files = list(daily_folder.glob("raw_photometry*.csv"))
-            fp_config_files = list(daily_folder.glob("FP3002Config*.xml"))
-            daq_files.sort()
-            photometry_files.sort()
-            fp_config_files.sort()
-            assert len(daq_files) == len(photometry_files) == len(fp_config_files)
-            n_run = len(daq_files)
-            for n in range(n_run):
-                daq_file = daq_files[n]
-                photometry_file = photometry_files[n]
-                fibrephotometry.check_timestamps(daq_file, photometry_file)
-
-
-class BasePhotometryTaskTest(base.IntegrationTest):
+class TestTaskFibrePhotometryPreprocess(base.IntegrationTest):
 
     def setUp(self) -> None:
-        cache_dir = self.data_path.joinpath('dynamic_pipeline', 'photometry', 'server_data')
-        self.session_path = cache_dir.joinpath('ZFM-03448', '2022-09-06', '001')
-        self.one = ONE(**base.TEST_DB, cache_dir=cache_dir, cache_rest=None)
-        try:
-            self.one.alyx.rest('subjects', 'delete', id='ZFM-03448')
-        except Exception:
-            pass
-        self.one.alyx.rest('subjects', 'create', data={
-            'nickname': 'ZFM-03448', 'responsible_user': 'root', 'birth_date': '2022-02-02', 'lab': 'mainenlab'})
-        self.acquisition_description = read_params(self.session_path)
-        sdict, _ = RegistrationClient(self.one).register_session(self.session_path, file_list=False)
-        self.kwargs = self.acquisition_description['devices']['photometry']
-        self.eid = sdict['id']
+        test_dir = self.data_path.joinpath('dynamic_pipeline', 'neurophotometrics')
+        self.session_path = test_dir.joinpath('cortexlab', 'Subjects', 'CQ001', '2024-11-07', '001')
 
-    def tearDown(self) -> None:
-        self.one.alyx.rest('subjects', 'delete', id='ZFM-03448')
-
-
-class TestTaskPhotometryRegisterRaw(BasePhotometryTaskTest):
-
-    def test_register_raw(self):
-        task = photometry_tasks.FibrePhotometryRegisterRaw(self.session_path, one=self.one, **self.kwargs)
-        self.assertEqual(0, task.run())
-        # Even if we run the task again we should get the same output
+    def test_sync_fp_data(self):
+        sess_params = ibllib.io.session_params.read_params(self.session_path)
+        stub = sess_params['devices']['neurophotometrics']
+        task = photometry_tasks.FibrePhotometrySync(self.session_path, one=None, location='local', **stub)
+        status = task.run()
+        self.assertEqual(0, status)
         task.run()
-
-
-class TestTaskFibrePhotometryPreprocess(BasePhotometryTaskTest):
-
-    def test_extract_fp_data(self):
-        task = photometry_tasks.FibrePhotometryPreprocess(self.session_path, one=self.one, **self.kwargs)
-        self.assertEqual(0, task.run())
-        # Even if we run the task again we should get the same output
-        task.run()
-        fp_table = pd.read_parquet(task.outputs)
-        self.assertEqual(set(fp_table.keys()), {'Region1G', 'Region3G', 'color', 'name', 'times', 'wavelength'})
+        task.assert_expected_outputs()
+        task.register_datasets()
+        fp_table = pd.read_parquet(task.outputs[-2])
+        fp_locations = pd.read_parquet(task.outputs[-1])
+        self.assertEqual(5, len(task.outputs))
+        self.assertTrue(all(fp_locations.columns == ['fiber', 'brain_region']))
+        self.assertEqual(0, len(set(fp_locations.index).difference(set(fp_table.columns))))
 
     def tearDown(self) -> None:
         if self.session_path.joinpath('alf').exists():
