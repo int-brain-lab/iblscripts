@@ -25,8 +25,10 @@ while true; do
   if  (( $(( SECONDS - last_update )) > 43200 )); then
     printf "\nChecking dlcenv for updates\n"
     ../dlc/update_dlcenv.sh
-    printf "\nChecking iblsort env for updates\n"
-    ../iblsorter/update_iblsorter.sh
+    if [ -d "$iblsortenv" ]; then
+      printf "\nChecking iblsort env for updates\n"
+      ../iblsorter/update_iblsorter.sh
+    fi
     # check optional suite2p env installed
     if [ -d "$suite2penv" ]; then
       printf "\nChecking suite2p env for updates\n"
