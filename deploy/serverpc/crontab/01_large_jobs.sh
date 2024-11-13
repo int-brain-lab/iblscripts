@@ -42,7 +42,7 @@ while true; do
     source "$dlcenv/bin/activate"
     python large_jobs.py
     deactivate
-    if [ -e "$iblsortenv/bin/activate"]; then
+    if [ -d "$iblsortenv" ]; then
       source "$iblsortenv/bin/activate"
       python large_jobs.py --env iblsorter
       deactivate
