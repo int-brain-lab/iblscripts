@@ -39,17 +39,19 @@ while true; do
   if  (( $(( SECONDS - last_run )) > 300 )); then
     last_run=$SECONDS
     printf "\nGrabbing next large job from the queue\n"
-    deactivate
     source "$dlcenv/bin/activate"
     python large_jobs.py
     deactivate
-    source "$iblsortenv/bin/activate"
-    python large_jobs.py --env iblsorter
+    if [ -e "$iblsortenv/bin/activate"]; then
+      source "$iblsortenv/bin/activate"
+      python large_jobs.py --env iblsorter
+      deactivate
+    fi
     # If the suite2p env is installed, switch to this to run related task if next in queue
     if [ -d "$suite2penv" ]; then
-      deactivate
       source "$suite2penv/bin/activate"
       python large_jobs.py --env suite2p
+      deactivate
     fi
   fi
   # Repeat
