@@ -25,8 +25,10 @@ while true; do
   if  (( $(( SECONDS - last_update )) > 43200 )); then
     printf "\nChecking dlcenv for updates\n"
     ../dlc/update_dlcenv.sh
-    printf "\nChecking iblsort env for updates\n"
-    ../iblsorter/update_iblsorter.sh
+    if [ -d "$iblsortenv" ]; then
+      printf "\nChecking iblsort env for updates\n"
+      ../iblsorter/update_iblsorter.sh
+    fi
     # check optional suite2p env installed
     if [ -d "$suite2penv" ]; then
       printf "\nChecking suite2p env for updates\n"
@@ -39,17 +41,19 @@ while true; do
   if  (( $(( SECONDS - last_run )) > 300 )); then
     last_run=$SECONDS
     printf "\nGrabbing next large job from the queue\n"
-    deactivate
     source "$dlcenv/bin/activate"
     python large_jobs.py
     deactivate
-    source "$iblsortenv/bin/activate"
-    python large_jobs.py --env iblsorter
+    if [ -d "$iblsortenv" ]; then
+      source "$iblsortenv/bin/activate"
+      python large_jobs.py --env iblsorter
+      deactivate
+    fi
     # If the suite2p env is installed, switch to this to run related task if next in queue
     if [ -d "$suite2penv" ]; then
-      deactivate
       source "$suite2penv/bin/activate"
       python large_jobs.py --env suite2p
+      deactivate
     fi
   fi
   # Repeat
