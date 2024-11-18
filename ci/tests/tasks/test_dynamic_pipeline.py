@@ -90,7 +90,7 @@ class TestStandardPipelines(base.IntegrationTest):
         self.check_pipeline()
 
     def test_photometry(self):
-        src = self.folder_path.joinpath('photometry', 'server_data', 'ZFM-03448', '2022-09-06', '001')
+        src = self.folder_path.joinpath('neurophotometrics', 'cortexlab', 'Subjects', 'CQ001', '2024-11-07', '001')
         shutil.copytree(src, self.session_path)
         self.check_pipeline()
 
