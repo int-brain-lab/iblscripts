@@ -3,7 +3,7 @@ import numpy as np
 import numpy.testing
 
 import one.alf.io as alfio
-from one.alf.files import get_session_path
+from one.alf.path import get_session_path
 from one.api import ONE
 
 from ibllib.qc.task_extractors import TaskQCExtractor

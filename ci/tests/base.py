@@ -11,7 +11,7 @@ import shutil
 import warnings
 
 from iblutil.io import params
-from one.alf.files import get_session_path
+from one.alf.path import get_session_path
 from one.api import ONE
 
 
