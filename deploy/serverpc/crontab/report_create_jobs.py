@@ -13,7 +13,6 @@ from one.remote.globus import get_local_endpoint_id
 from ibllib.pipes.local_server import report_health
 from ibllib.pipes.local_server import job_creator
 from ibllib.pipes.base_tasks import Task
-from ibllib.pipes.tasks import run_alyx_task
 
 _logger = logging.getLogger('ibllib')
 
@@ -102,7 +101,7 @@ def run_job_creator_task(one=None, data_repository_name=None, root_path=subjects
         'tasks', 'list', name='JobCreator', django=f'data_repository__name,{data_repository_name}', no_cache=True)
     assert len(tasks) < 2
     if not any(tasks):
-        t = JobCreator(root_path, one=one)
+        t = JobCreator(root_path, one=one, clobber=True)
         task_dict = {
             'executable': 'deploy.serverpc.crontab.report_create_jobs.JobCreator',
             'priority': t.priority, 'io_charge': t.io_charge, 'gpu': t.gpu, 'cpu': t.cpu,
@@ -112,7 +111,15 @@ def run_job_creator_task(one=None, data_repository_name=None, root_path=subjects
         talyx = one.alyx.rest('tasks', 'create', data=task_dict)
     else:
         talyx = tasks[0]
-    t, _ = run_alyx_task(talyx, session_path=root_path, one=one, job_deck=[talyx], clobber=True)
+        tkwargs = talyx.get('arguments') or {}  # if the db field is null it returns None
+        t = JobCreator(root_path, one=one, taskid=talyx['id'], clobber=True, **tkwargs)
+
+    one.alyx.rest('tasks', 'partial_update', id=talyx['id'], data={'status': 'Started'})
+    status = t.run()
+    patch_data = {
+        'time_elapsed_secs': t.time_elapsed_secs, 'log': t.log, 'version': t.version,
+        'status': 'Empty' if status == 0 else 'Errored'}
+    t = one.alyx.rest('tasks', 'partial_update', id=talyx['id'], data=patch_data)
     return t
 
 
