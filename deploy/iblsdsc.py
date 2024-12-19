@@ -31,7 +31,15 @@ class OneSdsc(OneAlyx):
     def __init__(self, *args, cache_dir=CACHE_DIR, **kwargs):
         if not kwargs.get('tables_dir'):
             # Ensure parquet tables downloaded to separate location to the dataset repo
-            kwargs['tables_dir'] = one.params.get_cache_dir()  # by default this is user downloads
+            try:
+                kwargs['tables_dir'] = one.params.get_cache_dir()  # by default this is user downloads
+            except AttributeError:
+                # ONE not set up
+                if kwargs.get('mode') == 'remote':
+                    raise RuntimeError('Database params not setup yet. Run one.params.setup first.')
+                else:
+                    _logger.warning('Database params not setup yet. REST queries will not work.')
+                    kwargs['tables_dir'] = one.params.CACHE_DIR_DEFAULT
         super().__init__(*args, cache_dir=cache_dir, **kwargs)
         # assign property here as it is set by the parent OneAlyx class at init
         self.uuid_filenames = True
