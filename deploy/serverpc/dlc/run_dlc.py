@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
-from iblvideo import download_weights, dlc, __version__
+from iblvideo import download_weights
+from iblvideo.choiceworld import dlc
 
 
 if __name__ == "__main__":
@@ -10,6 +11,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     file_mp4 = Path(args.file_mp4)
-    path_dlc = download_weights(version=__version__)
+    path_dlc = download_weights()
 
     dlc_result, _ = dlc(file_mp4, path_dlc=path_dlc, force=args.overwrite)
