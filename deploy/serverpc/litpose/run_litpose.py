@@ -3,7 +3,9 @@ from pathlib import Path
 # import cProfile
 # import pstats
 
-from iblvideo import lightning_pose, download_lit_model
+from iblvideo import download_lit_model
+from iblvideo.pose_lit import lightning_pose
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run lightning pose for mp4 file')
