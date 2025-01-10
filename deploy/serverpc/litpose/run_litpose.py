@@ -3,8 +3,8 @@ from pathlib import Path
 # import cProfile
 # import pstats
 
-from iblvideo import download_lit_model
-from iblvideo.pose_lit import lightning_pose
+from iblvideo import download_lp_models
+from iblvideo.pose_lp import lightning_pose
 
 
 if __name__ == '__main__':
@@ -14,7 +14,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     file_mp4 = Path(args.file_mp4)
-    path_models = download_lit_model()
+    path_models = download_lp_models()
 
     # profile = cProfile.Profile()
     # profile.enable()
