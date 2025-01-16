@@ -6,6 +6,7 @@ cd "$HOME/Documents/PYTHON/iblscripts/deploy/serverpc/crontab"
 # We avoid using iblenv here, as we don't want to interfere with the small jobs etc. dlcenv has everything needed
 # for the video compression
 dlcenv="$HOME/Documents/PYTHON/envs/dlcenv/"
+litposeenv="$HOME/Documents/PYTHON/envs/litpose/"
 suite2penv="$HOME/Documents/PYTHON/envs/suite2p/"
 iblsortenv="$HOME/Documents/PYTHON/SPIKE_SORTING/ibl-sorter/.venv"
 source "$dlcenv/bin/activate"
@@ -53,6 +54,12 @@ while true; do
     if [ -d "$suite2penv" ]; then
       source "$suite2penv/bin/activate"
       python large_jobs.py --env suite2p
+      deactivate
+    fi
+    # If the litpose env is installed, switch to this to run related task if next in queue
+    if [ -d "$litposeenv" ]; then
+      source "$litposeenv/bin/activate"
+      python large_jobs.py --env litpose
       deactivate
     fi
   fi
