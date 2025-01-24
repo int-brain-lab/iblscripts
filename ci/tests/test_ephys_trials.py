@@ -122,6 +122,59 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         self.assertTrue(np.all(np.logical_xor(np.isnan(trials['valveOpen_times']),
                                               np.isnan(trials['errorCue_times']))))
 
+    def test_missing_first_trial(self):
+        """Test extraction when FPGA starts before Bpod.
+
+        In some BWM sessions the FPGA starts during the first trial, such that the first Bpod trial start
+        pulse is not recorded by the FPGA. This results in the first trial being missing from the FPGA with
+        the added complication of the first trial being a special case in the task: the first Bpod pulse is
+        longer than usual to trigger the cameras and therefore looks closer to a valve open pulse.
+        """
+        # The first trial is +ve feedback (valve open) so valve open pulse re-reassignment should take place
+        session_path = get_session_path(next(self.data_path.glob(self.required_files[1])))
+
+        task = self.trials_task(
+            session_path, one=ONE(mode='local'), collection='raw_behavior_data', sync_collection='raw_ephys_data')
+        with self.assertLogs('ibllib.io.extractors.ephys_fpga', level='DEBUG') as cm:
+            fpga_trials, _ = task.extract_behaviour(save=False, tmin=305., tmax=5500.)
+            msg = 'Re-reassigning first valve open event'
+            self.assertTrue(any(msg in lg for lg in cm.output))
+        trials = fpga_trials['table']
+        # Previously the first valve open was re-assigned to the first trial and feedback_time was NaN
+        np.testing.assert_almost_equal(trials['feedback_times'][0], 305.9525)
+        np.testing.assert_almost_equal(trials['intervals_0'].iloc[0], 298.33821117616856)
+        bpod_intervals = task.extractor.bpod2fpga(task.extractor.bpod_trials['intervals'][:2, :])
+        fpga_intervals = trials[['intervals_0', 'intervals_1']].values[:2]
+        np.testing.assert_array_almost_equal(bpod_intervals, fpga_intervals, decimal=4)
+
+        # Test extraction when first trial start and first valve pulses are cut off
+        # Here we'd expect the first trial end to be assigned as trial start and the
+        # extractor should undo this after accounting for missing trial start TTL
+        sync, chmap = task.extractor.load_sync('raw_ephys_data')
+        selection = np.logical_and(sync['times'] <= 5500., sync['times'] >= 306.5)
+        sync = alfio.AlfBunch({k: v[selection] for k, v in sync.items()})
+        with self.assertLogs('ibllib.io.extractors.ephys_fpga', level='DEBUG') as cm:
+            # Call build_trials directly to avoid needless re-extraction of Bpod data
+            trials = task.extractor.build_trials(sync=sync, chmap=chmap)
+            msg = 'Re-reassigning first trial end event'
+            self.assertTrue(any(msg in lg for lg in cm.output))
+        self.assertTrue(np.isnan(trials['feedback_times'][0]))
+        np.testing.assert_almost_equal(trials['intervals'][0, 0], 298.33821117616856)
+        fpga_intervals = trials['intervals'][:2]
+        np.testing.assert_array_almost_equal(bpod_intervals, fpga_intervals, decimal=4)
+
+        # Finally lets cut off several of the first trials and assert that trial lengths
+        # remain consistent with Bpod
+        sync, chmap = task.extractor.load_sync('raw_ephys_data')
+        selection = np.logical_and(sync['times'] <= 5500., sync['times'] >= 350.)
+        sync = alfio.AlfBunch({k: v[selection] for k, v in sync.items()})
+        trials = task.extractor.build_trials(sync=sync, chmap=chmap)
+        bpod_intervals = task.extractor.bpod2fpga(task.extractor.bpod_trials['intervals'][:2, :])
+        fpga_intervals = trials['intervals'][:2]
+        self.assertEqual(trials['feedbackType'].size, trials['itiIn_times'].size)
+        self.assertEqual(trials['itiIn_times'].size, task.extractor.bpod_trials['intervals'].shape[0])
+        np.testing.assert_array_almost_equal(bpod_intervals, fpga_intervals, decimal=4)
+
 
 class TestEphysHabituationTaskExtraction(TestEphysTaskExtraction):
     """Test the FpgaTrialsHabituation extractor."""
