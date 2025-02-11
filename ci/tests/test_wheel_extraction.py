@@ -17,7 +17,7 @@ DISPLAY = False
 def compare_wheel_fpga_behaviour(session_path, display=DISPLAY):
     task = ChoiceWorldTrialsNidq(session_path, one=ONE(mode='local'),
                                  collection='raw_behavior_data', sync_collection='raw_ephys_data')
-    fpga_trials, _ = task.extract_behaviour(save=False)
+    fpga_trials, _ = task.extract_behaviour(save=False, tmax=None)
     bpod_trials = task.extractor.bpod_trials
     fpga_t, fpga_pos = fpga_trials['wheel_timestamps'], fpga_trials['wheel_position']
     bpod_t, bpod_pos = bpod_trials['wheel_timestamps'], bpod_trials['wheel_position']
