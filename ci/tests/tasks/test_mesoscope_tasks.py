@@ -503,13 +503,12 @@ class TestMesoscopePreprocessRename(base.IntegrationTest):
         self.tempdir = tempfile.TemporaryDirectory()
         self.addCleanup(self.tempdir.cleanup)
         self.session_path = self.default_data_root().joinpath('mesoscope', 'SP037', '2023-03-23', '002')
-        self.alf_path = self.session_path.joinpath('alf', 'suite2p', 'plane2')
+        self.alf_path = self.session_path.joinpath('suite2p', 'plane2')
         self.rename_dict = {
             'F.npy': 'mpci.ROIActivityF.npy',
             'spks.npy': 'mpci.ROIActivityDeconvolved.npy',
             'Fneu.npy': 'mpci.ROINeuropilActivityF.npy'}
         # Copy files to temp dir
-        # NB: suite2p dir now in session_path, not alf folder. This shouldn't affect these tests
         self.suite2pdir = Path(self.tempdir.name).joinpath(*self.alf_path.parts[-6:])
         shutil.copytree(self.alf_path, self.suite2pdir)
         # Create a 'combined' folder which suite2p may create but should be ignored
@@ -558,23 +557,31 @@ class TestMesoscopePreprocessRename(base.IntegrationTest):
         """
         # Create an old FOV folder for it to remove
         session_path = get_session_path(self.suite2pdir)
-        (fov_folder := session_path.joinpath('alf', 'FOV_02')).mkdir()
+        (fov_folder := session_path.joinpath('alf', 'FOV_02')).mkdir(parents=True)
         for name in self.rename_dict.values():
             fov_folder.joinpath(name).touch()
-        fov_folder.joinpath('foo.bar.baz').touch()
+        # Should not delete other files from this folder
+        fov_folder.joinpath('mpci.times.npy').touch()
 
         # Create binary data files to check they are moved
         self.suite2pdir.joinpath('data.bin').touch()
         self.suite2pdir.joinpath('data_raw.bin').touch()
 
         task = MesoscopePreprocess(session_path, one=self.one)
-        # Check frameQC is saved
+
         frameQC_names = pd.DataFrame([(0, 'ok'), (1, 'foo')], columns=['qc_values', 'qc_labels'])
-        files = task._rename_outputs(self.suite2pdir.parent, frameQC_names, np.zeros(15))
+        with self.assertLogs('ibllib.pipes.mesoscope_tasks', 'DEBUG') as log:
+            files = task._rename_outputs(self.suite2pdir.parent, frameQC_names, np.zeros(15))
+        # Check old output files removed
+        log_messages = (x.getMessage() for x in log.records)
+        log_messages = [x for x in log_messages if x.startswith('Removing old file')]
+        self.assertEqual(len(self.rename_dict), len(log_messages))
+        self.assertNotIn('mpci.times.npy', ' '.join(log_messages))
+        self.assertTrue(fov_folder.joinpath('mpci.times.npy').exists())
+        # Check frameQC is saved
         self.assertIn(files[0].with_name('mpciFrameQC.names.tsv'), files)
         self.assertIn(files[0].with_name('mpci.mpciFrameQC.npy'), files)
 
-        self.assertFalse(fov_folder.joinpath('foo.bar.baz').exists())
         bin_path = session_path.joinpath('raw_bin_files')
         self.assertTrue(bin_path.exists())
         files = [x.relative_to(session_path).as_posix() for x in bin_path.rglob('*.*')]
@@ -584,7 +591,7 @@ class TestMesoscopePreprocessRename(base.IntegrationTest):
 
 class TestMesoscopePreprocess(base.IntegrationTest):
     session_path = None
-    required_files = ['mesoscope/SP053/2024-02-07/001', 'mesoscope/SP037/2023-03-23/002/alf/suite2p/plane2/ops.npy']
+    required_files = ['mesoscope/SP053/2024-02-07/001', 'mesoscope/SP037/2023-03-23/002/suite2p/plane2/ops.npy']
 
     """Test for MesoscopePreprocess task."""
     def setUp(self) -> None:
