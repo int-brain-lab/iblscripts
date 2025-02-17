@@ -122,6 +122,66 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         self.assertTrue(np.all(np.logical_xor(np.isnan(trials['valveOpen_times']),
                                               np.isnan(trials['errorCue_times']))))
 
+
+class TestEphysHabituationTaskExtraction(TestEphysTaskExtraction):
+    """Test the FpgaTrialsHabituation extractor."""
+
+    # Expect 'alf', 'raw_ephys_data', 'raw_behavior_data' collections in each.
+    required_files = [
+        'ephys/habituation_choice_world_task/MM015/2023-10-05/002/*',  # normal session
+    ]
+
+    trials_task = HabituationTrialsNidq
+
+    alf_files = ['_ibl_trials.intervals.npy',
+                 '_ibl_trials.stimCenter_times.npy',
+                 '_ibl_trials.goCue_times.npy',
+                 '_ibl_trials.feedback_times.npy',
+                 '_ibl_trials.rewardVolume.npy']
+    """A subset of expected output datasets."""
+
+    def _check_task_trial_events(self, trials):
+        """Check habituationChoiceWorld specific trial events.
+
+        Check that the stimOn < stimCenter < stimOff.
+        Note that we don't test the first trial as the stimulus on the first trial is messed up!
+        """
+        self.assertTrue(
+            np.less(trials['stimOn_times'][1:], trials['stimOff_times'][1:]).all())
+        self.assertTrue(
+            np.less(trials['stimCenter_times'][1:], trials['stimOff_times'][1:]).all())
+
+
+class TestEphysTrialsFPGA(base.IntegrationTest):
+    trials_task = ChoiceWorldTrialsNidq
+    """The task to use for trials extraction (may depend on task protocol)."""
+
+    required_files = [
+        'ephys/ephys_choice_world_task/ibl_witten_27/2021-01-21/001/*',
+        'ephys/ephys_choice_world_task/ibl_witten_13/2019-11-25/001/*',  # FPGA stops before bpod, custom sync
+    ]
+
+    def test_frame2ttl_flicker(self):
+        session_path = get_session_path(next(self.data_path.glob(self.required_files[0])))
+        # dsets, out_files = ephys_fpga.extract_all(session_path, save=True)
+        task = self.trials_task(session_path,
+                                one=ONE(mode='local'), collection='raw_behavior_data',
+                                sync_collection='raw_ephys_data')
+        fpga_trials, _ = task.extract_behaviour(save=True)
+        # Run the task QC
+        qc = task.run_qc(fpga_trials, update=False, plot_qc=False)
+        # Aggregate and update Alyx QC fields
+        _, myqc, _ = qc.compute_session_status()
+
+        # from ibllib.misc import pprint
+        # pprint(myqc)
+        assert myqc['_task_stimOn_delays'] > 0.9  # 0.6176
+        assert myqc['_task_stimFreeze_delays'] > 0.9
+        assert myqc['_task_stimOff_delays'] > 0.9
+        assert myqc['_task_stimOff_itiIn_delays'] > 0.9
+        assert myqc['_task_stimOn_delays'] > 0.9
+        assert myqc['_task_stimOn_goCue_delays'] > 0.9
+
     def test_missing_first_trial(self):
         """Test extraction when FPGA starts before Bpod.
 
@@ -174,61 +234,6 @@ class TestEphysTaskExtraction(base.IntegrationTest):
         self.assertEqual(trials['feedbackType'].size, trials['itiIn_times'].size)
         self.assertEqual(trials['itiIn_times'].size, task.extractor.bpod_trials['intervals'].shape[0])
         np.testing.assert_array_almost_equal(bpod_intervals, fpga_intervals, decimal=4)
-
-
-class TestEphysHabituationTaskExtraction(TestEphysTaskExtraction):
-    """Test the FpgaTrialsHabituation extractor."""
-
-    # Expect 'alf', 'raw_ephys_data', 'raw_behavior_data' collections in each.
-    required_files = [
-        'ephys/habituation_choice_world_task/MM015/2023-10-05/002/*',  # normal session
-    ]
-
-    trials_task = HabituationTrialsNidq
-
-    alf_files = ['_ibl_trials.intervals.npy',
-                 '_ibl_trials.stimCenter_times.npy',
-                 '_ibl_trials.goCue_times.npy',
-                 '_ibl_trials.feedback_times.npy',
-                 '_ibl_trials.rewardVolume.npy']
-    """A subset of expected output datasets."""
-
-    def _check_task_trial_events(self, trials):
-        """Check habituationChoiceWorld specific trial events.
-
-        Check that the stimOn < stimCenter < stimOff.
-        Note that we don't test the first trial as the stimulus on the first trial is messed up!
-        """
-        self.assertTrue(
-            np.less(trials['stimOn_times'][1:], trials['stimOff_times'][1:]).all())
-        self.assertTrue(
-            np.less(trials['stimCenter_times'][1:], trials['stimOff_times'][1:]).all())
-
-
-class TestEphysTrialsFPGA(base.IntegrationTest):
-
-    required_files = ['ephys/ephys_choice_world_task/ibl_witten_27/2021-01-21/001/*']
-
-    def test_frame2ttl_flicker(self):
-        session_path = get_session_path(next(self.data_path.glob(self.required_files[0])))
-        # dsets, out_files = ephys_fpga.extract_all(session_path, save=True)
-        task = ChoiceWorldTrialsNidq(session_path,
-                                     one=ONE(mode='local'), collection='raw_behavior_data',
-                                     sync_collection='raw_ephys_data')
-        fpga_trials, _ = task.extract_behaviour(save=True)
-        # Run the task QC
-        qc = task.run_qc(fpga_trials, update=False, plot_qc=False)
-        # Aggregate and update Alyx QC fields
-        _, myqc, _ = qc.compute_session_status()
-
-        # from ibllib.misc import pprint
-        # pprint(myqc)
-        assert myqc['_task_stimOn_delays'] > 0.9  # 0.6176
-        assert myqc['_task_stimFreeze_delays'] > 0.9
-        assert myqc['_task_stimOff_delays'] > 0.9
-        assert myqc['_task_stimOff_itiIn_delays'] > 0.9
-        assert myqc['_task_stimOn_delays'] > 0.9
-        assert myqc['_task_stimOn_goCue_delays'] > 0.9
 
 
 class TestEphysTrials_iblrigv8(base.IntegrationTest):
