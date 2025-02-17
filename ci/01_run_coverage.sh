@@ -28,6 +28,7 @@ done
 pkgs=${pkgs%?} # remove last comma
 
 # Build up sources
+export ONE_SAVE_ON_DELETE=false
 coverage run --source="$pkgs" --rcfile /home/experiment/Documents/github/iblscripts/.coveragerc \
 /home/experiment/Documents/github/iblscripts/runAllTests.py -c "$1" -r "$2" --logdir "$3"
 #coverage report --skip-covered

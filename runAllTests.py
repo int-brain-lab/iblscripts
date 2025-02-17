@@ -7,7 +7,7 @@ import doctest
 import json
 import sys
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import List, Union
@@ -104,7 +104,7 @@ if __name__ == "__main__":
       python runAllTests.py -l C:\Users\User\AppData\Roaming\CI
       python runAllTests.py -l ~/.ci
     """
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = datetime.now(timezone.utc).isoformat()
     # Defaults
     root = Path(__file__).parent.absolute()  # Default root folder
     repo_dir = Path(ibllib.__file__).parent  # Default repository source for coverage
@@ -142,7 +142,7 @@ if __name__ == "__main__":
 
     # Generate report
     logger.info('Saving coverage report to %s', report_dir)
-    duration = datetime.now().utcnow() - datetime.fromisoformat(timestamp)
+    duration = datetime.now(timezone.utc) - datetime.fromisoformat(timestamp)
 
     # When running tests without a specific commit, exit without saving the result
     if args.commit is parser.get_default('commit'):

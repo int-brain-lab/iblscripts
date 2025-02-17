@@ -16,4 +16,5 @@ pushd $2
 flake8 . --tee --output-file="$3/flake_output.txt"
 popd
 
+export ONE_SAVE_ON_DELETE=false
 python /home/experiment/Documents/github/iblscripts/runAllTests.py -c "$1" -r "$2" --logdir "$3"

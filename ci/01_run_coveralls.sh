@@ -49,6 +49,7 @@ pkgs=${pkgs%?} # remove last comma
 
 # Run tests
 passed=true
+export ONE_SAVE_ON_DELETE=false
 coverage run --source="$pkgs" --rcfile "$2/../iblscripts/.coveragerc" \
 "$2/../iblscripts/runAllTests.py" -c "$1" -r "$2" --logdir "$3" --exit || passed=false
 
