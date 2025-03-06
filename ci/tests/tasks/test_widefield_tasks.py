@@ -32,19 +32,35 @@ class TestWidefieldRegisterRaw(base.IntegrationTest):
         # Symlink data from original folder to the new folder
         orig_cam_file = next(cls.data_folder.glob('*.camlog'))
         new_cam_file = cls.widefield_folder.joinpath(orig_cam_file.name)
-        new_cam_file.symlink_to(orig_cam_file)
+        try:
+            new_cam_file.symlink_to(orig_cam_file)
+        except OSError as e:
+            _logger.error(f'Error creating symlink: {e}')
+            shutil.copy(orig_cam_file, new_cam_file)
 
         orig_data_file = next(cls.data_folder.glob('dorsal_cortex*'))
         new_data_file = cls.widefield_folder.joinpath(orig_data_file.name)
-        new_data_file.symlink_to(orig_data_file)
+        try:
+            new_data_file.symlink_to(orig_data_file)
+        except OSError as e:
+            _logger.error(f'Error creating symlink: {e}')
+            shutil.copy(orig_data_file, new_data_file)
 
         orig_led_wiring_file = next(cls.data_folder.glob('*widefield_wiring*'))
         new_led_wiring_file = cls.widefield_folder.joinpath(orig_led_wiring_file.name)
-        new_led_wiring_file.symlink_to(orig_led_wiring_file)
+        try:
+            new_led_wiring_file.symlink_to(orig_led_wiring_file)
+        except OSError as e:
+            _logger.error(f'Error creating symlink: {e}')
+            shutil.copy(orig_led_wiring_file, new_led_wiring_file)
 
         orig_wiring_file = next(cls.data_folder.glob('*configuration.json'))  # note this might change
         new_wiring_file = cls.widefield_folder.joinpath(orig_wiring_file.name)
-        new_wiring_file.symlink_to(orig_wiring_file)
+        try:
+            new_wiring_file.symlink_to(orig_wiring_file)
+        except OSError as e:
+            _logger.error(f'Error creating symlink: {e}')
+            shutil.copy(orig_wiring_file, new_wiring_file)
 
     def test_rename(self):
         task = WidefieldRegisterRaw(self.session_path, one=self.one)
@@ -83,11 +99,19 @@ class TestWidefieldPreprocessAndCompress(base.IntegrationTest):
         # Symlink data from original folder to the new folder
         orig_cam_file = next(cls.data_folder.glob('*.camlog'))
         new_cam_file = cls.widefield_folder.joinpath('widefieldEvents.raw.camlog')
-        new_cam_file.symlink_to(orig_cam_file)
+        try:
+            new_cam_file.symlink_to(orig_cam_file)
+        except OSError as e:
+            _logger.error(f'Error creating symlink: {e}')
+            shutil.copy(orig_cam_file, new_cam_file)
 
         orig_data_file = next(cls.data_folder.glob('*.dat'))
         new_data_file = cls.widefield_folder.joinpath(orig_data_file.name)
-        new_data_file.symlink_to(orig_data_file)
+        try:
+            new_data_file.symlink_to(orig_data_file)
+        except OSError as e:
+            _logger.error(f'Error creating symlink: {e}')
+            shutil.copy(orig_data_file, new_data_file)
 
     def test_preprocess(self):
         task = WidefieldPreprocess(self.session_path, one=self.one)

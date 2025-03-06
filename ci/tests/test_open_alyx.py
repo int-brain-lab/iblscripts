@@ -28,7 +28,9 @@ class TestReadSpikeSorting(unittest.TestCase):
         SpikeSortingLoader.merge_clusters(spikes, clusters, channels)
 
         self.assertEqual({'depths', 'clusters', 'amps', 'times'}, set(spikes.keys()))
-        self.assertEqual(ssl.spike_sorting_path.relative_to(ssl.session_path).as_posix(), ssl.collection)
+        expected = 'alf/probe00/pykilosort/#2024-05-06#'
+        self.assertEqual(ssl.spike_sorting_path.relative_to(ssl.session_path).as_posix(), expected)
+        self.assertTrue(expected.startswith(ssl.collection))
         self.assertEqual('alf', ssl.histology)
         self.assertEqual(2, len(ssl.collections))
 
