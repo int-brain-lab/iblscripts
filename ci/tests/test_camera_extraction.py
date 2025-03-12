@@ -599,7 +599,7 @@ class TestCameraQC(base.IntegrationTest):
         mock_ext().read.side_effect = self.side_effect()
 
         qc = CameraQC(session_path, 'left',
-                      stream=False, n_samples=n_samples, one=self.one)
+                      stream=False, n_samples=n_samples, one=self.one, protocol='_iblrig_task_trainingChoiceWorld')
         # Add a dummy video path (we stub the VideoCapture class anyway)
         qc.video_path = session_path.joinpath('raw_video_data', '_iblrig_leftCamera.raw.mp4')
         qc.load_data(extract_times=True)
@@ -617,6 +617,37 @@ class TestCameraQC(base.IntegrationTest):
             '_videoLeft_resolution': spec.QC.PASS,
             '_videoLeft_timestamps': spec.QC.PASS,
             '_videoLeft_wheel_alignment': (spec.QC.WARNING, 27)
+        }
+        self.assertEqual(expected, extended)
+
+    def test_habituation_session(self):
+        """
+        Tests the full QC process for a habituation session.
+        :return:
+        """
+
+        session_path = next(self.default_data_root().joinpath(
+            'tasks', 'choice_world_habituation').rglob('raw_behavior_data')).parent
+
+        qc = CameraQC(session_path, 'left',
+                      stream=False, one=self.one, protocol='_iblrig_task_habituationChoiceWorld',
+                      sync_type='bpod')
+        # Add a dummy video path (we stub the VideoCapture class anyway)
+        qc.video_path = session_path.joinpath('raw_video_data', '_iblrig_leftCamera.raw.mp4')
+        qc.load_data(extract_times=True)
+        outcome, extended = qc.run(update=False)
+        self.assertEqual(spec.QC.FAIL, outcome)
+        expected = {
+            '_videoLeft_brightness': spec.QC.PASS,
+            '_videoLeft_camera_times': (spec.QC.PASS, 0),
+            '_videoLeft_dropped_frames': (spec.QC.PASS, 0, 0),
+            '_videoLeft_file_headers': spec.QC.PASS,
+            '_videoLeft_focus': spec.QC.FAIL,
+            '_videoLeft_framerate': (spec.QC.PASS, 30.03),
+            '_videoLeft_pin_state': (spec.QC.WARNING, 350, 0),
+            '_videoLeft_position': spec.QC.FAIL,
+            '_videoLeft_resolution': spec.QC.PASS,
+            '_videoLeft_timestamps': spec.QC.PASS,
         }
         self.assertEqual(expected, extended)
 
