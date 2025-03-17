@@ -504,8 +504,10 @@ class TestCameraQC(base.IntegrationTest):
         'Subjects_init/ZM_1098/2019-01-25/001',
         'camera/SWC_054/2020-10-07/001',
         'camera/FMR007/2021-02-25/001',
+        'camera/NR_0020/2022-01-27/001',
         'camera/6c6983ef-7383-4989-9183-32b1a300d17a_frame_samples.npy',
-        'camera/7082d576-4eb4-41dc-a16e-8a742829a83a_frame_samples.npy'
+        'camera/7082d576-4eb4-41dc-a16e-8a742829a83a_frame_samples.npy',
+        'camera/451bc9c0-113c-408e-a924-122ffe44306e_frame_samples.npy'
     ]
 
     def setUp(self) -> None:
@@ -517,6 +519,11 @@ class TestCameraQC(base.IntegrationTest):
         self.training = (
             '7082d576-4eb4-41dc-a16e-8a742829a83a',
             self.data_path.joinpath('camera', 'FMR007', '2021-02-25', '001')
+        )
+
+        self.habituation = (
+            '451bc9c0-113c-408e-a924-122ffe44306e',
+            self.data_path.joinpath('camera', 'NR_0020', '2022-01-27', '001')
         )
         self._call_count = -1
         self.frames = np.array([])
@@ -620,32 +627,40 @@ class TestCameraQC(base.IntegrationTest):
         }
         self.assertEqual(expected, extended)
 
-    def test_habituation_session(self):
+    @mock.patch('ibllib.qc.camera.get_video_meta')
+    @mock.patch('ibllib.io.video.cv2.VideoCapture')
+    def test_habituation_session(self, mock_ext, mock_meta):
         """
         Tests the full QC process for a habituation session.
         :return:
         """
 
-        session_path = next(self.default_data_root().joinpath(
-            'tasks', 'choice_world_habituation').rglob('raw_behavior_data')).parent
+        n_samples = 100
+        length = 66198
+        eid, session_path = self.habituation
+        self.frames = np.load(self.data_path / 'camera' / f'{eid}_frame_samples.npy')
+        mock_meta.return_value = \
+            Bunch({'length': length, **CameraQC.video_meta['training']['left']})
+        mock_ext().get.return_value = length
+        mock_ext().read.side_effect = self.side_effect()
 
         qc = CameraQC(session_path, 'left',
                       stream=False, one=self.one, protocol='_iblrig_task_habituationChoiceWorld',
-                      sync_type='bpod')
+                      sync_type='bpod', n_samples=n_samples)
         # Add a dummy video path (we stub the VideoCapture class anyway)
         qc.video_path = session_path.joinpath('raw_video_data', '_iblrig_leftCamera.raw.mp4')
         qc.load_data(extract_times=True)
         outcome, extended = qc.run(update=False)
-        self.assertEqual(spec.QC.FAIL, outcome)
+        self.assertEqual(spec.QC.WARNING, outcome)
         expected = {
             '_videoLeft_brightness': spec.QC.PASS,
             '_videoLeft_camera_times': (spec.QC.PASS, 0),
             '_videoLeft_dropped_frames': (spec.QC.PASS, 0, 0),
             '_videoLeft_file_headers': spec.QC.PASS,
-            '_videoLeft_focus': spec.QC.FAIL,
+            '_videoLeft_focus': spec.QC.PASS,
             '_videoLeft_framerate': (spec.QC.PASS, 30.03),
             '_videoLeft_pin_state': (spec.QC.WARNING, 350, 0),
-            '_videoLeft_position': spec.QC.FAIL,
+            '_videoLeft_position': spec.QC.WARNING,
             '_videoLeft_resolution': spec.QC.PASS,
             '_videoLeft_timestamps': spec.QC.PASS,
         }
