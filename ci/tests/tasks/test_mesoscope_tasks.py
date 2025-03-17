@@ -352,16 +352,19 @@ class TestProjectFOV(base.IntegrationTest):
 class TestMesoscopeSync(base.IntegrationTest):
     # session_path_0 = None  # A single imaging bout
     # session_path_1 = None  # Multiple imaging bouts
+    # session_path_2 = None  # Multiple depths
 
     def setUp(self) -> None:
         self.one = ONE(**base.TEST_DB)
         self.session_path_0 = self.default_data_root().joinpath('mesoscope', 'test', '2023-02-17', '002')
         self.session_path_1 = self.default_data_root().joinpath('mesoscope', 'test', '2023-03-03', '002')
+        self.session_path_2 = self.default_data_root().joinpath('mesoscope', 'SP061', '2025-02-26', '001')
         self.addClassCleanup(_delete_sync, self.session_path_0, self.session_path_1)
         self.addCleanup(shutil.rmtree, self.session_path_1 / 'alf', ignore_errors=True)
         self.addCleanup(shutil.rmtree, self.session_path_0 / 'alf', ignore_errors=True)
 
-    def test_mesoscope_sync(self):
+    def test_single_depth(self):
+        """Test for MesoscopeSync with single depth, single bout."""
         task = MesoscopeSync(self.session_path_0, device_collection='raw_imaging_data', one=self.one)
         status = task.run()
         assert status == 0
@@ -384,14 +387,17 @@ class TestMesoscopeSync(base.IntegrationTest):
         extractor = mesoscope.MesoscopeSyncTimeline(self.session_path_0, nFOVs)
         n_frames = 336
         sync = {'times': np.arange(n_frames + 5), 'channels': np.zeros(n_frames + 5)}
-        chmap = {'neural_frames': 0}
+        # For the purposes of this test these two channels can be the same
+        # (the values would be identical for single plane data anyway)
+        chmap = {'neural_frames': 0, 'volume_counter': 0}
         with self.assertLogs(mesoscope.__name__) as log:
             out, _ = extractor.extract(sync=sync, chmap=chmap)
             self.assertEqual('WARNING', log.records[0].levelname, 'failed to log warning')
             self.assertIn('Dropping last 5 frame times', log.output[-1])
         self.assertEqual({n_frames}, set(map(len, out[:nFOVs])), 'failed to drop timestamps')
 
-    def test_mesoscope_sync_multiple(self):
+    def test_multiple_bouts(self):
+        """Test for MesoscopeSync with multiple imaging bouts."""
         task = MesoscopeSync(self.session_path_1, device_collection='raw_imaging_data*', one=self.one)
         status = task.run()
         assert status == 0
@@ -409,6 +415,39 @@ class TestMesoscopeSync(base.IntegrationTest):
         self.assertEqual(nROIs, len(ROI_shifts))
         expected = [0., 4.157550e-05, 8.315100e-05, 1.247265e-04, 1.663020e-04]
         np.testing.assert_array_almost_equal(np.load(ROI_shifts[0])[:5], expected)
+
+    def test_multi_depth(self):
+        """Test for MesoscopeSync with multiple depths."""
+        sync_path = self.session_path_2 / 'raw_sync_data'
+        events = alfio.load_object(sync_path, 'softwareEvents').get('log')
+        sync, chmap = load_timeline_sync_and_chmap(sync_path)
+        collections = [f'raw_imaging_data_{i:02d}' for i in range(2)]
+        nFOVs = 8
+        mesosync = mesoscope.MesoscopeSyncTimeline(self.session_path_2, nFOVs)
+        kwargs = dict(save=False, sync=sync, chmap=chmap, device_collection=collections, events=events)
+        out, _ = mesosync.extract(use_volume_counter=False, **kwargs)
+
+        # Check output
+        # Times and line shifts for each FOV
+        self.assertEqual(nFOVs * 2, len(out))
+        mpci_times, mpciStack_timeshift = out[:nFOVs], out[nFOVs:]
+        self.assertEqual({512}, set(map(len, mpciStack_timeshift)))
+        self.assertEqual({17586}, set(map(len, mpci_times)))
+        expected = [3624.5774065, 3624.7824065, 3624.9874065, 3625.1924065, 3625.3974065]
+        np.testing.assert_array_almost_equal(mpci_times[5][-5:], expected)
+        expected = [0.0211162, 0.02115785, 0.0211995, 0.02124115, 0.0212828]
+        np.testing.assert_array_almost_equal(mpciStack_timeshift[0][-5:], expected)
+        for shifts in mpciStack_timeshift[1:]:
+            np.testing.assert_array_equal(mpciStack_timeshift[0], shifts)
+
+        # Check extraction when using the volume counter instead of neural frames
+        out, _ = mesosync.extract(use_volume_counter=True, **kwargs)
+        mpci_times_volume, mpciStack_timeshift_volume = out[:nFOVs], out[nFOVs:]
+        np.testing.assert_array_equal(mpciStack_timeshift[0], mpciStack_timeshift_volume[0])
+        # The neural frame times should be close but not identical to the volume counter times
+        for i, (neural_times, volume_times) in enumerate(zip(mpci_times, mpci_times_volume)):
+            with self.subTest(FOV=i):
+                np.testing.assert_array_almost_equal(neural_times, volume_times, decimal=3)
 
     @patch('ibllib.io.extractors.mesoscope.plt')
     def test_get_bout_edges(self, plt_mock):
