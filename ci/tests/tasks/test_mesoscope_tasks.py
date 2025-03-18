@@ -180,6 +180,7 @@ class TestTimelineTrials(base.IntegrationTest):
         self.assertCountEqual(('times', 'channels', 'polarities'), sync.keys())
         expected = {
             'neural_frames': 3,
+            'volume_counter': 4,
             'bpod': 10,
             'frame2ttl': 12,
             'left_camera': 13,
