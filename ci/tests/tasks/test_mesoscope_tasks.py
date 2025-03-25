@@ -227,8 +227,11 @@ class TestTimelineTrialsHabituation(base.IntegrationTest):
         np.all(trials.intervals[:, 1] >= trials.stimOff_times)
         self.assertTrue(np.greater_equal(trials.intervals[:, 1], trials.stimOff_times).all())
         for k in ('stimOn', 'stimCenter', 'stimOff'):
+            # Check all non-NaN stim times are greater than the trigger times
             valid = ~np.isnan(trials[f'{k}_times'])
-            self.assertTrue(np.greater(trials[f'{k}_times'], trials[f'{k}Trigger_times'], where=valid).all())
+            correct = np.greater(
+                trials[f'{k}_times'], trials[f'{k}Trigger_times'], where=valid, out=np.ones(valid.shape, dtype=bool))
+            self.assertTrue(correct.all(), f'{sum(~correct)}/{len(correct)} {k} times are invalid')
 
 
 class TestMesoscopeFOV(base.IntegrationTest):
