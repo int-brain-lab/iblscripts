@@ -23,7 +23,7 @@ from ibllib.pipes.mesoscope_tasks import (
     MesoscopePreprocess, MesoscopeCompress, Provenance
 )
 from iblatlas.atlas import AllenAtlas
-from ibllib.pipes.behavior_tasks import ChoiceWorldTrialsTimeline
+from ibllib.pipes.behavior_tasks import ChoiceWorldTrialsTimeline, HabituationTrialsTimeline
 from ibllib.io.extractors import mesoscope
 from ibllib.io.raw_daq_loaders import load_timeline_sync_and_chmap
 
@@ -189,6 +189,46 @@ class TestTimelineTrials(base.IntegrationTest):
             'audio': 16,
             'rotary_encoder': 17}
         self.assertDictEqual(expected, chmap)
+
+
+class TestTimelineTrialsHabituation(base.IntegrationTest):
+    """Test for HabituationTrialsTimeline task."""
+    session_path = None
+
+    def setUp(self) -> None:
+        self.one = ONE(**base.TEST_DB)
+        # A new test session with Bpod channel fix'd in timeline
+        self.session_path = self.default_data_root().joinpath('mesoscope', 'SP065', '2024-10-07', '001')
+        self.addCleanup(shutil.rmtree, self.session_path / 'alf', ignore_errors=True)
+        self.addClassCleanup(_delete_sync, self.session_path)
+
+    def test_extraction(self):
+        """Test habituation data is correct.
+
+        NB: In this session the stimulus on the first is indeed not displayed or detected, so we expect a NaN.
+        """
+        sync_kwargs = {'sync': 'nidq', 'sync_collection': 'raw_sync_data', 'sync_ext': 'npy', 'sync_namespace': 'timeline'}
+        task_kwargs = {'protocol': '_iblrig_tasks_habituationChoiceWorld', 'collection': 'raw_task_data_00', 'protocol_number': 0}
+        task = HabituationTrialsTimeline(self.session_path, one=self.one, **sync_kwargs, **task_kwargs)
+        data, files = task.extract_behaviour(save=True)
+        # Check expected output datasets
+        task.get_signatures()
+        self.assertEqual(12, len(files))
+        self.assertEqual(12, len(task.output_files))
+        self.assertEqual(17, len(data))
+        for f in task.output_files:
+            self.assertTrue(f.find_files(task.session_path)[0], f'File {f.glob_pattern} not found')
+
+        # Check the data
+        trials = alfio.AlfBunch(data)
+        self.assertEqual(0, trials.check_dimensions)
+        np.testing.assert_array_almost_equal([np.nan, 22.97, 37.737, 52.27, 63.136], trials.stimOn_times[:5])
+        np.testing.assert_array_almost_equal([np.nan, 35.703, 50.254, 61.12, 70.387], trials.stimCenter_times[:5])
+        np.all(trials.intervals[:, 1] >= trials.stimOff_times)
+        self.assertTrue(np.greater_equal(trials.intervals[:, 1], trials.stimOff_times).all())
+        for k in ('stimOn', 'stimCenter', 'stimOff'):
+            valid = ~np.isnan(trials[f'{k}_times'])
+            self.assertTrue(np.greater(trials[f'{k}_times'], trials[f'{k}Trigger_times'], where=valid).all())
 
 
 class TestMesoscopeFOV(base.IntegrationTest):
