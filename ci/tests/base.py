@@ -14,6 +14,8 @@ from iblutil.io import params
 from one.alf.path import get_session_path
 from one.api import ONE
 
+_logger = logging.getLogger('ibllib')
+
 
 class TimeLoggingTestResult(TextTestResult):
     """A class to record test durations"""
@@ -178,7 +180,7 @@ def _get_test_db():
         }
 
 
-def make_sym_links(raw_session_path, extraction_path=None):
+def make_sym_links(raw_session_path, extraction_path=None, fallback_to_copy=True):
     """
     This creates symlinks to a scratch directory to start an extraction while leaving the
     raw data untouched.
@@ -186,6 +188,7 @@ def make_sym_links(raw_session_path, extraction_path=None):
     :param extraction_path: (None) scratch location where the symlinks will end up,
     omitting the session parts example: "/tmp". If set to None, it will create a temporary
     directory using tempdir.
+    :param fallback_to_copy: (True) if the symlink fails, it will copy the file instead.
     :return:
     """
     if extraction_path is None:
@@ -198,7 +201,15 @@ def make_sym_links(raw_session_path, extraction_path=None):
         if new_file.exists():
             continue
         new_file.parent.mkdir(exist_ok=True, parents=True)
-        new_file.symlink_to(f)
+        try:
+            new_file.symlink_to(f)
+        except OSError as e:
+            if fallback_to_copy:
+                _logger.error(f'Error creating symlink: {e}')
+                shutil.copy(f, new_file)
+            else:
+                raise e
+
     return session_path, extraction_path
 
 
