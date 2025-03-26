@@ -63,8 +63,14 @@ class TestWidefieldRegisterRaw(base.IntegrationTest):
             shutil.copy(orig_wiring_file, new_wiring_file)
 
     def test_rename(self):
+        """Test that the task renames the files correctly."""
         task = WidefieldRegisterRaw(self.session_path, one=self.one)
-        status = task.run()
+        # NB A full integration test of snapnapshot registration can be found in
+        # ibllib.tests.test_base_tasks.TestRegisterRawDataTask.test_register_snapshots;
+        # WidefieldRegisterRaw calls the same superclass method for snapshot registration.
+        with unittest.mock.patch.object(task, 'register_snapshots') as mock_register_snapshots:
+            status = task.run()
+            mock_register_snapshots.assert_called_once()
         self.assertEqual(0, status)
 
         for exp_files in task.signature['output_files']:
