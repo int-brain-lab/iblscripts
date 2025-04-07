@@ -1,4 +1,4 @@
-function out = mesoscopePostExpt(ExpRefs)
+function out = mesoscopePostExpt(ExpRefs, varargin)
 
 %this function is to be run after a mesoscope experiment at the scanimage PC.
 %1) TODO look for all of today's data
@@ -10,6 +10,11 @@ function out = mesoscopePostExpt(ExpRefs)
 % if nargin<1
 %     ExpRefs = {'Y:\Subjects\SP052\2024-01-10\002\raw_imaging_data_00'};
 % end
+
+p = inputParser;
+addRequired(p,'ExpRefs',@iscell);
+addOptional(p,'mode','auto',@(x) any(validatestring(x,{'manual','auto'})));
+parse(p,ExpRefs,varargin{:});
 
 %make sure we are logged into alyx
 if exist('alyx','var')
@@ -24,9 +29,11 @@ else
     alyx = Alyx();
 end
 
-%% 1) TODO look for all of today's data
+%% 1) TODO look for today's final dataset and ask for confirmation
 localPath = 'F:\ScanImageAcquisitions';
-%...
+%find the paths and put them in ExpRef
+%copy the snapshots from 'temp' to the session path
+
 
 %% 2) write Frame QC
 for iExpt = 1:length(ExpRefs)
@@ -41,7 +48,7 @@ for iExpt = 1:length(ExpRefs)
             ExpRef = ExpRefs(iExpt);
         end
         for i = 1:length(ExpRef)
-            writeFrameQC(ExpRef{i},'auto');
+            writeFrameQC(ExpRef{i},p.Results.mode);
         end
     catch ME
         rethrow(ME)
@@ -75,7 +82,3 @@ for iExpt = 1:length(ExpRefs)
         %warning(sprintf('Something was wrong, skipping this session.\n'));
     end
 end
-
-%% 4) TODO copy to server
-
-% Miles' copy script??

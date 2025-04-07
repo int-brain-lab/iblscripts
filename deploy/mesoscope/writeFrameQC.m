@@ -5,10 +5,10 @@ function [frameQC_frames,frameQC_names,badframes] = writeFrameQC(exptName, varar
 % allows experimenter to log QC issues to frames of an individual scanimage
 % acquisition, either automatically or manually, then saves these as arrays
 % in 'exptQC' and 'badframes' for IBL extraction pipeline.
-% If 'mode' is set to 'auto', will run automatic QC detection as sepcified
+% If 'mode' is set to 'auto', will run automatic QC detection as specified
 % in runAutoFrameQC.
 % If only an animal name is provided, will search for latest ExpRef.
-% For standard QC issues be sure to use the right keyword (e.g. 'PMT' and 'galvo')
+% For standard QC issues be sure to use the right keyword ('PMT', 'galvo' or 'drift')
 %
 % written by Samuel Picard (March 2023)
 
@@ -84,6 +84,7 @@ else
     for i = 1:length(unique_bouts)
         imgInfo = imfinfo(fullfile(fileList(iLastFile(i)).folder, fileList(iLastFile(i)).name));
         evalc(imgInfo(end).ImageDescription);
+        %evalc(imgInfo(end).Software);
         nFramesTot = nFramesTot + frameNumbers;
     end
     
@@ -101,7 +102,7 @@ else
             return
         elseif strcmpi(fb,'o')
             frameQC_frames = uint8(zeros(1,nFramesTot));
-            frameQC_names = {'ok'};
+            frameQC_names = {'ok','PMT off','galvos fault','high signal'};
             badframes = uint32([]);
         else
             prompt0='y';
@@ -109,7 +110,7 @@ else
     else
         fb = input('Press A to report no issues, or RETURN to list manual QC: ',"s");
         frameQC_frames = uint8(zeros(1,nFramesTot));
-        frameQC_names = {'ok'};
+        frameQC_names = {'ok','PMT off','galvos fault','high signal'};
         badframes = uint32([]);
         if strcmpi(fb,'a')
             prompt0='n';
@@ -126,8 +127,8 @@ QCframes = [];%p.Results.QCframes;
 description = 'ok';%p.Results.description;
 
 %these are standard QC issues that should have same string ID across sessions
-standardDescriptions = {'PMT off','galvos fault'};
-standardKeywords = {'PMT','galvo'};
+standardDescriptions = {'PMT off','galvos fault','drift'};
+standardKeywords = {'PMT','galvo','drift'};
 badframesFlag = 'N';
 
 addManualQC_flag = false;
@@ -146,9 +147,17 @@ while addManualQC_flag
     QCflag = strcmpi(prompt0,'Y');
     %QCflag = false;
     if QCflag
-        description = input("Brief description of QC issue: ", "s");
-        prompt1 = sprintf('Issue starting at frame (out of total of %i): ',nFramesTot);
-        prompt2 = sprintf('Issue finishing at frame (out of total of %i): ',nFramesTot);
+        invalidQC = true;
+        while invalidQC
+            description = input("Brief description of QC issue: ", "s");
+            if ~isempty(description)
+                invalidQC = false;
+            else
+                sprintf('Please provide a valid description!\n') 
+            end
+        end
+        prompt1 = sprintf('Issue starting at frame (out of total of %i): ',length(frameQC_frames));
+        prompt2 = sprintf('Issue finishing at frame (out of total of %i): ',length(frameQC_frames));
         frame1 = input(prompt1);
         frame2 = input(prompt2);
         QCframes = [frame1:frame2];
@@ -199,6 +208,11 @@ while addManualQC_flag
     end
     if strcmpi(prompt0,'n')
         addManualQC_flag = false;
+    end
+end
+for i = 1:length(frameQC_names)
+    if isempty(frameQC_names{i})
+        frameQC_names{i} = 'unknown';
     end
 end
 save(fullfile(datPath,'exptQC.mat'),'frameQC_frames','frameQC_names');
