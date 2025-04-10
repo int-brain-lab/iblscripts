@@ -38,7 +38,15 @@ imgDescription = splitlines(imgInfo(imageIdx).ImageDescription);
 imgDescription = imgDescription(1:end-1);
 imgSoftware = splitlines(imgInfo(imageIdx).Software);
 for i = 1:length(imgSoftware)
-    evalc(imgSoftware{i});
+    try
+        evalc(imgSoftware{i});
+    catch ME
+        if (strcmp(ME.identifier,'MATLAB:undefinedVarOrClass'))
+            warning(ME.message)
+        else
+            rethrow(ME)
+        end
+    end
 end
 objResolution = SI.objectiveResolution;
 

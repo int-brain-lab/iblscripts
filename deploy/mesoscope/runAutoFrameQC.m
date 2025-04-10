@@ -27,11 +27,22 @@ else
     lastFrameToRead = Inf;
 end
 
+imageIdx = 1;
 fInfo = imfinfo(fpath);
 fArtist = jsondecode(fInfo(1).Artist);
-fSoftware = fInfo(1).Software;
-evalc(fSoftware); %this builds the SI structure
-
+%fSoftware = fInfo(1).Software;
+fSoftware = splitlines(fInfo(imageIdx).Software);
+for i = 1:length(fSoftware)
+    try
+        evalc(fSoftware{i});
+    catch ME
+        if (strcmp(ME.identifier,'MATLAB:undefinedVarOrClass'))
+            warning(ME.message)
+        else
+            rethrow(ME)
+        end
+    end
+end
 si_rois_all = fArtist.RoiGroups.imagingRoiGroup.rois;
 si_rois = si_rois_all(logical([si_rois_all.enable])); %only consider the rois that were 'enabled'
 nrois = numel(si_rois);
