@@ -491,7 +491,7 @@ if sum(outliers>0)
         xlabel('Frame nr')
         ylabel('F');
         xlim([0,volframe_all])
-        legend(h);
+        %legend(h);
     end
     
 else

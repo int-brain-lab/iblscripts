@@ -331,6 +331,8 @@ fid = fopen(jsonFileName, 'wt');
 fwrite(fid, txt);
 fclose(fid);
 
+movefile(fullfile(ff,[fn fext]), fullfile(ff, 'referenceImage.raw.tif'));
+
 %matFileName = fullfile(ff, [fn, '.mat']);
 %save(matFileName, 'meta');
 

@@ -15,11 +15,13 @@ if nargin<2 || isempty(options)
     options.lastFrame = Inf;
     options.frameStride = 1; % useful for reading only a specific channel/plane
     options.overwrite = false;
+    options.iFOV = 1;
 end
 
 [ff, fn, fext] = fileparts(filename);
 savefolder = ff;
-savename = 'referenceImage.stack.tif';
+%savename = 'referenceImage.stack.tif';
+savename = [fn,'_FOV0',num2str(options.iFOV-1),'_top.stack.tif'];
 
 files_to_delete = {savename, 'reference.stack.tif', 'reference.meta.json'};
 for i = 1:length(files_to_delete)
@@ -38,7 +40,11 @@ imgDescription = splitlines(imgInfo(imageIdx).ImageDescription);
 imgDescription = imgDescription(1:end-1);
 imgSoftware = splitlines(imgInfo(imageIdx).Software);
 for i = 1:length(imgSoftware)
-    evalc(imgSoftware{i});
+    try
+        evalc(imgSoftware{i});
+    catch e
+        warning(e.message);
+    end
 end
 objResolution = SI.objectiveResolution;
 
@@ -80,7 +86,7 @@ nValidLines = sum(nLines);
 Zs = SI.hStackManager.zs;
 Zvals = unique(Zs); %NB this automatically sorts ascendingly
 nZs = length(Zvals); %total number of depths defined
-%Zdepths = diff(Zvals); %TO
+%Zdepths = diff(Zvals);
 %Zdepths = [Zdepths(1) Zdepths];
 
 % reconstruct image in each plane
@@ -99,13 +105,22 @@ for iZ = 1:nZs
     nLinesPerGap = (imgInfo(1).Height - nValidLines) / (nFOVs - 1);
     fovStartIdx = [1; cumsum(nLines(1:end-1) + nLinesPerGap) + 1];
     fovEndIdx = fovStartIdx + nLines - 1;
-    for iFOV = 1:nFOVs
-        rawImgs = permute(rawData(fovStartIdx(iFOV):fovEndIdx(iFOV), :, iZ:nZs:end),[2,1,3]);
-        meanImg{iFOV} = mean(rawImgs,3,'native');
-    end
+%     for iFOV = 1:nFOVs
+%         rawImgs = permute(rawData(fovStartIdx(iFOV):fovEndIdx(iFOV), :, iZ:nZs:end),[2,1,3]);
+%         meanImg{iFOV} = mean(rawImgs,3,'native');
+%     end
+%     
+%     %stitch the FOVs together into a square grid
+%     [imgM,XX,YY] = stitchMultiFOV_adj(meanImg,cXY,sXY);
+%     imgStack(:,:,iZ) = imgM;
     
-    %stitch the FOVs together into a square grid
-    [imgM,XX,YY] = stitchMultiFOV_adj(meanImg,cXY,sXY);
+    %quick hack for testing on a single FOV
+    iFOV = options.iFOV;
+    %rawImgs = permute(rawData(fovStartIdx(iFOV):fovEndIdx(iFOV), :, iZ:nZs+1:end),[2,1,3]); %HACK for extra black frame
+    rawImgs = permute(rawData(fovStartIdx(iFOV):fovEndIdx(iFOV), :, iZ:nZs:end),[2,1,3]); %HACK for extra black frame
+    imgM = mean(rawImgs,3,'native'); %arithmetic mean
+    %imgM = max(rawImgs,[],3); %maximum
+    %imgM = mean(maxk(rawImgs,round(0.2*size(rawImgs,3)),3),3,'native'); %mean of the top 20% of frames 
     imgStack(:,:,iZ) = imgM;
     
     imgM = imgM'; %need to transpose back for Tiff stack (not sure why...)
