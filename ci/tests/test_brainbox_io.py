@@ -1,10 +1,12 @@
 import logging
 import hashlib
+import unittest
 
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from one.api import One
+from one.api import One, ONE
 from one.alf.io import load_object
 import brainbox.io.one as bbone
 from neuropixel import trace_header
@@ -46,6 +48,23 @@ def _check_cluster_depths(cluster_depths, namespace=None):
     elif namespace == 'mf':
         hash = 'e1c193f46bffbb9e44ff5fe084a65bfb55118987'
     assert hashlib.sha1(cluster_depths.tobytes()).hexdigest() == hash
+
+
+class TestReadChannels(unittest.TestCase):
+
+    def test_read_channels(self):
+        one = ONE(
+            base_url='https://openalyx.internationalbrainlab.org',
+            silent=True,
+            password='international'
+        )
+        pid = '511afaa5-fdc4-4166-b4c0-4629ec5e652e'
+        ssl = SpikeSortingLoader(one=one, pid=pid)
+        channels = ssl.load_channels(revision='2024-05-06')
+        np.testing.assert_array_equal(
+            pd.Series(channels['atlas_id']).value_counts().to_numpy(),
+            np.array([206, 130, 48]),
+        )
 
 
 class TestReadSpikeSorting(IntegrationTest):
