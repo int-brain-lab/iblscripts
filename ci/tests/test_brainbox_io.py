@@ -18,36 +18,6 @@ _logger.setLevel(10)
 br = BrainRegions()
 
 
-def _check(spike_times, spike_sorter='pykilosort'):
-    if spike_sorter == 'pykilosort':
-        hash = 'f66c53aec01333245acc2fd658339ee9fceda5b9'
-    elif spike_sorter == 'ks2_preproc_tests':
-        hash = 'e833cd9df46aa791fcec48b52ddff7f96f98a6ab'
-    elif spike_sorter == '':
-        hash = '5628850285f44fba66ea241cd106d8c7c1871754'
-    assert hashlib.sha1(spike_times.tobytes()).hexdigest() == hash
-
-
-def _check_spike_clusters(spike_clusters, namespace=None):
-    if namespace is None:
-        hash = '99946f9e8565d1bf5afdd76e9b13b84c4cbb47c8'
-    elif namespace == 'av':
-        hash = '56d6e9d33bf418fb944005147648084426301b73'
-    elif namespace == 'mf':
-        hash = '99946f9e8565d1bf5afdd76e9b13b84c4cbb47c8'
-    assert hashlib.sha1(spike_clusters.tobytes()).hexdigest() == hash
-
-
-def _check_cluster_depths(cluster_depths, namespace=None):
-    if namespace is None:
-        hash = 'e1c193f46bffbb9e44ff5fe084a65bfb55118987'
-    elif namespace == 'av':
-        hash = '86846d9a42a8f66127a61b0d8aa2886f224567f8'
-    elif namespace == 'mf':
-        hash = 'e1c193f46bffbb9e44ff5fe084a65bfb55118987'
-    assert hashlib.sha1(cluster_depths.tobytes()).hexdigest() == hash
-
-
 class TestReadSpikeSorting(IntegrationTest):
 
     def setUp(self) -> None:
@@ -61,6 +31,33 @@ class TestReadSpikeSorting(IntegrationTest):
     def tearDown(self) -> None:
         for file in self.root_path.glob('*.pqt'):
             file.unlink()
+
+    def _check(self, spike_times, spike_sorter='pykilosort'):
+        if spike_sorter == 'pykilosort':
+            hash = 'f66c53aec01333245acc2fd658339ee9fceda5b9'
+        elif spike_sorter == 'ks2_preproc_tests':
+            hash = 'e833cd9df46aa791fcec48b52ddff7f96f98a6ab'
+        elif spike_sorter == '':
+            hash = '5628850285f44fba66ea241cd106d8c7c1871754'
+        self.assertEqual(hashlib.sha1(spike_times.tobytes()).hexdigest(), hash)
+
+    def _check_spike_clusters(self, spike_clusters, namespace=None):
+        if namespace is None:
+            hash = '99946f9e8565d1bf5afdd76e9b13b84c4cbb47c8'
+        elif namespace == 'av':
+            hash = '56d6e9d33bf418fb944005147648084426301b73'
+        elif namespace == 'mf':
+            hash = '99946f9e8565d1bf5afdd76e9b13b84c4cbb47c8'
+        self.assertEqual(hashlib.sha1(spike_clusters.tobytes()).hexdigest(), hash)
+
+    def _check_cluster_depths(self, cluster_depths, namespace=None):
+        if namespace is None:
+            hash = 'e1c193f46bffbb9e44ff5fe084a65bfb55118987'
+        elif namespace == 'av':
+            hash = '86846d9a42a8f66127a61b0d8aa2886f224567f8'
+        elif namespace == 'mf':
+            hash = 'e1c193f46bffbb9e44ff5fe084a65bfb55118987'
+        self.assertEqual(hashlib.sha1(cluster_depths.tobytes()).hexdigest(), hash)
 
     def test_channel_conversion_interpolation(self):
         BUNCH_KEYS = {'x', 'y', 'z', 'acronym', 'atlas_id', 'axial_um', 'lateral_um'}
@@ -95,38 +92,39 @@ class TestReadSpikeSorting(IntegrationTest):
         self.assertEqual(sl.pid2ref, '2020-10-05_1_SWC_054_probe01')
         _logger.setLevel(0)
         spikes, clusters, channels = sl.load_spike_sorting(spike_sorter='')
-        _check(spikes['times'], spike_sorter='')
+        self._check(spikes['times'], spike_sorter='')
         clusters = sl.merge_clusters(spikes, clusters, channels)
         assert 'acronym' in clusters.keys()
 
         # load spike sorting for a non default sorter
         spikes, clusters, channels = sl.load_spike_sorting(spike_sorter='ks2_preproc_tests')
-        _check(spikes['times'], spike_sorter='ks2_preproc_tests')
+        self._check(spikes['times'], spike_sorter='ks2_preproc_tests')
 
         # load spike sorting using collection
         # this is not recommended as the spike sorter property doesn not match the spike sorting loaded
         spikes, clusters, channels = sl.load_spike_sorting(
             collection=f'alf/{self.pname}/ks2_preproc_tests', enforce_version=False)
-        _check(spikes['times'], spike_sorter='ks2_preproc_tests')
+        self._check(spikes['times'], spike_sorter='ks2_preproc_tests')
 
         # makes sure this is the pykilosort that is returned by default1
         spikes, clusters, channels = bbone._load_spike_sorting(
             eid=self.eid, one=self.one, collection=f'alf/*{self.pname}/*', return_channels=True)
-        _check(spikes[self.pname]['times'])
+        self._check(spikes[self.pname]['times'])
 
         # Tests for loading of manually curated datasets
         # For None and 'mf' it should load the default spikesorted data (as mf data doesn't exist). For
         # namespace = 'av' it should read in the av clusters objects and replace the spikes.clusters with the av version.
         for namespace in [None, 'av', 'mf']:
-            spikes, clusters, channels = sl.load_spike_sorting(enforce_version=False, namespace=namespace,
-                                                               dataset_types=['clusters.curatedLabels'])
-            _check(spikes['times'], spike_sorter='pykilosort')
-            _check_spike_clusters(spikes['clusters'], namespace=namespace)
-            _check_cluster_depths(clusters['depths'], namespace=namespace)
-            if namespace == 'av':
-                assert 'curatedLabels' in clusters.keys()
-            else:
-                assert 'curatedLabels' not in clusters.keys()
+            with self.subTest(namespace=namespace):
+                spikes, clusters, channels = sl.load_spike_sorting(enforce_version=False, namespace=namespace,
+                                                                   dataset_types=['clusters.curatedLabels'])
+                self._check(spikes['times'], spike_sorter='pykilosort')
+                self._check_spike_clusters(spikes['clusters'], namespace=namespace)
+                self._check_cluster_depths(clusters['depths'], namespace=namespace)
+                if namespace == 'av':
+                    assert 'curatedLabels' in clusters.keys()
+                else:
+                    assert 'curatedLabels' not in clusters.keys()
 
         # Check that it isn't possible to load spikesorting with good_units=True and namespace not None
         spikes, clusters, channels = sl.load_spike_sorting(enforce_version=False, namespace='av',
