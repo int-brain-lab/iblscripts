@@ -604,7 +604,9 @@ class TestMesoscopePreprocessRename(base.IntegrationTest):
         task = MesoscopePreprocess(session_path, one=self.one)
         files = task._rename_outputs(self.suite2pdir.parent, None, None)
         self.assertTrue(all(map(Path.exists, files)))
-        self.assertFalse(self.suite2pdir.exists())
+        self.assertTrue(self.suite2pdir.exists())
+        # Check that other files were removed (note: there's no bin file in this test)
+        self.assertEqual({'ops.npy'}, set(x.name for x in self.suite2pdir.rglob('*.*')))
         self.assertTrue((compressed := files[0].with_name('_suite2p_ROIData.raw.zip')).exists())
         self.assertIn(compressed, files)
         # Check files saved transposed
@@ -646,7 +648,7 @@ class TestMesoscopePreprocessRename(base.IntegrationTest):
         # Should not delete other files from this folder
         fov_folder.joinpath('mpci.times.npy').touch()
 
-        # Create binary data files to check they are moved
+        # Create binary data files
         self.suite2pdir.joinpath('data.bin').touch()
         self.suite2pdir.joinpath('data_raw.bin').touch()
 
@@ -665,11 +667,9 @@ class TestMesoscopePreprocessRename(base.IntegrationTest):
         self.assertIn(files[0].with_name('mpciFrameQC.names.tsv'), files)
         self.assertIn(files[0].with_name('mpci.mpciFrameQC.npy'), files)
 
-        bin_path = session_path.joinpath('raw_bin_files')
-        self.assertTrue(bin_path.exists())
-        files = [x.relative_to(session_path).as_posix() for x in bin_path.rglob('*.*')]
-        expected = ['raw_bin_files/plane2/data.bin', 'raw_bin_files/plane2/data_raw.bin', 'raw_bin_files/plane2/ops.npy']
-        self.assertCountEqual(expected, files)
+        # bin files should be kept, the motion registered one should be renamed
+        expected = {'ops.npy', 'imaging.frames_motionRegistered.bin', 'data_raw.bin'}
+        self.assertEqual(expected, set(x.name for x in self.suite2pdir.rglob('*.*')))
 
 
 class TestMesoscopePreprocess(base.IntegrationTest):
@@ -700,10 +700,10 @@ class TestMesoscopePreprocess(base.IntegrationTest):
         # first create some raw bin data and assert that these are used instead of calling bin_per_plane
         n_planes = 2
         for i in range(n_planes):
-            loc = self.session_path.joinpath('raw_bin_files', f'plane{i}')
+            loc = self.session_path.joinpath('suite2p', f'plane{i}')
             loc.mkdir(parents=True, exist_ok=True)
             shutil.copy(self.data_path.joinpath(self.required_files[1]), loc.joinpath('ops.npy'))
-            loc.joinpath('data.bin').touch()
+            loc.joinpath('imaging.frames_motionRegistered.bin').touch()
 
         task.get_signatures()
         files = task._run(rename_files=False)
@@ -715,7 +715,7 @@ class TestMesoscopePreprocess(base.IntegrationTest):
         self.suite2p_mock.io.mesoscan_to_binary.assert_not_called()
         self.assertEqual(n_planes, roi_detection_mock.call_count)
         self.assertEqual(n_planes, img_reg_mock.call_count)
-        # Check that bin files were moved
+        # Check that bin files were renamed
         self.assertFalse(self.session_path.joinpath('raw_bin_files').exists())
         expected = ['suite2p/plane0/data.bin', 'suite2p/plane0/ops.npy', 'suite2p/plane1/data.bin', 'suite2p/plane1/ops.npy']
         self.assertCountEqual(expected, [x.relative_to(self.session_path).as_posix() for x in files])
