@@ -42,7 +42,7 @@ class OneSdsc(OneAlyx):
         if isinstance(obj, list) or not self.uuid_filenames:
             return obj
         # pops the UUID in the key names
-        for k in obj.keys():
+        for k in list(obj.keys()):
             new_key = '.'.join(filterfalse(is_uuid_string, k.split('.')))
             obj[new_key] = obj.pop(k)
         return obj
