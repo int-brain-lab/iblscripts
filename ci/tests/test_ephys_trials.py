@@ -284,6 +284,10 @@ class TestEphysTrials_new_1st_trial(base.IntegrationTest):
     required_files = ['ephys/ephys_1st_trial/2025-05-28/001/*']
 
     def test_new_1st_trial(self):
+        """Starting with version 8.28.0 of IBLRIG, the first trial of the state machine is no longer used for timing
+        the initial delay and waiting for the first camera trigger. Instead, the first trial is now identical to the
+        remaining trials. For this reason, extractors can now skip some logic for recovering from edge cases specific
+        to the extraction of the first trial."""
         session_path = get_session_path(next(self.data_path.glob(self.required_files[0])))
 
         task = ChoiceWorldTrialsNidq(session_path, one=ONE(mode='local'), collection='raw_task_data_00',
