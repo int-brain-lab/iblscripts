@@ -279,6 +279,7 @@ class TestEphysTrials_iblrigv8(base.IntegrationTest):
         for col in ['contrastLeft', 'contrastRight', 'probabilityLeft']:
             self.assertTrue(np.array_equal(trials[col].values, out[col], equal_nan=True))
 
+
 class TestEphysTrials_new_1st_trial(base.IntegrationTest):
 
     required_files = ['ephys/ephys_1st_trial/2025-05-28/001/*']
