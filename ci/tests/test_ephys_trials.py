@@ -278,3 +278,29 @@ class TestEphysTrials_iblrigv8(base.IntegrationTest):
         # Ensure the values are the same
         for col in ['contrastLeft', 'contrastRight', 'probabilityLeft']:
             self.assertTrue(np.array_equal(trials[col].values, out[col], equal_nan=True))
+
+class TestEphysTrials_new_1st_trial(base.IntegrationTest):
+
+    required_files = ['ephys/ephys_1st_trial/2025-05-28/001/*']
+
+    def test_new_1st_trial(self):
+        session_path = get_session_path(next(self.data_path.glob(self.required_files[0])))
+
+        task = ChoiceWorldTrialsNidq(session_path, one=ONE(mode='local'), collection='raw_task_data_00',
+                                     sync_collection='raw_ephys_data')
+        fpga_trials, _ = task.extract_behaviour(save=False)
+        trials = fpga_trials['table']
+
+        # times from Bpod represent ground truth
+        bpod_trials = task.extractor.bpod_extractor.bpod_trials
+        bpod_trial_start = [t['behavior_data']['States timestamps']['trial_start'][0][0] for t in bpod_trials]
+
+        # compare Bpod and FPGA trial start times
+        times_bpod = np.array(bpod_trial_start) - bpod_trial_start[0]
+        times_fpga = trials.intervals_0 - trials.intervals_0[0]
+        self.assertTrue(np.isclose(times_bpod, times_fpga, atol=0.0001).all())
+
+        # compare Bpod and FPGA trial durations
+        diff_bpod = np.diff(bpod_trial_start)
+        diff_fpga = np.diff(trials.intervals_0)
+        self.assertTrue(np.isclose(diff_bpod, diff_fpga, atol=0.0001).all())
