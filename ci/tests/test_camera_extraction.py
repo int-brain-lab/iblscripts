@@ -25,6 +25,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from iblutil.util import Bunch
 import one.alf.io as alfio
+from one.alf.path import get_session_path
 from one.alf import spec
 import one.params
 from one.api import ONE
@@ -231,6 +232,47 @@ class TestTrainingCameraExtractor(base.IntegrationTest):
         mock_vc().get.return_value = self.n_frames - 400
         ts, _ = ext.extract(save=False)
         self.assertEqual(ts.size, mock_vc().get.return_value)  # NB: This behaviour will change in the future
+
+
+class TestTrainingCameraExtractorNew(base.IntegrationTest):
+    """Starting with version 8.28.0 of IBLRIG, the first trial of the state machine is no longer used for timing
+    the initial delay and waiting for the first camera trigger. Instead, the first trial is now identical to the
+    remaining trials. Here we test the extraction of the camera timestamps from such sessions. The integration data
+    has a purposefully added 1-second delay between starting the camera and start of the first trial - this is not
+    normally the case. It has been added here to test the effect of decoupling camera start and first trial on the
+    synchronization of the camera timestamps with the Bpod trials."""
+    required_files = ['training/8.28.0/2025-06-12/002/*',]
+
+    def setUp(self):
+        session_path = get_session_path(next(self.data_path.glob(self.required_files[0])))
+        frame_data = raw.load_camera_frameData(session_path, camera='left')
+        self.n_frames = len(frame_data)
+        bpod_trials = raw.load_data(session_path, task_collection='raw_task_data_00')
+        self.t0_bpod = bpod_trials[0]["behavior_data"]["Trial start timestamp"]
+        self.ext = camio.CameraTimestampsBpod(session_path)
+
+    @mock.patch("ibllib.io.extractors.camera.cv2.VideoCapture")
+    def test_extraction_sound_sync(self, mock_vc):
+        """In this test the camera timestamps are synchronized by means of the sound TTL recorded by the camera.
+        The extractor should be able to handle this and extrapolate the camera triggers that have been missed before
+        start of the first trial."""
+        mock_vc().get.return_value = self.n_frames
+        mock_vc().isOpened.return_value = True
+        ts, _ = self.ext.extract(save=False, task_collection='raw_task_data_00')
+        # The first camera timestamp should be BEFORE the start of the first trial.
+        self.assertGreater(self.t0_bpod, ts[0])
+
+    @mock.patch("ibllib.io.extractors.camera.raw.load_embedded_frame_data")
+    @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
+    def test_extraction_no_frame_data(self, mock_vc, mock_aux):
+        """In this test the camera can not be synchronized by means of the sound TTL. This will lead to a shift of the
+        camera timestamps with respect to the Bpod trials leading to faulty synchronization."""
+        mock_vc().get.return_value = self.n_frames
+        mock_vc().isOpened.return_value = True
+        mock_aux.return_value = (None, [None] * 4)
+        ts, _ = self.ext.extract(save=False, task_collection='raw_task_data_00')
+        # The first camera timestamp should be AFTER the start of the first trial.
+        self.assertLess(self.t0_bpod, ts[0])
 
 
 class TestEphysCameraExtractor(base.IntegrationTest):
