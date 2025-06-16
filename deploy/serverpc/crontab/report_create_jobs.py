@@ -37,6 +37,10 @@ class JobCreator(Task):
         self.pipes = []
         super().__init__(None, **kwargs)
 
+    def get_data_handler(self, **kwargs):
+        """Data handlers not supported here."""
+        return None
+
     def _run(self):
         # Label the lab endpoint json field with health indicators
         try:
