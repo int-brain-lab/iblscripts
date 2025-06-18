@@ -245,7 +245,15 @@ end
 fSoftware = splitlines(meta.rawScanImageMeta.Software);
 % this will generate an SI structure, be careful not to overwrite things
 for i = 1:length(fSoftware)
-    evalc(fSoftware{i});
+    try
+        evalc(fSoftware{i});
+    catch ME
+        if (strcmp(ME.identifier,'MATLAB:undefinedVarOrClass'))
+            warning(ME.message)
+        else
+            rethrow(ME)
+        end
+    end
 end
 
 %% useful SI parameters
