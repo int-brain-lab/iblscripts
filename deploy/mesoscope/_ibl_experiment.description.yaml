@@ -12,7 +12,7 @@ devices:
   mesoscope:
     mesoscope:
       collection: raw_imaging_data*
-      sync_label: chrono
+      sync_label: neural_frames
   cameras:
     belly:
       collection: raw_video_data

@@ -5,6 +5,7 @@ import socket
 import time
 
 from one.api import ONE
+from one.webclient import AlyxClient
 from ibllib.pipes.local_server import job_creator, task_queue, tasks_runner, report_health
 
 DEFINED_PORTS = {
@@ -100,8 +101,7 @@ def report():
     """
     Labels the lab endpoint json field with health indicators every 2 hours
     """
-    one = ONE(cache_rest=None)
-    report_health(one=one)
+    report_health(AlyxClient(cache_rest=None))
 
 
 @forever(DEFINED_PORTS['create'], 60 * 15)

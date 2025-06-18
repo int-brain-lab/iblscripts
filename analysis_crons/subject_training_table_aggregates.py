@@ -11,7 +11,7 @@ import logging
 import shutil
 
 from iblutil.io import hashfile
-from one.alf import files as alfiles
+from one.alf import path as alfiles
 from data.models import Dataset, DataRepository, DataFormat, DatasetType, FileRecord
 from misc.models import LabMember
 from subjects.models import Subject

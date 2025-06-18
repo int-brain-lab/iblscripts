@@ -1,4 +1,5 @@
-"""Integration tests for the camera extraction and QC
+"""Integration tests for the camera extraction and QC.
+
 Folders used:
     - camera/
     - ephys/ephys_choice_world_task/ibl_witten_27/2021-01-21/001/
@@ -37,8 +38,6 @@ from ibllib.pipes.dynamic_pipeline import acquisition_description_legacy_session
 import ibllib.qc.camera as camQC
 from ibllib.qc.camera import CameraQC
 import ibllib.io.video as vidio
-from ibllib.pipes.training_preprocessing import TrainingVideoCompress
-from ibllib.pipes.ephys_preprocessing import EphysVideoCompress, EphysVideoSyncQc
 
 from ci.tests import base
 
@@ -81,6 +80,8 @@ def _save_qc_frames(qc, **kwargs):
 
 
 class TestTrainingCameraExtractor(base.IntegrationTest):
+
+    required_files = ['camera/FMR007/2021-02-25/001', 'camera/ZFM-01867/2021-03-23/002']
 
     def setUp(self) -> None:
         self.training_eid = '7082d576-4eb4-41dc-a16e-8a742829a83a'  # For reference
@@ -137,14 +138,6 @@ class TestTrainingCameraExtractor(base.IntegrationTest):
         np.testing.assert_array_equal(gpio['indices'][-5:], expected)
         expected = np.array([4448.100798, 4452.912398, 4452.934398, 4457.313998, 4457.335998])
         np.testing.assert_array_almost_equal(audio['times'][-5:], expected)
-
-    @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
-    def test_extract_all(self, mock_vc):
-        mock_vc().get.return_value = self.n_frames
-
-        out, fil = camio.extract_all(self.session_path, save=False)
-        self.assertTrue(len(out), 3)
-        self.assertTrue(all(x is None for x in fil))
 
     @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
     def test_extraction(self, mock_vc):
@@ -242,6 +235,10 @@ class TestTrainingCameraExtractor(base.IntegrationTest):
 
 class TestEphysCameraExtractor(base.IntegrationTest):
 
+    required_files = ['camera/SWC_054/2020-10-07/001',
+                      'ephys/ephys_choice_world_task/ibl_witten_27/2021-01-21/001',
+                      'Subjects_init/ZM_1098/2019-01-25/001/*.mp4']
+
     def setUp(self) -> None:
         self.ephys_eid = '6c6983ef-7383-4989-9183-32b1a300d17a'
         self.session_path = self.data_path / 'camera' / 'SWC_054' / '2020-10-07' / '001'
@@ -335,29 +332,6 @@ class TestEphysCameraExtractor(base.IntegrationTest):
         self._make_frameData_file(self.groom_session_path, label='left')
         # Rerun same test
         self._groom_pin_state()
-
-    @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
-    def test_extract_all_bin_file(self, mock_vc):
-        mock_vc().get.side_effect = self.n_frames.values()
-
-        self._make_frameData_file(self.session_path, label='left')
-        self._make_frameData_file(self.session_path, label='right')
-        self._make_frameData_file(self.session_path, label='body')
-
-        out, fil = camio.extract_all(self.session_path, save=False)
-        self.assertTrue(len(out), 3)
-        self.assertFalse(fil)
-
-    @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
-    def test_extract_all(self, mock_vc):
-        mock_vc().get.side_effect = self.n_frames.values()
-
-        out, fil = camio.extract_all(self.session_path, save=False)
-        self.assertTrue(len(out), 3)
-        self.assertFalse(fil)
-
-        with self.assertRaises(ValueError):
-            camio.extract_all(self.session_path, save=False, labels=('head', 'tail', 'front'))
 
     @mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture')
     def test_extraction(self, mock_vc):
@@ -459,6 +433,8 @@ class TestEphysCameraExtractor(base.IntegrationTest):
 class TestVideoQC(base.IntegrationTest):
     """Test the video QC on some failure cases"""
 
+    required_files = ['camera/10_sec_vids', 'camera/10sec_bad_location']
+
     @classmethod
     def setUpClass(cls) -> None:
         """Load a few 10 second videos for testing the various video QC checks"""
@@ -469,8 +445,7 @@ class TestVideoQC(base.IntegrationTest):
         # To remove once we use ONE cache file
         one = ONE(**base.TEST_DB)
         dummy_id = 'd3372b15-f696-4279-9be5-98f15783b5bb'
-        qc = CameraQC(dummy_id, 'left',
-                      n_samples=10, stream=False, download_data=False, one=one)
+        qc = CameraQC(dummy_id, 'left', n_samples=10, stream=False, one=one)
         qc.one = None
         qc._type = 'ephys'  # All videos come from ephys sessions
         qcs = OrderedDict()
@@ -525,6 +500,14 @@ class TestVideoQC(base.IntegrationTest):
 class TestCameraQC(base.IntegrationTest):
     """Test the video QC on some failure cases."""
 
+    required_files = [
+        'Subjects_init/ZM_1098/2019-01-25/001',
+        'camera/SWC_054/2020-10-07/001',
+        'camera/FMR007/2021-02-25/001',
+        'camera/6c6983ef-7383-4989-9183-32b1a300d17a_frame_samples.npy',
+        'camera/7082d576-4eb4-41dc-a16e-8a742829a83a_frame_samples.npy'
+    ]
+
     def setUp(self) -> None:
         self.incomplete = self.data_path.joinpath('Subjects_init', 'ZM_1098', '2019-01-25', '001')
         self.ephys = (
@@ -543,8 +526,7 @@ class TestCameraQC(base.IntegrationTest):
         # Verify using local path
         session_path = self.incomplete
 
-        qc = CameraQC(session_path, 'left',
-                      stream=False, download_data=False, one=self.one, n_samples=20)
+        qc = CameraQC(session_path, 'left', stream=False, one=self.one, n_samples=20)
         outcome, extended = qc.run(update=False)
         self.assertIs(spec.QC.NOT_SET, outcome)
         expected = {}
@@ -579,9 +561,8 @@ class TestCameraQC(base.IntegrationTest):
             video_path.touch()
             self.addCleanup(video_path.unlink)
         qc = camQC.run_all_qc(session_path, cameras=('left',), stream=False, update=False, one=one,
-                              n_samples=n_samples, download_data=False, extract_times=True)
+                              n_samples=n_samples, extract_times=True)
         self.assertIsInstance(qc, dict)
-        self.assertFalse(qc['left'].download_data)
         self.assertEqual(qc['left'].type, 'ephys')
         expected = {
             '_videoLeft_brightness': spec.QC.PASS,
@@ -621,7 +602,7 @@ class TestCameraQC(base.IntegrationTest):
                       stream=False, n_samples=n_samples, one=self.one)
         # Add a dummy video path (we stub the VideoCapture class anyway)
         qc.video_path = session_path.joinpath('raw_video_data', '_iblrig_leftCamera.raw.mp4')
-        qc.load_data(download_data=False, extract_times=True)
+        qc.load_data(extract_times=True)
         outcome, extended = qc.run(update=False)
         self.assertEqual(spec.QC.FAIL, outcome)
         expected = {
@@ -677,84 +658,10 @@ class TestCameraQC(base.IntegrationTest):
             yield True, frame
 
 
-class TestCameraPipeline(base.IntegrationTest):
-
-    def setUp(self) -> None:
-        self.training_folder = self.data_path.joinpath('training', 'CSHL_003', '2019-04-05', '001')
-        self.ephys_folder = self.data_path.joinpath('ephys', 'choice_world_init',
-                                                    'KS022', '2019-12-10', '001')
-        if not self.ephys_folder.exists():
-            raise FileNotFoundError(f'Fixture {self.ephys_folder} does not exist')
-        if not self.training_folder.exists():
-            raise FileNotFoundError(f'Fixture {self.training_folder} does not exist')
-        self.one = ONE(mode='local')
-
-    def test_training(self):
-        with tempfile.TemporaryDirectory() as tdir:
-            subjects_path = Path(tdir).joinpath('Subjects', *self.training_folder.parts[-3:])
-            session_path = shutil.copytree(self.training_folder, subjects_path)
-            # task running part - there are no videos, should exit gracefully
-            job = TrainingVideoCompress(session_path, one=self.one)
-            with self.assertLogs('ibllib', level='INFO'):
-                job.run()
-
-            self.assertEqual(job.status, 0)
-            self.assertTrue('skipping' in job.log)
-
-            # Now mock the video data so that extraction and QC succeed
-            video_path = session_path.joinpath('raw_video_data')
-            video_path.mkdir(parents=True)
-            video_path.joinpath('_iblrig_leftCamera.raw.mp4').touch()
-
-            with mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture') as mock_vc, \
-                    mock.patch('ibllib.io.ffmpeg.get_video_meta') as mock_meta, \
-                    mock.patch('ibllib.pipes.training_preprocessing.CameraQC') as mock_qc:
-                def side_effect():
-                    return True, np.random.randint(0, 255, size=(1024, 1280, 3))
-                mock_vc().read.side_effect = side_effect
-                length = 68453
-                mock_vc().get.return_value = length
-                mock_meta.return_value = Bunch(length=length, size=1024)
-                job.run()
-                self.assertEqual(job.status, 0)
-                self.assertEqual(mock_qc.call_args.args, (session_path, 'left'))
-                mock_qc().run.assert_called_once_with(update=True)
-                self.assertTrue(len(job.outputs) > 0)
-
-            # check the file objects
-            ts = alfio.load_object(session_path / 'alf', 'leftCamera')
-            self.assertTrue(ts['times'].size == length)
-
-    @mock.patch('ibllib.qc.camera.CameraQC')
-    def test_ephys(self, mock_qc):
-        # task running part
-        job = EphysVideoCompress(self.ephys_folder, one=self.one)
-        jobqc = EphysVideoSyncQc(self.ephys_folder, one=self.one)
-        with mock.patch('ibllib.io.extractors.camera.cv2.VideoCapture') as mock_vc:
-            length = 68453
-            mock_vc().get.return_value = length
-            job.run()
-            jobqc.run()
-
-        self.assertEqual(job.status, 0)
-        self.assertEqual(len(mock_qc.call_args_list), 3)  # Once per camera
-        labels = ('left', 'right', 'body')
-        self.assertCountEqual(labels, [arg.args[-1]for arg in mock_qc.call_args_list])
-
-        [self.assertEqual(call[0][0], self.ephys_folder) for call in mock_qc.call_args_list]
-        mock_qc().run.assert_called_with(update=True)
-        # Three datasets for video compress job
-        self.assertEqual(len(job.outputs), 3)
-        # Three datasets for video sync qc job
-        self.assertEqual(len(jobqc.outputs), 3)
-
-        # check the file objects
-        for label in labels:
-            ts = alfio.load_object(self.ephys_folder / 'alf', f'{label}Camera')
-            self.assertTrue(ts['times'].size > 0)
-
-
 class TestWheelMotionNRG(base.IntegrationTest):
+
+    required_files = ['camera/6c6983ef-7383-4989-9183-32b1a300d17a_frame_samples.npy',
+                      'camera/SWC_054/2020-10-07/001']
 
     def setUp(self) -> None:
         real_eid = '6c6983ef-7383-4989-9183-32b1a300d17a'
@@ -805,10 +712,12 @@ class TestWheelMotionNRG(base.IntegrationTest):
 
 class TestWheelAlignment(base.IntegrationTest):
 
+    required_files = ['training/CSHL_003/2019-04-05/001', 'ephys/choice_world_init/KS022/2019-12-10/001']
+
     def setUp(self) -> None:
         self.training_folder = self.data_path.joinpath('training', 'CSHL_003', '2019-04-05', '001')
-        self.ephys_folder = self.data_path.joinpath('ephys', 'choice_world_init',
-                                                    'KS022', '2019-12-10', '001')
+        self.ephys_folder = self.data_path.joinpath(
+            'ephys', 'choice_world_init', 'KS022', '2019-12-10', '001')
         if not self.ephys_folder.exists():
             raise FileNotFoundError(f'Fixture {self.ephys_folder} does not exist')
         if not self.training_folder.exists():

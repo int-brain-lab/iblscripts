@@ -14,7 +14,7 @@ from ibllib.io import session_params
 from ibllib.io.raw_data_loaders import patch_settings
 from ibllib.pipes.misc import create_basic_transfer_params
 from one.alf.io import iter_sessions
-from one.alf.files import get_session_path
+from one.alf.path import get_session_path
 
 
 def ensure_absolute(paths, transfer_pars):

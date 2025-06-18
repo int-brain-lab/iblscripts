@@ -8,7 +8,7 @@ from packaging import version
 import numpy as np
 from one.api import ONE
 from one.remote.globus import get_lab_from_endpoint_id
-from one.alf.files import get_session_path, session_path_parts
+from one.alf.path import get_session_path, session_path_parts
 import spikeglx
 
 import ibllib.io.raw_data_loaders as raw

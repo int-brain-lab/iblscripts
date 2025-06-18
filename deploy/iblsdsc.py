@@ -13,136 +13,44 @@ The limitations of this implementation are:
 Recommended usage: just monkey patch the ONE import and run your code as usual on Popeye !
 >>> from deploy.iblsdsc import OneSdsc as ONE
 """
+import logging
+from pathlib import Path
+from itertools import filterfalse
 
 from one.api import OneAlyx
-import warnings
-import logging
-from datetime import datetime
-from pathlib import Path, PurePosixPath
-
-import pandas as pd
-import numpy as np
-from iblutil.io import hashfile
-
-from one.converters import session_record2path
-import one.util as util
+from one.alf.spec import is_uuid_string
+import one.params
 
 _logger = logging.getLogger(__name__)
-CACHE_DIR = Path("/mnt/sdceph/users/ibl/data")
+CACHE_DIR = Path('/mnt/sdceph/users/ibl/data')
+CACHE_DIR_FI = Path('/mnt/ibl')
 
 
 class OneSdsc(OneAlyx):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, cache_dir=CACHE_DIR, **kwargs):
+        if not kwargs.get('tables_dir'):
+            # Ensure parquet tables downloaded to separate location to the dataset repo
+            kwargs['tables_dir'] = one.params.get_cache_dir()  # by default this is user downloads
+        super().__init__(*args, cache_dir=cache_dir, **kwargs)
         # assign property here as it is set by the parent OneAlyx class at init
         self.uuid_filenames = True
 
     def load_object(self, *args, **kwargs):
         # call superclass method
         obj = super().load_object(*args, **kwargs)
-        if isinstance(obj, list):
+        if isinstance(obj, list) or not self.uuid_filenames:
             return obj
         # pops the UUID in the key names
-        keys = list(obj.keys())
-        for k in keys:
-            obj[k[:-37]] = obj.pop(k)
+        for k in list(obj.keys()):
+            new_key = '.'.join(filterfalse(is_uuid_string, k.split('.')))
+            obj[new_key] = obj.pop(k)
         return obj
 
-    def _download_dataset(self, dset, cache_dir=None, update_cache=True, **kwargs):
-        return
-
-    def _check_filesystem(self, datasets, offline=None, update_exists=True, check_hash=True):
-        """Update the local filesystem for the given datasets.
-
-        Given a set of datasets, check whether records correctly reflect the filesystem.
-        Called by load methods, this returns a list of file paths to load and return.
-
-        Parameters
-        ----------
-        datasets : pandas.Series, pandas.DataFrame, list of dicts
-            A list or DataFrame of dataset records
-        offline : bool, None
-            If false and Web client present, downloads the missing datasets from a remote
-            repository
-        update_exists : bool
-            If true, the cache is updated to reflect the filesystem
-
-        Returns
-        -------
-        A list of file paths for the datasets (None elements for non-existent datasets)
-        """
-        if isinstance(datasets, pd.Series):
-            datasets = pd.DataFrame([datasets])
-        elif not isinstance(datasets, pd.DataFrame):
-            # Cast set of dicts (i.e. from REST datasets endpoint)
-            datasets = util.datasets2records(list(datasets))
-        indices_to_download = []  # indices of datasets that need (re)downloading
-        files = []  # file path list to return
-        # If the session_path field is missing from the datasets table, fetch from sessions table
-        if 'session_path' not in datasets.columns:
-            if 'eid' not in datasets.index.names:
-                # Get slice of full frame with eid in index
-                _dsets = self._cache['datasets'][
-                    self._cache['datasets'].index.get_level_values(1).isin(datasets.index)
-                ]
-                idx = _dsets.index.get_level_values(1)
-            else:
-                _dsets = datasets
-                idx = pd.IndexSlice[:, _dsets.index.get_level_values(1)]
-            # Ugly but works over unique sessions, which should be quicker
-            session_path = (self._cache['sessions']
-                            .loc[_dsets.index.get_level_values(0).unique()]
-                            .apply(session_record2path, axis=1))
-            datasets.loc[idx, 'session_path'] = \
-                pd.Series(_dsets.index.get_level_values(0)).map(session_path).values
-
-        # First go through datasets and check if file exists and hash matches
-        for i, rec in datasets.iterrows():
-            file = Path(CACHE_DIR, *rec[['session_path', 'rel_path']])
-            # CACHE_DIR
-            file = next(file.parent.glob(f"{file.stem}.*{file.suffix}"))
-            if file.exists():
-                # Check if there's a hash mismatch
-                # If so, add this index to list of datasets that need downloading
-                if rec['file_size'] and file.stat().st_size != rec['file_size']:
-                    _logger.warning('local file size mismatch on dataset: %s',
-                                    PurePosixPath(rec.session_path, rec.rel_path))
-                    indices_to_download.append(i)
-                elif check_hash and rec['hash'] is not None:
-                    if hashfile.md5(file) != rec['hash']:
-                        _logger.warning('local md5 mismatch on dataset: %s',
-                                        PurePosixPath(rec.session_path, rec.rel_path))
-                        indices_to_download.append(i)
-                files.append(file)  # File exists so add to file list
-            else:
-                raise FileExistsError('Dataset file not found: {}'.format(file))
-            if rec['exists'] != file.exists():
-                with warnings.catch_warnings():
-                    # Suppress future warning: exist column should always be present
-                    msg = '.*indexing on a MultiIndex with a nested sequence of labels.*'
-                    warnings.filterwarnings('ignore', message=msg)
-                    datasets.at[i, 'exists'] = not rec['exists']
-                    if update_exists:
-                        _logger.debug('Updating exists field')
-                        if isinstance(i, tuple):
-                            self._cache['datasets'].loc[i, 'exists'] = not rec['exists']
-                        else:  # eid index level missing in datasets input
-                            i = pd.IndexSlice[:, i]
-                            self._cache['datasets'].loc[i, 'exists'] = not rec['exists']
-                        self._cache['_meta']['modified_time'] = datetime.now()
-
-        if self.record_loaded:
-            loaded = np.fromiter(map(bool, files), bool)
-            loaded_ids = np.array(datasets.index.to_list())[loaded]
-            if '_loaded_datasets' not in self._cache:
-                self._cache['_loaded_datasets'] = np.unique(loaded_ids)
-            else:
-                loaded_set = np.hstack([self._cache['_loaded_datasets'], loaded_ids])
-                self._cache['_loaded_datasets'] = np.unique(loaded_set, axis=0)
-
-        # Return full list of file paths
-        return files
+    def _download_datasets(self, dset, **kwargs):
+        """Simply return list of None."""
+        urls = self._dset2url(dset, update_cache=False)  # normalizes input to list
+        return [None] * len(urls)
 
 
 def _test_one_sdsc():

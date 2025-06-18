@@ -16,11 +16,13 @@ _logger = logging.getLogger('ibllib')
 
 class TestDynamicPipeline(base.IntegrationTest):
 
+    required_files = ['dynamic_pipeline/ephys_NP3B']
+
     def setUp(self) -> None:
         self.one = ONE(**base.TEST_DB)
         path, self.eid = RegistrationClient(self.one).create_new_session('ZM_1743')
         # need to create a session here
-        session_path = self.data_path.joinpath('dynamic_pipeline', 'ephys_NP3B')
+        session_path = self.data_path.joinpath(self.required_files[0])
         self.pipeline = dynamic.make_pipeline(session_path, one=self.one, eid=str(self.eid))
         self.expected_pipeline = dynamic.load_pipeline_dict(session_path)
 
@@ -40,7 +42,8 @@ class TestDynamicPipeline(base.IntegrationTest):
         self.compare_dicts(alyx_tasks_from_dict, alyx_tasks_from_pipe)
 
     def compare_dicts(self, dict1, dict2, id=True):
-        self.assertEqual(len(dict2), len(dict1))
+        self.assertSetEqual(set([pl['name'] for pl in dict1]),
+                            set([pl['name'] for pl in dict2]))
         for d1, d2 in zip(dict1, dict2):
             if id:
                 self.assertEqual(d2['id'], d1['id'])
@@ -87,7 +90,7 @@ class TestStandardPipelines(base.IntegrationTest):
         self.check_pipeline()
 
     def test_photometry(self):
-        src = self.folder_path.joinpath('photometry', 'server_data', 'ZFM-03448', '2022-09-06', '001')
+        src = self.folder_path.joinpath('neurophotometrics', 'cortexlab', 'Subjects', 'CQ001', '2024-11-07', '001')
         shutil.copytree(src, self.session_path)
         self.check_pipeline()
 
@@ -118,7 +121,7 @@ class TestStandardPipelines(base.IntegrationTest):
         exp_desc['sync'] = {'bpod': exp_desc['sync']['nidq']}
         sess_params.write_params(self.session_path, exp_desc)
         self.assertRaises(ValueError, self.check_pipeline)
-        # Modify the experiment description to include an novel task
+        # Modify the experiment description to include a novel task
         exp_desc['tasks'] = [
             {'nouveauChoiceWorld':
                 {'collection': 'raw_task_data_00',
@@ -128,7 +131,7 @@ class TestStandardPipelines(base.IntegrationTest):
         sess_params.write_params(self.session_path, exp_desc)
         pipe = dynamic.make_pipeline(self.session_path)
         dy_pipe = dynamic.make_pipeline_dict(pipe, save=False)
-        task = next((x for x in dy_pipe if x['name'] == 'ChoiceWorldTrialsBpod_00'), None)
+        task = next((x for x in dy_pipe if x['name'] == 'Trials_ChoiceWorldTrialsBpod_00'), None)
         self.assertIsNotNone(task, 'failed to create specified extractor task')
         self.assertEqual('ibllib.pipes.behavior_tasks.ChoiceWorldTrialsBpod', task['executable'])
         self.assertEqual(['TrialRegisterRaw_00'], task['parents'])
@@ -145,7 +148,8 @@ class TestStandardPipelines(base.IntegrationTest):
         self.compare_dicts(dy_pipe, expected_pipe)
 
     def compare_dicts(self, dict1, dict2):
-        self.assertEqual(len(dict1), len(dict2))
+        self.assertSetEqual(set([pl['name'] for pl in dict1]),
+                            set([pl['name'] for pl in dict2]))
         for d1, d2 in zip(dict1, dict2):
             for k in ('executable', 'parents', 'name', 'arguments'):
                 with self.subTest(key=k, name_1=d1.get('name'), name_2=d2.get('name')):
@@ -154,7 +158,7 @@ class TestStandardPipelines(base.IntegrationTest):
 
 class TestDynamicPipelineWithAlyx(base.IntegrationTest):
     def setUp(self) -> None:
-        self.one = ONE(**base.TEST_DB)
+        self.one = ONE(**base.TEST_DB, cache_rest=None)
         self.folder_path = self.data_path.joinpath('Subjects_init', 'ZM_1085', '2019-02-12', '002')
 
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -183,7 +187,7 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
 
     def test_run_dynamic_pipeline_full(self):
         """This runs the full suite of tasks on a TrainingChoiceWorld task."""
-        pipes, dsets = job_creator(self.session_path, one=self.one)
+        pipes, dsets = job_creator(self.temp_dir.name, one=self.one)
         self.assertEqual(0, len(dsets))
 
         tasks = self.one.alyx.rest('tasks', 'list', session=self.eid, no_cache=True)
@@ -195,8 +199,16 @@ class TestDynamicPipelineWithAlyx(base.IntegrationTest):
             with self.subTest(name=t['name']):
                 self.assertEqual(t['status'], 'Complete')
 
-        self.assertEqual(len(all_dsets), 20)
-        self.assertIn('_ibl_experiment.description.yaml', [d['name'] for d in all_dsets])
+        expected = [
+            '_ibl_experiment.description.yaml', '_iblrig_taskData.raw.jsonable', '_iblrig_taskSettings.raw.json',
+            '_iblrig_encoderEvents.raw.ssv', '_iblrig_encoderPositions.raw.ssv', '_iblrig_encoderTrialInfo.raw.ssv',
+            '_iblrig_ambientSensorData.raw.jsonable', '_iblrig_leftCamera.timestamps.ssv', '_iblrig_videoCodeFiles.raw.zip',
+            '_iblrig_leftCamera.raw.mp4', '_ibl_trials.goCueTrigger_times.npy', '_ibl_trials.stimOnTrigger_times.npy',
+            '_ibl_trials.stimOffTrigger_times.npy', '_ibl_trials.table.pqt', '_ibl_trials.stimOff_times.npy',
+            '_ibl_wheel.timestamps.npy', '_ibl_wheel.position.npy', '_ibl_wheelMoves.intervals.npy',
+            '_ibl_wheelMoves.peakAmplitude.npy', '_ibl_trials.included.npy', '_ibl_trials.quiescencePeriod.npy',
+            '_ibl_leftCamera.times.npy']
+        self.assertCountEqual(expected, (d['name'] for d in all_dsets))
 
     def tearDown(self) -> None:
         self.temp_dir.cleanup()

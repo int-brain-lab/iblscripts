@@ -111,6 +111,8 @@ class TestReadSpikeSorting(IntegrationTest):
 
 class TestSessionLoader(IntegrationTest):
 
+    required_files = ['ephys/choice_world_init/KS022/2019-12-10/001']
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.root_path = cls.default_data_root().joinpath('ephys', 'choice_world_init')

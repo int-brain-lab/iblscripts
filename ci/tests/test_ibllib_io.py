@@ -18,6 +18,8 @@ from ibllib.io.raw_data_loaders import patch_settings, load_settings
 
 class TestVideoIO(base.IntegrationTest):
 
+    required_files = ['ephys/choice_world_init/KS022/2019-12-10/001/raw_video_data/_iblrig_leftCamera.raw.mp4']
+
     def setUp(self) -> None:
         root = self.data_path  # Path to integration data
         self.video_path = root.joinpath('ephys', 'choice_world_init', 'KS022', '2019-12-10',
@@ -100,6 +102,8 @@ class TestVideoIO(base.IntegrationTest):
 
 class Read_DAQ_tdms(base.IntegrationTest):
 
+    required_files = ['io/tdms_reader/20210421_daqami_analog.tdms', 'io/tdms_reader/20221102_daqami_digital.tdms']
+
     def setUp(self) -> None:
         root = self.data_path  # Path to integration data
         self.file_tdms_analog = root.joinpath('io/tdms_reader/20210421_daqami_analog.tdms')
@@ -125,6 +129,8 @@ class Read_DAQ_tdms(base.IntegrationTest):
 
 
 class TestPatchSettings(base.IntegrationTest):
+    required_files = ['Subjects_init/ZM_1085/2019-02-12/003/raw_task_data_00']
+
     def setUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()
         src_path = self.data_path.joinpath('Subjects_init', 'ZM_1085', '2019-02-12', '003', 'raw_task_data_00')
@@ -173,6 +179,8 @@ class TestPatchSettings(base.IntegrationTest):
 
 
 class TestDAQDiscontinuities(base.IntegrationTest):
+    required_files = ['mesoscope/2023-03-03_1_SP035-re_pos.npy']
+
     def setUp(self) -> None:
         src_path = self.data_path.joinpath('mesoscope', '2023-03-03_1_SP035-re_pos.npy')
         self.re_pos = np.load(src_path)

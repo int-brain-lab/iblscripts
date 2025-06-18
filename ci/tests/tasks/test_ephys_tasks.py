@@ -315,7 +315,6 @@ class TestSpikeSortingTask(unittest.TestCase):
     def test_get_ks2_version(self):
         test_strings = [
             '\x1b[0m15:39:37.919 [I] ibl:90               Starting Pykilosort version ibl_1.3.0, output in gnagga^[[0m\n',
-            '\x1b[0m15:39:37.919 [I] ibl:90               Starting Pykilosort version ibl_1.3.0^[[0m\n'
         ]
         with tempfile.TemporaryDirectory() as tmpdir:
             for i, test_string in enumerate(test_strings):

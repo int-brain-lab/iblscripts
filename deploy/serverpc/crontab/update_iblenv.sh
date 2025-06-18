@@ -20,7 +20,7 @@ git fetch --all -p
 # if ibllib commit is on master or branch doesn't exist in iblscripts...
 if [[ "$ibllib_branch" =~ ^(remotes\/origin\/)?master$ ]] || \
    [[ "$ibllib_branch" =~ ^remotes\/origin\/HEAD$ ]] || \
-   ! git rev-parse -q --verify --end-of-options $ibllib_branch; then
+   ! git rev-parse -q --verify --end-of-options remotes/origin/$ibllib_branch; then
         echo "Checking out master branch of iblscripts"
         git checkout -f master
 else

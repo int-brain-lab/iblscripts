@@ -1,10 +1,11 @@
 """Tests for ibllib.pipes.mesoscope_tasks module."""
+import sys
 import logging
 import shutil
 import tempfile
 import unittest.mock
 from pathlib import Path
-from unittest.mock import MagicMock, ANY
+from unittest.mock import patch, MagicMock, ANY
 import tarfile
 from itertools import chain
 from uuid import UUID
@@ -14,7 +15,7 @@ import pandas as pd
 import sparse
 
 import one.alf.io as alfio
-from one.alf.files import get_session_path
+from one.alf.path import get_session_path
 from one.api import ONE
 
 from ibllib.pipes.mesoscope_tasks import (
@@ -64,7 +65,7 @@ class TestTimelineTrials(base.IntegrationTest):
 
     def test_sync(self):
         # Mocking training wheel extractor as session doesn't have Bpod rotary encoder data
-        with unittest.mock.patch('ibllib.io.extractors.training_wheel.Wheel._extract') as mock:
+        with patch('ibllib.io.extractors.training_wheel.Wheel._extract') as mock:
             mock().__getitem__.return_value = np.zeros(7)  # n trials = 7
             task = ChoiceWorldTrialsTimeline(self.session_path, sync_collection='raw_sync_data',
                                              sync_namespace='timeline', collection='raw_task_data_00')
@@ -73,7 +74,7 @@ class TestTimelineTrials(base.IntegrationTest):
 
         # Check ALF trials
         trials = alfio.load_object(self.session_path / 'alf', 'trials')
-        self.assertEqual(16, len(trials.keys()))
+        self.assertEqual(18, len(trials.keys()))
         expected = [[9.97294005, 24.00193085],
                     [24.52629002, 28.16019116],
                     [28.6754851, 32.94392776],
@@ -94,7 +95,7 @@ class TestTimelineTrials(base.IntegrationTest):
         expected = [20.809, 20.811, 20.812, 20.813, 20.814]
         np.testing.assert_array_almost_equal(expected, wheel['timestamps'][:5])
 
-    @unittest.mock.patch('ibllib.io.extractors.mesoscope.plt')
+    @patch('ibllib.io.extractors.mesoscope.plt')
     def test_get_wheel_positions(self, plt_mock):
         """Test for TimelineTrials.get_wheel_positions in ibllib.io.extractors.mesoscope."""
         # # NB: For now we're testing individual functions before we have complete data
@@ -122,7 +123,7 @@ class TestTimelineTrials(base.IntegrationTest):
         ax1.plot.assert_called()
         np.testing.assert_array_equal(ax1.plot.call_args_list[0].args[0], wheel['timestamps'])
 
-    @unittest.mock.patch('ibllib.io.extractors.mesoscope.plt')
+    @patch('ibllib.io.extractors.mesoscope.plt')
     def test_get_valve_open_times(self, plt_mock):
         """Test for TimelineTrials.get_valve_open_times in ibllib.io.extractors.mesoscope."""
         timeline_trials = mesoscope.TimelineTrials(self.session_path, sync_collection='raw_sync_data')
@@ -144,7 +145,7 @@ class TestTimelineTrials(base.IntegrationTest):
         ax2 = ax1.twinx()
         np.testing.assert_array_equal(ax2.plot.call_args_list[1].args[0], open_times[:, 1])
 
-    @unittest.mock.patch('ibllib.io.extractors.mesoscope.plt')
+    @patch('ibllib.io.extractors.mesoscope.plt')
     def test_plot_timeline(self, plt_mock):
         """Test for ibllib.io.extractors.mesoscope.plot_timeline."""
         ax = MagicMock()
@@ -239,8 +240,8 @@ class TestMesoscopeFOV(base.IntegrationTest):
         # Test generation of mpciROI datasets
         task = MesoscopeFOV(self.session_path, device_collection='raw_imaging_data', one=self.one)
         mean_img_map = (self.mean_img_mlapdv, self.mean_img_ids)
-        with unittest.mock.patch.object(task, 'register_fov') as mock_obj, \
-                unittest.mock.patch.object(task, 'project_mlapdv', return_value=mean_img_map):
+        with patch.object(task, 'register_fov') as mock_obj, \
+                patch.object(task, 'project_mlapdv', return_value=mean_img_map):
             self.assertEqual(0, task.run())
             mock_obj.assert_called_once_with(unittest.mock.ANY, 'estimate')
         self.assertEqual(self.n_fov * 4 + 1, len(task.outputs))  # + 1 for modified meta file
@@ -264,8 +265,8 @@ class TestMesoscopeFOV(base.IntegrationTest):
             shutil.copy(file, self.session_path.joinpath('alf', 'FOV_00', file.name))
 
         task = MesoscopeFOV(self.session_path, device_collection='raw_imaging_data', one=self.one)
-        with unittest.mock.patch.object(task, 'register_fov') as mock_obj, \
-                unittest.mock.patch.object(task, 'project_mlapdv', return_value=mean_img_map):
+        with patch.object(task, 'register_fov') as mock_obj, \
+                patch.object(task, 'project_mlapdv', return_value=mean_img_map):
             self.assertEqual(0, task.run(provenance=Provenance.HISTOLOGY))
             mock_obj.assert_called_once_with(unittest.mock.ANY, None)
         self.assertEqual((self.n_fov * 4) + 1, len(task.outputs))  # + 1 for modified meta file
@@ -409,7 +410,7 @@ class TestMesoscopeSync(base.IntegrationTest):
         expected = [0., 4.157550e-05, 8.315100e-05, 1.247265e-04, 1.663020e-04]
         np.testing.assert_array_almost_equal(np.load(ROI_shifts[0])[:5], expected)
 
-    @unittest.mock.patch('ibllib.io.extractors.mesoscope.plt')
+    @patch('ibllib.io.extractors.mesoscope.plt')
     def test_get_bout_edges(self, plt_mock):
         """Test for ibllib.io.extractors.mesoscope.MesoscopeSyncTimeline.get_bout_edges.
 
@@ -478,21 +479,23 @@ class TestMesoscopeRegisterSnapshots(base.IntegrationTest):
         """
         task = MesoscopeRegisterSnapshots(self.session_path, one=self.one)
         eid, *_ = self.one.search()
-        with unittest.mock.patch.object(self.one, 'path2eid', return_value=eid), \
-                unittest.mock.patch.object(task, 'register_snapshots') as reg_mock:
+        with patch.object(self.one, 'path2eid', return_value=eid), \
+                patch.object(task, 'register_snapshots') as reg_mock:
             status = task.run()
-            reg_mock.assert_called_once_with(collection=['raw_imaging_data_*', ''])
+            reg_mock.assert_called_once_with(collection=['raw_imaging_data_??', ''])
         self.assertEqual(0, status)
 
     def test_get_signature(self):
         task = MesoscopeRegisterSnapshots(self.session_path, one=self.one)
         task.get_signatures()
         N = 2  # Number of raw_imaging_data collections
-        self.assertEqual(len(task.signature['input_files']) * N, len(task.input_files))
-        self.assertEqual(len(task.signature['output_files']) * N, len(task.output_files))
+        n_input_files = len(list(chain.from_iterable(x.glob_pattern for x in task.input_files)))
+        self.assertEqual(len(task.signature['input_files']) * N, n_input_files)
+        n_output_files = len(list(chain.from_iterable(x.glob_pattern for x in task.output_files)))
+        self.assertEqual(len(task.signature['output_files']) * N, n_output_files)
 
 
-class TestMesoscopePreprocess(base.IntegrationTest):
+class TestMesoscopePreprocessRename(base.IntegrationTest):
     session_path = None
 
     """Test for MesoscopePreprocess task."""
@@ -506,8 +509,11 @@ class TestMesoscopePreprocess(base.IntegrationTest):
             'spks.npy': 'mpci.ROIActivityDeconvolved.npy',
             'Fneu.npy': 'mpci.ROINeuropilActivityF.npy'}
         # Copy files to temp dir
+        # NB: suite2p dir now in session_path, not alf folder. This shouldn't affect these tests
         self.suite2pdir = Path(self.tempdir.name).joinpath(*self.alf_path.parts[-6:])
         shutil.copytree(self.alf_path, self.suite2pdir)
+        # Create a 'combined' folder which suite2p may create but should be ignored
+        self.suite2pdir.joinpath('combined').mkdir()
         self.one = ONE(**base.TEST_DB)
 
     def test_rename_outputs(self):
@@ -546,8 +552,21 @@ class TestMesoscopePreprocess(base.IntegrationTest):
         self.assertEqual(uuids.nunique(), expected_rois)
 
     def test_rename_with_qc(self):
-        """Test MesoscopePreprocess._rename_outputs method with frame QC input."""
+        """Test MesoscopePreprocess._rename_outputs method with frame QC input.
+
+        Also tests behaviour if FOV folder(s) already exist, and that bin files are moved.
+        """
+        # Create an old FOV folder for it to remove
         session_path = get_session_path(self.suite2pdir)
+        (fov_folder := session_path.joinpath('alf', 'FOV_02')).mkdir()
+        for name in self.rename_dict.values():
+            fov_folder.joinpath(name).touch()
+        fov_folder.joinpath('foo.bar.baz').touch()
+
+        # Create binary data files to check they are moved
+        self.suite2pdir.joinpath('data.bin').touch()
+        self.suite2pdir.joinpath('data_raw.bin').touch()
+
         task = MesoscopePreprocess(session_path, one=self.one)
         # Check frameQC is saved
         frameQC_names = pd.DataFrame([(0, 'ok'), (1, 'foo')], columns=['qc_values', 'qc_labels'])
@@ -555,12 +574,87 @@ class TestMesoscopePreprocess(base.IntegrationTest):
         self.assertIn(files[0].with_name('mpciFrameQC.names.tsv'), files)
         self.assertIn(files[0].with_name('mpci.mpciFrameQC.npy'), files)
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        if not cls.session_path:
-            return
-        for file in cls.session_path.joinpath('raw_sync_data').glob('_timeline_sync.*.npy'):
-            file.unlink()
+        self.assertFalse(fov_folder.joinpath('foo.bar.baz').exists())
+        bin_path = session_path.joinpath('raw_bin_files')
+        self.assertTrue(bin_path.exists())
+        files = [x.relative_to(session_path).as_posix() for x in bin_path.rglob('*.*')]
+        expected = ['raw_bin_files/plane2/data.bin', 'raw_bin_files/plane2/data_raw.bin', 'raw_bin_files/plane2/ops.npy']
+        self.assertCountEqual(expected, files)
+
+
+class TestMesoscopePreprocess(base.IntegrationTest):
+    session_path = None
+    required_files = ['mesoscope/SP053/2024-02-07/001', 'mesoscope/SP037/2023-03-23/002/alf/suite2p/plane2/ops.npy']
+
+    """Test for MesoscopePreprocess task."""
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tempdir.cleanup)
+        session_path = self.default_data_root().joinpath('mesoscope', 'SP053', '2024-02-07', '001')
+        # Copy files to temp dir
+        # NB: suite2p dir now in session_path, not alf folder. This shouldn't affect these tests
+        self.session_path = Path(self.tempdir.name).joinpath(*session_path.parts[-3:])
+        shutil.copytree(session_path, self.session_path)
+        self.one = ONE(**base.TEST_DB)
+        # Mock suite2p
+        self.suite2p_mock = MagicMock()
+        sys.modules['suite2p'] = self.suite2p_mock
+        sys.modules['suite2p.io'] = self.suite2p_mock.io
+
+    @patch.object(MesoscopePreprocess, 'image_motion_registration', autospec=True)
+    @patch.object(MesoscopePreprocess, 'roi_detection', autospec=True)
+    def test_run(self, roi_detection_mock, img_reg_mock):
+        """Test MesoscopePreprocess._run method."""
+        task = MesoscopePreprocess(self.session_path, one=self.one)
+
+        # first create some raw bin data and assert that these are used instead of calling bin_per_plane
+        n_planes = 2
+        for i in range(n_planes):
+            loc = self.session_path.joinpath('raw_bin_files', f'plane{i}')
+            loc.mkdir(parents=True, exist_ok=True)
+            shutil.copy(self.data_path.joinpath(self.required_files[1]), loc.joinpath('ops.npy'))
+            loc.joinpath('data.bin').touch()
+
+        task.get_signatures()
+        files = task._run(rename_files=False)
+        bad_frames_file = self.session_path.joinpath('raw_imaging_data_00').joinpath('bad_frames.npy')
+        self.assertTrue(bad_frames_file.exists())
+        bad_frames = np.load(bad_frames_file)
+        expected = [2226, 2227, 2228, 2229, 2230, 2231, 2232, 2233, 2234, 2235, 2236, 2237]
+        np.testing.assert_array_equal(expected, bad_frames)
+        self.suite2p_mock.io.mesoscan_to_binary.assert_not_called()
+        self.assertEqual(n_planes, roi_detection_mock.call_count)
+        self.assertEqual(n_planes, img_reg_mock.call_count)
+        # Check that bin files were moved
+        self.assertFalse(self.session_path.joinpath('raw_bin_files').exists())
+        expected = ['suite2p/plane0/data.bin', 'suite2p/plane0/ops.npy', 'suite2p/plane1/data.bin', 'suite2p/plane1/ops.npy']
+        self.assertCountEqual(expected, [x.relative_to(self.session_path).as_posix() for x in files])
+
+        # Test extraction of binary files and consolidation of QC
+        shutil.rmtree(files[0].parents[1])
+        self.suite2p_mock.io.mesoscan_to_binary.side_effect = self._create_planes
+        # NB: rename_outputs tested elsewhere, here we mock it and check the inputs only
+        with patch.object(task, 'get_default_tau', return_value=1.5), \
+             patch.object(task, '_rename_outputs') as rename_outputs_mock:
+            _ = task._run(rename_files=True)
+        self.suite2p_mock.io.mesoscan_to_binary.assert_called()
+        rename_outputs_mock.assert_called_once()
+        (_, frame_qc_names, frame_qc), _ = rename_outputs_mock.call_args
+        self.assertCountEqual(['ok', 'PMT off', 'galvos fault', 'high signal'], frame_qc_names.qc_labels)
+        self.assertEqual(16328, frame_qc.size)
+        np.testing.assert_array_equal(np.unique(frame_qc), [0, 1])
+        expected = [2226, 2227, 2228, 2229, 2230, 2231, 2232, 2233, 2234, 2235, 2236, 2237]
+        np.testing.assert_array_equal(np.where(frame_qc)[0], expected)
+
+    @staticmethod
+    def _create_planes(ops):
+        """Save the ops files to the suite2p folder structure."""
+        p = Path(ops['save_path0'], ops['save_folder'])
+        p.mkdir(parents=True, exist_ok=True)
+        for i in range(ops['nplanes']):
+            p.joinpath(f'plane{i}').mkdir()
+            np.save(p.joinpath(f'plane{i}', 'ops.npy'), ops)
+        return ops
 
 
 class TestMesoscopeCompress(base.IntegrationTest):

@@ -42,6 +42,7 @@ class TestVideoStreamer(IntegrationTest):
 class TestRegistrationUtils(IntegrationTest):
     """Tests for ibllib.oneibl.registration functions"""
     session_path = None
+    required_files = ['Subjects_init/ZM_1085/2019-02-12/003']
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -84,6 +85,7 @@ class TestRegistrationUtils(IntegrationTest):
 class TestRegistration(IntegrationTest):
     """Tests for ibllib.oneibl.registration"""
     source_path = None
+    required_files = ['Subjects_init/ZM_1085/2019-02-12/003']
 
     @classmethod
     def setUpClass(cls) -> None:
