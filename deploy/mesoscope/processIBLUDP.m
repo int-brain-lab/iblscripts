@@ -42,6 +42,7 @@ try
     signal = io.ExpSignal(signal);
 catch err  % Failed to parse message
     respond(0, err.message, msg)
+    return
 end
 
 log('%s: processing %s signal', signal);
@@ -114,10 +115,26 @@ end
         if signal ~= 0
             signal = io.ExpSignal(signal); % validate
         end
-        response = jsonencode([{int8(signal)}, varargin]);
-        fwrite(src, uint8(response'))
-        lastSent = response;
-        log('%s: sent %s to %s:%i', listenerName, response, ipstr, port);
+        try
+          response = jsonencode([{int8(signal)}, varargin]);
+          encoded = uint8(response');
+          bufferSize = src.OutputBufferSize;
+          msgSize = size(encoded, 1);
+          if msgSize > bufferSize
+            log('Increasing output buffer size from %i to %i', bufferSize, msgSize)
+            fclose(src);
+            set(src, 'OutputBufferSize', msgSize);
+            set(src, 'InputBufferSize', msgSize);
+            fopen(src);
+            fwrite(src, encoded)
+          else
+            fwrite(src, encoded)
+          end
+          lastSent = response;
+          log('%s: sent %s to %s:%i', listenerName, response, ipstr, port);
+        catch ex
+          log('Failed to respond: %s', ex)
+        end
     end
 
     function status = getStatus()
