@@ -255,7 +255,15 @@ fArtist = meta.rawScanImageMeta.Artist;
 fSoftware = splitlines(meta.rawScanImageMeta.Software);
 % this will generate an SI structure, be careful not to overwrite things
 for i = 1:length(fSoftware)
-    evalc(fSoftware{i});
+    try
+        evalc(fSoftware{i});
+    catch ME
+        if (strcmp(ME.identifier,'MATLAB:undefinedVarOrClass'))
+            warning(ME.message)
+        else
+            rethrow(ME)
+        end
+    end
 end
 
 
@@ -327,13 +335,22 @@ si_rois = si_rois_all(logical([si_rois_all.enable])); %only consider the rois th
 
 %look up the depths we used
 % if SI.hStackManager.enable
-Zs = SI.hStackManager.zs;
+Zs = SI.hStackManager.zs; %NB this reads out the depth of RF1 (not RF2!)
 % else
 %     Zs = [si_rois.zs];
 % end
-Zvals = unique(Zs); %NB this automatically sorts ascendingly
+Zvals = unique(Zs); %NB this automatically sorts ascendingly.
 nZs = length(Zvals); %total number of depths defined
 nrois = numel(si_rois); %total number of si_rois defined
+
+%if dual-plane was being used, assume depths were stored in arbitraryZs;
+if SI.hStackManager.enable && SI.hBeams.powers(3)<100 && all(SI.hChannels.channelSave==[1,2])
+    Zvals_full = SI.hStackManager.arbitraryZs;
+    nPlanes = 2;
+else
+    Zvals_full = Zvals';
+    nPlanes = 1;
+end
 
 %create a logical array of nrois * ndepths telling us at which depth a FOV exists
 i_roi_depth = false(nrois,nZs);
@@ -363,9 +380,9 @@ for iSlice = 1:nZs
             
             meta.FOV(iFOV).slice_id = iSlice-1; %assuming 0-indexing
             meta.FOV(iFOV).roiUUID = si_rois(iRoi).roiUuid; %this is scanimage ID
-            meta.FOV(iFOV).Zs = Zvals(iSlice);
+            meta.FOV(iFOV).Zs = Zvals_full(iSlice,:);
             
-            meta.FOV(iFOV).nXnYnZ = [nXnY, 1];
+            meta.FOV(iFOV).nXnYnZ = [nXnY, nPlanes];
             meta.FOV(iFOV).Deg.topLeft = cXY + sXY.*[-1, -1]/2;
             meta.FOV(iFOV).Deg.topRight = cXY + sXY.*[1, -1]/2;
             meta.FOV(iFOV).Deg.bottomLeft = cXY + sXY.*[-1, 1]/2;
@@ -388,9 +405,10 @@ end
 %WARNING: this works for adjacent FOVs with the same nr of lines, but hasn't been tested yet for multi-plane data with unequal FOV sizes
 nLines = cell(1, nZs);
 nValidLines = zeros(1, nZs);
+zs_eachFOV = vertcat(meta.FOV.Zs);
 for iSlice = 1:nZs
     % get FOV info for each slice in the z-stack
-    iFOVs_at_this_z = [meta.FOV.Zs]==Zvals(iSlice);
+    iFOVs_at_this_z = zs_eachFOV(:,1)==Zvals(iSlice);
     nFOVs_at_this_z(iSlice) = sum(iFOVs_at_this_z);
     nValidLines(iSlice) = sum(nLines_allFOVs(iFOVs_at_this_z));
     nLines{iSlice} = nLines_allFOVs(iFOVs_at_this_z);
