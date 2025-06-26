@@ -37,6 +37,11 @@ end
 % Example parsed message: {[20];'2022-01-01_1_subject';[]}
 try
     info = jsondecode(msg);
+    if ~iscell(info)
+        % This is an edge case when message a list of numbers/nulls
+        % a numerical array is returned instead of a cell array
+        info = num2cell(info);
+    end
     signal = info{1};
     data = info(2:end);
     signal = io.ExpSignal(signal);
