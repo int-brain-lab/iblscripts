@@ -160,7 +160,7 @@ class TestSessionLoader(IntegrationTest):
         cls.session_path = cls.root_path.joinpath('KS022', '2019-12-10', '001')
         print('Building ONE cache from filesystem...')
         cls.one = One.setup(cls.root_path, silent=True)
-        cls.sess_loader = SessionLoader(cls.one, cls.session_path)
+        cls.sess_loader = SessionLoader(one=cls.one, session_path=cls.session_path)
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -224,7 +224,7 @@ class TestSessionLoader(IntegrationTest):
 
     def test_load_session_data(self):
         # Instantiate new session loader
-        self.sess_loader = SessionLoader(self.one, self.session_path)
+        self.sess_loader = SessionLoader(one=self.one, session_path=self.session_path)
         self.sess_loader.load_session_data()
         self.assertTrue(all(self.sess_loader.data_info['is_loaded']))
 
