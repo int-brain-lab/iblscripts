@@ -21,9 +21,11 @@ from one.api import OneAlyx
 from one.alf.spec import is_uuid_string
 import one.params
 
+from ibllib.oneibl.patcher import SDSC_ROOT_PATH
+
 _logger = logging.getLogger(__name__)
 CACHE_DIR = Path('/mnt/sdceph/users/ibl/data')
-CACHE_DIR_FI = Path('/mnt/ibl')
+CACHE_DIR_FI = Path(SDSC_ROOT_PATH)
 
 
 class OneSdsc(OneAlyx):
@@ -33,6 +35,7 @@ class OneSdsc(OneAlyx):
             # Ensure parquet tables downloaded to separate location to the dataset repo
             kwargs['tables_dir'] = one.params.get_cache_dir()  # by default this is user downloads
         super().__init__(*args, cache_dir=cache_dir, **kwargs)
+        self.alyx.rest_cache_dir = self._tables_dir / '.rest'
         # assign property here as it is set by the parent OneAlyx class at init
         self.uuid_filenames = True
 
