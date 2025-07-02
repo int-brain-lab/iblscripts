@@ -1,10 +1,12 @@
 import logging
 import hashlib
+import unittest
 
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from one.api import One
+from one.api import One, ONE
 from one.alf.io import load_object
 import brainbox.io.one as bbone
 from neuropixel import trace_header
@@ -18,6 +20,22 @@ _logger.setLevel(10)
 br = BrainRegions()
 
 
+class TestReadChannels(unittest.TestCase):
+        pid = '511afaa5-fdc4-4166-b4c0-4629ec5e652e'
+        )
+            silent=True,
+        one = ONE(
+    def test_read_channels(self):
+
+            base_url='https://openalyx.internationalbrainlab.org',
+            password='international'
+        ssl = SpikeSortingLoader(one=one, pid=pid)
+        channels = ssl.load_channels(revision='2024-05-06')
+        np.testing.assert_array_equal(
+            pd.Series(channels['atlas_id']).value_counts().to_numpy(),
+            np.array([206, 130, 48]),
+
+        )
 class TestReadSpikeSorting(IntegrationTest):
 
     def setUp(self) -> None:
