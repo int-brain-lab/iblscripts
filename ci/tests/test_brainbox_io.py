@@ -20,22 +20,48 @@ _logger.setLevel(10)
 br = BrainRegions()
 
 
-class TestReadChannels(unittest.TestCase):
-        pid = '511afaa5-fdc4-4166-b4c0-4629ec5e652e'
-        )
-            silent=True,
-        one = ONE(
-    def test_read_channels(self):
+class TestSpikeInterface(unittest.TestCase):
 
+    def test_spike_interface(self):
+        """
+        Those are the specifications for the spike interface tests to pass.
+        :return:
+        """
+        one = ONE(
             base_url='https://openalyx.internationalbrainlab.org',
+            silent=True,
             password='international'
+        )
+        pid = '80f6ffdd-f692-450f-ab19-cd6d45bfd73e'
+        ssl = SpikeSortingLoader(pid=pid, one=one)
+
+        clusters = ssl.load_spike_sorting_object('clusters', revision='2023-12-05')
+        assert clusters['uuids'].shape[0] == 733
+
+        clusters = ssl.load_spike_sorting_object('clusters', revision='2024-05-06')
+        assert clusters['uuids'].shape[0] == 1091
+
+        spikes, clusters, channels = ssl.load_spike_sorting()
+        assert clusters['uuids'].shape[0] == 1091
+
+
+class TestReadChannels(unittest.TestCase):
+
+    def test_read_channels(self):
+        one = ONE(
+            base_url='https://openalyx.internationalbrainlab.org',
+            silent=True,
+            password='international'
+        )
+        pid = '511afaa5-fdc4-4166-b4c0-4629ec5e652e'
         ssl = SpikeSortingLoader(one=one, pid=pid)
         channels = ssl.load_channels(revision='2024-05-06')
         np.testing.assert_array_equal(
             pd.Series(channels['atlas_id']).value_counts().to_numpy(),
             np.array([206, 130, 48]),
-
         )
+
+
 class TestReadSpikeSorting(IntegrationTest):
 
     def setUp(self) -> None:
