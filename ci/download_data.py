@@ -8,13 +8,14 @@ from iblutil.io import params
 from globus_sdk import TransferAPIError
 
 globus = Globus('server')
-flatiron_id = params.read('globus/admin').remote_endpoint
+pars = params.read('ibl_ci', {'data_root': '.', 'remote_endpoint': None})
+flatiron_id = pars.remote_endpoint
 logger = logging.getLogger('ibllib')
 logger.setLevel(logging.DEBUG)
 
 # Read in parameters
 globus.add_endpoint(flatiron_id, 'flatiron-integration', root_path='/integration')
-globus.endpoints['local']['root_path'] = params.read('ibl_ci', {'data_root': '.'}).data_root
+globus.endpoints['local']['root_path'] = pars.data_root
 # Constants
 POLL = (5, 60 * 2)  # min max seconds between pinging server
 TIMEOUT = 24 * 60 * 60  # seconds before timeout

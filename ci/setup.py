@@ -9,42 +9,11 @@ Requirements:
 from pathlib import Path
 
 from iblutil.io import params
+from one.remote.globus import Globus, as_globus_path
+from one.alf.spec import is_uuid
 
-DEFAULT_PAR = {'local_endpoint': None, 'remote_endpoint': None, 'GLOBUS_CLIENT_ID': None}
-
-print(
-    """Setting up Globus
-1. Login to the Globus Website (ask devs for the login credentials)
-2. Go to Endpoints and create a new endpoint for the local device (the one that will run this
-script).
-3. In the new endpoint's overview page, copy the 'Endpoint UUID' field.  This is the LOCAL_REPO_ID.
-4. Go to the 'IBL Top Level' endpoint overview page and copy the 'Endpoint UUID' field.  This is
-the REMOTE_REPO_ID.
-5. Copy your GLOBUS_CLIENT_ID (ask the software devs for this).
-"""
-)
-params_id = 'globus/admin'
-pars = params.read(params_id, DEFAULT_PAR)
-default = pars.local_endpoint
-local_endpoint = input(
-    f'Enter your LOCAL_REPO_ID ({default}):'
-)
-pars = pars.set('local_endpoint', local_endpoint.strip() or default)
-params.write(params_id, pars)
-
-default = pars.remote_endpoint
-remote_endpoint = input(
-    f'Enter your REMOTE_REPO_ID ({default}):'
-)
-pars = pars.set('remote_endpoint', remote_endpoint.strip() or default)
-params.write(params_id, pars)
-
-default = pars.GLOBUS_CLIENT_ID
-globus_client_id = input(
-    f'Enter your GLOBUS_CLIENT_ID ({default}):'
-).strip()
-pars = pars.set('GLOBUS_CLIENT_ID', globus_client_id or default)
-params.write(params_id, pars)
+# Set up Globus
+Globus.setup('server')
 
 print(
     """Setting up fixtures
@@ -57,6 +26,12 @@ data_root = input(
     f'Enter the desired location of the test data ({default}):'
 )
 data_root = Path(data_root.strip() or default).absolute()
-params.write(params_id, pars.set('data_root', str(data_root)))
+pars = pars.set('data_root', as_globus_path(data_root))
 
+remote_endpoint = input(
+    f'Enter the Globus endpoint ID of the remote test data:'
+).strip()
+assert is_uuid(remote_endpoint, (1,)), 'invalid Globus endpoint ID'
+pars = pars.set('remote_endpoint', remote_endpoint)
+params.write(params_id, pars)
 print('You may now download the data by running `./download_data.py`')
