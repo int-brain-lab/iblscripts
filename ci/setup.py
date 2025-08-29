@@ -29,7 +29,7 @@ data_root = Path(data_root.strip() or default).absolute()
 pars = pars.set('data_root', as_globus_path(data_root))
 
 remote_endpoint = input(
-    f'Enter the Globus endpoint ID of the remote test data:'
+    'Enter the Globus endpoint ID of the remote test data:'
 ).strip()
 assert is_uuid(remote_endpoint, (1,)), 'invalid Globus endpoint ID'
 pars = pars.set('remote_endpoint', remote_endpoint)
