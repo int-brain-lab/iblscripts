@@ -1,3 +1,3 @@
-cd /home/experiment/Documents/github/matlab-ci
+cd /home/experiment/Documents/PYTHON/ci/LabCI
 DEBUG=*ci* node -r dotenv/config main.js
 
