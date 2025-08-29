@@ -49,7 +49,7 @@ popd
 ci_env="$HOME/Documents/PYTHON/envs/ci"
 rm -rf $ci_env
 mkdir -p $ci_env
-python -m venv $ci_env
+$HOME/Documents/PYTHON/envs/iblenv/bin/python -m venv $ci_env
 
 source $ci_env/bin/activate
 ##conda update conda --yes --quiet
