@@ -7,8 +7,7 @@ set -e
 # $2: path to ibllib - assumes matlab-ci and iblscripts are in the same parent directory
 # $3: path to output log directory
 
-source /home/experiment/anaconda3/etc/profile.d/conda.sh
-conda activate ci
+source "$HOME/Documents/PYTHON/envs/ci/bin/activate"
 
 # Flake ibllib and save the output in a separate log
 mkdir -p "$3"
@@ -50,6 +49,7 @@ pkgs=${pkgs%?} # remove last comma
 # Run tests
 passed=true
 export ONE_SAVE_ON_DELETE=false
+export NO_PROGRESSBARS=1
 coverage run --source="$pkgs" --rcfile "$2/../iblscripts/.coveragerc" \
 "$2/../iblscripts/runAllTests.py" -c "$1" -r "$2" --logdir "$3" --exit || passed=false
 
