@@ -32,7 +32,7 @@ if [[ "$branch" =~ ^(remotes\/origin\/)?master$ ]] || \
    [[ "$branch" =~ ^remotes\/origin\/HEAD$ ]] || \
    ! git rev-parse -q --verify --end-of-options $branch; then
         echo Checking out develop branch of iblscripts
-        git checkout newCI
+        git checkout develop
 else
         echo Checking out $branch of iblscripts
         git checkout $branch
