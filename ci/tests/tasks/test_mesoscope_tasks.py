@@ -19,9 +19,10 @@ from one.alf.path import get_session_path
 from one.api import ONE
 
 from ibllib.pipes.mesoscope_tasks import (
-    MesoscopeSync, MesoscopeFOV, MesoscopeRegisterSnapshots,
-    MesoscopePreprocess, MesoscopeCompress, Provenance
+    MesoscopeSync, MesoscopeRegisterSnapshots,
+    MesoscopePreprocess, MesoscopeCompress
 )
+from ibllib.mpci.registration import MesoscopeFOV, Provenance
 from iblatlas.atlas import AllenAtlas
 from ibllib.pipes.behavior_tasks import ChoiceWorldTrialsTimeline, HabituationTrialsTimeline
 from ibllib.io.extractors import mesoscope
@@ -287,7 +288,7 @@ class TestMesoscopeFOV(base.IntegrationTest):
         with patch.object(task, 'register_fov') as mock_obj, \
                 patch.object(task, 'project_mlapdv', return_value=mean_img_map):
             self.assertEqual(0, task.run())
-            mock_obj.assert_called_once_with(unittest.mock.ANY, 'estimate')
+            mock_obj.assert_called_once_with(unittest.mock.ANY, Provenance.ESTIMATE)
         self.assertEqual(self.n_fov * 4 + 1, len(task.outputs))  # + 1 for modified meta file
         # Mean image brain locations should be int
         file = next(f for f in task.outputs if 'mpciMeanImage.brainLocationIds_ccf_2017_estimate' in f.name)
@@ -312,7 +313,7 @@ class TestMesoscopeFOV(base.IntegrationTest):
         with patch.object(task, 'register_fov') as mock_obj, \
                 patch.object(task, 'project_mlapdv', return_value=mean_img_map):
             self.assertEqual(0, task.run(provenance=Provenance.HISTOLOGY))
-            mock_obj.assert_called_once_with(unittest.mock.ANY, None)
+            mock_obj.assert_called_once_with(unittest.mock.ANY, Provenance.HISTOLOGY)
         self.assertEqual((self.n_fov * 4) + 1, len(task.outputs))  # + 1 for modified meta file
         self.assertFalse(any('_estimate' in x.name for x in task.outputs))
         rois = alfio.load_object(self.session_path / 'alf' / 'FOV_00', 'mpciROIs')
@@ -379,9 +380,9 @@ class TestProjectFOV(base.IntegrationTest):
         self.assertTrue(set(FOV_00.keys()) >= {'MLAPDV', 'brainLocationIds'})
         expected = {'topLeft': 312782550, 'topRight': 981, 'bottomLeft': 312782550,
                     'bottomRight': 312782604, 'center': 312782550}
-        self.assertDictEqual(FOV_00['brainLocationIds'], expected)
+        self.assertDictEqual(FOV_00['brainLocationIds'].get('estimate', {}), expected)
         expected = [2575.3890558071657, -1901.209002390902, -297.8571573244117]
-        np.testing.assert_array_almost_equal(FOV_00['MLAPDV']['center'], expected)
+        np.testing.assert_array_almost_equal(FOV_00['MLAPDV']['estimate']['center'], expected)
 
         # Test behaviour when outside of the brain (also remove one of the FOVs for speed)
         FOV_00 = self.meta['FOV'].pop()

@@ -104,7 +104,7 @@ else
     end
 end
 
-meta.version = '0.2.1';
+meta.version = '0.2.2';
 
 % rig based
 meta.channelID.green = [1, 2]; % information about channel numbers (red/green)
@@ -589,20 +589,23 @@ for iFOV = 1:nFOVs
     metaOut.FOV(iFOV).pixelAnnot = reshape(annotation, size(xPixIdx));
     
     % check dimensions (i.e. do we need a row or a column vector?)
-    metaOut.FOV(iFOV).MLAPDV.topLeft = squeeze(metaOut.FOV(iFOV).pixelMLAPDV(1, 1, :));
-    metaOut.FOV(iFOV).MLAPDV.topRight = squeeze(metaOut.FOV(iFOV).pixelMLAPDV(1, end, :));
-    metaOut.FOV(iFOV).MLAPDV.bottomLeft = squeeze(metaOut.FOV(iFOV).pixelMLAPDV(end, 1, :));
-    metaOut.FOV(iFOV).MLAPDV.bottomRight = squeeze(metaOut.FOV(iFOV).pixelMLAPDV(end, end, :));
-    metaOut.FOV(iFOV).MLAPDV.center = squeeze(metaOut.FOV(iFOV).pixelMLAPDV(round(end/2), round(end/2), :));
+    estimate = struct(...
+        'topLeft', squeeze(metaOut.FOV(iFOV).pixelMLAPDV(1, 1, :)), ...
+        'topRight', squeeze(metaOut.FOV(iFOV).pixelMLAPDV(1, end, :)), ...
+        'bottomLeft', squeeze(metaOut.FOV(iFOV).pixelMLAPDV(end, 1, :)), ...
+        'bottomRight', squeeze(metaOut.FOV(iFOV).pixelMLAPDV(end, end, :)), ...
+        'center', squeeze(metaOut.FOV(iFOV).pixelMLAPDV(round(end/2), round(end/2), :)));
+    metaOut.FOV(iFOV).MLAPDV.estimate = estimate;
     
     % We probably also want to save the brain regions of the
     % corners/centers of FOV (annotation field)
-    metaOut.FOV(iFOV).brainLocationIds.topLeft = squeeze(metaOut.FOV(iFOV).pixelAnnot(1, 1));
-    metaOut.FOV(iFOV).brainLocationIds.topRight = squeeze(metaOut.FOV(iFOV).pixelAnnot(1, end));
-    metaOut.FOV(iFOV).brainLocationIds.bottomLeft = squeeze(metaOut.FOV(iFOV).pixelAnnot(end, 1));
-    metaOut.FOV(iFOV).brainLocationIds.bottomRight = squeeze(metaOut.FOV(iFOV).pixelAnnot(end, end));
-    metaOut.FOV(iFOV).brainLocationIds.center = squeeze(metaOut.FOV(iFOV).pixelAnnot(round(end/2), round(end/2)));
-    
+    estimate = struct(...
+        'topLeft', squeeze(metaOut.FOV(iFOV).pixelAnnot(1, 1)), ...
+        'topRight', squeeze(metaOut.FOV(iFOV).pixelAnnot(1, end)), ...
+        'bottomLeft', squeeze(metaOut.FOV(iFOV).pixelAnnot(end, 1)), ...
+        'bottomRight', squeeze(metaOut.FOV(iFOV).pixelAnnot(end, end)), ...
+        'center', squeeze(metaOut.FOV(iFOV).pixelAnnot(round(end/2), round(end/2))));
+    metaOut.FOV(iFOV).brainLocationIds.estimate = estimate;
 end
 
 end
