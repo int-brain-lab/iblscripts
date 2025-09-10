@@ -232,6 +232,9 @@ class TestLightningPose(base.IntegrationTest):
     @unittest.mock.patch(
         "ibllib.pipes.video_tasks.LightningPose._check_env", return_value=unittest.mock.MagicMock('mock_version')
     )
+    @unittest.mock.patch.object(
+        LightningPose, 'scripts', Path(__file__).parents[3].joinpath('deploy', 'serverpc', 'litpose')
+    )
     def test_litpose(self, mock_check_env):
         # Test the existence of the relevant iblscripts scripts separately as we are mocking the relevant check
         task = LightningPose(self.session_path,
