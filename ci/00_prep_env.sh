@@ -12,6 +12,20 @@ set -e
 # 4. /var/www/alyx-test/certs/certlink.sh
 # 5. $HOME/Documents/PYTHON/ci/iblscripts/ci/download_data.py
 
+# Function to check if ffmpeg is installed
+check_ffmpeg() {
+    if command -v ffmpeg &> /dev/null; then
+        echo "FFmpeg is installed: $(ffmpeg -version | head -n 1)"
+        return 0
+    else
+        echo "FFmpeg is not installed or not in PATH"
+        return 1
+    fi
+}
+
+# Call the function
+check_ffmpeg || { echo "Please install FFmpeg to continue."; exit 1; }
+
 # Update ibllib in github folder in order to flake
 pushd "$2"  # into ibllib folder
 git fetch --all
