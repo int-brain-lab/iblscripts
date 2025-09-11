@@ -2,12 +2,15 @@
 from unittest import mock
 from pathlib import Path
 import shutil
+import tempfile
 
 import numpy as np
+import skimage.transform
+import skimage.io
 from one.api import ONE
 from iblatlas.atlas import MRITorontoAtlas
 
-from ibllib.mpci.registration import MesoscopeFOVHistology
+from ibllib.mpci.registration import MesoscopeFOVHistology, register_reference_stacks
 from ibllib.oneibl.data_handlers import ServerDataHandler
 
 from ci.tests.base import IntegrationTest, TEST_DB
@@ -68,3 +71,40 @@ class TestUpdateCraniotomyCenter(IntegrationTest):
         np.testing.assert_array_almost_equal(p_ref, expected_p_ref, decimal=5)
         np.testing.assert_array_almost_equal(n_ref, expected_n_ref, decimal=5)
         self.assertAlmostEqual(dv_avg, expected_dv_avg, delta=1e-2)
+
+
+class TestMesoscopeRegistration(IntegrationTest):
+
+    required_files = ['mesoscope/SP037/2023-02-20/001/raw_imaging_data_00/reference/referenceImage.stack.tif']
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp_path = Path(tmp.name)
+
+    def test_register_reference_stacks(self):
+        """Test the registration of reference stacks."""
+        target_stack_path = Path(self.data_path, self.required_files[0])
+        # Rotate and offet for testing purposes
+        stack = skimage.io.imread(str(target_stack_path))
+        translation = np.array([-28.852596, -23.972448])
+        rotation = -0.015674293
+        transform = (skimage.transform.EuclideanTransform(rotation=-rotation) +
+                     skimage.transform.EuclideanTransform(translation=-translation))
+        # Warp the stack but only in the last two dimensions
+        warped = np.empty_like(stack)
+        for i in range(stack.shape[0]):
+            warped[i] = skimage.transform.warp(
+                stack[i], transform,
+                order=1, mode='constant', cval=0, preserve_range=True)
+        # Save the transformed stack to a temporary file
+        stack_path = self.tmp_path / 'referenceImage.stack.tif'
+        skimage.io.imsave(stack_path, warped)
+
+        # Load the reference stacks
+        _, params = register_reference_stacks(stack_path, target_stack_path, save_path=self.tmp_path / 'registered.gif')
+        # Check that the parameters are close to the expected values
+        np.testing.assert_allclose(params['translation'], translation, rtol=.1)
+        np.testing.assert_approx_equal(params['rotation'], rotation, significant=3)
+        self.assertTrue(self.tmp_path.joinpath('registered.gif').exists())
+        self.assertTrue(self.tmp_path.joinpath('registered.json').exists())
