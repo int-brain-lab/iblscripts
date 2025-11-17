@@ -12,18 +12,17 @@ source "$HOME/Documents/PYTHON/envs/ci/bin/activate"
 # Flake ibllib and save the output in a separate log
 mkdir -p "$3"
 pushd "$2"
-echo "flaking ibllib"
-flake8 . --tee --output-file="$3/reports/$1/flake_output_ibllib.txt"
+echo "linting ibllib"
+ruff check . | tee "$3/reports/$1/ruff_output_ibllib.txt"
 
 # Flake iblscripts
-echo "flaking iblscripts"
-flake8 "$2/../iblscripts" --tee --output-file="$3/reports/$1/flake_output_iblscripts.txt" --config="$2/../iblscripts/.flake8"
-
+echo "linting iblscripts"
+ruff check "$2/../iblscripts" --config="$2/../iblscripts/ruff.toml" | tee "$3/reports/$1/ruff_output_iblscripts.txt"
 # Merge flake reports
-for file in "$3"/reports/"$1"/flake_output_*.txt
+for file in "$3"/reports/"$1"/ruff_output_*.txt
 do
-   printf '===== %s =====\n\n' "$file" >> "$3/reports/$1/flake_output.txt"
-   cat "$file" >> "$3/reports/$1/flake_output.txt"
+   printf '===== %s =====\n\n' "$file" >> "$3/reports/$1/ruff_output.txt"
+   cat "$file" >> "$3/reports/$1/ruff_output.txt"
    rm "$file"
 done
 
