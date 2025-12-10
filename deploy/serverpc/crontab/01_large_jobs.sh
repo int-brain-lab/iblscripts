@@ -30,7 +30,7 @@ while true; do
     # check optional suite2p env installed
     if [ -d "$suite2penv" ]; then
       printf "\nChecking suite2p env for updates\n"
-      ../mesoscope/update_suite2p_env.sh
+      # ../mesoscope/update_suite2p_env.sh
       source "$suite2penv/bin/activate"
     fi
     last_update=$SECONDS
