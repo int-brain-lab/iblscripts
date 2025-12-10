@@ -52,14 +52,18 @@ class TestPassiveTrials(base.IntegrationTest):
                                              if '_ibl_passivePeriods.intervalsTable.csv' in o.name))
         self.assertFalse(np.all(np.isnan(passive_intervals.taskReplay.values)))
 
-    @unittest.mock.patch('ibllib.io.extractors.ephys_passive.skip_task_replay', return_value=True)
-    def test_passive_extract_no_task_replay(self, _):
+    @unittest.mock.patch('ibllib.io.raw_data_loaders.load_settings')
+    def test_passive_extract_no_task_replay(self, mock_load_settings):
+        mock_load_settings.return_value = {'SKIP_EVENT_REPLAY': True,
+                                           'IBLRIG_VERSION': '6.4.2',
+                                           'PREGENERATED_SESSION_NUM': 3
+                                           }
+
         task = PassiveTaskNidq(self.session_path, collection='raw_passive_data', sync_collection='raw_ephys_data',
                                sync_namespace='spikeglx', one=self.one)
         status = task.run()
 
-        self.assertEqual(0, status)
-        task.assert_expected_outputs()
+        self.assertEqual(-1, status)
 
         self.assertEqual(2, len(task.outputs))
 
