@@ -219,13 +219,8 @@ class TestExtractTaskReplay(base.IntegrationTest):
     def test_extract_replay(self):
         """ Test extraction of full task replay stimuli on good data"""
 
-        settings = {
-            'IBLRIG_VERSION': '7.2.9',
-            'SESSION_TEMPLATE_ID': 2,
-        }
-
         gabor_df, stim_df = ephys_passive.extract_task_replay(
-            self.session_path, sync_collection='raw_ephys_Data', settings=settings, task_collection='raw_passive_data',
+            self.session_path, sync_collection='raw_ephys_Data', task_collection='raw_passive_data',
             sync=self.sync, sync_map=self.sync_map, treplay=self.treplay)
 
         self.assertEqual(len(gabor_df), 179)
