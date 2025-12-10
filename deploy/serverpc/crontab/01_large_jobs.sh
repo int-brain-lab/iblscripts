@@ -5,11 +5,10 @@ cd "$HOME/Documents/PYTHON/iblscripts/deploy/serverpc/crontab"
 # Source dlcenv here. While the dlc and spike sorting tasks have their own environments, the compression jobs dont
 # We avoid using iblenv here, as we don't want to interfere with the small jobs etc. dlcenv has everything needed
 # for the video compression
-dlcenv="$HOME/Documents/PYTHON/envs/dlcenv/"
 litposeenv="$HOME/Documents/PYTHON/envs/litpose/"
 suite2penv="$HOME/Documents/PYTHON/envs/suite2p/"
 iblsortenv="$HOME/Documents/PYTHON/SPIKE_SORTING/ibl-sorter/.venv"
-source "$dlcenv/bin/activate"
+source "$suite2penv/bin/activate"
 
 # Set cuda env
 export CUDA_VERSION=11.8
@@ -24,8 +23,6 @@ last_run=$(( SECONDS - 86400 ))
 while true; do
   # Every six hours (or after service restart) check if any packages in the environments need updating
   if  (( $(( SECONDS - last_update )) > 43200 )); then
-    printf "\nChecking dlcenv for updates\n"
-    ../dlc/update_dlcenv.sh
     if [ -d "$iblsortenv" ]; then
       printf "\nChecking iblsort env for updates\n"
       ../iblsorter/update_iblsorter.sh
@@ -34,7 +31,7 @@ while true; do
     if [ -d "$suite2penv" ]; then
       printf "\nChecking suite2p env for updates\n"
       ../mesoscope/update_suite2p_env.sh
-      source "$dlcenv/bin/activate"
+      source "$suite2penv/bin/activate"
     fi
     last_update=$SECONDS
   fi
@@ -42,7 +39,7 @@ while true; do
   if  (( $(( SECONDS - last_run )) > 300 )); then
     last_run=$SECONDS
     printf "\nGrabbing next large job from the queue\n"
-    source "$dlcenv/bin/activate"
+    source "$suite2penv/bin/activate"
     python large_jobs.py
     deactivate
     if [ -d "$iblsortenv" ]; then
