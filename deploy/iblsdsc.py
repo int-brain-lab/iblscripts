@@ -6,13 +6,18 @@ The specificity of this implementation arises from several factors:
 -   the cache is read-only
 -   the cache is a constant
 -   each file is stored with an UUID between the file stem and the extension
+-   rest caching is disabled by default (no write permissions from popeye)
 
 The limitations of this implementation are:
 -   alfio.load methods will load objects with long keys containing UUIDS
 
+Note:
+-   use the location kwarg to specify if you are datauser on SDSC or regular user on popeye
+
 Recommended usage: just monkey patch the ONE import and run your code as usual on Popeye !
 >>> from deploy.iblsdsc import OneSdsc as ONE
 """
+
 import logging
 from pathlib import Path
 from itertools import filterfalse
@@ -20,22 +25,33 @@ from itertools import filterfalse
 from one.api import OneAlyx
 from one.alf.spec import is_uuid_string
 import one.params
-
-from ibllib.oneibl.patcher import SDSC_ROOT_PATH
+from typing import Literal
 
 _logger = logging.getLogger(__name__)
-CACHE_DIR = Path('/mnt/sdceph/users/ibl/data')
-CACHE_DIR_FI = Path(SDSC_ROOT_PATH)
+CACHE_DIR_POPEYE = Path("/mnt/sdceph/users/ibl/data")
+CACHE_DIR_SDSC = Path("/mnt/ibl")
 
 
 class OneSdsc(OneAlyx):
+    def __init__(
+        self,
+        *args,
+        cache_dir: str | Path = CACHE_DIR_POPEYE,
+        location: Literal["popeye", "SDSC"] = "popeye",
+        cache_rest: bool = None,
+        **kwargs,
+    ):
+        # set cache dir according to location
+        if location == "popeye":
+            cache_dir = CACHE_DIR_POPEYE
+        elif location == "SDSC":
+            cache_dir = CACHE_DIR_SDSC
 
-    def __init__(self, *args, cache_dir=CACHE_DIR, **kwargs):
-        if not kwargs.get('tables_dir'):
+        if not kwargs.get("tables_dir"):
             # Ensure parquet tables downloaded to separate location to the dataset repo
-            kwargs['tables_dir'] = one.params.get_cache_dir()  # by default this is user downloads
-        super().__init__(*args, cache_dir=cache_dir, **kwargs)
-        self.alyx.rest_cache_dir = self._tables_dir / '.rest'
+            kwargs["tables_dir"] = one.params.get_cache_dir()  # by default this is user downloads
+        super().__init__(*args, cache_dir=cache_dir, cache_rest=cache_rest, **kwargs)
+        self.alyx.rest_cache_dir = self._tables_dir / ".rest"
         # assign property here as it is set by the parent OneAlyx class at init
         self.uuid_filenames = True
 
@@ -46,7 +62,7 @@ class OneSdsc(OneAlyx):
             return obj
         # pops the UUID in the key names
         for k in list(obj.keys()):
-            new_key = '.'.join(filterfalse(is_uuid_string, k.split('.')))
+            new_key = ".".join(filterfalse(is_uuid_string, k.split(".")))
             obj[new_key] = obj.pop(k)
         return obj
 
@@ -62,18 +78,19 @@ def _test_one_sdsc():
     :return:
     """
     from brainbox.io.one import SpikeSortingLoader, SessionLoader
+
     one = OneSdsc()
     pid = "069c2674-80b0-44b4-a3d9-28337512967f"
     eid, _ = one.pid2eid(pid)
     dsets = one.list_datasets(eid=eid)
     assert len(dsets) > 0
     # checks that this is indeed the short key version when using load object
-    trials = one.load_object(eid, obj='trials')
-    assert 'intervals' in trials
+    trials = one.load_object(eid, obj="trials")
+    assert "intervals" in trials
     # checks that this is indeed the short key version when using the session loader and spike sorting loader
     sl = SessionLoader(eid=eid, one=one)  # noqa
     sl.load_wheel()
-    assert 'position' in sl.wheel.columns
+    assert "position" in sl.wheel.columns
     ssl = SpikeSortingLoader(pid=pid, one=one)
     spikes, clusters, channels = ssl.load_spike_sorting()  # noqa
-    assert 'amps' in spikes
+    assert "amps" in spikes
