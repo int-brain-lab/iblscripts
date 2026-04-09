@@ -31,6 +31,10 @@ _logger = logging.getLogger(__name__)
 CACHE_DIR_POPEYE = Path("/mnt/sdceph/users/ibl/data")
 CACHE_DIR_SDSC = Path("/mnt/ibl")
 
+# keeping those variables for downward compatibility
+CACHE_DIR = CACHE_DIR_POPEYE
+CACHE_DIR_FI = CACHE_DIR_SDSC
+
 
 class OneSdsc(OneAlyx):
     def __init__(
@@ -43,8 +47,12 @@ class OneSdsc(OneAlyx):
     ):
         # set cache dir according to location
         if location == "popeye":
+            if cache_dir is not None and cache_dir != CACHE_DIR_POPEYE:
+                raise ValueError("both location and cache dir are specified, and they are incompatible")
             cache_dir = CACHE_DIR_POPEYE
         elif location == "SDSC":
+            if cache_dir is not None and cache_dir != CACHE_DIR_SDSC:
+                raise ValueError("both location and cache dir are specified, and they are incompatible")
             cache_dir = CACHE_DIR_SDSC
 
         if not kwargs.get("tables_dir"):
