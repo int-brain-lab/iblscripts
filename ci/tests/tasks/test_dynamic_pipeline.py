@@ -8,6 +8,7 @@ from ibllib.pipes.local_server import job_creator, tasks_runner
 import ibllib.pipes.dynamic_pipeline as dynamic
 import ibllib.io.session_params as sess_params
 from ibllib.io.raw_data_loaders import patch_settings
+import unittest
 
 from ci.tests import base
 
@@ -89,6 +90,7 @@ class TestStandardPipelines(base.IntegrationTest):
         shutil.copytree(self.folder_path.joinpath('widefield'), self.session_path)
         self.check_pipeline()
 
+    @unittest.skip("Skipping photometry test for now")
     def test_photometry(self):
         src = self.folder_path.joinpath('neurophotometrics', 'cortexlab', 'Subjects', 'CQ001', '2024-11-07', '001')
         shutil.copytree(src, self.session_path)

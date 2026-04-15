@@ -94,7 +94,7 @@ class TestVideoIO(base.IntegrationTest):
         # Check with remote path
         one = ONE(**base.TEST_DB)
         dset = one.alyx.rest('datasets', 'list', session='a41019f8-e430-473b-b22c-bb740dbecc33',
-                             name='_iblrig_leftCamera.raw.mp4', exist=True)[0]
+                             name='_iblrig_leftCamera.raw.mp4', exists=True)[0]
         video_url = next(fr['data_url'] for fr in dset['file_records'] if fr['data_url'])
         meta = vidio.get_video_meta(video_url, one=one)
         self.assertTrue(set(expected.keys()).issubset(meta.keys()))
