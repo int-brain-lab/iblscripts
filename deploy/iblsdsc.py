@@ -41,18 +41,14 @@ class OneSdsc(OneAlyx):
         self,
         *args,
         cache_dir: str | Path = CACHE_DIR_POPEYE,
-        location: Literal["popeye", "SDSC"] = "popeye",
+        location: Literal["popeye", "SDSC"] | None = None,
         disable_rest_caching: bool = True,
         **kwargs,
     ):
         # set cache dir according to location
         if location == "popeye":
-            if cache_dir is not None and cache_dir != CACHE_DIR_POPEYE:
-                raise ValueError("both location and cache dir are specified, and they are incompatible")
             cache_dir = CACHE_DIR_POPEYE
         elif location == "SDSC":
-            if cache_dir is not None and cache_dir != CACHE_DIR_SDSC:
-                raise ValueError("both location and cache dir are specified, and they are incompatible")
             cache_dir = CACHE_DIR_SDSC
 
         if not kwargs.get("tables_dir"):
