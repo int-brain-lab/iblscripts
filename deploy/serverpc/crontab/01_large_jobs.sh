@@ -2,14 +2,13 @@
 
 # Go to crontab dir
 cd "$HOME/Documents/PYTHON/iblscripts/deploy/serverpc/crontab"
-# Source dlcenv here. While the dlc and spike sorting tasks have their own environments, the compression jobs dont
-# We avoid using iblenv here, as we don't want to interfere with the small jobs etc. dlcenv has everything needed
-# for the video compression
+# Source iblenv as the default env
+iblenv="$HOME/Documents/PYTHON/envs/iblenv/"
 dlcenv="$HOME/Documents/PYTHON/envs/dlcenv/"
 litposeenv="$HOME/Documents/PYTHON/envs/litpose/"
 suite2penv="$HOME/Documents/PYTHON/envs/suite2p/"
 iblsortenv="$HOME/Documents/PYTHON/SPIKE_SORTING/ibl-sorter/.venv"
-source "$dlcenv/bin/activate"
+source "$iblenv/bin/activate"
 
 # Set cuda env: prefer the /usr/local/cuda symlink created by the nvidia installer,
 # fall back to the highest versioned cuda-X.Y directory found in /usr/local/.
@@ -49,7 +48,8 @@ while true; do
     if [ -d "$suite2penv" ]; then
       printf "\nChecking suite2p env for updates\n"
       ../mesoscope/update_suite2p_env.sh
-      source "$dlcenv/bin/activate"
+      # update suite2p sets the env to suite2p, we revert to the default env
+      source "$iblenv/bin/activate"
     fi
     last_update=$SECONDS
   fi
@@ -57,7 +57,7 @@ while true; do
   if  (( $(( SECONDS - last_run )) > 300 )); then
     last_run=$SECONDS
     printf "\nGrabbing next large job from the queue\n"
-    source "$dlcenv/bin/activate"
+    source "$iblenv/bin/activate"
     python large_jobs.py
     deactivate
     if [ -d "$iblsortenv" ]; then
@@ -75,6 +75,11 @@ while true; do
     if [ -d "$litposeenv" ]; then
       source "$litposeenv/bin/activate"
       python large_jobs.py --env litpose
+      deactivate
+    fi
+    if [ -d "$dlcenv" ]; then
+      source "$dlcenv/bin/activate"
+      python large_jobs.py --env dlc
       deactivate
     fi
   fi
