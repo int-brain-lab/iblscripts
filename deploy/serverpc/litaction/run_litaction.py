@@ -1,8 +1,7 @@
 import argparse
 from pathlib import Path
 
-from iblvideo import download_la_models
-from iblvideo.segmentation_la import lightning_action
+from iblvideo import download_la_models, lightning_action
 
 
 if __name__ == '__main__':
