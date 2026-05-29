@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 from iblvideo import download_weights
-from iblvideo.choiceworld import dlc
+from iblvideo.pose_dlc import dlc
 
 
 if __name__ == "__main__":
