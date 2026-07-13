@@ -13,8 +13,8 @@ source "$ENVDIR"
 pip install --upgrade pip
 pip install uv
 
-pip uninstall -y mpci ;
-pip install git+https://github.com/int-brain-lab/mpci.git ;
-pip uninstall -y ibllib ;
-pip install git+https://github.com/int-brain-lab/ibllib.git@mpciPackage ;
+uv pip uninstall mpci ;
+uv pip install git+https://github.com/int-brain-lab/mpci.git ;
+uv pip uninstall ibllib ;
+uv pip install git+https://github.com/int-brain-lab/ibllib.git@mpciPackage ;
 deactivate
