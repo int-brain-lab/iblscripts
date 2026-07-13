@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Make sure local suite2p repository is up to date
+ENVDIR="$HOME/Documents/PYTHON/envs/mpci"
+
+if [ ! -d "$ENVDIR" ]; then
+  echo "$ENVDIR does not exist; creating"
+  python3.12 -m venv $ENVDIR
+fi
+ENVDIR="$ENVDIR/bin/activate"  # NB: can't guarantee this path will be correct
+
+source "$ENVDIR"
+pip install --upgrade pip
+pip install uv
+
+pip uninstall -y mpci ;
+pip install git+https://github.com/int-brain-lab/mpci.git ;
+pip uninstall -y ibllib ;
+pip install git+https://github.com/int-brain-lab/ibllib.git@mpciPackage ;
+deactivate

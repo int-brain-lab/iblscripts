@@ -8,6 +8,7 @@ cd "$HOME/Documents/PYTHON/iblscripts/deploy/serverpc/crontab"
 dlcenv="$HOME/Documents/PYTHON/envs/dlcenv/"
 litposeenv="$HOME/Documents/PYTHON/envs/litpose/"
 suite2penv="$HOME/Documents/PYTHON/envs/suite2p/"
+masknmfenv="$HOME/Documents/PYTHON/envs/masknmftoolbox/"
 iblsortenv="$HOME/Documents/PYTHON/SPIKE_SORTING/ibl-sorter/.venv"
 source "$dlcenv/bin/activate"
 

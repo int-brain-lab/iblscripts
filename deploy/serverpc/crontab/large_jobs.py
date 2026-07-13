@@ -73,7 +73,7 @@ def process_next_large_job(subjects_path, env=None, one=None):
     one = one or ONE(mode='remote', cache_rest=None)
     envs = list_available_envs()
     _logger.info(f'Available environments: {envs}')
-    waiting_tasks = task_queue(mode='large', alyx=one.alyx, env=list_available_envs())
+    waiting_tasks = task_queue(mode='large', alyx=one.alyx, env=envs)
 
     if len(waiting_tasks) == 0:
         _logger.info('No large tasks in the queue')
