@@ -36,10 +36,18 @@ while true; do
     printf "\n$(date)\n" ;
     printf "Running health report and creating jobs\n" ;
     printf "Logging to /var/log/ibl/report_create_jobs.log\n" ;
+    if [ -d "$mpcienv" ]; then
+      deactivate
+      source "$mpcienv/bin/activate"
+      printf "Switching to mpci env\n" ;
+    fi
     python report_create_jobs.py >> /var/log/ibl/report_create_jobs.log 2>&1 ;
     report_create_last=$SECONDS  # reset the timer
   fi
 
+  # Ensure we are in the iblenv for small jobs
+  deactivate
+  source ~/Documents/PYTHON/envs/iblenv/bin/activate
   # Always: query for waiting jobs and run first 20 jobs in the queue
   printf "\n$(date)\n" ;
   printf "Running next set of small jobs from the queue\n" ;
