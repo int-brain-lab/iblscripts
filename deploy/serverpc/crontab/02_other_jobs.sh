@@ -2,8 +2,6 @@
 
 # Go to crontab dir
 cd ~/Documents/PYTHON/iblscripts/deploy/serverpc/crontab
-# Source iblenv
-source ~/Documents/PYTHON/envs/iblenv/bin/activate
 
 mpcienv="$HOME/Documents/PYTHON/envs/mpci/"
 
@@ -13,6 +11,9 @@ env_last_update=$SECONDS  # $SECONDS indicates seconds since shell was opened, w
 report_create_last=-7200  # this is to make sure report and create run upon service restart
 
 while true; do
+  # Source iblenv
+  source ~/Documents/PYTHON/envs/iblenv/bin/activate
+
   # Every night at midnight, run environment update and maintenance script
   if  (( SECONDS - env_last_update >= env_update_in )); then
     printf "\n$(date)\n" ;

@@ -8,6 +8,7 @@ cd "$HOME/Documents/PYTHON/iblscripts/deploy/serverpc/crontab"
 dlcenv="$HOME/Documents/PYTHON/envs/dlcenv/"
 litposeenv="$HOME/Documents/PYTHON/envs/litpose/"
 suite2penv="$HOME/Documents/PYTHON/envs/suite2p/"
+mpcienv="$HOME/Documents/PYTHON/envs/mpci/"
 masknmfenv="$HOME/Documents/PYTHON/envs/masknmftoolbox/"
 iblsortenv="$HOME/Documents/PYTHON/SPIKE_SORTING/ibl-sorter/.venv"
 source "$dlcenv/bin/activate"
@@ -37,6 +38,18 @@ while true; do
       ../mesoscope/update_suite2p_env.sh
       source "$dlcenv/bin/activate"
     fi
+    # check optional suite2p env installed
+    if [ -d "$suite2penv" ]; then
+      printf "\nChecking suite2p env for updates\n"
+      ../mesoscope/update_suite2p_env.sh
+      source "$dlcenv/bin/activate"
+    fi
+    # check optional mpci env installed
+    if [ -d "$mpcienv" ]; then
+      printf "\nChecking mpci env for updates\n"
+      ../mpci/update_mpci_env.sh
+      source "$dlcenv/bin/activate"
+    fi
     last_update=$SECONDS
   fi
   # Every 5 minutes we run the large jobs
@@ -55,6 +68,12 @@ while true; do
     if [ -d "$suite2penv" ]; then
       source "$suite2penv/bin/activate"
       python large_jobs.py --env suite2p
+      deactivate
+    fi
+    # If the mpci env is installed, switch to this to run related task if next in queue
+    if [ -d "$mpcienv" ]; then
+      source "$mpcienv/bin/activate"
+      python large_jobs.py --env mpci
       deactivate
     fi
     # If the litpose env is installed, switch to this to run related task if next in queue
