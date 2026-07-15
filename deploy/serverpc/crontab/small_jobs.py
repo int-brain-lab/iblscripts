@@ -5,9 +5,8 @@ import argparse
 from pathlib import Path
 
 from one.api import ONE
-from ibllib.pipes.local_server import task_queue
+from ibllib.pipes.local_server import task_queue, list_available_envs
 from ibllib.pipes.tasks import run_alyx_task, str2class
-from .large_jobs import list_available_envs
 
 _logger = logging.getLogger('ibllib')
 sleep_time = 3600  # How long to sleep if task queue is empty, before re-querying the database
