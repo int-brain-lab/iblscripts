@@ -16,12 +16,12 @@ while true; do
     printf "\n$(date)\n" ;
     printf "Checking iblenv for updates\n" ;
     printf "Logging to /var/log/ibl/update_iblenv.log\n" ;
-    ./update_iblenv.sh > /var/log/ibl/update_iblenv.log 2>&1 ;
+    ./update_iblenv.sh 2>&1 | tee /var/log/ibl/update_iblenv.log ;
 
     printf "\n$(date)\n" ;
     printf "Running maintenance script\n" ;
     printf "Logging to /var/log/ibl/maintenance_jobs.log\n" ;
-    python maintenance_jobs.py > /var/log/ibl/maintenance_jobs.log 2>&1 ;
+    python maintenance_jobs.py 2>&1 | tee  /var/log/ibl/maintenance_jobs.log ;
 
     # Reset time to next update to time until next midnight (in seconds) and restart counting elapsed seconds
     env_update_in=$(expr `date -d "tomorrow 0" +%s` - `date -d "now" +%s`) ;
@@ -33,7 +33,7 @@ while true; do
     printf "\n$(date)\n" ;
     printf "Running health report and creating jobs\n" ;
     printf "Logging to /var/log/ibl/report_create_jobs.log\n" ;
-    python report_create_jobs.py >> /var/log/ibl/report_create_jobs.log 2>&1 ;
+    python report_create_jobs.py 2>&1 | tee -a /var/log/ibl/report_create_jobs.log ;
     report_create_last=$SECONDS  # reset the timer
   fi
 
@@ -41,7 +41,7 @@ while true; do
   printf "\n$(date)\n" ;
   printf "Running next set of small jobs from the queue\n" ;
   printf "Logging to /var/log/ibl/small_jobs.log\n" ;
-  python small_jobs.py >> /var/log/ibl/small_jobs.log 2>&1 ;
+  python small_jobs.py 2>&1 | tee -a /var/log/ibl/small_jobs.log ;
 
   # Repeat
 done
