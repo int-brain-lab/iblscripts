@@ -14,7 +14,8 @@ pip install --upgrade pip
 pip install uv
 
 uv pip uninstall mpci ;
-uv pip install git+https://github.com/int-brain-lab/mpci.git ;
+uv pip install "mpci[suite2p] @ git+https://github.com/int-brain-lab/mpci.git" ;
 uv pip uninstall ibllib ;
 uv pip install git+https://github.com/int-brain-lab/ibllib.git@mpciPackage ;
+uv pip install "project_extraction[passiveVideo] @ git+https://github.com/int-brain-lab/project_extraction.git" ;
 deactivate
