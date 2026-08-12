@@ -71,4 +71,4 @@ printf "\nUninstalling and reinstalling ONE-api, ibllib and project_extraction.\
 pip uninstall -y ONE-api ibllib project_extraction ;
 pip install git+https://github.com/int-brain-lab/ONE.git@$one_branch ;
 pip install git+https://github.com/int-brain-lab/ibllib.git@$ibllib_branch --upgrade-strategy eager ;
-pip install git+https://github.com/int-brain-lab/project_extraction.git ;
+pip install "project_extraction[passiveVideo] @ git+https://github.com/int-brain-lab/project_extraction.git" ;

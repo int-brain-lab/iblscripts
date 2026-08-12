@@ -2,8 +2,8 @@
 
 # Go to crontab dir
 cd ~/Documents/PYTHON/iblscripts/deploy/serverpc/crontab
-# Source iblenv
-source ~/Documents/PYTHON/envs/iblenv/bin/activate
+
+mpcienv="$HOME/Documents/PYTHON/envs/mpci/"
 
 env_update_in=0 # this is to make sure the environments get updated upon service restart
 env_last_update=$SECONDS  # $SECONDS indicates seconds since shell was opened, which we use a zero point
@@ -11,6 +11,9 @@ env_last_update=$SECONDS  # $SECONDS indicates seconds since shell was opened, w
 report_create_last=-7200  # this is to make sure report and create run upon service restart
 
 while true; do
+  # Source iblenv
+  source ~/Documents/PYTHON/envs/iblenv/bin/activate
+
   # Every night at midnight, run environment update and maintenance script
   if  (( SECONDS - env_last_update >= env_update_in )); then
     printf "\n$(date)\n" ;
@@ -21,7 +24,7 @@ while true; do
     printf "\n$(date)\n" ;
     printf "Running maintenance script\n" ;
     printf "Logging to /var/log/ibl/maintenance_jobs.log\n" ;
-    python maintenance_jobs.py 2>&1 | tee  /var/log/ibl/maintenance_jobs.log ;
+    python maintenance_jobs.py 2>&1 | tee /var/log/ibl/maintenance_jobs.log ;
 
     # Reset time to next update to time until next midnight (in seconds) and restart counting elapsed seconds
     env_update_in=$(expr `date -d "tomorrow 0" +%s` - `date -d "now" +%s`) ;
@@ -33,15 +36,32 @@ while true; do
     printf "\n$(date)\n" ;
     printf "Running health report and creating jobs\n" ;
     printf "Logging to /var/log/ibl/report_create_jobs.log\n" ;
-    python report_create_jobs.py 2>&1 | tee -a /var/log/ibl/report_create_jobs.log ;
+    if [ -d "$mpcienv" ]; then
+      deactivate
+      source "$mpcienv/bin/activate"
+      printf "Switching to mpci env\n" ;
+    fi
+    python report_create_jobs.py 2>&1 | tee /var/log/ibl/report_create_jobs.log ;
     report_create_last=$SECONDS  # reset the timer
   fi
 
-  # Always: query for waiting jobs and run first job in the queue
+  # Ensure we are in the iblenv for small jobs
+  deactivate
+  source ~/Documents/PYTHON/envs/iblenv/bin/activate
+  # Always: query for waiting jobs and run first 20 jobs in the queue
   printf "\n$(date)\n" ;
   printf "Running next set of small jobs from the queue\n" ;
   printf "Logging to /var/log/ibl/small_jobs.log\n" ;
   python small_jobs.py 2>&1 | tee -a /var/log/ibl/small_jobs.log ;
+  deactivate
+
+  # If the mpci env is installed, switch to this to run related tasks if next in queue
+  if [ -d "$mpcienv" ]; then
+    source "$mpcienv/bin/activate"
+    printf "Running next set of small jobs in mpci env\n" ;
+    python small_jobs.py --env mpci 2>&1 | tee -a /var/log/ibl/small_jobs.log ;
+    deactivate
+  fi
 
   # Repeat
 done
