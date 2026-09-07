@@ -280,7 +280,10 @@ class TestSessionLoader(IntegrationTest):
                 'DEBUG:ibllib:Not loading wheel data, is already loaded and reload=False.',
                 'DEBUG:ibllib:Not loading pose data, is already loaded and reload=False.',
                 'DEBUG:ibllib:Not loading motion_energy data, is already loaded and reload=False.',
-                'DEBUG:ibllib:Not loading pupil data, is already loaded and reload=False.'
+                'DEBUG:ibllib:Not loading pupil data, is already loaded and reload=False.',
+                'DEBUG:ibllib:Not loading licks data, is already loaded and reload=False.',
+                'DEBUG:ibllib:Not loading pawstates data, is already loaded and reload=False.'
+
             ], cm.output)
         # Make sure data IS reloaded
         with self.assertLogs(_logger, level='INFO') as cm:
@@ -291,5 +294,7 @@ class TestSessionLoader(IntegrationTest):
                 'INFO:ibllib:Loading pose data',
                 'INFO:ibllib:Loading motion_energy data',
                 'INFO:ibllib:Loading pupil data',
-                'INFO:ibllib:Pupil diameter not available, trying to compute on the fly.'
+                'INFO:ibllib:Pupil diameter not available, trying to compute on the fly.',
+                'INFO:ibllib:Loading licks data',
+                'INFO:ibllib:Loading pawstates data',
             ], cm.output)

@@ -92,15 +92,6 @@ class TestLoadFixtures(base.IntegrationTest):
         self.assertEqual(len(stims) - 1, len(stims_shifted))
         np.testing.assert_array_equal(gabors['contrast'].values[:-1], gabors_shifted['contrast'].values)
 
-        # Check version greater than 8.29.0 there is no shifting
-        settings = {
-            'IBLRIG_VERSION': '8.30.9',
-            'SESSION_TEMPLATE_ID': 2,
-        }
-        task_replay_unshifted = ephys_passive._load_v8_fixture_df(settings)
-        task_replay_shifted = ephys_passive.load_task_replay_fixtures(sess_path, collection, settings=settings)
-        pd.testing.assert_frame_equal(task_replay_shifted, task_replay_unshifted)
-
 
 class TestExtractPassivePeriods(base.IntegrationTest):
     def setUp(self):

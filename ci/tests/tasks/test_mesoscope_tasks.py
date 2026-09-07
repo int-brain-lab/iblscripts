@@ -561,7 +561,7 @@ class TestMesoscopeRegisterSnapshots(base.IntegrationTest):
           ibllib.tests.test_pipes.TestRegisterRawDataTask.test_rename_files
         """
         task = MesoscopeRegisterSnapshots(self.session_path, one=self.one)
-        eid, *_ = self.one.search()
+        eid = self.one.search()[0]
         with patch.object(self.one, 'path2eid', return_value=eid), \
                 patch.object(task, 'register_snapshots') as reg_mock:
             status = task.run()
