@@ -42,7 +42,6 @@ class OneSdsc(OneAlyx):
         *args,
         cache_dir: str | Path = CACHE_DIR_POPEYE,
         location: Literal["popeye", "SDSC"] | None = None,
-        disable_rest_caching: bool = True,
         **kwargs,
     ):
         # set cache dir according to location
@@ -54,7 +53,9 @@ class OneSdsc(OneAlyx):
         if not kwargs.get("tables_dir"):
             # Ensure parquet tables downloaded to separate location to the dataset repo
             kwargs["tables_dir"] = one.params.get_cache_dir()  # by default this is user downloads
-        if disable_rest_caching:
+
+        if "cache_rest" not in kwargs:
+            _logger.info("REST caching off")
             kwargs["cache_rest"] = None
 
         super().__init__(*args, cache_dir=cache_dir, **kwargs)
