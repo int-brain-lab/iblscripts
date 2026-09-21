@@ -62,7 +62,7 @@ while true; do
     # check optional mpci env installed
     if [ -d "$mpcienv" ]; then
       printf "\nChecking mpci env for updates\n"
-      ../mpci/update_mpci_env.sh
+      ../mesoscope/update_mpci_env.sh
       source "$dlcenv/bin/activate"
     fi
     last_update=$SECONDS
