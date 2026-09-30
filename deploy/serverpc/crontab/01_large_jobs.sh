@@ -2,14 +2,20 @@
 
 # Go to crontab dir
 cd "$HOME/Documents/PYTHON/iblscripts/deploy/serverpc/crontab"
-# Source dlcenv here. While the dlc and spike sorting tasks have their own environments, the compression jobs dont
+# Source dlcenv here. While the dlc and spike sorting tasks have their own environments, the compression jobs don't
 # We avoid using iblenv here, as we don't want to interfere with the small jobs etc. dlcenv has everything needed
 # for the video compression
 dlcenv="$HOME/Documents/PYTHON/envs/dlcenv/"
-litposeenv="$HOME/Documents/PYTHON/envs/litpose/"
 suite2penv="$HOME/Documents/PYTHON/envs/suite2p/"
 iblsortenv="$HOME/Documents/PYTHON/SPIKE_SORTING/ibl-sorter/.venv"
 source "$dlcenv/bin/activate"
+
+# Print "<env label> <venv path>" for each installed task environment. Tasks are routed to an
+# environment label by their executable, see ibllib.pipes.routing.ROUTES and ENV_PATHS.
+list_task_envs() {
+  "$dlcenv/bin/python" -c "from ibllib.pipes.routing import installed_envs, env_path
+for env in installed_envs()[1:]: print(env, env_path(env))"
+}
 
 # Set cuda env: prefer the /usr/local/cuda symlink created by the nvidia installer,
 # fall back to the highest versioned cuda-X.Y directory found in /usr/local/.
@@ -57,26 +63,18 @@ while true; do
   if  (( $(( SECONDS - last_run )) > 300 )); then
     last_run=$SECONDS
     printf "\nGrabbing next large job from the queue\n"
+    # Large tasks in the base environment. dlcenv has everything needed for these, e.g. video compression
     source "$dlcenv/bin/activate"
     python large_jobs.py
     deactivate
-    if [ -d "$iblsortenv" ]; then
-      source "$iblsortenv/bin/activate"
-      python large_jobs.py --env iblsorter
+    # Switch to each installed task environment (e.g. dlc, iblsorter, mpci, litpose) to run its
+    # tasks if next in the queue
+    # NB: the list is read from fd 3 so that the tasks can't consume it from stdin (e.g. ffmpeg)
+    while read -r env venv <&3; do
+      source "$venv/bin/activate"
+      python large_jobs.py --env "$env"
       deactivate
-    fi
-    # If the suite2p env is installed, switch to this to run related task if next in queue
-    if [ -d "$suite2penv" ]; then
-      source "$suite2penv/bin/activate"
-      python large_jobs.py --env suite2p
-      deactivate
-    fi
-    # If the litpose env is installed, switch to this to run related task if next in queue
-    if [ -d "$litposeenv" ]; then
-      source "$litposeenv/bin/activate"
-      python large_jobs.py --env litpose
-      deactivate
-    fi
+    done 3< <(list_task_envs)
   fi
   # Repeat
   sleep 5
