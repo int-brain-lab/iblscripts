@@ -6,7 +6,7 @@ cd "$HOME/Documents/PYTHON/iblscripts/deploy/serverpc/crontab"
 # We avoid using iblenv here, as we don't want to interfere with the small jobs etc. dlcenv has everything needed
 # for the video compression
 dlcenv="$HOME/Documents/PYTHON/envs/dlcenv/"
-suite2penv="$HOME/Documents/PYTHON/envs/suite2p/"
+mpcienv="$HOME/Documents/PYTHON/envs/mpci/"
 iblsortenv="$HOME/Documents/PYTHON/SPIKE_SORTING/ibl-sorter/.venv"
 source "$dlcenv/bin/activate"
 
@@ -51,10 +51,10 @@ while true; do
       printf "\nChecking iblsort env for updates\n"
       ../iblsorter/update_iblsorter.sh
     fi
-    # check optional suite2p env installed
-    if [ -d "$suite2penv" ]; then
-      printf "\nChecking suite2p env for updates\n"
-      ../mesoscope/update_suite2p_env.sh
+    # check optional mpci env installed
+    if [ -d "$mpcienv" ]; then
+      printf "\nChecking mpci env for updates\n"
+      ../mesoscope/update_mpci_env.sh
       source "$dlcenv/bin/activate"
     fi
     last_update=$SECONDS
