@@ -12,20 +12,22 @@ if [ -f "$FILE" ]; then
 else
     ibllib_branch="master"
 fi
+iblscripts_branch=$ibllib_branch
+iblscripts_branch="task_routing" # TODO Remove this line when task_routing is merged into master
 
 # Check if iblscripts is up to date
 pushd "$HOME/Documents/PYTHON/iblscripts"
 git fetch --all -p
 # Attempt to checkout same branch name as ibllib; fallback to master
 # if ibllib commit is on master or branch doesn't exist in iblscripts...
-if [[ "$ibllib_branch" =~ ^(remotes\/origin\/)?master$ ]] || \
-   [[ "$ibllib_branch" =~ ^remotes\/origin\/HEAD$ ]] || \
-   ! git rev-parse -q --verify --end-of-options remotes/origin/$ibllib_branch; then
+if [[ "$iblscripts_branch" =~ ^(remotes\/origin\/)?master$ ]] || \
+   [[ "$iblscripts_branch" =~ ^remotes\/origin\/HEAD$ ]] || \
+   ! git rev-parse -q --verify --end-of-options remotes/origin/$iblscripts_branch; then
         echo "Checking out master branch of iblscripts"
         git checkout -f master
 else
-        echo "Checking out $ibllib_branch of iblscripts"
-        git checkout -f $ibllib_branch
+        echo "Checking out $iblscripts_branch of iblscripts"
+        git checkout -f $iblscripts_branch
 fi
 git reset --hard -q
 LOCAL=$(git rev-parse @)
