@@ -13,7 +13,6 @@ else
     ibllib_branch="master"
 fi
 iblscripts_branch=$ibllib_branch
-iblscripts_branch="task_routing" # TODO Remove this line when task_routing is merged into master
 
 # Check if iblscripts is up to date
 pushd "$HOME/Documents/PYTHON/iblscripts"
