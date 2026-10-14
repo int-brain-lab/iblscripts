@@ -25,7 +25,7 @@ pip install uv
 uv pip uninstall mpci suite2p ;
 # Remove any leftover package dir (e.g. stale numba caches), which would make mpci a namespace package
 rm -rf "$ENVDIR"/lib/python3*/site-packages/mpci "$ENVDIR"/lib/python3*/site-packages/__editable__*mpci*
-uv pip install "mpci[suite2p] @ git+https://github.com/int-brain-lab/mpci.git@$mpci_branch" ;
+uv pip install "mpci[masknmf] @ git+https://github.com/int-brain-lab/mpci.git@$mpci_branch" ;
 # mpci depends on ibllib develop; reinstall ONE and ibllib from the same branches as the base env
 uv pip uninstall ONE-api ibllib ;
 uv pip install "ONE-api @ git+https://github.com/int-brain-lab/ONE.git@$one_branch" ;
