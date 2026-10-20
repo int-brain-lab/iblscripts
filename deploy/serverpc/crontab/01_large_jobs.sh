@@ -8,7 +8,7 @@ cd "$HOME/Documents/PYTHON/iblscripts/deploy/serverpc/crontab"
 dlcenv="$HOME/Documents/PYTHON/envs/dlcenv/"
 mpcienv="$HOME/Documents/PYTHON/envs/mpci/"
 iblsortenv="$HOME/Documents/PYTHON/SPIKE_SORTING/ibl-sorter/.venv"
-source "$dlcenv/bin/activate"
+source "$iblenv/bin/activate"
 
 # Print "<env label> <venv path>" for each installed task environment. Tasks are routed to an
 # environment label by their executable, see ibllib.pipes.routing.ROUTES and ENV_PATHS.
