@@ -11,15 +11,9 @@ devices:
   # metadata passed into the extractor is defined in this file
   mesoscope:
     mesoscope:
-      collection: raw_imaging_data*
+      collection: raw_imaging_data_??
       sync_label: neural_frames
   cameras:
-    belly:
-      collection: raw_video_data
-      sync_label: audio
-      width: 640
-      height: 512
-      fps: 30
     left:
       collection: raw_video_data
       sync_label: audio
