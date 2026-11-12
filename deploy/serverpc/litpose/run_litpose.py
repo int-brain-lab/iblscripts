@@ -3,8 +3,7 @@ from pathlib import Path
 # import cProfile
 # import pstats
 
-from iblvideo import download_lp_models
-from iblvideo.pose_lp import lightning_pose
+from iblvideo import download_lp_models, lightning_pose
 
 
 if __name__ == '__main__':
